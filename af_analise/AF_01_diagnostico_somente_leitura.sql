@@ -208,9 +208,54 @@ JOIN LATERAL (
     AND w.code_infloww <> sp.code_infloww COLLATE utf8mb4_unicode_ci
     AND w.dt >= sp.slot_inicio AND w.dt < sp.slot_fim
 ) outro ON TRUE;
--- O mesmo, aberto por turno (para peso por turno A/C/D):
--- repita o SELECT acima trocando o primeiro bloco por
---   CASE HOUR(sp.slot_inicio) ... END AS turno, ... GROUP BY turno
+-- Q6b. O mesmo, aberto por turno A/C/D (peso por turno para o Capacity)
+WITH af_slots AS (
+  SELECT a.codigo, a.code_infloww, a.dia, a.slot_inicio,
+         DATE_ADD(a.slot_inicio, INTERVAL 4 HOUR) AS slot_fim
+  FROM `5c_wfm_db_mis`.`abs_adh_af` a
+  WHERE a.dia BETWEEN @de AND @ate AND a.classificacao = 'AF'
+),
+slot_pagina AS (
+  SELECT s.*, sd.modeloNome
+  FROM af_slots s
+  LEFT JOIN `5c_schedule`.`scheduleday` sd
+    ON sd.codigo = s.codigo COLLATE utf8mb4_unicode_ci
+   AND sd.shiftDateAndHour = DATE_FORMAT(s.slot_inicio, '%Y-%m-%dT%H:%i:%s')
+   AND sd.modeloId <> 3
+),
+msg_win AS (
+  SELECT SUBSTRING_INDEX(m.SENDER, ' ', 1) AS code_infloww, m.CREATOR,
+         DATE_ADD(m.DATE_TIME, INTERVAL @ajuste_h HOUR) AS dt
+  FROM `5c_wfm_db`.`msgdashboard` m
+  WHERE m.DATE_TIME >= DATE_SUB(@de, INTERVAL 1 DAY)
+    AND m.DATE_TIME <  DATE_ADD(@ate, INTERVAL 2 DAY)
+    AND m.SOURCE = 'Employee'
+)
+SELECT
+  CASE HOUR(sp.slot_inicio) WHEN 5 THEN 'A' WHEN 9 THEN 'A'
+                            WHEN 13 THEN 'C' WHEN 17 THEN 'C'
+                            WHEN 21 THEN 'D' WHEN 1 THEN 'D' ELSE '?' END AS turno,
+  COUNT(*)                                                           AS slots_af,
+  SUM(proprio.n > 0)                                                 AS rep_mandou_msg_no_slot,
+  SUM(outro.n  > 0)                                                  AS outro_rep_cobriu_pagina,
+  SUM(proprio.n = 0 AND outro.n = 0)                                 AS descoberto_de_fato,
+  ROUND(SUM(proprio.n = 0 AND outro.n = 0) / COUNT(*), 3)            AS peso_sugerido_turno,
+  SUM(sp.modeloNome IS NULL)                                         AS slots_sem_pagina_na_escala
+FROM slot_pagina sp
+JOIN LATERAL (
+  SELECT COUNT(*) n FROM msg_win w
+  WHERE w.code_infloww = sp.code_infloww COLLATE utf8mb4_unicode_ci
+    AND w.dt >= sp.slot_inicio AND w.dt < sp.slot_fim
+) proprio ON TRUE
+JOIN LATERAL (
+  SELECT COUNT(*) n FROM msg_win w
+  JOIN `5c_bot`.`vw_pagina` p ON p.name = w.CREATOR COLLATE utf8mb4_unicode_ci
+  WHERE p.modelo = sp.modeloNome COLLATE utf8mb4_unicode_ci
+    AND w.code_infloww <> sp.code_infloww COLLATE utf8mb4_unicode_ci
+    AND w.dt >= sp.slot_inicio AND w.dt < sp.slot_fim
+) outro ON TRUE
+GROUP BY 1
+ORDER BY 1;
 
 -- ---------------------------------------------------------------------
 -- Q7. Sinal de mudança tardia na escala: quando a linha do scheduleday
