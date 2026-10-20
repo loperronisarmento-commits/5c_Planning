@@ -1,3 +1,5 @@
 .env
 *.env
 resultados/
+__pycache__/
+*.pyc
