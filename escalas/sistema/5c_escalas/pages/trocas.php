@@ -253,6 +253,40 @@ function escSemanasDoItem(array $item, string $corte): array {
     return $semanas;
 }
 
+// ---------- marcar apagado / postado (5c_escalas.esc_troca_postagem) ----------
+if (escPost()) {
+    escExigir('decidir');
+    $pid = (int) ($_POST['pagina'] ?? 0);
+    $seg = (string) ($_POST['semana'] ?? '');
+    $passo = (string) ($_POST['passo'] ?? '');
+    if (!isset($pacote[$pid]) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $seg) || !in_array($passo, ['apagado', 'postado', 'desfazer'], true)) {
+        throw new RuntimeException('Página ou semana fora do pacote.');
+    }
+    $it = $pacote[$pid];
+    $csv = escCsvSemana($it, $seg, $corte);
+    $ini = max(substr($corte, 0, 10), $seg);
+    $fim = min(substr((string) $it['ultimo'], 0, 10), date('Y-m-d', strtotime("{$seg} +6 day")));
+    escW('INSERT INTO ' . escT('esc_troca_postagem') . ' (corte, page_id, pagina, party_de, party_para, semana, date_schedule, date_end, csv, csv_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) AS n
+          ON DUPLICATE KEY UPDATE csv = n.csv, csv_hash = n.csv_hash, date_schedule = n.date_schedule, date_end = n.date_end', [
+        $ts, $pid, $it['mov']['pagina'], $it['mov']['de_party'], $it['mov']['para_party'], $seg, $ini, $fim, $csv, hash('sha256', $csv),
+    ]);
+    if ($passo === 'apagado') {
+        escW('UPDATE ' . escT('esc_troca_postagem') . ' SET apagado_em = NOW(), apagado_por = ? WHERE corte = ? AND page_id = ? AND semana = ?', [escUserId(), $ts, $pid, $seg]);
+    } elseif ($passo === 'postado') {
+        escW('UPDATE ' . escT('esc_troca_postagem') . ' SET postado_em = NOW(), postado_por = ?, apagado_em = COALESCE(apagado_em, NOW()) WHERE corte = ? AND page_id = ? AND semana = ?', [escUserId(), $ts, $pid, $seg]);
+    } else {
+        escW('UPDATE ' . escT('esc_troca_postagem') . ' SET apagado_em = NULL, apagado_por = NULL, postado_em = NULL, postado_por = NULL WHERE corte = ? AND page_id = ? AND semana = ?', [$ts, $pid, $seg]);
+    }
+    escLog('troca.' . $passo, 'esc_troca_postagem', $ts . ':' . $pid . ':' . $seg);
+    escVoltar('trocas', ['corte' => $ts], $it['mov']['pagina'] . ': ' . ($passo === 'desfazer' ? 'marcação desfeita.' : 'marcado como ' . $passo . '.'));
+}
+$postagens = [];
+if ($ts !== '') {
+    foreach (escQ('SELECT page_id, semana, apagado_em, postado_em, conferido_em FROM ' . escT('esc_troca_postagem') . ' WHERE corte = ?', [$ts]) as $pp) {
+        $postagens[(int) $pp['page_id'] . '|' . substr($pp['semana'], 0, 10)] = $pp;
+    }
+}
+
 // ---------- download ----------
 if (($_GET['baixar'] ?? '') === 'csv') {
     $pid = (int) ($_GET['pagina'] ?? 0);
@@ -379,6 +413,16 @@ $nomePessoa = static function (string $code) use (&$estrutura, &$nomes): string 
         <button type="button" class="botao primario" data-copiar="<?php echo h($idPre); ?>">Copiar CSV</button>
         <a class="botao" href="<?php echo h(link_tela('trocas', ['corte' => $ts, 'baixar' => 'csv', 'pagina' => $pid, 'semana' => $seg])); ?>">Baixar .csv</a>
         <?php if ($it['lacunas']): ?><span class="tag laranja"><?php echo count($it['lacunas']); ?> lacuna(s)</span><?php endif; ?>
+        <?php $pp = $postagens[$pid . '|' . $seg] ?? null; ?>
+        <span class="tag <?php echo $pp && $pp['postado_em'] ? 'verde' : ($pp && $pp['apagado_em'] ? 'amarelo' : 'laranja'); ?>"><?php echo $pp && $pp['postado_em'] ? 'postado ' . h(date('d/m H:i', strtotime($pp['postado_em']))) : ($pp && $pp['apagado_em'] ? 'intervalo apagado' : 'a fazer'); ?></span>
+        <?php if (escPode('decidir')): ?>
+        <form method="post" action="<?php echo h(link_tela('trocas', ['corte' => $ts])); ?>" class="acoes">
+          <?php echo campoCsrf(); ?><input type="hidden" name="pagina" value="<?php echo (int) $pid; ?>"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
+          <?php if (!$pp || !$pp['apagado_em']): ?><button type="submit" name="passo" value="apagado" class="botao">1 · Apaguei</button><?php endif; ?>
+          <?php if (!$pp || !$pp['postado_em']): ?><button type="submit" name="passo" value="postado" class="botao">2 · Postei</button><?php endif; ?>
+          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao">Desfazer</button><?php endif; ?>
+        </form>
+        <?php endif; ?>
       </div>
     </div>
     <?php endforeach; ?>

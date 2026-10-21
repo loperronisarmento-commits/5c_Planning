@@ -1,82 +1,102 @@
-# 5C Escalas — versão de teste (somente leitura)
+# 5C Escalas (módulo do MIS Portal)
 
-Primeira versão do 5C Escalas no MIS Portal, para testar com dados reais.
-**Não grava nada no banco.** Só lê o Planner, a escala postada, o Capacity, o headcount e o CRM.
+Planejamento de escalas: gera o **rascunho** da semana, recalcula quando algo muda (com De→Para), guarda as decisões tomadas em tela e prepara o CSV para postar no site da 5C.
 
-## O que dá para testar
+**Grava só no schema `5c_escalas`.** Planner, escala postada (`scheduleday`), Capacity, headcount e CRM continuam sendo só lidos. A escala oficial continua no site da 5C.
 
-| Tela | O que mostra | De onde lê |
-|---|---|---|
-| Painel | Parties fora da regra, trocas previstas, saídas recentes, buffers do Capacity | Planner, `fc_buffer_diario`, `fc_pagina_eventos` |
-| Trocas de página | Lotes de troca de party, quem sai e quem entra em cada página, roteiro de apagar e CSV pronto para o Schedule Ajustment | `historic_page_planner`, `scheduleday`, `vw_rep_estrutura_atual`, `headcount_turno` |
-| Saídas de página | Saídas detectadas e o efeito em reps/h e pessoas | `fc_pagina_eventos`, `fc_impacto_paginas` |
-| Funil de entrada | Cards do CRM e arquétipos (tier × perfil) | `5c_crm`, `tab_intraday_base`, `fc_fans_pagina_hora` |
-| Configuração dos times | Violações (1 Primaris + 2 Secundus, página ativa) e formação por time com código e Telegram | `vw_rep_estrutura_atual`, `vw_pagina`, `vw_rep`, `headcount_turno` |
-| Diagnóstico | Se o usuário do banco lê cada tabela e se a sessão está em READ ONLY | todas acima |
+## Antes de instalar
 
-As outras telas do rascunho aparecem no menu como "Em breve". Anomalias e Auditoria de acesso apontam para os módulos que já existem.
+Rode no Navicat, nesta ordem, os scripts de `escalas/sql/`:
+1. `ES_01_criar_schema_5c_escalas.sql`: schema e 22 tabelas.
+2. `ES_02_carga_inicial.sql`: configuração das pessoas a partir do headcount.
+3. `ES_03_permissao_usuario_portal.sql`: `GRANT SELECT, INSERT, UPDATE, DELETE` no `5c_escalas` para o usuário do portal.
 
 ## Instalação
 
-1. Copie a pasta `5c_escalas/` para dentro de `mis_portal/systems/`, ao lado de `5c_schedule_anomalies/`:
-
-   ```
-   [DocumentRoot]/
-   ├─ .htaccess
-   └─ mis_portal/
-      ├─ api/                ← helpers/ e config/ da plataforma (já existem)
-      └─ systems/
-         ├─ 5c_schedule_anomalies/
-         └─ 5c_escalas/      ← esta pasta
-   ```
-
-2. No final do `.htaccess` da raiz do domínio (a pasta que contém `mis_portal/`), adicione:
+1. Copie `5c_escalas/` para `mis_portal/systems/`, ao lado de `5c_schedule_anomalies/`. Se já tinha a versão de teste, substitua a pasta inteira.
+2. No `.htaccess` da raiz do domínio (se ainda não tiver):
 
    ```apache
-   # 5C ESCALAS (teste, somente leitura)
+   # 5C ESCALAS
    RewriteRule ^escalas/?$ mis_portal/systems/5c_escalas/index.php [L,QSA]
    ```
+3. O Apache precisa escrever em `5c_escalas/logs/`.
+4. Abra `/escalas` e vá em **Administração › Diagnóstico**. Tudo deve aparecer verde:
+   - **Conexão de leitura:** READ ONLY.
+   - **Gravação no 5c_escalas:** OK. O teste grava uma linha e desfaz. Se falhar, faltou o ES_03.
+   - **Trava dos outros schemas:** Ativa.
+   - Todas as tabelas com leitura OK.
 
-3. Garanta que o Apache consegue escrever em `5c_escalas/logs/` (o `app.log` é criado sozinho).
+Usa o mesmo `.env` da plataforma (`env()` de `mis_portal/api/config/env.php`). Nenhuma credencial fica nesta pasta.
 
-4. Abra `/escalas` logado no portal e vá primeiro em **Administração › Diagnóstico**.
+## Acesso
 
-Não precisa de `.env` novo: o módulo usa o mesmo `.env` da plataforma, pelo `env()` de `mis_portal/api/config/env.php` (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`). Nenhuma credencial fica nesta pasta.
+Tabela `5c_escalas.esc_acesso`. No primeiro acesso, se ela estiver vazia, o módulo copia os aprovados do Schedule Anomalies: admin de lá vira ADMIN aqui e os demais, LEITURA. Depois disso, quem administra é a tela **Administração › Acessos**.
 
-## Quem acessa
+| Perfil | Pode |
+|---|---|
+| ADMIN | tudo, inclusive acessos, modelos e parâmetros |
+| PLANEJAMENTO | gerar, recalcular, ajustar a grade, publicar, cadastros e decisões |
+| WFM | aprovar indisponibilidade, cadastros e decisões |
+| GESTOR_TIME | ver e registrar ação de correção |
+| LEITURA | só ver |
 
-Nesta fase valem **os mesmos usuários liberados no Schedule Anomalies** (`5c_wfm_mis_web.mis_module_access_schedule_anomalies`), para não criar tabela nova. Para mudar, edite `ESC_TABELA_ACESSO` em `config/config.php`.
+## Telas
 
-## Como o "somente leitura" é garantido
+| Tela | O que faz | Grava em |
+|---|---|---|
+| Painel | Rascunhos das semanas, pendências; verifica mudanças a cada 15 min e recalcula | `esc_entrada_*`, `esc_recalculo_evento`, `esc_plano*` |
+| Gerar escala | Nova versão, recálculo manual, verificar mudanças, histórico de versões e De→Para | `esc_plano*`, `esc_sugestao`, `esc_ciclo_estado` |
+| Grade da escala | Por página, por pessoa e De→Para; ajuste manual de célula (fica travado); publicar; CSV por página ou .zip | `esc_plano_alocacao`, `esc_plano`, `esc_exportacao` |
+| Equilíbrio Tertius | % de turnos como regular × alvo, faltas das últimas 4 semanas | não grava |
+| Sugestões de troca | Workload (remover turno), Buffer sem página, lacunas; aplicar ou descartar com motivo | `esc_sugestao`, `esc_plano_alocacao` |
+| Buffers | Precisa (Capacity) × usados × sem página, por dia e turno; pool | não grava |
+| Trocas de página | Lotes do Planner, quem sai e quem entra, CSV e roteiro; marcar "apaguei" e "postei" | `esc_troca_postagem` |
+| Saídas de página | Confirmar a saída ou marcar "não saiu" | `esc_saida_checagem` |
+| Funil de entrada | Cards do CRM e arquétipos; ajustar previsão e destino | `esc_pagina_previsao` |
+| Configuração dos times | Violações com ação de correção; pendências no Planner (fecham sozinhas quando o Planner bate) | `esc_violacao_acao`, `esc_estrutura_pendencia` |
+| Colaboradores | Turno fixo, modelo, tipo, trilha, folgas fixas (nova vigência a cada mudança) | `esc_colaborador_config` |
+| Modelos de escala | Ciclo de trabalho e folga; o limite de anomalia sai do ciclo | `esc_modelo_escala` |
+| Pedidos e aprovação | Fila do WFM (por data, comentário obrigatório para recusar) e lançamento em nome de alguém | `esc_indisponibilidade*` |
+| Acessos, Parâmetros, Diagnóstico | Administração | `esc_acesso`, `esc_parametro` |
 
-1. **Conexão própria em READ ONLY.** `lib/db.php` abre uma conexão nova (não persistente) com as variáveis do `.env` e executa `SET SESSION TRANSACTION READ ONLY`. O MySQL recusa qualquer INSERT, UPDATE, DELETE ou DDL nessa conexão. Não usa o `$pdo` compartilhado, para a trava não vazar para outros módulos.
-2. **Filtro de SQL.** Toda consulta passa por `escConferirSomenteLeitura()`: só `SELECT`/`WITH`, sem `;`, sem `CALL`, `INTO`, `INSERT`, `UPDATE` etc.
-3. **Sem escrita no código.** Botões de ação (confirmar saída, aplicar, aprovar) aparecem desligados.
-4. **Limite de 30 s por consulta** (`max_execution_time`), para não pesar no servidor.
+Toda alteração vai para `esc_log` (quem, quando, antes e depois).
 
-O Diagnóstico mostra a sessão como **READ ONLY** e o filtro como **Ativo**. Se aparecer diferente, não use e me avise.
+## Como a escala é gerada
 
-O único arquivo gravado é o log em `logs/app.log`, no disco do servidor.
+1. **Releitura do realizado:** lê as últimas 4 semanas do `scheduleday` e descobre a posição de cada pessoa no ciclo (trilha) e quantos dias seguidos ela já trabalhou. A trilha só é usada se não houver uma fixada em Colaboradores.
+2. **Quem trabalha no dia:** o ciclo do modelo, menos as indisponibilidades aprovadas. O turno é fixo: no 3x1 só a folga avança.
+3. **Necessidade:** Capacity (`fc_escala_pagina`) por página, dia e bloco. Página dedicada com N reps dá 1 regular e N−1 assistentes. Página compartilhada divide o rep até completar 1. Dias fora do horizonte do Capacity usam o mesmo dia da semana.
+4. **Ordem de preenchimento:** party dona → outras parties do time → Tertius regular (quem está mais abaixo do alvo) → Tertius assistente → Buffers do turno → lacuna.
+   - Titular ou Tertius de serviço sem página vira assistente na maior página da party ou do time.
+   - Buffer sem página vira sugestão de remoção por falta de workload.
+5. **Anomalias programadas:** dias seguidos (realizado + plano) acima do máximo do modelo. Para publicar com anomalia, é preciso marcar "estou ciente".
 
-## Se o Diagnóstico mostrar "sem acesso · erro 1142"
+## Recálculo e De→Para
 
-O usuário do banco do portal não tem SELECT naquela tabela. É preciso um `GRANT SELECT` para esse schema, que é uma mudança no banco e fica a critério de vocês. A tela que depende dela mostra o erro e as outras continuam funcionando.
+- A cada verificação, o sistema tira uma "foto" de cada entrada: Capacity, estrutura e membros, páginas, colaboradores, pedidos aprovados, modelos e trocas de página previstas. O que mudou fica em `esc_entrada_diferenca`.
+- Se algo mudou desde a versão atual de uma semana em aberto, ele gera a subversão (v1 → v1.1) e grava o De→Para célula a célula em `esc_plano_diferenca`.
+- Ajuste manual feito na grade fica **travado** e o recálculo mantém.
+- **Quem está na escala publicada não perde o dia sozinho.** Se o recálculo deixaria a pessoa sem trabalho no turno, ela é mantida e vira sugestão de workload. Se a sugestão for aplicada, o próximo recálculo não traz a pessoa de volta. Trocar de página no mesmo turno não conta como tirar o dia.
+- A verificação roda ao abrir o Painel (no máximo a cada 15 min) e no botão "Verificar mudanças agora" em Gerar escala.
 
-## Trocas de página: regras desta versão
+## CSV para o site da 5C
 
-- O corte é o bloco que começa no horário marcado no Planner (20:59 → T6 das 21h; 12:59 → T4 das 13h).
-- Em cada bloco postado a partir do corte:
-  - **fica** quem é Buffer, quem já é da party nova e quem é do time novo;
-  - **entra** quem é titular da party nova e já está escalado no mesmo bloco, em qualquer página da party;
-  - **sai** quem é de outro time, **só se** alguém da party nova entrou no bloco. Se não houver substituto, a pessoa continua e o bloco aparece em "Sem substituto".
-- CSV no formato do Schedule Ajustment: 6 linhas (T1 a T6) × 7 colunas (seg a dom), `", "` entre códigos e `#` para assistente. O `$` o site calcula sozinho.
-- Roteiro: Delete Range do dia seguinte ao corte até o fim da escala postada, apagar à mão os blocos do dia do corte a partir dele, e postar com Date Schedule no dia do corte.
-- Para lotes já aplicados (escala já refeita à mão), a tela serve de conferência: o ideal é "0 blocos que mudam".
+- Formato do Schedule Ajustment: 6 linhas (T1 a T6) × 7 colunas (seg a dom), códigos separados por `, `, `#` para assistente. O `$` o site calcula sozinho.
+- O T1 de segunda é o fim do turno D de domingo e vem do plano da semana anterior.
+- Um arquivo por página, ou todos num .zip (precisa da extensão ZipArchive do PHP).
+
+## O que ainda não está ligado
+
+- **Desempenho no mérito dos Tertius:** o alvo é o mesmo para todos (parâmetro `merito_alvo_padrao`, 50% se não existir).
+- **Pedido pela Nora:** a fila está pronta (canal NORA), falta o bot chamar o portal.
+- **"Não saiu" numa saída de página:** fica registrado e avisa, mas a necessidade continua vindo do Capacity.
+- **Postar via API:** não existe API de escrita no `scheduleday`.
 
 ## Para remover
 
-Apague a pasta `5c_escalas/` e a linha do `.htaccess`. Nada no banco precisa ser desfeito.
+Apague a pasta e a linha do `.htaccess`. Os dados ficam no `5c_escalas` (o `ES_99_desfazer.sql` apaga o schema).
 
 ## Requisitos
 
-PHP 7.4 ou mais novo, com `pdo_mysql`. Mesmo Apache e mesma sessão do portal.
+PHP 7.4 ou mais novo, com `pdo_mysql` (e ZipArchive para o .zip). MySQL 8.0.19 ou mais novo (usa `INSERT ... AS n ON DUPLICATE KEY UPDATE`); o servidor .11 está no 9.5.

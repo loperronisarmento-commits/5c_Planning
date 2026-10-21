@@ -23,8 +23,32 @@ $fontes = [
     'CRM · cards' => '`5c_crm`.`pipeline_cards`',
     'CRM · clientes' => '`5c_crm`.`clients`',
     'CRM · contratos' => '`5c_crm`.`contracts`',
-    'Acesso ao módulo' => ESC_TABELA_ACESSO,
+    'Schedule Anomalies · acessos (primeira carga)' => ESC_TABELA_ACESSO,
+    '5C Escalas · acessos' => escT('esc_acesso'),
+    '5C Escalas · colaboradores' => escT('esc_colaborador_config'),
+    '5C Escalas · planos' => escT('esc_plano'),
 ];
+
+// Gravação no 5c_escalas: grava uma linha de teste e desfaz (rollback).
+$gravacao = 'OK';
+try {
+    $pdoW = escDbW();
+    $pdoW->beginTransaction();
+    escW('INSERT INTO ' . escT('esc_log') . " (user_id, canal, acao, entidade) VALUES (?, 'SISTEMA', 'diagnostico.teste', 'esc_log')", [escUserId()]);
+    $pdoW->rollBack();
+} catch (Throwable $e) {
+    if (isset($pdoW) && $pdoW->inTransaction()) {
+        $pdoW->rollBack();
+    }
+    $gravacao = $e instanceof PDOException ? 'erro ' . ($e->errorInfo[1] ?? $e->getCode()) : $e->getMessage();
+}
+// A conexão de gravação recusa qualquer outro schema.
+$travaOutros = false;
+try {
+    escConferirEscritaEscalas('UPDATE `5c_planning`.`fc_parametros` SET valor = 1');
+} catch (RuntimeException $e) {
+    $travaOutros = true;
+}
 $resultado = [];
 foreach ($fontes as $nome => $tabela) {
     $t0 = microtime(true);
@@ -48,12 +72,15 @@ try {
 <header class="cabecalho">
   <span class="eyebrow">Administração</span>
   <h1>Diagnóstico</h1>
-  <p class="muted">Use depois de instalar: confere se o usuário do banco do portal lê tudo o que o 5C Escalas precisa e se a conexão está travada em somente leitura.</p>
+  <p class="muted">Use depois de instalar: confere se o usuário do banco do portal lê tudo o que o 5C Escalas precisa, se a conexão de leitura está em READ ONLY e se a gravação funciona só no 5c_escalas.</p>
 </header>
 
 <section class="kpis">
-  <div class="kpi"><span class="muted">Sessão do MySQL</span><strong class="<?php echo (int) $sessao['so_leitura'] === 1 ? 'verde' : 'vermelho'; ?>"><?php echo (int) $sessao['so_leitura'] === 1 ? 'READ ONLY' : 'GRAVÁVEL'; ?></strong><span class="muted small">transaction_read_only = <?php echo (int) $sessao['so_leitura']; ?></span></div>
+  <div class="kpi"><span class="muted">Conexão de leitura</span><strong class="<?php echo (int) $sessao['so_leitura'] === 1 ? 'verde' : 'vermelho'; ?>"><?php echo (int) $sessao['so_leitura'] === 1 ? 'READ ONLY' : 'GRAVÁVEL'; ?></strong><span class="muted small">transaction_read_only = <?php echo (int) $sessao['so_leitura']; ?></span></div>
   <div class="kpi"><span class="muted">Filtro de SQL</span><strong class="<?php echo $travaFiltro ? 'verde' : 'vermelho'; ?>"><?php echo $travaFiltro ? 'Ativo' : 'Falhou'; ?></strong><span class="muted small">só SELECT/WITH passam</span></div>
+  <div class="kpi"><span class="muted">Gravação no 5c_escalas</span><strong class="<?php echo $gravacao === 'OK' ? 'verde' : 'vermelho'; ?>"><?php echo h($gravacao === 'OK' ? 'OK' : 'Falhou'); ?></strong><span class="muted small"><?php echo $gravacao === 'OK' ? 'teste gravado e desfeito' : h($gravacao) . ' · rode o ES_03 (GRANT)'; ?></span></div>
+  <div class="kpi"><span class="muted">Trava dos outros schemas</span><strong class="<?php echo $travaOutros ? 'verde' : 'vermelho'; ?>"><?php echo $travaOutros ? 'Ativa' : 'Falhou'; ?></strong><span class="muted small">só grava em 5c_escalas</span></div>
+  <div class="kpi"><span class="muted">Seu acesso</span><strong><?php echo h(strtolower($GLOBALS['ESC_USUARIO']['perfil'] ?? '')); ?></strong><span class="muted small">user_id <?php echo escUserId(); ?></span></div>
   <div class="kpi"><span class="muted">Limite por consulta</span><strong><?php echo num(((int) $sessao['limite_ms']) / 1000, 0); ?> s</strong><span class="muted small">max_execution_time</span></div>
   <div class="kpi"><span class="muted">PHP · MySQL</span><strong><?php echo h(PHP_VERSION); ?></strong><span class="muted small">MySQL <?php echo h($sessao['versao']); ?></span></div>
 </section>

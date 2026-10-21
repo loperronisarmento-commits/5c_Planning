@@ -19,13 +19,11 @@ if (!defined('MODULE_URL')) {
     define('MODULE_URL', '/mis_portal/systems/5c_escalas');
 }
 
-// FASE DE TESTE: SOMENTE LEITURA.
-// O módulo abre a própria conexão com a sessão do MySQL em READ ONLY e
-// só aceita SELECT/WITH (ver lib/db.php). Nada é gravado no banco.
-define('ESC_SOMENTE_LEITURA', true);
+// Gravação: só no schema 5c_escalas (ver lib/db.php). Planner, escala
+// postada, Capacity, headcount e CRM continuam só sendo lidos.
 
-// Quem pode abrir nesta fase: os mesmos aprovados no Schedule Anomalies.
-// A tabela já existe; não criamos tabela nova enquanto for só leitura.
+// Acessos do Schedule Anomalies: usados uma vez, para a primeira carga
+// de 5c_escalas.esc_acesso quando ela estiver vazia (ver lib/acesso.php).
 define('ESC_TABELA_ACESSO', '`5c_wfm_mis_web`.`mis_module_access_schedule_anomalies`');
 
 // Limite de tempo por consulta (ms), para não prender o MySQL.

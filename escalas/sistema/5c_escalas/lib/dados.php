@@ -38,6 +38,31 @@ function escTurnosVigentes(): array {
     return $mapa;
 }
 
+// Nome de cada código: estrutura do Planner e, para quem não está nela
+// (Buffers), o headcount.
+function escNomes(): array {
+    static $mapa = null;
+    if ($mapa !== null) {
+        return $mapa;
+    }
+    $mapa = [];
+    foreach (escQ('SELECT UPPER(code) AS code, MAX(nome_controle) AS nome FROM `5c_headcount`.`headcount_turno` GROUP BY UPPER(code)') as $l) {
+        $mapa[$l['code']] = $l['nome'];
+    }
+    foreach (escEstrutura() as $code => $e) {
+        $mapa[$code] = $e['rep_name'];
+    }
+    return $mapa;
+}
+
+function nomeCurto(?string $nome): string {
+    $partes = preg_split('~\s+~', trim((string) $nome));
+    if (count($partes) <= 2) {
+        return (string) $nome;
+    }
+    return $partes[0] . ' ' . end($partes);
+}
+
 function turnoLetra(?string $turnoHc): string {
     return ['T2T3' => 'A', 'T4T5' => 'C', 'T6T1' => 'D'][$turnoHc ?? ''] ?? '';
 }

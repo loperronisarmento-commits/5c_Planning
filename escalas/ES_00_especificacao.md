@@ -206,41 +206,61 @@ Hoje só há 3 cards de teste em Pipeline. Um job lê o CRM e grava em `5c_plann
   Não há página S ativa com dado. A fórmula atual do Capacity (receita ÷ 720 × k do tier) dá B 33,3, C 22,2 e D 11,7 fãs/h no meio da faixa, ou seja, **superestima C e D**. Vale recalibrar os `k_*` com os arquétipos.
 - **Saídas de 20/10** (todas automáticas, por inativação no cadastro de páginas): Cynthia −2,00 reps/h por turno (−8,7 pessoas); as outras 9 de −0,33 a −0,43 cada. Total −5,36.
 
-## 5. Tabelas a criar (eu entrego o DDL na próxima etapa)
+## 5. Base de dados `5c_escalas` (scripts em `escalas/sql/`)
 
-Schema novo **`5c_escalas`** (aplicação), com collation `utf8mb4_unicode_ci`.
+Schema novo e separado, `utf8mb4_unicode_ci`. **Nenhuma tabela existente é alterada.** A escala oficial continua no site da 5C e no `scheduleday`. Aqui ficam as configurações, as decisões tomadas em tela e o **rascunho próprio** da escala, com o De→Para de cada recálculo.
+
+| Script | O que faz |
+|---|---|
+| `ES_01_criar_schema_5c_escalas.sql` | Cria o schema, as 22 tabelas, os 4 modelos (3x1, Primaris 3x1 + admin, 5x2, 4x3) e os parâmetros. Pode rodar de novo. |
+| `ES_02_carga_inicial.sql` | Configuração de cada colaborador a partir do headcount vigente (turno fixo, tipo, modelo). Conferido em 21/10: 291 pessoas, 50 Primaris e 56 Buffers. |
+| `ES_03_permissao_usuario_portal.sql` | `GRANT SELECT, INSERT, UPDATE, DELETE` no `5c_escalas` para o usuário do portal (preencher usuário e host). |
+| `ES_99_desfazer.sql` | Apaga o schema inteiro. |
+
+**A. Cadastros e configuração**
 
 | Tabela | Para quê |
 |---|---|
-| `esc_modelo_escala` | Modelos (ciclo `'1110'`, `'1111100'`…, tipo contínuo ou semana fixa, horas/dia, trilhas, dia admin). O limite de anomalia sai do ciclo |
-| `esc_colaborador_config` | Turno fixo, modelo, âncora/trilha, folgas fixas, pode ser assistente, vigência |
-| `esc_parametro` | Regras de formação, geração, mérito e prazos (chave/valor) |
-| `esc_violacao` | Violações de formação e ação de correção (responsável, prazo, situação) |
-| `esc_estrutura_pendencia` | Adicionar, mover e remover membros pedidos aqui: instrução, vale a partir de, situação (aberta, atrasada, divergente, aplicada, cancelada), quando foi conferida no `historicplanner` |
-| `esc_troca_pagina` | Cada troca lida do Planner (`historic_page_planner.id`, página, party de origem e destino, vale a partir de, cadeia) |
-| `esc_troca_realocacao` | Cada turno realocado (pessoa, dia, bloco, página de origem e destino, regra aplicada, ajuste manual) |
-| `esc_troca_postagem` | Cada página do pacote (Model, Date Schedule, Date End, CSV, apagado em, postado em, conferido em, divergência) |
-| `esc_saida_checagem` | Checagem de cada saída de página detectada: evento (`fc_pagina_eventos.id`), efeito calculado, decisão (confirmada ou não saiu), quem, quando, próxima checagem |
-| `esc_arquetipo` | Foto semanal dos arquétipos: tier, perfil, páginas usadas, fãs/h por turno e por dia × bloco, faixa, confiança |
-| `esc_previsao_ajuste` | Ajuste da previsão da página do funil (perfil, base: arquétipo, página de referência ou fãs/h informados), sem mexer no CRM |
-| `esc_login_codigo` | Códigos de uso único do login do colaborador (hash, rep, expira em, tentativas, usado em) |
-| `esc_sessao` | Sessões do colaborador (rep, aparelho, criada, expira, encerrada) |
-| `esc_indisponibilidade` + `esc_indisponibilidade_data` | Pedido (um dia, período ou recorrente) e cada data com decisão da WFM |
-| `esc_plano` | Versões (rascunho, publicado, substituído; v3, v3.1…), Capacity usado, parâmetros, quem gerou e quem publicou |
-| `esc_plano_alocacao` | Cada célula: dia, bloco, página, pessoa (NULL = lacuna), papel (regular/assistente), origem (passo 1–5 ou manual), travada |
-| `esc_plano_folga` | Folgas do período (ciclo, indisponibilidade, admin) |
-| `esc_ciclo_estado` | Resultado da releitura do realizado por pessoa |
-| `esc_recalculo_evento` | Gatilhos do recálculo (tipo, origem, quando) e o efeito (adicionados, sugestões) |
-| `esc_sugestao` | Sugestões (workload, cobertura, mérito, folga, estrutura), efeito, status, quem decidiu e motivo do descarte |
-| `esc_buffer_meta` | Ajuste manual de meta de buffer por dia e bloco (o automático vem do Capacity) |
-| `esc_merito_tertius` | Foto semanal do mérito (desempenho, absenteísmo, quadrante, alvo, realizado) |
-| `esc_anomalia` | Anomalias pelo modelo, programada ou não |
-| `esc_pagina_destino` | Destino previsto da página do funil (time, party, motivo, quem definiu), ligado a `5c_planning.fc_paginas_previstas` |
-| `esc_exportacao` | Cada CSV gerado ou postagem (versão, formato, quem, quando) para conferir com o `scheduleday` depois |
-| `esc_log` | Auditoria de toda alteração |
-| `5c_wfm_mis_web.mis_module_access_escalas` | Acesso único por tela (Admin, WFM, Gestor do time, Colaborador, Leitura), substituindo as 2 tabelas atuais |
+| `esc_modelo_escala` | Ciclo (`1110`, `1111100`…), tipo contínuo ou semana fixa, horas/dia, trilhas, dia admin, máx. de dias seguidos |
+| `esc_colaborador_config` | Turno fixo, modelo, trilha, âncora, folgas fixas, pode ser assistente, vigência |
+| `esc_parametro` | Formação, geração, mérito e prazos |
+| `esc_acesso` | Perfil por usuário do portal (Admin, WFM, Planejamento, Gestor do time, Leitura) |
 
-**Funil.** Usar `5c_planning.fc_paginas_previstas` (já existe; `crm_id`, tier, `fas_h_prev`) mais `esc_pagina_destino` e `esc_previsao_ajuste`. Um job lê `5c_crm.pipeline_cards` (pipeline e onboarding, e active na 1ª semana) e cria ou atualiza as linhas previstas, gravando em `fas_h_prev` o valor do arquétipo. Assim o `sp_fc_impacto_paginas` passa a usar o arquétipo sem mudar a fórmula.
+**B. Decisões tomadas em tela**
+
+| Tabela | Decisão |
+|---|---|
+| `esc_indisponibilidade` + `_data` | Pedido (Nora, site ou WFM) e a decisão de cada data, com comentário |
+| `esc_estrutura_pendencia` | Mudança de formação a aplicar no Planner e a conferência |
+| `esc_violacao_acao` | Ação de correção, responsável, prazo, justificativa |
+| `esc_saida_checagem` | Saída de página confirmada ou "não saiu" |
+| `esc_pagina_previsao` | Previsão ajustada (arquétipo, referência ou informada) e destino da página do funil |
+| `esc_sugestao` | Sugestão aplicada ou descartada, com motivo |
+| `esc_troca_postagem` | Pacote das trocas de página: CSV, apagado, postado, conferido |
+| `esc_exportacao` | CSVs gerados para postar e a conferência com o `scheduleday` |
+
+**C. Rascunho da escala**
+
+| Tabela | Conteúdo |
+|---|---|
+| `esc_plano` | Cada versão da semana (v3, v3.1…), status, Capacity usado, hash das entradas, quem gerou e publicou |
+| `esc_plano_alocacao` | Dia × bloco × página × pessoa, papel, origem (passo 1 a 5, manual, lacuna). `travada` = ajuste manual que o recálculo respeita |
+| `esc_plano_folga` | Folgas do período (ciclo, folga fixa, indisponibilidade, admin) |
+| `esc_ciclo_estado` | Releitura do realizado: dias seguidos, última folga, trilha calculada |
+
+**D. Recálculo e De→Para.** A escala é recalculada sempre que muda qualquer entrada: Capacity, estrutura, membros do time, páginas, trocas de página, headcount, indisponibilidade, colaboradores, modelos ou parâmetros.
+
+1. **Foto das entradas** (`esc_entrada_foto`): a cada leitura, o sistema grava o hash de cada fonte. Hash igual = nada mudou.
+2. **De→Para das entradas** (`esc_entrada_diferenca`): se o hash mudou, grava o que mudou, item a item. Exemplo: rep X, campo party, de Felix Legion I para Felix Legion II; página Y, campo reps_dedicados no T6, de 2 para 1.
+3. **Evento de recálculo** (`esc_recalculo_evento`): o gatilho, a versão de origem e a nova. Saída de página fica em `AGUARDANDO_CHECAGEM` até alguém confirmar.
+4. **Nova versão do plano** (`esc_plano`, ex.: v3 → v3.1). As células travadas (ajuste manual) são mantidas.
+5. **De→Para da escala** (`esc_plano_diferenca`): cada célula que mudou (entra, sai, troca, papel, lacuna aberta ou fechada) com o motivo. Retirar um dia já escalado nunca é aplicado sozinho: fica `aplicado = 0` e vira sugestão de workload.
+
+**E. Auditoria.** `esc_log`: quem fez o quê, pelo site, pela Nora ou pelo sistema, com o antes e o depois.
+
+**Ficou de fora desta etapa:** login do colaborador no site (fase 2), fotos de arquétipo e de mérito (calculados na hora a partir das tabelas existentes) e meta manual de buffer (entra quando a tela de Buffers tiver o modo manual com gravação).
+
+**Funil.** O ajuste fica em `esc_pagina_previsao`. Levar o volume do arquétipo para o Capacity (`5c_planning.fc_paginas_previstas.fas_h_prev`) é uma escrita no `5c_planning`; fica para depois, com script próprio.
 
 ## 6. Padrões de UX aplicados
 
