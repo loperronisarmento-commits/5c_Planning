@@ -43,38 +43,41 @@ function turnoLetra(?string $turnoHc): string {
 }
 
 // Formação de cada party: contagem por papel e páginas ativas.
+// Conta a partir de escEstrutura() (já carregada na requisição), para a
+// view do Planner, que é lenta, ser lida uma vez só por tela.
 function escFormacaoParties(): array {
-    $linhas = escQ("WITH e AS (
-                        SELECT team, party, role
-                          FROM `5c_wfm_db_mis`.`vw_rep_estrutura_atual`
-                         WHERE em_estrutura = 1 AND party IS NOT NULL AND party <> ''
-                    ),
-                    f AS (
-                        SELECT team, party,
-                               SUM(role LIKE '%Primaris') AS p,
-                               SUM(role = 'Secundus') AS s,
-                               SUM(role = 'Tertius') AS t
-                          FROM e GROUP BY team, party
-                    ),
-                    pg AS (
-                        SELECT partyName COLLATE utf8mb4_unicode_ci AS party,
-                               COUNT(*) AS paginas,
-                               GROUP_CONCAT(name ORDER BY name SEPARATOR ', ') AS nomes
-                          FROM `5c_bot`.`vw_pagina`
-                         WHERE active = 1 AND partyName IS NOT NULL AND partyName <> ''
-                         GROUP BY partyName
-                    )
-                    SELECT f.team, f.party, f.p, f.s, f.t,
-                           COALESCE(pg.paginas, 0) AS paginas, pg.nomes
-                      FROM f
-                      LEFT JOIN pg ON pg.party = f.party COLLATE utf8mb4_unicode_ci
-                     ORDER BY f.team, f.party");
+    $porParty = [];
+    foreach (escEstrutura() as $e) {
+        $chave = strtolower(trim($e['party']));
+        if (!isset($porParty[$chave])) {
+            $porParty[$chave] = ['team' => $e['team'], 'party' => $e['party'], 'p' => 0, 's' => 0, 't' => 0, 'paginas' => 0, 'nomes' => null];
+        }
+        if (ehPrimaris($e['role'])) {
+            $porParty[$chave]['p']++;
+        } elseif ($e['role'] === 'Secundus') {
+            $porParty[$chave]['s']++;
+        } elseif ($e['role'] === 'Tertius') {
+            $porParty[$chave]['t']++;
+        }
+    }
+
+    $paginas = escQ("SELECT partyName AS party, COUNT(*) AS paginas,
+                            GROUP_CONCAT(name ORDER BY name SEPARATOR ', ') AS nomes
+                       FROM `5c_bot`.`vw_pagina`
+                      WHERE active = 1 AND partyName IS NOT NULL AND partyName <> ''
+                      GROUP BY partyName");
+    foreach ($paginas as $pg) {
+        $chave = strtolower(trim($pg['party']));
+        if (isset($porParty[$chave])) {
+            $porParty[$chave]['paginas'] = (int) $pg['paginas'];
+            $porParty[$chave]['nomes'] = $pg['nomes'];
+        }
+    }
+
+    $linhas = array_values($porParty);
+    usort($linhas, static fn($a, $b) => [$a['team'], $a['party']] <=> [$b['team'], $b['party']]);
 
     foreach ($linhas as &$l) {
-        $l['p'] = (int) $l['p'];
-        $l['s'] = (int) $l['s'];
-        $l['t'] = (int) $l['t'];
-        $l['paginas'] = (int) $l['paginas'];
         $regras = [];
         if ($l['p'] === 0) {
             $regras[] = ['sem_primaris', 'Sem Primaris', true, 'Definir o Primaris da party (promover um Secundus ou receber de outra party).'];
