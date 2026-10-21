@@ -12,8 +12,10 @@
 -- NÃO muda). O passo 3 troca o `sp_fc_buffer` para ler o peso por turno;
 -- sem as chaves _A/_C/_D ele usa o global, então é compatível nos dois sentidos.
 --
--- Válido enquanto a sp_abs_adh_af_processar continuar com os defeitos
--- D1–D4 do parecer. Quando ela for corrigida, recalibrar (AF real -> ~0).
+-- PALIATIVO. Válido só enquanto a sp_abs_adh_af_processar continuar com
+-- os defeitos D1–D3 do parecer. A correção definitiva é o
+-- AF_04_corrigir_procedure_af.sql, que troca a procedure e zera os pesos:
+-- se for rodar o AF_04 agora, NÃO precisa rodar este arquivo.
 --
 -- Ordem: 0 foto -> 1 backup -> 2 parâmetros (transação) -> 3 procedure
 --        -> 4 recalcular e conferir. DESFAZER no fim.

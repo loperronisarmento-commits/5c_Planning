@@ -11,7 +11,7 @@
 3. **Peso recomendado por turno: A 0,22 · C 0,24 · D 0,54** (global equivalente 0,37), contra 0,53 hoje. O turno D é diferente porque ali a maior parte do "AF" é falta do turno inteiro.
 4. **Impacto no Capacity:** absenteísmo A 10,42 → **9,18%** · C 12,00 → **10,44%** · D 11,02 → **11,10%**. A falta total cai de **22,0 para 19,3 pessoas**: C cai ~1,6, D fica igual e a sobra de A sobe ~1,1. O plano de turmas não muda de forma material.
 5. **O critério da roteiro (página descoberta, Q6) não serve:** daria 0,22, mas 98% dos "descobertos" são slots sem página real na escala, e nas páginas reais outra pessoa cobriu em 99,5% dos casos. O critério antigo ("rep mandou mensagem", 47% → 0,53) misturava mensagem do dia inteiro com presença no slot.
-6. **A correção definitiva é na procedure.** O peso por turno é um paliativo enquanto a AF continuar sendo calculada como hoje. Quando a procedure for corrigida, o peso volta a ser recalibrado (deve cair perto de 0).
+6. **A correção definitiva é na procedure, e já está pronta em `AF_04_corrigir_procedure_af.sql`** (seção 12). Com ela, AF passa a ser só "trabalhou fora da escala" ou "cumpriu o outro turno escalado", e o peso vai a **0**. Absenteísmo do Capacity: **A 8,9% · C 9,9% · D 10,8%**, falta **18,1 pessoas**. O AF_04 substitui o AF_03: o AF_03 só se justifica como paliativo se a procedure não for trocada agora.
 
 ---
 
@@ -258,12 +258,12 @@ Lista completa (61 reps com ≥ 9 AF ou ≥ 3 AF reais) em `resultados/Q4.csv` e
 
 | # | Ação | Dono sugerido | Efeito |
 |---|---|---|---|
-| 1 | **Rodar `AF_03_atualizar_peso.sql`**: pesos por turno 0,22 / 0,24 / 0,54 + ajuste do `sp_fc_buffer` | Luis (Navicat) | Capacity passa a usar o peso medido |
-| 2 | **Corrigir a `sp_abs_adh_af_processar`**: janela `[slot, +4 h)` (D1), dia do turno (D2), limiar 3 h (D3), excluir `modeloId = 3` (D4). Reprocessar 56 dias pela fila | MIS | AF cai de ~1.440 para ~90 por 8 semanas; a diretoria passa a ver o absenteísmo real do D |
-| 3 | Depois do item 2: **recalibrar `peso_falha_adm`** (AF real → ~0) e voltar ao peso único | MIS | Evita contar duas vezes |
+| 1 | **Rodar `AF_04_corrigir_procedure_af.sql`**: procedure corrigida (D1–D3, dobra, presença), reprocessamento do histórico e peso → 0 | Luis (Navicat) | Ver seção 12. Substitui os itens 2 e 3 |
+| 2 | ~~Rodar `AF_03_atualizar_peso.sql`~~: só como paliativo, se o AF_04 ficar para depois | Luis (Navicat) | Pesos 0,22 / 0,24 / 0,54 até a procedure ser trocada |
+| 3 | Depois do AF_04: **acompanhar 2 semanas** a distribuição por `motivo_classificacao` e o caso a caso com o RTA | MIS | Confirma a regra antes de mexer em turmas |
 | 4 | **Escala dobrada:** revisar os 16 reps com dobra ≥ 10 e a escala de BKP da Skylar; definir se turno secundário é obrigatório | Planejamento / WFM | ~490 slots/8 semanas deixam de virar "falta" |
 | 5 | **`faltou` indevido / realocação:** RTA registra a troca de página (pedido na Nora) em vez de marcar falta; foco no Brat, Cherie Deville e Levi | RTA / TLs | ~410 slots/8 semanas deixam de virar "falta" |
-| 6 | **Placeholder "5C Schedule"** em rep escalado: limpar na publicação da escala | Planejamento | 339 slots sem página |
+| 6 | **Placeholder "5C Schedule"** em rep escalado: limpar na publicação da escala. **Não** excluir na procedure: é escala real de buffers e reps sem página fixa (~1.075 slots em 28 dias, metade ADH) | Planejamento | 339 slots AF sem página |
 | 7 | **Log de publicação da escala** (quem/quando alterou) para poder medir H3 | MIS / Schedule | Hoje `updated_at` e `imported_at` só medem o ETL |
 
 ---
@@ -275,4 +275,48 @@ Lista completa (61 reps com ≥ 9 AF ou ≥ 3 AF reais) em `resultados/Q4.csv` e
 - **Base do Capacity × réplica:** a réplica com 0,53 dá 10,34 / 11,86 / 11,32, contra 10,42 / 12,00 / 11,02 gravados em 19/10. A diferença vem de rep-dias reprocessados pela fila depois do cálculo. O impacto foi aplicado como delta sobre a base gravada.
 - **Páginas sem mensagens no banco** (MYM/Fanvue: Ivy Vale, Bonnie Locket, Marine…): presença no slot não é medível. Hoje entram como falta.
 - **Validação manual:** conferir 10 casos da lista da seção 8 com o RTA antes de mexer na escala (principalmente M172528, A042393 e J019571).
-- **Relatório da diretoria:** decidir se a correção da procedure (item 2) entra antes ou depois da próxima apresentação, porque ela muda o % de absenteísmo exibido.
+- **Relatório da diretoria:** decidir se a correção da procedure (AF_04) entra antes ou depois da próxima apresentação, porque ela muda o % de absenteísmo exibido (seção 12).
+
+---
+
+## 12. Correção da origem: AF v2 (`AF_04_corrigir_procedure_af.sql`)
+
+**Regra nova da `sp_abs_adh_af_processar`**, aplicada a todo slot com `situacao = ABS`, por **dia do turno** (05:00 a 05:00). Hora "dentro da escala" = qualquer hora da janela `[slot, slot + 4 h)` de qualquer slot escalado do rep.
+
+| Prioridade | Condição | `classificacao` | `motivo_classificacao` | Peso no Capacity |
+|---|---|---|---|---|
+| 1 | ≥ 2 h de mensagem do próprio rep dentro do slot | NADH | PRESENTE | 0 (rep estava lá; `faltou` indevido) |
+| 2 | ≥ 3 h de mensagem fora de qualquer janela escalada | AF | AF_FORA | 0 |
+| 3 | ≥ 2 h trabalhadas em slot escalado de **outro turno** (A/C/D) | AF | AF_DOBRA | 0 |
+| 4 | Nenhuma das anteriores | ABS | — | 1 |
+
+`situacao` continua vindo da escala (ABS). A coluna `motivo_classificacao` é nova. O placeholder "5C Schedule" continua contando como escala. Limiares parametrizados no topo da procedure (`v_min_horas_af = 3`, `v_min_horas_dobra = 2`, `v_min_horas_presenca = 2`). Mensagens truncadas na hora cheia e sem "AI …".
+
+**Simulação (25/08–19/10, só leitura, `resultados/Q12_simulacao_af_v2.csv`)**
+
+| Hoje → AF v2 | A | C | D | Total |
+|---|---|---|---|---|
+| AF → AF (dobra) | 170 | 229 | 141 | 540 |
+| AF → AF (fora) | 18 | 31 | 32 | 81 |
+| AF → NADH (presente) | 76 | 113 | 146 | 335 |
+| AF → ABS | 61 | 85 | **339** | 485 |
+| ABS → AF (dobra/fora) | 4 | 8 | 32 | 44 |
+| ABS → NADH (presente) | 2 | 3 | 2 | 7 |
+| ABS → ABS | 670 | 754 | 597 | 2.021 |
+
+Totais em 56 dias: **AF 1.441 → ~665**, **ABS 2.072 → ~2.506**, NADH +~342.
+
+**Efeito**
+
+| | A | C | D | Falta total |
+|---|---|---|---|---|
+| Capacity, absenteísmo (peso 0) | **8,89%** | **9,86%** | **10,77%** | — |
+| Reps/h com absenteísmo | 62,6 | 68,2 | 67,2 | — |
+| Falta com buffer de desligamento | −4,8 | 14,1 | 8,8 | **18,1** |
+| Diretoria, % ABS (AF e NADH fora) | 8,3% → ~8,9% | 9,0% → ~9,9% | 7,3% → **~10,8%** | — |
+
+Comparado com o AF_03 (19,3), a falta cai mais 1,2 pessoa, porque a presença no slot passa a valer 0 em vez de ~0,2. O D sobe de verdade na diretoria: as faltas da noite inteira deixam de ser escondidas como AF.
+
+**Execução:** rodar o AF_04 bloco a bloco. Ele faz backup da tabela inteira e do corpo da procedure, adiciona a coluna, troca a procedure com o evento pausado, reenfileira ~62 mil rep-dias em ordem cronológica, processa (1 lote manual e depois o evento de 5 min, ~1 h), confere (distribuição, antes × depois e 3 casos do 13/10), zera os pesos e recalcula o Capacity. O DESFAZER traz a procedure original completa, a volta dos dados pelo backup e a volta dos pesos.
+
+**Limites da regra:** AF_DOBRA não diz qual dos dois turnos era o extra; trata os dois como cumprimento de escala. Páginas sem mensagem no banco (MYM/Fanvue) não têm como provar presença; a falta fica ABS.
