@@ -73,61 +73,69 @@ tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
 <h1 style="margin: 0; font-size: 30px; font-weight: 700">Modelos de escala</h1>
 <p style="margin: 0; color: #9ca0ab; max-width: 760px">Cada modelo é um ciclo de dias de trabalho e folga. Um modelo novo (6x1, 4x3, 12x36…) é só um cadastro: a geração da escala lê o ciclo, não tem regra fixa no código.</p>
 </div>
-<button type="button" style="height: 40px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Novo modelo</button>
+<button type="button" onClick="{{ novoModelo }}" style="height: 40px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Novo modelo</button>
 </header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button>
+</div>
+</sc-if>
 
 <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
 <section aria-label="Modelos cadastrados" style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
-<button type="button" style="text-align: left; padding: 16px; border-radius: 14px; border: 1px solid #e91876; background: #131014; color: #f5f5f7; display: flex; flex-direction: column; gap: 8px">
-<span style="display: flex; justify-content: space-between; width: 100%"><b>3x1</b><span style="color: #9ca0ab; font-size: 12px">204 pessoas</span></span>
-<span style="display: flex; gap: 4px"><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #3a3238"></span></span>
-<span style="color: #9ca0ab; font-size: 13px">ciclo contínuo de 4 dias · 75% de presença · 180 h/mês</span>
+<sc-for list="{{ lista }}" as="m" hint-placeholder-count="4">
+<button type="button" onClick="{{ m.pick }}" aria-pressed="{{ m.ativo }}" style="{{ m.box }}">
+<span style="display: flex; justify-content: space-between; width: 100%"><b>{{ m.nome }}</b><span style="color: #9ca0ab; font-size: 12px">{{ m.pessoas }}</span></span>
+<span style="display: flex; flex-wrap: wrap; gap: 4px">
+<sc-for list="{{ m.quadrados }}" as="q" hint-placeholder-count="4"><span style="{{ q.style }}"></span></sc-for>
+</span>
+<span style="color: #9ca0ab; font-size: 13px">{{ m.resumo }}</span>
 </button>
-<button type="button" style="text-align: left; padding: 16px; border-radius: 14px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; display: flex; flex-direction: column; gap: 8px">
-<span style="display: flex; justify-content: space-between; width: 100%"><b>Primaris 3x1 + admin</b><span style="color: #9ca0ab; font-size: 12px">49 pessoas</span></span>
-<span style="color: #9ca0ab; font-size: 13px">3x1 com 1 dia administrativo a cada 12 · 160 h/mês de chat</span>
-</button>
-<button type="button" style="text-align: left; padding: 16px; border-radius: 14px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; display: flex; flex-direction: column; gap: 8px">
-<span style="display: flex; justify-content: space-between; width: 100%"><b>5x2 fixo</b><span style="color: #9ca0ab; font-size: 12px">[n] pessoas</span></span>
-<span style="display: flex; gap: 4px"><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #3a3238"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #3a3238"></span></span>
-<span style="color: #9ca0ab; font-size: 13px">semana fixa · folgas escolhidas por pessoa</span>
-</button>
-<button type="button" style="text-align: left; padding: 16px; border-radius: 14px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; display: flex; flex-direction: column; gap: 8px">
-<span style="display: flex; justify-content: space-between; width: 100%"><b>4x3</b><span style="color: #9ca0ab; font-size: 12px">rascunho</span></span>
-<span style="display: flex; gap: 4px"><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #e91876"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #3a3238"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #3a3238"></span><span style="width: 26px; height: 22px; border-radius: 5px; background: #3a3238"></span></span>
-<span style="color: #9ca0ab; font-size: 13px">semana fixa · 4 dias de trabalho</span>
-</button>
+</sc-for>
 </section>
 
 <section aria-label="Editar modelo" style="flex: 999 1 560px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
-<h2 style="margin: 0; font-size: 18px">3x1</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap">
+<h2 style="margin: 0; font-size: 18px">{{ sel.nome }}</h2>
+<sc-if value="{{ sujo }}" hint-placeholder-val="{{ false }}"><span style="padding: 3px 10px; border-radius: 999px; background: rgba(251,191,36,0.15); color: #fcd34d; font-size: 12px">alterações não salvas</span></sc-if>
+</div>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px">
 <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Nome
-<input type="text" value="3x1" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+<input type="text" value="{{ sel.nome }}" onInput="{{ mudarNome }}" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
 </label>
 <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Tipo de ciclo
-<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Contínuo (folga avança pelo calendário; turno sempre o mesmo)</option><option>Semana fixa (dias da semana)</option></select>
+<select onChange="{{ mudarTipo }}" style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+<option value="continuo" selected="{{ sel.tipoContinuo }}">Contínuo (folga avança pelo calendário; turno sempre o mesmo)</option>
+<option value="semana" selected="{{ sel.tipoSemana }}">Semana fixa (dias da semana)</option>
+</select>
 </label>
 <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Horas por dia de trabalho
-<input type="number" value="8" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+<input type="number" min="1" max="12" value="{{ sel.horas }}" onInput="{{ mudarHoras }}" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
 </label>
 </div>
 <fieldset style="margin: 0; border: 1px solid #2a2129; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
 <legend style="padding: 0 6px; color: #9ca0ab; font-size: 13px">Padrão do ciclo · clique para alternar trabalho / folga</legend>
 <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
-<button type="button" style="width: 72px; height: 56px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Dia 1<br>trabalho</button>
-<button type="button" style="width: 72px; height: 56px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Dia 2<br>trabalho</button>
-<button type="button" style="width: 72px; height: 56px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Dia 3<br>trabalho</button>
-<button type="button" style="width: 72px; height: 56px; border-radius: 10px; border: 1px solid #3a3238; background: #241d24; color: #d6d7dc; font-weight: 600">Dia 4<br>folga</button>
-<button type="button" aria-label="Adicionar dia ao ciclo" style="width: 44px; height: 56px; border-radius: 10px; border: 1px dashed #4a3f48; background: transparent; color: #d6d7dc; font-size: 20px">+</button>
+<sc-for list="{{ sel.dias }}" as="d" hint-placeholder-count="4">
+<button type="button" onClick="{{ d.alternar }}" aria-pressed="{{ d.aria }}" style="{{ d.style }}">{{ d.rotulo }}<br>{{ d.estado }}</button>
+</sc-for>
+<sc-if value="{{ sel.podeAdicionar }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ adicionarDia }}" aria-label="Adicionar dia ao ciclo" style="width: 44px; height: 56px; border-radius: 10px; border: 1px dashed #4a3f48; background: transparent; color: #d6d7dc; font-size: 20px">+</button>
+</sc-if>
+<sc-if value="{{ sel.podeRemover }}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{ removerDia }}" aria-label="Tirar o último dia do ciclo" style="width: 44px; height: 56px; border-radius: 10px; border: 1px dashed #4a3f48; background: transparent; color: #d6d7dc; font-size: 20px">−</button>
+</sc-if>
 </div>
-<span style="color: #9ca0ab; font-size: 13px">4 dias por ciclo · 3 de trabalho · presença 75% · 180 h/mês</span>
+<span style="color: #9ca0ab; font-size: 13px">{{ sel.resumoCiclo }}</span>
+<sc-if value="{{ sel.semFolga }}" hint-placeholder-val="{{ false }}"><span style="color: #fca5a5; font-size: 13px">O ciclo não tem folga: não dá para salvar assim.</span></sc-if>
 </fieldset>
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px">
-<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Máx. dias seguidos (vem do ciclo) <input type="number" value="3" readonly="readonly" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #1b161c; color: #b9bcc5; text-align: center"></label>
-<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Trilhas defasadas <input type="number" value="4" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; text-align: center"></label>
-<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Dia admin a cada <input type="number" value="0" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; text-align: center"></label>
-<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Turno D conta no dia de início <input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Máx. dias seguidos (vem do ciclo) <input type="text" value="{{ sel.maxSeguidos }}" readonly="readonly" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #1b161c; color: #b9bcc5; text-align: center"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Trilhas defasadas <input type="number" min="1" max="7" value="{{ sel.trilhas }}" onInput="{{ mudarTrilhas }}" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; text-align: center"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Dia admin a cada <input type="number" min="0" max="30" value="{{ sel.admin }}" onInput="{{ mudarAdmin }}" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; text-align: center"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Turno D conta no dia de início <input type="checkbox" checked="{{ sel.dConta }}" onChange="{{ alternarD }}" style="width: 18px; height: 18px; accent-color: #e91876"></label>
 </div>
 <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 12px; border: 1px solid #2a2129; background: #0f0c10">
 <span style="font-size: 13px; color: #9ca0ab">Regras de anomalia que saem de cada modelo (usadas na validação do plano e no Monitoramento)</span>
@@ -135,43 +143,213 @@ tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
 <table style="width: 100%; min-width: 620px; border-collapse: collapse; font-size: 13px">
 <thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 6px 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Modelo</th><th scope="col" style="padding: 6px 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Dias de trabalho no ciclo</th><th scope="col" style="padding: 6px 8px; border-bottom: 1px solid #2a2129; font-weight: 500">EXCESSO_CONSECUTIVO</th><th scope="col" style="padding: 6px 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Folga mínima</th></tr></thead>
 <tbody>
-<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f"><b>3x1</b></td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">3</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">a partir de 4 seguidos</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">1 a cada 4 dias</td></tr>
-<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">Primaris 3x1 + admin</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">3</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">a partir de 4 seguidos (dia admin conta como trabalho)</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">1 a cada 4 dias</td></tr>
-<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">5x2 fixo</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">5</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">a partir de 6 seguidos</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">2 por semana</td></tr>
-<tr><td style="padding: 8px">4x3</td><td style="padding: 8px; text-align: right">4</td><td style="padding: 8px">a partir de 5 seguidos</td><td style="padding: 8px">3 por semana</td></tr>
+<sc-for list="{{ regras }}" as="r" hint-placeholder-count="4">
+<tr style="{{ r.linha }}"><td style="padding: 8px; border-bottom: 1px solid #1f191f">{{ r.nome }}</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">{{ r.trabalho }}</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">{{ r.excesso }}</td><td style="padding: 8px; border-bottom: 1px solid #1f191f">{{ r.folga }}</td></tr>
+</sc-for>
 </tbody>
 </table>
 </div>
 <span style="color: #9ca0ab; font-size: 12px">O limite é calculado do padrão do ciclo, não digitado: um modelo novo (6x1, 12x36…) já nasce com a regra de anomalia certa.</span>
 </div>
 <div style="display: flex; flex-direction: column; gap: 10px">
-<span style="font-size: 13px; color: #9ca0ab">Prévia: presença por trilha nas próximas 2 semanas (âncora seg 05/10/2026)</span>
+<span style="font-size: 13px; color: #9ca0ab">{{ sel.previaTitulo }}</span>
 <div style="overflow-x: auto">
 <table style="width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 4px; font-size: 12px; text-align: center">
-<thead><tr style="color: #9ca0ab"><th scope="col" style="font-weight: 500; text-align: left">Trilha</th><th scope="col" style="font-weight: 500">s 26</th><th scope="col" style="font-weight: 500">t 27</th><th scope="col" style="font-weight: 500">q 28</th><th scope="col" style="font-weight: 500">q 29</th><th scope="col" style="font-weight: 500">s 30</th><th scope="col" style="font-weight: 500">s 31</th><th scope="col" style="font-weight: 500">d 1</th><th scope="col" style="font-weight: 500">s 2</th><th scope="col" style="font-weight: 500">t 3</th><th scope="col" style="font-weight: 500">q 4</th><th scope="col" style="font-weight: 500">q 5</th><th scope="col" style="font-weight: 500">s 6</th><th scope="col" style="font-weight: 500">s 7</th><th scope="col" style="font-weight: 500">d 8</th></tr></thead>
+<thead><tr style="color: #9ca0ab"><th scope="col" style="font-weight: 500; text-align: left">Trilha</th>
+<sc-for list="{{ cabecalhoDias }}" as="c" hint-placeholder-count="14"><th scope="col" style="font-weight: 500">{{ c.rotulo }}</th></sc-for>
+</tr></thead>
 <tbody>
-<tr><th scope="row" style="text-align: left; font-weight: 500">0</th><td style="background: #c8105f; border-radius: 4px; height: 22px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td></tr>
-<tr><th scope="row" style="text-align: left; font-weight: 500">1</th><td style="background: #c8105f; border-radius: 4px; height: 22px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td></tr>
-<tr><th scope="row" style="text-align: left; font-weight: 500">2</th><td style="background: #c8105f; border-radius: 4px; height: 22px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td></tr>
-<tr><th scope="row" style="text-align: left; font-weight: 500">3</th><td style="background: #3a3238; border-radius: 4px; height: 22px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td><td style="background: #3a3238; border-radius: 4px"></td><td style="background: #c8105f; border-radius: 4px"></td></tr>
+<sc-for list="{{ sel.trilhasPrevia }}" as="t" hint-placeholder-count="4">
+<tr><th scope="row" style="text-align: left; font-weight: 500">{{ t.nome }}</th>
+<sc-for list="{{ t.dias }}" as="x" hint-placeholder-count="14"><td title="{{ x.titulo }}" style="{{ x.style }}"></td></sc-for>
+</tr>
+</sc-for>
 </tbody>
 </table>
 </div>
-<span style="color: #9ca0ab; font-size: 12px">Regra herdada da Escala de Buffers: folga quando (dias desde a âncora) mod 4 = trilha. As semanas podem ser geradas em qualquer ordem.</span>
+<span style="color: #9ca0ab; font-size: 12px">{{ sel.previaNota }}</span>
 </div>
-<div style="display: flex; gap: 10px; justify-content: flex-end">
-<button type="button" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Duplicar</button>
-<button type="button" style="height: 40px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Salvar modelo</button>
+<div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap">
+<button type="button" onClick="{{ descartar }}" disabled="{{ naoSujo }}" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Descartar alterações</button>
+<button type="button" onClick="{{ duplicar }}" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Duplicar</button>
+<button type="button" onClick="{{ salvar }}" disabled="{{ naoPodeSalvar }}" style="{{ salvarStyle }}">Salvar modelo</button>
 </div>
 </section>
 </div>
 </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
 class Component extends DCLogic {
+constructor(props) {
+super(props);
+const base = [
+{ id: 'm1', nome: '3x1', tipo: 'continuo', ciclo: [1, 1, 1, 0], horas: 8, trilhas: 4, admin: 0, dConta: true, pessoas: '204 pessoas' },
+{ id: 'm2', nome: 'Primaris 3x1 + admin', tipo: 'continuo', ciclo: [1, 1, 1, 0], horas: 8, trilhas: 4, admin: 12, dConta: true, pessoas: '49 pessoas' },
+{ id: 'm3', nome: '5x2 fixo', tipo: 'semana', ciclo: [1, 1, 1, 1, 1, 0, 0], horas: 8, trilhas: 1, admin: 0, dConta: true, pessoas: '[n] pessoas' },
+{ id: 'm4', nome: '4x3', tipo: 'semana', ciclo: [1, 1, 1, 1, 0, 0, 0], horas: 8, trilhas: 1, admin: 0, dConta: true, pessoas: 'rascunho' }
+];
+this.state = { salvos: base, edicao: null, sel: 'm1', aviso: '', seq: 5 };
+}
+modeloAtual() {
+const s = this.state;
+if (s.edicao && s.edicao.id === s.sel) {
+return s.edicao;
+}
+return s.salvos.find((m) => m.id === s.sel) || s.salvos[0];
+}
+editar(patch) {
+const atual = this.modeloAtual();
+this.setState({ edicao: Object.assign({}, atual, patch), aviso: '' });
+}
 renderVals() {
-return {};
+const s = this.state;
+const nomesDia = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+const maxSeguidos = (ciclo, tipo) => {
+if (!ciclo.includes(0)) {
+return Infinity;
+}
+const dobro = ciclo.concat(ciclo);
+let maior = 0;
+let atual = 0;
+dobro.forEach((v) => { atual = v ? atual + 1 : 0; maior = Math.max(maior, atual); });
+return Math.min(maior, ciclo.length);
+};
+const calc = (m) => {
+const trab = m.ciclo.filter((v) => v).length;
+const folgas = m.ciclo.length - trab;
+const presenca = trab / m.ciclo.length;
+const adminDias = m.admin > 0 ? 30 / m.admin : 0;
+const horasMes = Math.round(m.horas * 30 * presenca - adminDias * m.horas);
+const max = maxSeguidos(m.ciclo, m.tipo);
+const folgaTxt = m.tipo === 'semana' ? folgas + ' por semana' : folgas + ' a cada ' + m.ciclo.length + ' dias';
+const resumo = (m.tipo === 'semana' ? 'semana fixa' : 'ciclo contínuo de ' + m.ciclo.length + ' dias') + ' · ' + Math.round(presenca * 100) + '% de presença · ' + horasMes + ' h/mês' + (m.admin > 0 ? ' de chat' : '');
+return { trab: trab, folgas: folgas, presenca: presenca, horasMes: horasMes, max: max, folgaTxt: folgaTxt, resumo: resumo };
+};
+const atual = this.modeloAtual();
+const sujo = !!(s.edicao && s.edicao.id === s.sel);
+const salvosComEdicao = s.salvos.map((m) => (sujo && m.id === s.sel ? s.edicao : m));
+const quad = (v) => ({ style: 'width: 26px; height: 22px; border-radius: 5px; background: ' + (v ? '#e91876' : '#3a3238') });
+const lista = salvosComEdicao.map((m) => ({
+nome: m.nome || '(sem nome)', pessoas: m.pessoas, resumo: calc(m).resumo,
+quadrados: m.ciclo.map(quad),
+ativo: m.id === s.sel ? 'true' : 'false',
+box: 'text-align: left; padding: 16px; border-radius: 14px; background: #131014; color: #f5f5f7; display: flex; flex-direction: column; gap: 8px; width: 100%; border: 1px solid ' + (m.id === s.sel ? '#e91876' : '#2a2129'),
+pick: () => {
+if (sujo && m.id !== s.sel) {
+this.setState({ aviso: 'Salve ou descarte as alterações de "' + atual.nome + '" antes de trocar de modelo.' });
+return;
+}
+this.setState({ sel: m.id, aviso: '' });
+}
+}));
+const c = calc(atual);
+const ciclo = atual.ciclo;
+const dias = ciclo.map((v, i) => ({
+rotulo: atual.tipo === 'semana' ? nomesDia[i] : 'Dia ' + (i + 1),
+estado: v ? 'trabalho' : 'folga',
+aria: v ? 'true' : 'false',
+style: 'width: 72px; height: 56px; border-radius: 10px; font-weight: 600; ' + (v ? 'border: 0; background: #c8105f; color: #fff' : 'border: 1px solid #3a3238; background: #241d24; color: #d6d7dc'),
+alternar: () => { const n = ciclo.slice(); n[i] = n[i] ? 0 : 1; this.editar({ ciclo: n }); }
+}));
+// Prévia: 14 dias a partir de seg 26/10/2026; âncora seg 05/10/2026 (21 dias antes).
+const cabecalho = [];
+const inicio = new Date(2026, 9, 26);
+for (let d = 0; d < 14; d++) {
+const dt = new Date(inicio.getTime() + d * 86400000);
+cabecalho.push({ rotulo: nomesDia[(dt.getDay() + 6) % 7].charAt(0) + ' ' + dt.getDate() });
+}
+const nTrilhas = Math.max(1, Math.min(7, atual.trilhas || 1));
+const trilhasPrevia = [];
+for (let t = 0; t < nTrilhas; t++) {
+const linha = [];
+for (let d = 0; d < 14; d++) {
+const idx = atual.tipo === 'semana' ? (d + t) % 7 % ciclo.length : (21 + d + t + ciclo.length - 1) % ciclo.length;
+const trabalha = ciclo[idx] === 1;
+const admin = trabalha && atual.admin > 0 && (21 + d + t * 3) % atual.admin === 0;
+linha.push({
+titulo: admin ? 'dia administrativo' : (trabalha ? 'trabalho' : 'folga'),
+style: 'height: 22px; border-radius: 4px; background: ' + (admin ? '#7c3aed' : (trabalha ? '#c8105f' : '#3a3238'))
+});
+}
+trilhasPrevia.push({ nome: String(t), dias: linha });
+}
+const regras = salvosComEdicao.map((m) => {
+const r = calc(m);
+return {
+nome: m.nome || '(sem nome)', trabalho: r.trab,
+excesso: r.max === Infinity ? 'sem folga no ciclo' : 'a partir de ' + (r.max + 1) + ' seguidos' + (m.admin > 0 ? ' (dia admin conta como trabalho)' : ''),
+folga: r.folgaTxt,
+linha: m.id === s.sel ? 'background: rgba(233,24,118,0.08); font-weight: 600' : ''
+};
+});
+const semFolga = c.max === Infinity;
+const podeSalvar = sujo && !semFolga && (atual.nome || '').trim() !== '';
+const numero = (e, min, max) => {
+const v = parseInt(e && e.target ? e.target.value : '', 10);
+return isNaN(v) ? min : Math.max(min, Math.min(max, v));
+};
+return {
+lista: lista, regras: regras, cabecalhoDias: cabecalho, sujo: sujo, naoSujo: !sujo,
+aviso: s.aviso !== '', avisoTexto: s.aviso, fecharAviso: () => this.setState({ aviso: '' }),
+sel: {
+nome: atual.nome, horas: atual.horas, trilhas: atual.trilhas, admin: atual.admin, dConta: atual.dConta,
+tipoContinuo: atual.tipo === 'continuo', tipoSemana: atual.tipo === 'semana',
+dias: dias,
+podeAdicionar: atual.tipo === 'continuo' && ciclo.length < 14,
+podeRemover: atual.tipo === 'continuo' && ciclo.length > 2,
+resumoCiclo: ciclo.length + ' dias por ciclo · ' + c.trab + ' de trabalho · presença ' + Math.round(c.presenca * 100) + '% · ' + c.horasMes + ' h/mês' + (atual.admin > 0 ? ' de chat (desconta 1 dia admin a cada ' + atual.admin + ')' : ''),
+semFolga: semFolga,
+maxSeguidos: semFolga ? '∞' : String(c.max),
+trilhasPrevia: trilhasPrevia,
+previaTitulo: 'Prévia: presença por trilha nas próximas 2 semanas (âncora seg 05/10/2026)',
+previaNota: atual.tipo === 'semana' ? 'Semana fixa: cada trilha é a mesma semana com as folgas em outros dias (folgas escolhidas por pessoa).' : 'Regra herdada da Escala de Buffers: o ciclo avança pelo calendário a partir da âncora; cada trilha começa um dia depois da anterior.' + (atual.admin > 0 ? ' Roxo = dia administrativo.' : '')
+},
+mudarNome: (e) => this.editar({ nome: e && e.target ? e.target.value : '' }),
+mudarHoras: (e) => this.editar({ horas: numero(e, 1, 12) }),
+mudarTrilhas: (e) => this.editar({ trilhas: numero(e, 1, 7) }),
+mudarAdmin: (e) => this.editar({ admin: numero(e, 0, 30) }),
+alternarD: () => this.editar({ dConta: !atual.dConta }),
+mudarTipo: (e) => {
+const tipo = e && e.target ? e.target.value : 'continuo';
+let n = ciclo.slice();
+if (tipo === 'semana') {
+n = n.slice(0, 7);
+while (n.length < 7) { n.push(0); }
+}
+this.editar({ tipo: tipo, ciclo: n });
+},
+adicionarDia: () => this.editar({ ciclo: ciclo.concat([1]) }),
+removerDia: () => this.editar({ ciclo: ciclo.slice(0, -1) }),
+descartar: () => this.setState({ edicao: null, aviso: 'Alterações descartadas.' }),
+salvar: () => {
+if (!podeSalvar) {
+return;
+}
+const salvos = s.salvos.map((m) => (m.id === s.sel ? s.edicao : m));
+this.setState({ salvos: salvos, edicao: null, aviso: '"' + atual.nome + '" salvo no rascunho. Na versão final, a regra de anomalia e a geração passam a usar o ciclo novo a partir da próxima semana.' });
+},
+duplicar: () => {
+if (sujo) {
+this.setState({ aviso: 'Salve ou descarte as alterações antes de duplicar.' });
+return;
+}
+const id = 'm' + s.seq;
+const copia = Object.assign({}, atual, { id: id, nome: atual.nome + ' (cópia)', pessoas: 'rascunho', ciclo: atual.ciclo.slice() });
+this.setState({ salvos: s.salvos.concat([copia]), sel: id, seq: s.seq + 1, aviso: 'Cópia criada. Ajuste e salve.' });
+},
+novoModelo: () => {
+if (sujo) {
+this.setState({ aviso: 'Salve ou descarte as alterações antes de criar outro modelo.' });
+return;
+}
+const id = 'm' + s.seq;
+const novo = { id: id, nome: 'Novo modelo', tipo: 'continuo', ciclo: [1, 1, 1, 1, 1, 1, 0], horas: 8, trilhas: 7, admin: 0, dConta: true, pessoas: 'rascunho' };
+this.setState({ salvos: s.salvos.concat([novo]), sel: id, seq: s.seq + 1, aviso: 'Modelo novo criado (6x1 de exemplo). Clique nos dias para mudar o ciclo.' });
+},
+naoPodeSalvar: !podeSalvar,
+salvarStyle: 'height: 40px; padding: 0 18px; border-radius: 10px; border: 0; font-weight: 600; ' + (podeSalvar ? 'background: #c8105f; color: #fff' : 'background: #2a2129; color: #6b6f7a')
+};
 }
 }
 </script>
