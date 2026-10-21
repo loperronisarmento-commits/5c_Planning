@@ -1,0 +1,15 @@
+# ===============================================
+# ARQUIVO: 5c_escalas/.htaccess
+# Bloqueia acesso direto via navegador a qualquer arquivo "oculto"
+# (.env, .env.example, .git etc.) em qualquer subpasta daqui pra baixo
+# — proteção extra caso um .env de verdade acabe indo parar aqui por
+# engano algum dia. Não depende de nada além do Apache 2.4 padrão
+# (mod_authz_core, já carregado no httpd.conf de vocês).
+#
+# Se isso não tiver efeito nenhum, o motivo mais provável é
+# "AllowOverride None" pra essa pasta no httpd.conf/vhost — nesse caso
+# o mesmo bloco abaixo, dentro de <Directory>, resolve igual.
+# ===============================================
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
