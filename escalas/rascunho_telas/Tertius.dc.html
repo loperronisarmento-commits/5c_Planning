@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Equilíbrio Tertius</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Planejamento</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Equilíbrio Tertius por mérito</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 800px">Quem entrega mais e falta menos recebe mais turnos como regular (até 70%). Quem tem problemas continua escalado, com no mínimo 30% como regular. O sistema aplica o alvo sozinho na geração; esta tela explica cada um.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Time
+<select style="height: 40px; min-width: 140px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Todos</option><option>Cavalry</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Base da avaliação
+<select style="height: 40px; min-width: 210px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>4 semanas fechadas (28/09 – 25/10)</option><option>Mês anterior</option></select>
+</label>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch">
+<section aria-label="Quadrantes" style="flex: 999 1 560px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 style="margin: 0; font-size: 17px">Desempenho × assiduidade</h2>
+<span style="color: #9ca0ab; font-size: 13px">cortes: meta 100% · absenteísmo 10%</span>
+</div>
+<div style="display: flex; gap: 10px">
+<div style="writing-mode: vertical-rl; transform: rotate(180deg); color: #9ca0ab; font-size: 12px; text-align: center">Desempenho (% da meta, sem offsetting) →</div>
+<div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 6px">
+<div style="position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: 190px 190px; gap: 6px">
+<div style="border-radius: 12px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); padding: 12px; display: flex; flex-direction: column; gap: 2px"><b style="color: #fcd34d">Entrega, mas falta</b><span style="color: #9ca0ab; font-size: 12px">alvo 50% regular</span></div>
+<div style="border-radius: 12px; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.30); padding: 12px; display: flex; flex-direction: column; gap: 2px; text-align: right"><b style="color: #86efac">Destaque</b><span style="color: #9ca0ab; font-size: 12px">alvo 70% regular</span></div>
+<div style="border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.28); padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px"><b style="color: #fca5a5">Atenção</b><span style="color: #9ca0ab; font-size: 12px">alvo 30% regular</span></div>
+<div style="border-radius: 12px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.28); padding: 12px; display: flex; flex-direction: column; justify-content: flex-end; gap: 2px; text-align: right"><b style="color: #93c5fd">Presente, abaixo da meta</b><span style="color: #9ca0ab; font-size: 12px">alvo 50% regular</span></div>
+<span title="Tertius 1" style="position: absolute; left: 82%; top: 14%; width: 30px; height: 30px; border-radius: 50%; background: #4ade80; color: #04210f; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">1</span>
+<span title="Tertius 2" style="position: absolute; left: 66%; top: 32%; width: 30px; height: 30px; border-radius: 50%; background: #4ade80; color: #04210f; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">2</span>
+<span title="Tertius 3" style="position: absolute; left: 22%; top: 22%; width: 30px; height: 30px; border-radius: 50%; background: #fbbf24; color: #2a1b00; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">3</span>
+<span title="Tertius 4" style="position: absolute; left: 74%; top: 64%; width: 30px; height: 30px; border-radius: 50%; background: #60a5fa; color: #061a33; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">4</span>
+<span title="Tertius 5" style="position: absolute; left: 58%; top: 78%; width: 30px; height: 30px; border-radius: 50%; background: #60a5fa; color: #061a33; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">5</span>
+<span title="Tertius 6" style="position: absolute; left: 14%; top: 70%; width: 30px; height: 30px; border-radius: 50%; background: #f87171; color: #2a0505; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">6</span>
+<span title="Tertius 7" style="position: absolute; left: 34%; top: 84%; width: 30px; height: 30px; border-radius: 50%; background: #f87171; color: #2a0505; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">7</span>
+<span title="Tertius 8" style="position: absolute; left: 88%; top: 44%; width: 30px; height: 30px; border-radius: 50%; border: 2px dashed #9ca0ab; background: #131014; color: #d6d7dc; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center">8</span>
+</div>
+<div style="color: #9ca0ab; font-size: 12px; text-align: center">Assiduidade (100% − absenteísmo real, AF v2) →</div>
+</div>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Contorno tracejado: menos de 30 dias de casa, sem avaliação (alvo neutro de 50%, como o "Too early to judge" do 5C George).</p>
+</section>
+
+<aside aria-label="Regra" style="flex: 1 1 340px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 17px">Como o sistema decide</h2>
+<ol style="margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; color: #d6d7dc">
+<li>Cobertura vem primeiro: vaga sem titular é preenchida antes de olhar mérito.</li>
+<li>Cada Tertius tem um <b>alvo de % regular</b> pelo quadrante (30%, 50% ou 70%).</li>
+<li>Vaga de <b>regular</b> vai para quem está mais abaixo do próprio alvo; vaga de <b>assistente</b>, para quem está mais acima.</li>
+<li>Empate: menos turnos no total na janela; depois, alternância pela ordem do dia anterior.</li>
+</ol>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9ca0ab">Corte de desempenho
+<input type="text" value="100% da meta" style="height: 38px; box-sizing: border-box; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9ca0ab">Corte de absenteísmo
+<input type="text" value="10%" style="height: 38px; box-sizing: border-box; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9ca0ab">Piso regular
+<input type="text" value="30%" style="height: 38px; box-sizing: border-box; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: #9ca0ab">Teto regular
+<input type="text" value="70%" style="height: 38px; box-sizing: border-box; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"></label>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Desempenho: % da meta no 5C George (Target coverage). Assiduidade: absenteísmo da abs_adh_af já corrigida (AF v2). Reavaliado toda semana, antes de gerar a escala.</p>
+</aside>
+</div>
+
+<section aria-label="Explicação por Tertius" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Explicação por Tertius (janela de 4 semanas)</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 1000px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Tertius</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Quadrante</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Meta</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Absent.</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; width: 220px">Regular: realizado × alvo</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Próximo papel</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Por quê</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><b>Tertius 1</b></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(74,222,128,0.15); color: #86efac">Destaque</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">118%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">3%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><div style="position: relative; height: 16px; border-radius: 5px; background: #2a2129"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 55%; border-radius: 5px; background: #34d399"></span><span style="position: absolute; left: 70%; top: -3px; bottom: -3px; width: 2px; background: #f5f5f7"></span></div><span style="color: #9ca0ab; font-size: 12px">55% · alvo 70%</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(52,211,153,0.16); color: #b7f5dd">regular</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">Acima da meta e quase sem faltas; está 15 pp abaixo do alvo</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><b>Tertius 3</b></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(251,191,36,0.15); color: #fcd34d">Entrega, mas falta</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">109%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">16%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><div style="position: relative; height: 16px; border-radius: 5px; background: #2a2129"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 52%; border-radius: 5px; background: #34d399"></span><span style="position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: #f5f5f7"></span></div><span style="color: #9ca0ab; font-size: 12px">52% · alvo 50%</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(251,146,60,0.18); color: #ffd9b5">assistente</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">Bate a meta, mas o absenteísmo de 16% passa do corte de 10%</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><b>Tertius 5</b></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(96,165,250,0.15); color: #93c5fd">Presente, abaixo da meta</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">81%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">6%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><div style="position: relative; height: 16px; border-radius: 5px; background: #2a2129"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 61%; border-radius: 5px; background: #34d399"></span><span style="position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: #f5f5f7"></span></div><span style="color: #9ca0ab; font-size: 12px">61% · alvo 50%</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(251,146,60,0.18); color: #ffd9b5">assistente</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">Assíduo, mas em 81% da meta; está 11 pp acima do alvo</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><b>Tertius 6</b></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(248,113,113,0.15); color: #fca5a5">Atenção</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">72%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; text-align: right">19%</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><div style="position: relative; height: 16px; border-radius: 5px; background: #2a2129"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 25%; border-radius: 5px; background: #34d399"></span><span style="position: absolute; left: 30%; top: -3px; bottom: -3px; width: 2px; background: #f5f5f7"></span></div><span style="color: #9ca0ab; font-size: 12px">25% · piso 30%</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(52,211,153,0.16); color: #b7f5dd">regular</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">Abaixo da meta e com faltas, mas abaixo do piso de 30%: volta a receber regular</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px"><b>Tertius 8</b></td>
+<td style="padding: 12px 8px"><span style="padding: 3px 8px; border-radius: 6px; border: 1px dashed #9ca0ab; color: #d6d7dc">Sem avaliação</span></td>
+<td style="padding: 12px 8px; text-align: right">—</td>
+<td style="padding: 12px 8px; text-align: right">—</td>
+<td style="padding: 12px 8px"><div style="position: relative; height: 16px; border-radius: 5px; background: #2a2129"><span style="position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: 5px; background: #34d399"></span><span style="position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: #f5f5f7"></span></div><span style="color: #9ca0ab; font-size: 12px">50% · alvo 50%</span></td>
+<td style="padding: 12px 8px"><span style="padding: 3px 8px; border-radius: 6px; background: #2a2129; color: #d6d7dc">alternância</span></td>
+<td style="padding: 12px 8px">12 dias de casa; alvo neutro até completar 30 dias</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Valores ilustrativos. Remuneração estimada (base US$ 2/h + comissão do papel) entra como coluna quando a regra de folha for confirmada.</p>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1350}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

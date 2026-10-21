@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Glossário</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 20px">
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Ajuda</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Glossário</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 800px">Cada termo e regra do sistema, em uma frase ou duas, com o link para a tela onde aparece. Os ícones "?" espalhados pelas telas abrem o termo aqui.</p>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center">
+<label style="flex: 1 1 320px; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Buscar termo
+<input type="search" value="{{ q }}" onChange="{{ buscar }}" placeholder="ex.: lacuna, 3x1, AF, mérito" style="height: 44px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; padding: 0 14px; font-size: 15px"></label>
+<div role="group" aria-label="Categoria" style="display: flex; flex-wrap: wrap; gap: 8px; align-self: flex-end">
+<sc-for list="{{ cats }}" as="c" hint-placeholder-count="7">
+<button type="button" aria-pressed="{{ c.aria }}" onClick="{{ c.pick }}" style="{{ c.style }}">{{ c.label }}</button>
+</sc-for>
+</div>
+</div>
+
+<span style="color: #9ca0ab; font-size: 13px">{{ contagem }}</span>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px">
+<sc-for list="{{ itens }}" as="t" hint-placeholder-count="9">
+<article style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline">
+<h2 style="margin: 0; font-size: 16px">{{ t.termo }}</h2>
+<span style="font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #9ca0ab">{{ t.cat }}</span>
+</div>
+<p style="margin: 0; color: #d6d7dc; line-height: 1.5">{{ t.def }}</p>
+<a href="{{ t.href }}" style="font-size: 13px; font-weight: 600; align-self: flex-start">{{ t.onde }}</a>
+</article>
+</sc-for>
+</div>
+<sc-if value="{{ vazio }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 24px; border-radius: 14px; border: 1px dashed #3a3238; color: #9ca0ab; text-align: center">Nenhum termo encontrado. Tente outra palavra ou limpe o filtro de categoria.</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { cat: 'Todos', q: '' };
+}
+renderVals() {
+const s = this.state;
+const T = [
+['Estrutura', 'Time', 'Grupo de parties que atende um conjunto de páginas. Os Tertius pertencem ao time, não à party.', 'Configuração dos times', 'Estrutura.dc.html'],
+['Estrutura', 'Party', 'Equipe dona de páginas. Regra: 1 Primaris e 2 Secundus. Como eles se distribuem nos turnos não é regra.', 'Configuração dos times', 'Estrutura.dc.html'],
+['Estrutura', 'Primaris', 'Líder da party (Arch, Grand, Knight, Adept). Titular das páginas da party no seu turno. No 3x1, tem 1 dia administrativo a cada 12.', 'Colaboradores', 'Colaboradores.dc.html'],
+['Estrutura', 'Secundus', 'Titular das páginas da party no seu turno. Máximo de 2 por party.', 'Configuração dos times', 'Estrutura.dc.html'],
+['Estrutura', 'Tertius', 'Preenche lacunas do time inteiro, como regular ou como assistente, sem preferência pela party de cadastro.', 'Equilíbrio Tertius', 'Tertius.dc.html'],
+['Estrutura', 'Buffer', 'Pessoa sem time que cobre o que os times não fecharam (passo 5 da geração).', 'Buffers', 'Buffers.dc.html'],
+['Estrutura', 'Violação de formação', 'Party fora da regra (sem Primaris, 2 Primaris, Secundus ≠ 2, sem página). As bloqueantes tiram a party da geração até corrigir ou justificar.', 'Configuração dos times', 'Estrutura.dc.html'],
+['Estrutura', 'Tertius: faltam ou sobram', 'Para cada time e turno: pessoas necessárias pelo Capacity menos titulares, comparado com os Tertius cadastrados. Positivo falta, negativo sobra.', 'Configuração dos times', 'Estrutura.dc.html'],
+['Escala', 'Turno A · C · D', 'A = T2/T3 (05h–13h) · C = T4/T5 (13h–21h) · D = T6/T1 (21h–05h). Cada pessoa trabalha sempre no mesmo turno.', 'Colaboradores', 'Colaboradores.dc.html'],
+['Escala', 'Bloco T1 a T6', 'Faixas de 4 horas do dia. A necessidade do Capacity é calculada por bloco; o turno usa o maior dos seus 2 blocos.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Escala', 'Dia do turno', 'Vai de 05h a 05h. O T1 da madrugada pertence ao turno D do dia anterior.', 'Gerar escala', 'GerarEscala.dc.html'],
+['Escala', 'Modelo de escala', 'Ciclo de dias de trabalho e folga (3x1, 5x2, 4x3…). Cadastrado, não fixo no código. Define também o limite de dias seguidos.', 'Modelos de escala', 'ModelosEscala.dc.html'],
+['Escala', '3x1', '3 dias de trabalho e 1 de folga, sempre no mesmo turno. A folga avança 1 dia a cada ciclo pelo calendário. Presença de 75%.', 'Modelos de escala', 'ModelosEscala.dc.html'],
+['Escala', 'Trilha e âncora', 'Trilha = em que dia do ciclo a pessoa está. Âncora = data de referência do calendário. Recalculadas toda semana pelo realizado.', 'Colaboradores', 'Colaboradores.dc.html'],
+['Escala', 'Ordem de preenchimento', '0 releitura do realizado · 1 party dona · 2 outras parties (mesmo turno, em ordem) · 3 Tertius regular · 4 Tertius assistente · 5 Buffer · resto = lacuna.', 'Gerar escala', 'GerarEscala.dc.html'],
+['Escala', 'Releitura do realizado', 'Antes de gerar, o sistema lê o scheduleday das 2 últimas semanas e recalcula folgas e dias seguidos de cada um, para a semana nova começar de onde a anterior terminou.', 'Gerar escala', 'GerarEscala.dc.html'],
+['Escala', 'Regular e assistente', 'Regular é o titular da página no turno. Assistente é o 2º rep, quando o Capacity pede 2 ou mais na página.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Escala', 'Lacuna', 'Vaga que ficou sem ninguém depois de todos os passos. Aparece tracejada em vermelho na grade.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Escala', 'Travar célula', 'Mantém uma alocação feita à mão: a próxima geração não mexe nela.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Escala', 'Rascunho e publicado', 'Cada geração cria uma versão em rascunho. Publicar trava a versão, gera o CSV T1–T6 e passa a valer para monitoramento.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Escala', 'Sugestão de troca', 'Proposta do sistema (cobertura, mérito, folga, estrutura) com efeito calculado. Só muda algo quando alguém clica em Aplicar.', 'Sugestões de troca', 'Sugestoes.dc.html'],
+['Capacity', 'Fãs/h e reps necessários', 'Do Capacity: fãs ativos por hora na página e quantos reps ela pede (limite 35 fãs/h por rep; 20 nas SLA80; 40 na Skylar).', 'Painel', 'Main.dc.html'],
+['Capacity', 'Página agrupável', 'Página com até 28 fãs/h: divide rep com outras (grupo de até 23 fãs/h, máximo 3 páginas por rep).', 'Grade da escala', 'GradeEscala.dc.html'],
+['Capacity', 'Absenteísmo', 'Faltas reais ÷ turnos escalados, por turno. Usa a AF corrigida: só ABS conta; AF e presença não.', 'Painel', 'Main.dc.html'],
+['Mérito', 'Quadrantes de mérito', 'Desempenho (% da meta) × assiduidade (100% − absenteísmo). Destaque, Entrega mas falta, Presente abaixo da meta, Atenção.', 'Equilíbrio Tertius', 'Tertius.dc.html'],
+['Mérito', 'Alvo de % regular', 'Fatia de turnos como regular de cada Tertius: 70% Destaque, 50% nos mistos e nos novatos, 30% Atenção. Ninguém fica abaixo de 30%.', 'Equilíbrio Tertius', 'Tertius.dc.html'],
+['Indisponibilidade', 'Pedido de indisponibilidade', 'Um dia, vários dias ou recorrente (ex.: consulta toda quarta). Só vira folga depois de aprovado pela WFM.', 'Solicitar', 'Solicitacao.dc.html'],
+['Indisponibilidade', 'Pedido urgente', 'Enviado com menos de 72 h de antecedência. Chega destacado para a WFM.', 'Aprovar (WFM)', 'Aprovacao.dc.html'],
+['Indisponibilidade', 'Contagem de pedidos', 'Quantas vezes a pessoa pediu indisponibilidade nos últimos 90 dias e desde a admissão. Aparece na aprovação.', 'Aprovar (WFM)', 'Aprovacao.dc.html'],
+['Monitoramento', 'EXCESSO_CONSECUTIVO', 'Mais dias seguidos do que o modelo permite: 3x1 a partir de 4, 5x2 a partir de 6, 4x3 a partir de 5.', 'Anomalias da escala', 'Monitoramento.dc.html'],
+['Monitoramento', 'SEM_FOLGA_7_DIAS', '7 dias seguidos sem folga, em qualquer modelo.', 'Anomalias da escala', 'Monitoramento.dc.html'],
+['Monitoramento', 'Programada × não programada', 'Programada = já estava no plano publicado (a validação impede). Não programada = só no realizado (troca, extra, falta).', 'Anomalias da escala', 'Monitoramento.dc.html'],
+['Monitoramento', 'ADH · NADH · ABS · AF', 'ADH aderente; NADH presente fora do combinado; ABS falta; AF falha de planejamento (AF_FORA: trabalhou ≥ 3 h fora da escala; AF_DOBRA: cumpriu outro turno escalado). PRESENTE = marcado falta, mas trabalhou.', 'Anomalias da escala', 'Monitoramento.dc.html'],
+['Monitoramento', 'Auditoria de acesso', 'Confere acesso no Infloww × páginas escaladas: remover, adicionar ou desativar cadastro.', 'Auditoria de acesso', 'AuditoriaAcesso.dc.html'],
+['Administração', 'Perfis de acesso', 'Admin, WFM, Gestor do time, Colaborador e Leitura. Cada perfil vê e faz coisas diferentes em cada tela.', 'Acessos por tela', 'Acessos.dc.html'],
+['Escala', 'Recálculo durante a semana', 'Entrada ou saída de página, mudança de estrutura, indisponibilidade aprovada ou falta disparam novo cálculo. Buffers que faltam são adicionados sozinhos; dias já escalados nunca são retirados.', 'Buffers', 'Buffers.dc.html'],
+['Escala', 'Sugestão de workload', 'Quando sobra gente depois de um recálculo (ex.: páginas saíram), o sistema sugere remover turnos já escalados, mas só remove se alguém aplicar.', 'Sugestões de troca', 'Sugestoes.dc.html'],
+['Escala', 'Buffer automático', 'O pool de buffers é preenchido pela necessidade do Capacity por dia e bloco de 4 h, depois dos times. Dá para passar a manual.', 'Buffers', 'Buffers.dc.html'],
+['Páginas', 'Funil de entrada', 'Espelho do funil do CRM (Pipeline, Onboarding, Active na 1ª semana): volume previsto, probabilidade, data do contrato e destino (time/party). Ao entrar em Active, a escala é recalculada.', 'Funil de entrada', 'Funil.dc.html'],
+['Páginas', 'Volume previsto', 'Fãs/h por turno vindos do arquétipo da página. Reps por turno = teto(fãs ÷ 35); até 28 fãs/h a página divide rep.', 'Funil de entrada', 'Funil.dc.html'],
+['Páginas', 'Arquétipo', 'Grupo de páginas ativas com o mesmo tier (faixa de faturamento) e perfil (Main, VIP, Free, OFTV). A média de fãs/h delas é a estimativa da página nova, com confiança alta, média ou baixa.', 'Funil de entrada', 'Funil.dc.html'],
+['Indisponibilidade', 'Pedido pela Nora', 'Caminho principal do colaborador: /pedido no Telegram. A Nora mostra só os dias escalados, pede turno e motivo, e envia para a fila do WFM no site, onde o pedido é consultado e decidido. A resposta volta pela Nora.', 'Pedido pela Nora', 'NoraBot.dc.html'],
+['Páginas', 'Troca de página', 'Página que muda de party no Planner (Planned Move). O corte é no horário marcado no Planner (quase sempre 21:00, início do T6); T6 e T1 são um bloco só. Quem já está escalado mantém dia e turno e vai para a página que a própria party recebeu; o sistema prepara o apagar e postar por intervalo no site da 5C.', 'Trocas de página', 'TrocasPagina.dc.html'],
+['Páginas', 'Cadeia de trocas', 'Sequência de trocas ligadas (A sai da party 1 para a 2, a página da 2 vai para a 3…). Fechada: toda party perde e recebe uma página. Aberta: alguma party fica com página a mais ou a menos, e isso vira lacuna ou sugestão.', 'Trocas de página', 'TrocasPagina.dc.html'],
+['Páginas', 'Checagem de saída', 'Quando o sistema detecta que uma página saiu, alguém confirma antes do efeito entrar na escala. "Não saiu" descarta o gatilho.', 'Buffers', 'Buffers.dc.html'],
+['Estrutura', 'Pendência no Planner', 'Mudança de formação feita aqui que ainda precisa ser lançada no Planner (não há API de escrita). Fecha sozinha quando a leitura do historicplanner bate.', 'Configuração dos times', 'Estrutura.dc.html'],
+['Páginas', 'Impacto ponderado', 'Necessidade da página × probabilidade de entrar. Soma por semana de entrada e vai para o plano de turmas.', 'Funil de entrada', 'Funil.dc.html'],
+['Escala', 'CSV T1–T6', 'Formato do Schedule Ajustment no site da 5C: 6 linhas (blocos T1 a T6) × 7 colunas de seg a dom separadas por ";", códigos separados por ", ". Dia fora do intervalo fica vazio. # = assistente. O $ (secondary: a pessoa tem outro turno no mesmo horário, como num double) o site calcula sozinho no input. Um CSV por página.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Escala', 'Postar via API', 'Envio direto da escala ao 5C Schedule. Previsto: depende da API de escrita do scheduleday, que ainda não existe. Até lá, CSV.', 'Grade da escala', 'GradeEscala.dc.html'],
+['Administração', 'Fontes de dados', 'Escala, estrutura, headcount e páginas vêm da API 5C (leitura) a cada 15 min; "Atualizar agora" força a importação com prioridade sobre a automática.', 'Gerar escala', 'GerarEscala.dc.html']
+];
+const q = (s.q || '').toLowerCase();
+const itens = T.filter((t) => (s.cat === 'Todos' || t[0] === s.cat) && (q === '' || (t[1] + ' ' + t[2]).toLowerCase().indexOf(q) >= 0))
+.map((t) => ({ cat: t[0], termo: t[1], def: t[2], onde: 'Ver em ' + t[3], href: t[4] }));
+const on = 'height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff; font-weight: 600';
+const off = 'height: 36px; padding: 0 14px; border-radius: 999px; border: 1px solid #2a2129; background: #131014; color: #d6d7dc';
+const cats = ['Todos', 'Estrutura', 'Escala', 'Páginas', 'Capacity', 'Mérito', 'Indisponibilidade', 'Monitoramento', 'Administração'].map((c) => ({
+label: c, aria: s.cat === c ? 'true' : 'false', style: s.cat === c ? on : off, pick: () => this.setState({ cat: c })
+}));
+return {
+itens: itens, cats: cats, q: s.q,
+vazio: itens.length === 0,
+contagem: itens.length + ' de ' + T.length + ' termos',
+buscar: (e) => this.setState({ q: e && e.target ? e.target.value : '' })
+};
+}
+}
+</script>
+</body>
+</html>

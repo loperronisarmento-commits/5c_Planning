@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Pedido pela Nora</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 40px 32px; display: flex; flex-wrap: wrap; gap: 32px; align-items: flex-start; justify-content: center; background: radial-gradient(1000px 500px at 50% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+
+<section aria-label="Conversa do colaborador com a Nora" style="flex: 0 1 400px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Telegram do colaborador</span>
+<div style="border-radius: 28px; border: 1px solid #2a2129; background: #0e1621; overflow: hidden; display: flex; flex-direction: column; height: 760px">
+<div style="padding: 14px 16px; background: #17212b; display: flex; gap: 12px; align-items: center; border-bottom: 1px solid #0b121a">
+<span aria-hidden="true" style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #e91876, #7c3aed); display: flex; align-items: center; justify-content: center; font-weight: 700">N</span>
+<span style="display: flex; flex-direction: column"><b>Nora · 5C</b><span style="color: #6c7883; font-size: 12px">bot</span></span>
+<button type="button" onClick="{{ reiniciar }}" style="margin-left: auto; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #2b3b4b; background: transparent; color: #8fb3d9; font-size: 12px">Recomeçar</button>
+</div>
+<div style="flex: 1 1 auto; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ msgs }}" as="m" hint-placeholder-count="6">
+<div style="{{ m.wrap }}">
+<div style="{{ m.bubble }}">{{ m.texto }}</div>
+</div>
+</sc-for>
+<sc-if value="{{ temBotoes }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-wrap: wrap; gap: 6px; padding-left: 4px; max-width: 92%">
+<sc-for list="{{ botoes }}" as="b" hint-placeholder-count="3">
+<button type="button" onClick="{{ b.pick }}" style="flex: 1 1 140px; min-height: 36px; padding: 6px 10px; border-radius: 10px; border: 0; background: #22364a; color: #e3ecf5; font-size: 13px">{{ b.label }}</button>
+</sc-for>
+</div>
+</sc-if>
+</div>
+<div style="padding: 10px 12px; background: #17212b; display: flex; gap: 8px; align-items: center">
+<span style="flex: 1 1 auto; height: 36px; border-radius: 18px; background: #0e1621; color: #6c7883; display: flex; align-items: center; padding: 0 14px; font-size: 13px">Mensagem</span>
+<span style="color: #6c7883; font-size: 12px">/pedido · /escala</span>
+</div>
+</div>
+</section>
+
+<section aria-label="Lado do WFM" style="flex: 0 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Fila da tela Aprovar (WFM) no sistema</span>
+<sc-if value="{{ semPedido }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 18px; border-radius: 16px; border: 1px dashed #2b3b4b; background: #0e1621; color: #6c7883">Quando o colaborador enviar, o pedido aparece na fila da tela Aprovar (WFM), marcado "via Nora". A consulta e a decisão ficam no site.</div>
+</sc-if>
+<sc-if value="{{ temPedido }}" hint-placeholder-val="{{ true }}">
+<div style="padding: 14px; border-radius: 16px; background: #131014; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: #f5f5f7">
+<b>Pedido #482 · via Nora · {{ urgenteTxt }}</b>
+<span>Mariana R. Vilela · Cavalry II · Secundus · turno C</span>
+<span>{{ resumo }}</span>
+<span style="color: #9ca0ab">Pedidos: 1 em 90 dias · 1 no total · 0 recorrentes</span>
+<span style="color: #9ca0ab">Cobertura: Party II sem titular no C; Tertius + Buffer disponíveis</span>
+<sc-if value="{{ aguardando }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; gap: 6px; flex-wrap: wrap">
+<button type="button" onClick="{{ aprovar }}" style="flex: 1 1 100px; height: 36px; border-radius: 10px; border: 0; background: #1f6f43; color: #fff">Aprovar</button>
+<button type="button" onClick="{{ recusar }}" style="flex: 1 1 100px; height: 36px; border-radius: 10px; border: 0; background: #7f1d1d; color: #fff">Recusar</button>
+<a href="Aprovacao.dc.html" style="flex: 1 1 100px; height: 36px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; display: flex; align-items: center; justify-content: center; text-decoration: none">Abrir a fila</a>
+</div>
+<span style="color: #9ca0ab; font-size: 12px">Simulação da tela Aprovar. Recusar exige comentário, que vai para o colaborador pela Nora.</span>
+</sc-if>
+<sc-if value="{{ decidido }}" hint-placeholder-val="{{ false }}">
+<span style="color: #86efac">{{ decisaoTxt }}</span>
+</sc-if>
+</div>
+</sc-if>
+
+<div style="margin-top: 12px; padding: 18px; border-radius: 16px; background: #131014; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 10px">
+<b>Rascunho · regras do pedido pela Nora</b>
+<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; color: #d6d7dc; font-size: 13px">
+<li><b>Envio pela Nora:</b> a Nora reconhece o rep pelo Telegram cadastrado no headcount (vw_rep.telegram). Quem não bate com o headcount é orientado a procurar o WFM.</li>
+<li><b>Sem digitar data:</b> a Nora mostra só os dias em que a pessoa está escalada, com o turno. Recorrente: dia da semana, horário e até quando (máx. 3 meses).</li>
+<li><b>Prazo:</b> com menos de 72 h o pedido vai como urgente. Motivo é obrigatório; atestado pode ir como foto.</li>
+<li><b>Consulta e decisão no site:</b> o pedido cai na fila da tela Aprovar (WFM), marcado "via Nora", junto com os feitos no site. Histórico e contagem de pedidos também ficam lá.</li>
+<li><b>Resposta:</b> quando o WFM decide no sistema, a Nora avisa o colaborador na hora (com o comentário, se recusado).</li>
+<li><b>Site:</b> o formulário continua para o WFM lançar em nome de alguém. O login do colaborador no site fica para uma segunda fase.</li>
+</ul>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { passo: 0, tipo: '', dia: '', parte: '', motivo: '', decisao: '' };
+}
+renderVals() {
+const s = this.state;
+const bot = (t) => ({ texto: t, wrap: 'display: flex; justify-content: flex-start', bubble: 'max-width: 85%; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: #182533; color: #e3ecf5; font-size: 13px; line-height: 1.45; white-space: pre-line' });
+const eu = (t) => ({ texto: t, wrap: 'display: flex; justify-content: flex-end', bubble: 'max-width: 80%; padding: 8px 12px; border-radius: 14px 14px 4px 14px; background: #2b5278; color: #fff; font-size: 13px' });
+const urgente = s.dia === 'qua 21/10 · C';
+const msgs = [bot('Oi, Mariana! O que você precisa?')];
+let botoes = [];
+const ir = (patch) => () => this.setState(patch);
+if (s.passo === 0) {
+botoes = [['Pedir indisponibilidade', { passo: 1 }], ['Minha escala', { passo: 9 }]];
+}
+if (s.passo === 9) {
+msgs.push(eu('Minha escala'));
+msgs.push(bot('Sua semana (turno C, 13–21):\nqua 21/10 · Nicole Doshi\nqui 22/10 · folga\nsex 23/10 · Nicole Doshi\nsáb 24/10 · Nicole Doshi · assistente\ndom 25/10 · Nicole Doshi'));
+botoes = [['Voltar', { passo: 0 }]];
+}
+if (s.passo === 10) {
+msgs.push(eu('Meus pedidos'));
+msgs.push(bot('Você não tem pedidos em aberto.\nÚltimo: 02/09 · aprovado.'));
+botoes = [['Voltar', { passo: 0 }]];
+}
+if (s.passo >= 1 && s.passo <= 8) {
+msgs.push(eu('Pedir indisponibilidade'));
+msgs.push(bot('É para um dia, vários dias ou toda semana?'));
+if (s.passo === 1) { botoes = [['Um dia', { passo: 2, tipo: 'Um dia' }], ['Vários dias', { passo: 2, tipo: 'Vários dias' }], ['Toda semana', { passo: 2, tipo: 'Toda semana' }]]; }
+}
+if (s.passo >= 2 && s.passo <= 8) {
+msgs.push(eu(s.tipo));
+msgs.push(bot('Qual dia? Mostro só os dias em que você está escalada.'));
+if (s.passo === 2) { botoes = [['qua 21/10 · C', { passo: 3, dia: 'qua 21/10 · C' }], ['sex 23/10 · C', { passo: 3, dia: 'sex 23/10 · C' }], ['sáb 24/10 · C', { passo: 3, dia: 'sáb 24/10 · C' }], ['qui 29/10 · C', { passo: 3, dia: 'qui 29/10 · C' }]]; }
+}
+if (s.passo >= 3 && s.passo <= 8) {
+msgs.push(eu(s.dia));
+msgs.push(bot('O turno todo (13–21) ou só uma parte?'));
+if (s.passo === 3) { botoes = [['Turno todo', { passo: 4, parte: 'turno todo (13–21)' }], ['Só 13–17', { passo: 4, parte: 'só 13–17 (T4)' }], ['Só 17–21', { passo: 4, parte: 'só 17–21 (T5)' }]]; }
+}
+if (s.passo >= 4 && s.passo <= 8) {
+msgs.push(eu(s.parte.charAt(0).toUpperCase() + s.parte.slice(1)));
+msgs.push(bot('Qual o motivo? Se tiver atestado, pode mandar a foto depois.'));
+if (s.passo === 4) { botoes = [['Saúde', { passo: 5, motivo: 'Saúde' }], ['Estudo / prova', { passo: 5, motivo: 'Estudo / prova' }], ['Pessoal', { passo: 5, motivo: 'Pessoal' }], ['Outro', { passo: 5, motivo: 'Outro' }]]; }
+}
+if (s.passo >= 5 && s.passo <= 8) {
+msgs.push(eu(s.motivo));
+msgs.push(bot('Confere:\n' + s.dia.replace(' · C', '') + ', turno C, ' + s.parte + '\nMotivo: ' + s.motivo + (urgente ? '\n\nFaltam menos de 72 h: vai como urgente e pode ser recusado se não houver cobertura.' : '\n\nDentro do prazo.')));
+if (s.passo === 5) { botoes = [['Enviar ao WFM', { passo: 6 }], ['Corrigir', { passo: 1, tipo: '', dia: '', parte: '', motivo: '' }]]; }
+}
+if (s.passo >= 6 && s.passo <= 8) {
+msgs.push(eu('Enviar ao WFM'));
+msgs.push(bot('Pedido #482 enviado ao WFM. A análise é feita no sistema e a resposta chega aqui.'));
+}
+if (s.passo === 7) {
+msgs.push(bot('Pedido #482 aprovado pelo WFM.\n' + s.dia.replace(' · C', '') + ': você está liberada (' + s.parte + '). Sua escala já foi ajustada.'));
+botoes = [['Minha escala', { passo: 9 }], ['Novo pedido', { passo: 1, tipo: '', dia: '', parte: '', motivo: '', decisao: '' }]];
+}
+if (s.passo === 8) {
+msgs.push(bot('Pedido #482 recusado pelo WFM.\nMotivo: "Dois titulares do C já estão fora nesse dia. Consegue trocar com alguém da party?"\nSe quiser, faça um novo pedido para outro dia.'));
+botoes = [['Novo pedido', { passo: 1, tipo: '', dia: '', parte: '', motivo: '', decisao: '' }]];
+}
+const temPedido = s.passo >= 6 && s.passo <= 8;
+return {
+msgs: msgs,
+botoes: botoes.map((b) => ({ label: b[0], pick: ir(b[1]) })),
+temBotoes: botoes.length > 0,
+reiniciar: () => this.setState({ passo: 0, tipo: '', dia: '', parte: '', motivo: '', decisao: '' }),
+temPedido: temPedido, semPedido: !temPedido,
+urgenteTxt: urgente ? 'URGENTE (menos de 72 h)' : 'no prazo',
+resumo: s.dia.replace(' · C', '') + ' · ' + s.parte + ' · ' + s.motivo + ' · via Nora',
+aguardando: s.passo === 6, decidido: s.passo === 7 || s.passo === 8,
+decisaoTxt: s.passo === 7 ? 'Aprovado no sistema. Escala ajustada; a Nora avisou o colaborador.' : 'Recusado no sistema, com comentário; a Nora avisou o colaborador.',
+aprovar: () => this.setState({ passo: 7 }),
+recusar: () => this.setState({ passo: 8 })
+};
+}
+}
+</script>
+</body>
+</html>

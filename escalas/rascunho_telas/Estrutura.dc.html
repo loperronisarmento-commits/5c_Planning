@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Configuração dos times</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 20px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Cadastros</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Configuração dos times</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 780px">Formação de cada time, o que está fora da regra e se faltam ou sobram Tertius. Alterações de membros viram pendência para aplicar no Planner.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="color: #9ca0ab; font-size: 13px">Planner sincronizado às 21:45</span>
+<button type="button" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Atualizar do Planner</button>
+</div>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<span style="display: flex; gap: 8px"><button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Desfazer</button><button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button></span>
+</div>
+</sc-if>
+
+<div role="tablist" aria-label="Seções" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 4px; border-radius: 12px; border: 1px solid #2a2129; background: #131014; align-self: flex-start">
+<button type="button" role="tab" aria-selected="{{ tabViolAria }}" onClick="{{ irViol }}" style="{{ tabViolStyle }}">Violações · 25</button>
+<button type="button" role="tab" aria-selected="{{ tabDimAria }}" onClick="{{ irDim }}" style="{{ tabDimStyle }}">Tertius: faltam ou sobram</button>
+<button type="button" role="tab" aria-selected="{{ tabFormAria }}" onClick="{{ irForm }}" style="{{ tabFormStyle }}">Formação por time</button>
+<button type="button" role="tab" aria-selected="{{ tabPendAria }}" onClick="{{ irPend }}" style="{{ tabPendStyle }}">Pendências no Planner · {{ pendAbertas }}</button>
+<button type="button" role="tab" aria-selected="{{ tabRegAria }}" onClick="{{ irReg }}" style="{{ tabRegStyle }}">Regras</button>
+</div>
+
+<sc-if value="{{ isPend }}" hint-placeholder-val="{{ false }}">
+<section aria-label="Pendências no Planner" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.3); color: #cfe0ff; font-size: 13px">O Planner não tem API de escrita. Toda mudança feita aqui vira uma pendência: alguém aplica no Planner e o sistema confere sozinho na próxima leitura do <b>historicplanner</b> (a cada 15 min ou em "Atualizar agora"). Bateu com o Planner, a pendência fecha.</div>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<div role="group" aria-label="Filtrar pendências" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ pendFiltros }}" as="f" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{ f.aria }}" onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button>
+</sc-for>
+</div>
+<span style="display: flex; gap: 10px; align-items: center; color: #9ca0ab; font-size: 13px">Planner lido às 21:45
+<button type="button" onClick="{{ lerPlanner }}" style="height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Atualizar agora</button></span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 1020px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Mudança</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">O que fazer no Planner</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Vale a partir de</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Criada por</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Situação</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ações</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ pendencias }}" as="p" hint-placeholder-count="4">
+<tr>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f"><b>{{ p.tipo }}</b><br><span style="color: #9ca0ab">{{ p.quem }}</span></td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f">{{ p.instrucao }}</td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f">{{ p.data }}</td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f">{{ p.autor }}</td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f"><span style="{{ p.tagStyle }}">{{ p.situacao }}</span><br><span style="color: #9ca0ab; font-size: 12px">{{ p.detalhe }}</span></td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f; white-space: nowrap; text-align: right"><button type="button" onClick="{{ p.copiar }}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Copiar instrução</button> <button type="button" onClick="{{ p.cancelar }}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(248,113,113,0.4); background: transparent; color: #fca5a5">Cancelar</button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Enquanto a pendência está aberta, a escala já usa a formação nova a partir da data informada. Se passar 2 dias da data sem aparecer no Planner, ela fica "Atrasada" e entra nos alertas do Painel. Divergência = o Planner mudou diferente do pedido (ex.: outra party).</p>
+</section>
+</sc-if>
+
+<sc-if value="{{ isViol }}" hint-placeholder-val="{{ true }}">
+<section aria-label="Violações" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<div role="group" aria-label="Filtrar por regra" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ filtros }}" as="f" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{ f.aria }}" onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button>
+</sc-for>
+</div>
+<span style="display: flex; gap: 10px; align-items: center">
+<input type="search" aria-label="Buscar time ou party" placeholder="Buscar time ou party" style="height: 38px; width: 220px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px">
+<button type="button" style="height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Baixar .xlsx</button>
+</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: 14px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Time / Party</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Formação</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Regra</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Ação sugerida</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Situação</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ações</span></th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ violacoes }}" as="v" hint-placeholder-count="6">
+<tr>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f"><b>{{ v.time }}</b><br><span style="color: #9ca0ab">{{ v.party }}</span></td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f; font-family: ui-monospace, Consolas, monospace">{{ v.form }}</td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f"><span style="{{ v.tagStyle }}">{{ v.regraTxt }}</span></td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f">{{ v.acao }}</td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f">{{ v.status }}</td>
+<td style="padding: 12px 10px; border-bottom: 1px solid #1f191f; white-space: nowrap; text-align: right"><button type="button" onClick="{{ v.verForm }}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button> <button type="button" onClick="{{ v.registrar }}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Registrar ação</button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Amostra de {{ total }} no rascunho. Party com violação bloqueante (sem Primaris, sem página) fica fora da geração até ser corrigida ou justificada.</p>
+</section>
+</sc-if>
+
+<sc-if value="{{ isDim }}" hint-placeholder-val="{{ false }}">
+<section aria-label="Tertius por time" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<span style="padding: 6px 12px; border-radius: 999px; background: rgba(251,146,60,0.10); border: 1px solid rgba(251,146,60,0.35); color: #ffd9b5">Faltam <b>~52</b> em 26 time-turnos</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: rgba(96,165,250,0.10); border: 1px solid rgba(96,165,250,0.35); color: #cfe0ff">Sobram <b>~23</b> em 16 time-turnos</span>
+<span style="padding: 6px 12px; border-radius: 999px; background: #0f0c10; border: 1px solid #2a2129">Saldo ~29 coberto por Buffers (57 no pool)</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Time</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">A</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">C</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">D</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Time</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Leitura</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ações</span></th></tr></thead>
+<tbody>
+<tr><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">Cavalry</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+4,2</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+4,5</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+5,1</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74; font-weight: 700">+13,8</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">Faltam nos 3 turnos (hoje 3 Tertius)</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" onClick="{{ irForm }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button></td></tr>
+<tr><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">Soma</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+2,3</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+3,4</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+2,6</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74; font-weight: 700">+8,4</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">Faltam</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" onClick="{{ irForm }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button></td></tr>
+<tr><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">Aeterna</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+2,0</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+0,5</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+1,9</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74; font-weight: 700">+4,4</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">Faltam no A e no D</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" onClick="{{ irForm }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button></td></tr>
+<tr><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">Brat</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−2,3</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+1,9</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74">+2,1</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #fdba74; font-weight: 700">+1,7</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">Remanejar no time: A → C e D</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" onClick="{{ irForm }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button></td></tr>
+<tr><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">Prevail</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−1,5</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−2,5</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−0,6</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd; font-weight: 700">−4,6</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">Pode ceder Tertius</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" onClick="{{ irForm }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button></td></tr>
+<tr><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">Vanguard</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−2,6</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−2,7</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">−1,4</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd; font-weight: 700">−6,7</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">Pode ceder Tertius (maior sobra)</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" onClick="{{ irForm }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ver formação</button></td></tr>
+<tr><td colspan="7" style="padding: 9px 8px; color: #9ca0ab">+ 10 times entre −3 e +4,4 · sem cadastro de turno: Ippon, Ludus Victor</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Positivo = faltam Tertius; negativo = sobram. Necessidade do time = soma das páginas das parties (Capacity, média dos 7 dias) ÷ (75% de presença × (1 − absenteísmo do turno)) − titulares do turno.</p>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(233,24,118,0.08); border: 1px solid rgba(233,24,118,0.3); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">
+<span><b>Sugestão:</b> mover até 7 Tertius de Vanguard e até 5 de Prevail para Cavalry e Soma; o resto da falta vai para o plano de turmas.</span>
+<a href="Sugestoes.dc.html" style="font-weight: 600">Ver em Sugestões</a>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+<section aria-label="Formação por time" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Time
+<select style="height: 40px; min-width: 180px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+<span style="color: #9ca0ab; font-size: 13px">Necessidade em reps/h pelo Capacity · titulares e Tertius cadastrados</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 1020px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500; width: 110px">Turno</th>
+<sc-for list="{{ parties }}" as="p" hint-placeholder-count="4">
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">{{ p.nome }}<br><span style="font-weight: 400">{{ p.paginas }}</span></th>
+</sc-for>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Tertius do time</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ turnos }}" as="t" hint-placeholder-count="3">
+<tr>
+<th scope="row" style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: left; vertical-align: top"><span style="{{ t.chip }}">{{ t.label }}</span><br><span style="color: #9ca0ab; font-weight: 400; font-size: 12px">precisa {{ t.necessidade }} reps/h</span></th>
+<sc-for list="{{ t.celulas }}" as="c" hint-placeholder-count="4">
+<td style="padding: 10px; border-bottom: 1px solid #1f191f; vertical-align: top">
+<div onMouseEnter="{{ c.mostrar }}" onMouseLeave="{{ c.esconder }}" style="position: relative; display: flex; flex-direction: column; gap: 6px">
+<span><button type="button" onClick="{{ c.alternar }}" aria-expanded="{{ c.infoAria }}" title="{{ c.dica }}" style="padding: 0; border: 0; background: transparent; color: #f5f5f7; font-size: 13px; text-align: left; text-decoration: underline dotted #6b6f7a; text-underline-offset: 3px">{{ c.nome }}</button><br><span style="color: #9ca0ab">{{ c.cargo }}</span></span>
+<sc-if value="{{ c.infoAberto }}" hint-placeholder-val="{{ false }}">
+<div role="tooltip" style="position: absolute; top: 22px; left: 0; z-index: 5; min-width: 220px; padding: 12px 14px; border-radius: 12px; border: 1px solid #3a3238; background: #1b161c; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 6px; font-size: 12px">
+<b style="font-size: 13px">{{ c.nome }}</b>
+<span style="display: flex; justify-content: space-between; gap: 10px"><span style="color: #9ca0ab">Código</span><span style="font-family: ui-monospace, Consolas, monospace">{{ c.codigo }}</span></span>
+<span style="display: flex; justify-content: space-between; gap: 10px"><span style="color: #9ca0ab">Telegram</span><a href="https://t.me/" style="font-weight: 600">{{ c.telegram }}</a></span>
+<span style="color: #9ca0ab">{{ c.party }} · turno {{ c.turno }}</span>
+</div>
+</sc-if>
+<span style="display: flex; gap: 6px">
+<button type="button" onClick="{{ c.mover }}" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #d6d7dc; font-size: 12px">Mover</button>
+<button type="button" onClick="{{ c.remover }}" style="height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(248,113,113,0.4); background: transparent; color: #fca5a5; font-size: 12px">Remover</button>
+</span>
+</div>
+</td>
+</sc-for>
+<td style="padding: 10px; border-bottom: 1px solid #1f191f; vertical-align: top">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{ t.tertius }}" as="x" hint-placeholder-count="1">
+<span title="{{ x.dica }}" style="display: flex; justify-content: space-between; gap: 8px; align-items: center"><span>{{ x.nome }}<br><span style="color: #9ca0ab; font-size: 12px">{{ x.codigo }} · {{ x.telegram }}</span></span> <button type="button" onClick="{{ x.remover }}" aria-label="Remover Tertius" style="height: 28px; padding: 0 8px; border-radius: 8px; border: 1px solid rgba(248,113,113,0.4); background: transparent; color: #fca5a5; font-size: 12px">Remover</button></span>
+</sc-for>
+<span style="color: #fdba74; font-size: 12px">{{ t.tertiusLeitura }}</span>
+<button type="button" onClick="{{ t.adicionar }}" style="height: 32px; padding: 0 10px; border-radius: 8px; border: 1px dashed #4a3f48; background: transparent; color: #f5f5f7; font-size: 12px; align-self: flex-start">+ Adicionar Tertius</button>
+</div>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button type="button" onClick="{{ addTitular }}" style="height: 38px; padding: 0 14px; border-radius: 10px; border: 1px dashed #4a3f48; background: transparent; color: #f5f5f7">+ Adicionar Primaris ou Secundus</button>
+<span style="color: #9ca0ab; font-size: 12px">Passe o mouse (ou toque) no nome para ver código e Telegram. Cada pessoa trabalha sempre no mesmo turno. Cavalry III tem um 3º Secundus sem turno cadastrado: mover ou passar a Tertius.</span>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{ isReg }}" hint-placeholder-val="{{ false }}">
+<section aria-label="Regras de formação" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px">
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Primaris por party <input type="number" value="1" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; text-align: center"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Secundus por party <input type="number" value="2" style="width: 64px; height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; text-align: center"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Party sem página bloqueia <input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876"></label>
+<label style="display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">Sem Primaris bloqueia <input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876"></label>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 13px">Não são regras: a distribuição dos titulares nos turnos e a quantidade de Tertius por turno. Se a party concentra os titulares em 2 turnos, o terceiro fica com Tertius.</p>
+<div style="display: flex; justify-content: flex-end"><button type="button" onClick="{{ salvarRegras }}" style="height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Salvar regras</button></div>
+</section>
+</sc-if>
+
+<sc-if value="{{ modalAberto }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="{{ modalTitulo }}" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10">
+<div style="width: 100%; max-width: 560px; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 18px">{{ modalTitulo }}</h2>
+<span style="color: #9ca0ab">{{ modalAlvo }}</span>
+<sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Pessoa<input type="search" placeholder="nome ou código (headcount)" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 14px"></label>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Cargo<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Tertius</option><option>Secundus</option><option>Primaris</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">A partir de<input type="date" value="2026-11-02" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"></label>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ isMove }}" hint-placeholder-val="{{ false }}">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Para a party<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Cavalry I</option><option>Cavalry II</option><option>Cavalry III</option><option>Cavalry IV</option><option>Tertius do time</option><option>Outro time…</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Turno<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>A</option><option>C</option><option>D</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">A partir de<input type="date" value="2026-11-02" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"></label>
+</div>
+</sc-if>
+<sc-if value="{{ isRemove }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Motivo<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Mudou de time</option><option>Passou a Buffer</option><option>Desligamento</option><option>Afastamento</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">A partir de<input type="date" value="2026-11-02" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"></label>
+</div>
+</sc-if>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.3); color: #fde68a; font-size: 13px">{{ modalImpacto }}</div>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" onClick="{{ fecharModal }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Cancelar</button>
+<button type="button" onClick="{{ confirmarModal }}" style="{{ modalBotaoStyle }}">{{ modalBotao }}</button>
+</div>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { tab: 'viol', filtro: 'todas', modal: null, alvo: '', impacto: '', aviso: '', info: '', pendFiltro: 'abertas', canceladas: [] };
+}
+abrir(modal, alvo, impacto) {
+this.setState({ modal: modal, alvo: alvo, impacto: impacto });
+}
+renderVals() {
+const s = this.state;
+const tabOn = 'height: 38px; padding: 0 14px; border-radius: 8px; border: 0; background: rgba(233,24,118,0.18); color: #fff; font-weight: 600';
+const tabOff = 'height: 38px; padding: 0 14px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc';
+const chipOn = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff; font-weight: 600';
+const chipOff = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2a2129; background: #0f0c10; color: #d6d7dc';
+const grave = 'padding: 3px 8px; border-radius: 6px; background: rgba(248,113,113,0.15); color: #fca5a5';
+const leve = 'padding: 3px 8px; border-radius: 6px; background: rgba(251,191,36,0.15); color: #fcd34d';
+const todas = [
+{ time: 'Felix Legion', party: 'Felix Legion III', form: '0P · 1S · 0T', regra: 'sem_primaris', regraTxt: 'Sem Primaris · bloqueia', tagStyle: grave, acao: 'Promover o Secundus ou receber o Primaris extra de Felix Legion II', status: 'Aberta' },
+{ time: 'Reign', party: 'Reign I', form: '0P · 1S · 0T', regra: 'sem_primaris', regraTxt: 'Sem Primaris · bloqueia', tagStyle: grave, acao: 'Definir Primaris; party sem página ativa', status: 'Aberta' },
+{ time: 'Felix Legion', party: 'Felix Legion II', form: '2P · 2S · 0T', regra: 'dois_primaris', regraTxt: '2 Primaris', tagStyle: leve, acao: 'Mover 1 Primaris para Felix Legion III', status: 'Em correção · Planejamento' },
+{ time: 'Felix Legion', party: 'Felix Legion I', form: '1P · 4S · 3T', regra: 'secundus', regraTxt: '4 Secundus (máx. 2)', tagStyle: leve, acao: '2 Secundus excedentes: mover para party com falta ou passar a Tertius', status: 'Aberta' },
+{ time: 'Nova', party: 'Nova II', form: '1P · 0S · 0T', regra: 'secundus', regraTxt: 'Faltam 2 Secundus', tagStyle: leve, acao: 'Receber os excedentes de Nova I (1P · 4S)', status: 'Aberta' },
+{ time: 'Cavalry', party: 'Cavalry III', form: '1P · 3S · 0T', regra: 'secundus', regraTxt: '3 Secundus (máx. 2)', tagStyle: leve, acao: 'Mover 1 Secundus ou passar a Tertius', status: 'Aberta' },
+{ time: 'Gladius', party: 'Gladius I', form: '1P · 3S · 6T', regra: 'sem_pagina', regraTxt: 'Sem página · 3 Secundus', tagStyle: grave, acao: 'Alocar página no Planner; 1 Secundus excedente', status: 'Justificada até 31/10' },
+{ time: 'Vortex', party: 'Vortex III', form: '1P · 2S · 0T', regra: 'sem_pagina', regraTxt: 'Sem página · bloqueia', tagStyle: grave, acao: 'Alocar página ou desfazer a party', status: 'Aberta' }
+];
+const lista = todas.filter((v) => s.filtro === 'todas' || v.regra === s.filtro).map((v) => ({
+...v,
+verForm: () => this.setState({ tab: 'form' }),
+registrar: () => this.abrir('acao', v.time + ' · ' + v.party, 'Registre responsável, prazo e o que será feito. A violação some sozinha quando o Planner estiver certo.')
+}));
+const defs = [['todas', 'Todas · 25'], ['sem_primaris', 'Sem Primaris · 5'], ['dois_primaris', '2 Primaris · 1'], ['secundus', 'Secundus ≠ 2 · 19'], ['sem_pagina', 'Sem página · 11']];
+const filtros = defs.map((d) => ({ label: d[1], aria: s.filtro === d[0] ? 'true' : 'false', style: s.filtro === d[0] ? chipOn : chipOff, pick: () => this.setState({ filtro: d[0] }) }));
+const pessoa = (nome, cargo, party, turno, codigo) => ({
+nome: nome, cargo: cargo, party: party, turno: turno, codigo: codigo, telegram: '@[telegram]',
+dica: nome + ' · ' + codigo + ' · Telegram @[telegram]',
+infoAberto: s.info === codigo, infoAria: s.info === codigo ? 'true' : 'false',
+mostrar: () => this.setState({ info: codigo }),
+esconder: () => this.setState({ info: '' }),
+alternar: () => this.setState({ info: s.info === codigo ? '' : codigo }),
+mover: () => this.abrir('move', nome + ' · ' + party + ' · turno ' + turno, 'Ao sair, ' + party + ' fica sem titular no turno ' + turno + ': a cobertura passa para a party seguinte e para os Tertius até alguém entrar.'),
+remover: () => this.abrir('remove', nome + ' · ' + party + ' · turno ' + turno, party + ' fica sem titular no turno ' + turno + '. A falta de Tertius do Cavalry nesse turno aumenta em 1,5 pessoa.')
+});
+const tert = (nome, turno, codigo) => ({ nome: nome, codigo: codigo, telegram: '@[telegram]', dica: nome + ' · ' + codigo + ' · Telegram @[telegram]', remover: () => this.abrir('remove', nome + ' · Tertius do Cavalry · turno ' + turno, 'O turno ' + turno + ' do Cavalry já tem falta de Tertius; a remoção aumenta a falta em 1 pessoa.') });
+const addT = (turno) => () => this.abrir('add', 'Cavalry · Tertius · turno ' + turno, 'O Cavalry precisa de mais Tertius no turno ' + turno + ': a entrada reduz a falta e as lacunas de assistente.');
+const turnos = [
+{ label: 'A · T2/T3', chip: 'padding: 3px 9px; border-radius: 6px; background: rgba(251,191,36,0.16); color: #fcd34d', necessidade: '6,3', tertiusLeitura: 'precisa 5,2 · tem 1', adicionar: addT('A'), tertius: [tert('Caio C. B. Gabriades', 'A', 'C016602')],
+celulas: [pessoa('Ivan A. P. Jr.', 'Secundus · 3x1', 'Cavalry I', 'A', 'I043250'), pessoa('Italo R. S. Silva', 'Secundus · 3x1', 'Cavalry II', 'A', 'I710373'), pessoa('Chris D. Z.', 'Secundus · 3x1', 'Cavalry III', 'A', 'C144167'), pessoa('Marina F. Silva', 'Secundus · 3x1', 'Cavalry IV', 'A', 'M497745')] },
+{ label: 'C · T4/T5', chip: 'padding: 3px 9px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd', necessidade: '7,1', tertiusLeitura: 'precisa 6,5 · tem 2', adicionar: addT('C'), tertius: [tert('Carolina X. Broggio', 'C', 'C099427'), tert('Nicolas M. Campos', 'C', 'N027675')],
+celulas: [pessoa('Fernanda R. Souza', 'Secundus · 3x1', 'Cavalry I', 'C', 'F156592'), pessoa('Mariana R. Vilela', 'Secundus · 3x1', 'Cavalry II', 'C', 'M443425'), pessoa('Julio E. C. Antezana', 'Adept Primaris · 3x1', 'Cavalry III', 'C', 'J621606'), pessoa('Leticia B. Aragão', 'Adept Primaris · 3x1', 'Cavalry IV', 'C', 'L434531')] },
+{ label: 'D · T6/T1', chip: 'padding: 3px 9px; border-radius: 6px; background: rgba(233,24,118,0.18); color: #ff8cc0', necessidade: '6,1', tertiusLeitura: 'precisa 5,1 · tem 0', adicionar: addT('D'), tertius: [],
+celulas: [pessoa('João Paulo G. Martins', 'Grand Primaris · 3x1', 'Cavalry I', 'D', 'J070909'), pessoa('Daniel F. Amado', 'Knight Primaris · 3x1', 'Cavalry II', 'D', 'D154823'), pessoa('Iago N. Saldanha', 'Secundus · 3x1', 'Cavalry III', 'D', 'I122095'), pessoa('Leonardo P. M.', 'Secundus · 3x1', 'Cavalry IV', 'D', 'L173493')] }
+];
+const parties = [
+{ nome: 'Cavalry I', paginas: 'Midwest Emma Free 221s' },
+{ nome: 'Cavalry II', paginas: 'Nicole Doshi · Free · OFTV' },
+{ nome: 'Cavalry III ⚠', paginas: 'CJ Miles · CJ VIP' },
+{ nome: 'Cavalry IV', paginas: 'Molly Stewart VIP' }
+];
+const titulos = { add: 'Adicionar pessoa', move: 'Mover pessoa', remove: 'Remover pessoa', acao: 'Registrar ação de correção' };
+const botoes = { add: 'Adicionar', move: 'Mover', remove: 'Remover', acao: 'Salvar ação' };
+const avisos = { add: 'Entrada registrada. Pendência criada em "Pendências no Planner" com a instrução para aplicar.', move: 'Mudança registrada. Pendência criada em "Pendências no Planner" com a instrução para aplicar.', remove: 'Remoção registrada. Pendência criada em "Pendências no Planner" com a instrução para aplicar.', acao: 'Ação de correção registrada.' };
+const m = s.modal;
+const tagAberta = 'padding: 3px 8px; border-radius: 6px; background: rgba(251,191,36,0.15); color: #fcd34d';
+const tagAtraso = 'padding: 3px 8px; border-radius: 6px; background: rgba(248,113,113,0.15); color: #fca5a5';
+const tagOk = 'padding: 3px 8px; border-radius: 6px; background: rgba(74,222,128,0.15); color: #86efac';
+const pendTodas = [
+{ id: 'k1', tipo: 'Mover Primaris', quem: 'Felix Legion II → Felix Legion III', instrucao: 'Planner › Felix Legion › trocar o Primaris extra de Felix Legion II para Felix Legion III, turno D', data: '26/10', autor: 'Planejamento · 18/10', situacao: 'Atrasada', detalhe: 'não apareceu no Planner', tagStyle: tagAtraso, aberta: true },
+{ id: 'k2', tipo: 'Passar a Tertius', quem: 'Secundus excedente · Cavalry III', instrucao: 'Planner › Cavalry › Cavalry III: tirar 1 Secundus e lançar como Tertius do time, turno A', data: '02/11', autor: 'Planejamento · 20/10', situacao: 'Aberta', detalhe: 'aguardando leitura', tagStyle: tagAberta, aberta: true },
+{ id: 'k3', tipo: 'Adicionar Tertius', quem: 'Cavalry · turno D', instrucao: 'Planner › Cavalry › Tertius: incluir pessoa indicada, turno D', data: '02/11', autor: 'Planejamento · 20/10', situacao: 'Divergente', detalhe: 'Planner registrou no turno C', tagStyle: tagAtraso, aberta: true },
+{ id: 'k4', tipo: 'Mover Secundus', quem: 'Nova I → Nova II', instrucao: 'Planner › Nova › mover 2 Secundus de Nova I para Nova II, turnos A e C', data: '19/10', autor: 'Planejamento · 15/10', situacao: 'Aplicada', detalhe: 'conferida no historicplanner em 19/10 06:15', tagStyle: tagOk, aberta: false }
+];
+const pendVivas = pendTodas.filter((p) => !s.canceladas.includes(p.id));
+const pendencias = pendVivas.filter((p) => s.pendFiltro === 'todas' || (s.pendFiltro === 'abertas' ? p.aberta : !p.aberta)).map((p) => ({
+...p,
+copiar: () => this.setState({ aviso: 'Instrução copiada: ' + p.instrucao }),
+cancelar: () => this.setState({ canceladas: s.canceladas.concat([p.id]), aviso: 'Pendência cancelada. A escala volta a usar a formação do Planner.' })
+}));
+const nAbertas = pendVivas.filter((p) => p.aberta).length;
+const pendDefs = [['abertas', 'Abertas · ' + nAbertas], ['aplicadas', 'Aplicadas'], ['todas', 'Todas']];
+const pendFiltros = pendDefs.map((d) => ({ label: d[1], aria: s.pendFiltro === d[0] ? 'true' : 'false', style: s.pendFiltro === d[0] ? chipOn : chipOff, pick: () => this.setState({ pendFiltro: d[0] }) }));
+return {
+isPend: s.tab === 'pend', tabPendStyle: s.tab === 'pend' ? tabOn : tabOff, tabPendAria: s.tab === 'pend' ? 'true' : 'false', irPend: () => this.setState({ tab: 'pend' }),
+pendAbertas: nAbertas, pendencias: pendencias, pendFiltros: pendFiltros,
+lerPlanner: () => this.setState({ aviso: 'Leitura do historicplanner iniciada. Pendências que baterem com o Planner fecham sozinhas.' }),
+isViol: s.tab === 'viol', isDim: s.tab === 'dim', isForm: s.tab === 'form', isReg: s.tab === 'reg',
+tabViolStyle: s.tab === 'viol' ? tabOn : tabOff, tabDimStyle: s.tab === 'dim' ? tabOn : tabOff, tabFormStyle: s.tab === 'form' ? tabOn : tabOff, tabRegStyle: s.tab === 'reg' ? tabOn : tabOff,
+tabViolAria: s.tab === 'viol' ? 'true' : 'false', tabDimAria: s.tab === 'dim' ? 'true' : 'false', tabFormAria: s.tab === 'form' ? 'true' : 'false', tabRegAria: s.tab === 'reg' ? 'true' : 'false',
+irViol: () => this.setState({ tab: 'viol' }), irDim: () => this.setState({ tab: 'dim' }), irForm: () => this.setState({ tab: 'form' }), irReg: () => this.setState({ tab: 'reg' }),
+filtros: filtros, violacoes: lista, total: lista.length,
+parties: parties, turnos: turnos,
+addTitular: () => this.abrir('add', 'Cavalry · Primaris ou Secundus', 'O sistema confere a regra 1 Primaris + 2 Secundus da party antes de salvar.'),
+modalAberto: m !== null, isAdd: m === 'add' || m === 'acao', isMove: m === 'move', isRemove: m === 'remove',
+modalTitulo: m ? titulos[m] : '', modalBotao: m ? botoes[m] : '', modalAlvo: s.alvo, modalImpacto: s.impacto,
+modalBotaoStyle: m === 'remove' ? 'height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #b91c1c; color: #fff; font-weight: 600' : 'height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600',
+fecharModal: () => this.setState({ modal: null }),
+confirmarModal: () => this.setState({ modal: null, aviso: m ? avisos[m] : '' }),
+salvarRegras: () => this.setState({ aviso: 'Regras salvas. Valem a partir da próxima geração.' }),
+aviso: s.aviso !== '', avisoTexto: s.aviso,
+fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>

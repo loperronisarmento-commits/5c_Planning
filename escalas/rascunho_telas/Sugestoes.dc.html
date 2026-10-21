@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Sugestões de troca</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">{{ abertas }}</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 18px">
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Plano v3 · 26/10 – 01/11</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Sugestões de troca</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 800px">O sistema propõe; quem planeja decide. Cada sugestão mostra o que muda e o efeito. Nada muda sem clicar em Aplicar, e tudo fica no histórico com quem aplicou.</p>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<span style="display: flex; gap: 8px"><button type="button" onClick="{{ desfazer }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0; font-weight: 600">Desfazer</button><button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button></span>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between">
+<div role="tablist" aria-label="Situação" style="display: flex; padding: 4px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<sc-for list="{{ abas }}" as="a" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{ a.aria }}" onClick="{{ a.pick }}" style="{{ a.style }}">{{ a.label }}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="Tipo" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ tipos }}" as="t" hint-placeholder-count="6">
+<button type="button" aria-pressed="{{ t.aria }}" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+</sc-for>
+</div>
+</div>
+
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{ lista }}" as="g" hint-placeholder-count="4">
+<li style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 18px 20px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center">
+<div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center"><span style="{{ g.tagStyle }}">{{ g.tipoLabel }}</span><b>{{ g.titulo }}</b></div>
+<span style="color: #d6d7dc">{{ g.desc }}</span>
+<span style="color: #9ca0ab; font-size: 13px">{{ g.efeito }}</span>
+<sc-if value="{{ g.descartando }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<label style="font-size: 13px; color: #9ca0ab">Motivo do descarte
+<select style="height: 36px; margin-left: 8px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"><option>Não faz sentido operacional</option><option>Já resolvido de outro jeito</option><option>Vou rever depois</option></select></label>
+<button type="button" onClick="{{ g.confirmarDescarte }}" style="height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid #f87171; background: transparent; color: #fca5a5">Confirmar descarte</button>
+</div>
+</sc-if>
+</div>
+<div style="flex: 1 1 240px; display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap">
+<sc-if value="{{ g.aberta }}" hint-placeholder-val="{{ true }}">
+<span style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end">
+<a href="{{ g.verHref }}" style="height: 44px; display: inline-flex; align-items: center; padding: 0 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; text-decoration: none">{{ g.verLabel }}</a>
+<button type="button" onClick="{{ g.descartar }}" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Descartar</button>
+<button type="button" onClick="{{ g.aplicar }}" disabled="{{ g.bloqueada }}" style="{{ g.aplicarStyle }}">{{ g.aplicarLabel }}</button>
+</span>
+</sc-if>
+<sc-if value="{{ g.fechada }}" hint-placeholder-val="{{ false }}">
+<span style="{{ g.statusStyle }}">{{ g.statusTxt }}</span>
+</sc-if>
+</div>
+</li>
+</sc-for>
+</ul>
+<sc-if value="{{ vazio }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 24px; border-radius: 14px; border: 1px dashed #3a3238; color: #9ca0ab; text-align: center">Nenhuma sugestão neste filtro.</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { aba: 'ABERTA', tipo: 'todos', status: {}, descartando: '', ultimo: '', aviso: '' };
+}
+renderVals() {
+const s = this.state;
+const tag = {
+WORKLOAD: ['Workload', 'background: rgba(96,165,250,0.15); color: #cfe0ff'],
+COBERTURA: ['Cobertura', 'background: rgba(248,113,113,0.15); color: #fca5a5'],
+MERITO: ['Mérito', 'background: rgba(74,222,128,0.15); color: #86efac'],
+FOLGA: ['Folga', 'background: rgba(167,139,250,0.15); color: #e2d9ff'],
+ESTRUTURA: ['Estrutura', 'background: rgba(251,191,36,0.15); color: #fcd34d']
+};
+const base = [
+{ id: 'w1', tipo: 'WORKLOAD', titulo: 'Remover 2 turnos de Buffer no T6 (D) · seg 26 e ter 27', desc: 'Depois das 10 saídas de página de 20/10, o bloco T6 tem sobra de 2 buffers nesses dias. Os dois já estavam escalados; o sistema não retira sozinho.', efeito: 'Efeito: −2 turnos de buffer · nenhuma página fica sem regular ou assistente · avisar os buffers com 24 h de antecedência.', verHref: 'Buffers.dc.html', verLabel: 'Ver em Buffers' },
+{ id: 'w2', tipo: 'WORKLOAD', titulo: 'Remover 1 turno de Buffer no T6 (D) · sex 30', desc: 'Sobra de 2 buffers no T6 na sexta; manter 1 como folga de segurança e liberar 1.', efeito: 'Efeito: −1 turno de buffer · cobertura mantida mesmo com 1 falta não programada.', verHref: 'Buffers.dc.html', verLabel: 'Ver em Buffers' },
+{ id: 'c1', tipo: 'COBERTURA', titulo: 'Incluir Nicolas M. Campos (Tertius C) na escala', desc: 'Definir modelo 3x1 (turno C, sempre o mesmo) e gerar de novo só o turno C do Cavalry.', efeito: 'Efeito: lacunas de assistente 4 → 1 · Buffers no C 10 → 7.', verHref: 'Colaboradores.dc.html', verLabel: 'Abrir cadastro' },
+{ id: 'm1', tipo: 'MERITO', titulo: 'Trocar papéis entre Tertius 1 e Tertius 5 · sáb 31 · A', desc: 'Tertius 1 (Destaque, abaixo do alvo de 70%) passa a regular; Tertius 5 (acima do alvo de 50%) passa a assistente.', efeito: 'Efeito: Tertius 1 55% → 58% regular · Tertius 5 61% → 58% · cobertura igual.', verHref: 'Tertius.dc.html', verLabel: 'Ver mérito' },
+{ id: 'f1', tipo: 'FOLGA', titulo: 'Pré-alocar cobertura para o pedido de Julio E. (sex 30)', desc: 'Se a WFM aprovar: Carolina X. assume CJ Miles como regular e o Buffer fica com Midwest Emma. Trocar a folga de quarta não serve (ficaria 4 dias seguidos).', efeito: 'Efeito: CJ Miles sem titular em 3 dias da semana, todos cobertos · depende da aprovação.', verHref: 'Aprovacao.dc.html', verLabel: 'Ver pedido', bloqueada: true },
+{ id: 'e1', tipo: 'ESTRUTURA', titulo: 'Mover Tertius de Vanguard (sobra −6,7) para Cavalry (falta +13,8)', desc: 'Cavalry precisa de Tertius nos 3 turnos; Vanguard e Prevail têm sobra. Começar por 2 no D do Cavalry, onde não há nenhum.', efeito: 'Efeito estimado: 7 assistências por semana no D saem do Buffer. Muda cadastro (vigência a partir de 02/11).', verHref: 'Estrutura.dc.html', verLabel: 'Ver formação' }
+];
+const st = (g) => s.status[g.id] || 'ABERTA';
+const lista = base.filter((g) => st(g) === s.aba && (s.tipo === 'todos' || g.tipo === s.tipo)).map((g) => {
+const aberta = st(g) === 'ABERTA';
+return {
+tipoLabel: tag[g.tipo][0], tagStyle: 'padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 600; ' + tag[g.tipo][1],
+titulo: g.titulo, desc: g.desc, efeito: g.efeito, verHref: g.verHref, verLabel: g.verLabel,
+aberta: aberta, fechada: !aberta, bloqueada: !!g.bloqueada,
+aplicarLabel: g.bloqueada ? 'Aplicar após aprovação' : 'Aplicar',
+aplicarStyle: 'height: 44px; padding: 0 18px; border-radius: 10px; border: 0; font-weight: 600; ' + (g.bloqueada ? 'background: #3a3238; color: #b9bcc5' : 'background: #c8105f; color: #fff'),
+statusTxt: st(g) === 'APLICADA' ? 'Aplicada agora' : 'Descartada',
+statusStyle: 'padding: 6px 12px; border-radius: 999px; font-size: 13px; font-weight: 600; ' + (st(g) === 'APLICADA' ? 'background: rgba(74,222,128,0.14); color: #86efac' : 'background: #2a2129; color: #9ca0ab'),
+descartando: s.descartando === g.id,
+aplicar: () => { const n = Object.assign({}, s.status); n[g.id] = 'APLICADA'; this.setState({ status: n, ultimo: g.id, aviso: 'Aplicada: ' + g.titulo + '. A grade foi atualizada.' }); },
+descartar: () => this.setState({ descartando: g.id }),
+confirmarDescarte: () => { const n = Object.assign({}, s.status); n[g.id] = 'DESCARTADA'; this.setState({ status: n, ultimo: g.id, descartando: '', aviso: 'Descartada: ' + g.titulo + '.' }); }
+};
+});
+const conta = (x) => base.filter((g) => st(g) === x).length;
+const tabOn = 'height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: rgba(233,24,118,0.18); color: #fff; font-weight: 600';
+const tabOff = 'height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc';
+const chipOn = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff; font-weight: 600';
+const chipOff = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2a2129; background: #131014; color: #d6d7dc';
+const abaDefs = [['ABERTA', 'Abertas · ' + conta('ABERTA')], ['APLICADA', 'Aplicadas · ' + conta('APLICADA')], ['DESCARTADA', 'Descartadas · ' + conta('DESCARTADA')]];
+const tipoDefs = [['todos', 'Todos'], ['WORKLOAD', 'Workload'], ['COBERTURA', 'Cobertura'], ['MERITO', 'Mérito'], ['FOLGA', 'Folga'], ['ESTRUTURA', 'Estrutura']];
+return {
+abertas: conta('ABERTA'),
+abas: abaDefs.map((a) => ({ label: a[1], aria: s.aba === a[0] ? 'true' : 'false', style: s.aba === a[0] ? tabOn : tabOff, pick: () => this.setState({ aba: a[0] }) })),
+tipos: tipoDefs.map((t) => ({ label: t[1], aria: s.tipo === t[0] ? 'true' : 'false', style: s.tipo === t[0] ? chipOn : chipOff, pick: () => this.setState({ tipo: t[0] }) })),
+lista: lista, vazio: lista.length === 0,
+aviso: s.aviso !== '', avisoTexto: s.aviso,
+desfazer: () => { const n = Object.assign({}, s.status); delete n[s.ultimo]; this.setState({ status: n, aviso: '' }); },
+fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>

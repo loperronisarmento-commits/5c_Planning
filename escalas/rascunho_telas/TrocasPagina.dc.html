@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Trocas de página</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>19/10 – 25/10 (publicada)</option><option>26/10 – 01/11 (rascunho v3)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Felix Legion</option><option>Vanguard</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600; display: flex; justify-content: space-between">Trocas de página <sc-if value="{{ temPendente }}" hint-placeholder-val="{{ true }}"><span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">{{ nPendente }}</span></sc-if></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 18px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Páginas</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Trocas de página</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 860px">Quando o Planner prevê que uma página muda de party, o sistema refaz a escala já postada: cada pessoa mantém o mesmo dia e turno e passa a atuar na página que a <b>própria party</b> recebeu. Depois prepara o pacote para apagar e postar os intervalos no site da 5C.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="color: #9ca0ab; font-size: 13px">Planner lido às 21:45</span>
+<button type="button" onClick="{{ lerPlanner }}" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Atualizar agora</button>
+</div>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button>
+</div>
+</sc-if>
+
+<section aria-label="Resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px">
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Trocas previstas</span><span style="font-size: 24px; font-weight: 700">4</span><span style="color: #9ca0ab; font-size: 12px">valem a partir de qua 21/10, 21:00 (turno D)</span></div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Pessoas realocadas</span><span style="font-size: 24px; font-weight: 700">11</span><span style="color: #9ca0ab; font-size: 12px">mesmo dia e turno, outra página</span></div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Lacunas criadas</span><span style="font-size: 24px; font-weight: 700; color: #fdba74">2</span><span style="color: #9ca0ab; font-size: 12px">turnos D da [Página D] no Cavalry III</span></div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Postagens no site</span><span style="font-size: 24px; font-weight: 700">{{ nPostadas }} / 4</span><span style="color: #9ca0ab; font-size: 12px">páginas · postar de 21/10 a 25/10</span></div>
+</section>
+
+<section aria-label="Trocas lidas do Planner" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-end">
+<h2 style="margin: 0; font-size: 17px">1 · O que muda (historic_page_planner, Planned Move ainda não aplicado)</h2>
+<span style="color: #9ca0ab; font-size: 13px; max-width: 520px">O corte é no horário marcado no Planner (quase sempre 21:00, início do T6). T6 e T1 são um bloco só: quem começa o T6 termina o T1.</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px">
+<sc-for list="{{ trocas }}" as="t" hint-placeholder-count="4">
+<div style="padding: 14px; border-radius: 12px; background: #0f0c10; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 8px">
+<span style="display: flex; justify-content: space-between; gap: 8px"><b>{{ t.pagina }}</b><span style="color: #9ca0ab; font-size: 12px">{{ t.data }}</span></span>
+<span style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px"><span style="padding: 3px 8px; border-radius: 6px; background: #2a2129">{{ t.de }}</span><span style="color: #ff5fa8">→</span><span style="padding: 3px 8px; border-radius: 6px; background: rgba(233,24,118,0.16)">{{ t.para }}</span></span>
+<span style="color: #9ca0ab; font-size: 12px">{{ t.nota }}</span>
+</div>
+</sc-for>
+</div>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.3); color: #cfe0ff; font-size: 13px"><b>Cadeia fechada:</b> Felix Legion I → Felix Legion II → Cavalry III → Felix Legion I. Cada party perde uma página e recebe outra, então ninguém muda de dia nem de turno, só de página. <b>Cadeia aberta:</b> Cavalry III recebe também a [Página D] sem perder outra, e a Vanguard II fica sem ela.</div>
+</section>
+
+<section aria-label="Realocação" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<h2 style="margin: 0; font-size: 17px">2 · Quem vai para onde (de qua 21/10 21:00 a dom 25/10, escala já postada)</h2>
+<div role="group" aria-label="Filtrar" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ filtros }}" as="f" hint-placeholder-count="4">
+<button type="button" aria-pressed="{{ f.aria }}" onClick="{{ f.pick }}" style="{{ f.style }}">{{ f.label }}</button>
+</sc-for>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 980px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Pessoa</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Turno · dias escalados</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Hoje está em</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Passa para</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Regra</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ações</span></th></tr></thead>
+<tbody>
+<sc-for list="{{ realoc }}" as="r" hint-placeholder-count="8">
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><b>{{ r.pessoa }}</b><br><span style="color: #9ca0ab">{{ r.papel }}</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="{{ r.chip }}">{{ r.turno }}</span> {{ r.dias }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">{{ r.de }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; {{ r.paraStyle }}">{{ r.para }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #d6d7dc">{{ r.regra }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right; white-space: nowrap"><button type="button" onClick="{{ r.trocar }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">{{ r.botao }}</button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<ul style="margin: 0; padding-left: 18px; color: #9ca0ab; font-size: 12px; display: flex; flex-direction: column; gap: 4px">
+<li><b>Titular (Primaris, Secundus)</b> segue a party: vai para a página que a própria party recebeu, no mesmo dia e turno. Se a party recebeu mais de uma, a de maior necessidade naquele turno vem primeiro.</li>
+<li><b>Tertius</b> segue o time: se a página saiu do time, ele fica no time e vai para onde houver falta.</li>
+<li><b>Buffer</b> fica na página (não tem time).</li>
+<li>Party que perdeu página sem receber outra: os titulares viram assistentes nas outras páginas da party ou cobrem lacunas (vira sugestão). Party que recebeu sem perder: os titulares assumem a página nova junto com as que já têm, se couber no limite de fãs/h; o que não couber vira lacuna, coberta por Tertius e Buffers.</li>
+</ul>
+</section>
+
+<section aria-label="Postagem" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-end">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 17px">3 · Postar no site da 5C (Schedule Ajustment)</h2>
+<span style="color: #9ca0ab; font-size: 13px; max-width: 760px">Sem API de escrita: faça na ordem, em todas as páginas antes de postar. 1) <b>Delete Range</b> de qui 22/10 a dom 25/10 e apagar à mão o <b>T6 de qua 21/10</b>. 2) <b>Save Schedule CSV</b> com Date Schedule 21/10: a coluna de quarta vai só com o T6. Assim ninguém fica em duas páginas no meio do caminho.</span>
+</div>
+<span style="display: flex; gap: 10px">
+<button type="button" onClick="{{ baixarZip }}" style="height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Baixar pacote .zip</button>
+<button type="button" disabled="disabled" title="Disponível quando existir a API de escrita do scheduleday" style="height: 40px; padding: 0 14px; border-radius: 10px; border: 1px dashed #4a3f48; background: transparent; color: #6b6f7a">Postar via API · em breve</button>
+</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ posts }}" as="p" hint-placeholder-count="4">
+<div style="{{ p.box }}">
+<button type="button" onClick="{{ p.pick }}" aria-pressed="{{ p.ativo }}" style="padding: 0; border: 0; background: transparent; color: #f5f5f7; text-align: left; display: flex; flex-direction: column; gap: 4px; width: 100%">
+<span style="display: flex; justify-content: space-between; gap: 8px"><b>{{ p.pagina }}</b><span style="{{ p.tagStyle }}">{{ p.status }}</span></span>
+<span style="color: #9ca0ab; font-size: 12px">Apagar: Delete Range 22/10 a 25/10 + T6 de 21/10 à mão · Postar: Date Schedule {{ p.ini }} · Date End {{ p.fim }}</span>
+<span style="color: #d6d7dc; font-size: 12px">{{ p.resumo }}</span>
+</button>
+<span style="display: flex; gap: 8px; flex-wrap: wrap">
+<button type="button" onClick="{{ p.apagar }}" style="{{ p.btnApagar }}">1 · Apaguei (22–25/10 + T6 de 21/10)</button>
+<button type="button" onClick="{{ p.postar }}" disabled="{{ p.naoApagado }}" style="{{ p.btnPostar }}">2 · Postei o CSV</button>
+</span>
+</div>
+</sc-for>
+</div>
+<div style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+<span style="padding: 10px; border-radius: 10px; background: #0f0c10; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 2px"><span style="color: #9ca0ab; font-size: 11px">Model</span><b>{{ sel.pagina }}</b></span>
+<span style="padding: 10px; border-radius: 10px; background: #0f0c10; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 2px"><span style="color: #9ca0ab; font-size: 11px">Date Schedule</span><b>{{ sel.ini }}</b></span>
+<span style="padding: 10px; border-radius: 10px; background: #0f0c10; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 2px"><span style="color: #9ca0ab; font-size: 11px">Date End</span><b>{{ sel.fim }}</b></span>
+</div>
+<span style="color: #9ca0ab; font-size: 12px">Code CSV · 6 linhas (T1 a T6) × 7 colunas (seg a dom) · seg e ter vazias; qua só com o T6. O intervalo precisa começar no dia da troca, senão o site não aceita o CSV.</span>
+<pre style="margin: 0; padding: 12px 14px; border-radius: 10px; background: #0f0c10; border: 1px solid #2a2129; color: #d6d7dc; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, Consolas, monospace">{{ sel.csv }}</pre>
+<div style="display: flex; gap: 10px; flex-wrap: wrap">
+<button type="button" onClick="{{ copiarCsv }}" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Copiar CSV</button>
+<button type="button" onClick="{{ copiarDatas }}" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Copiar datas</button>
+</div>
+<div style="padding: 10px 12px; border-radius: 10px; background: #0f0c10; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #d6d7dc">
+<span><b>#</b> = assistente (ex.: <span style="font-family: ui-monospace, Consolas, monospace">F300009#</span>). O <b>$</b> (secondary: a pessoa já tem outro turno no mesmo horário, como num double) o site calcula sozinho no input, então o CSV não leva.</span>
+<span><b>T6 e T1 são um bloco:</b> quem entra no T6 de quarta (21:00) termina no T1 de quinta. Os dois já saem com a party nova.</span>
+<span><b>T6 de dom</b> continua no T1 de seg 26/10, que é da semana seguinte. Se ela já estiver postada, entra num segundo pacote só com esse T1.</span>
+</div>
+<span style="color: #9ca0ab; font-size: 12px">O CSV parte da escala postada (scheduleday) e só troca os códigos que mudam, mantendo o # de quem é assistente. Depois de postar, a próxima leitura do scheduleday confere e marca "Conferido"; se não bater, aponta a célula diferente.</span>
+</div>
+</div>
+</section>
+
+<section aria-label="Configuração" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 18px 22px; display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center">
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Preparar sozinho a cada leitura do Planner (15 min)</label>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Avisar o WFM no Telegram quando houver troca para o dia seguinte</label>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">Avisar quem foi realocado (Nora)</label>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":2000}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { filtro: 'todas', sel: 'pc', marcas: {}, aviso: '', trocadas: {} };
+}
+renderVals() {
+const s = this.state;
+const chipOn = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff; font-weight: 600';
+const chipOff = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2a2129; background: #0f0c10; color: #d6d7dc';
+const cA = 'padding: 2px 8px; border-radius: 6px; background: rgba(251,191,36,0.16); color: #fcd34d';
+const cC = 'padding: 2px 8px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd';
+const cD = 'padding: 2px 8px; border-radius: 6px; background: rgba(233,24,118,0.18); color: #ff8cc0';
+const trocas = [
+{ pagina: '[Página A]', de: 'Felix Legion I', para: 'Felix Legion II', data: 'qua 21/10 · 21:00', nota: 'mesmo time' },
+{ pagina: '[Página B]', de: 'Felix Legion II', para: 'Cavalry III', data: 'qua 21/10 · 21:00', nota: 'muda de time: Tertius do Felix Legion não acompanham' },
+{ pagina: '[Página C]', de: 'Cavalry III', para: 'Felix Legion I', data: 'qua 21/10 · 21:00', nota: 'fecha a cadeia' },
+{ pagina: '[Página D]', de: 'Vanguard II', para: 'Cavalry III', data: 'qua 21/10 · 21:00', nota: 'cadeia aberta: Cavalry III fica com 2 páginas novas' }
+];
+const R = [
+{ id: 'r1', g: 'cadeia', pessoa: '[Primaris]', papel: 'Primaris · Felix Legion I', turno: 'D', chip: cD, dias: 'qua, qui, sáb, dom', de: '[Página A]', para: '[Página C]', regra: 'Felix Legion I recebeu a [Página C]' },
+{ id: 'r2', g: 'cadeia', pessoa: '[Secundus]', papel: 'Secundus · Felix Legion I', turno: 'A', chip: cA, dias: 'qui, sáb, dom', de: '[Página A]', para: '[Página C]', regra: 'Felix Legion I recebeu a [Página C]' },
+{ id: 'r3', g: 'cadeia', pessoa: '[Secundus]', papel: 'Secundus · Felix Legion I', turno: 'C', chip: cC, dias: 'qui, sex, sáb', de: '[Página A]', para: '[Página C]', regra: 'Felix Legion I recebeu a [Página C]' },
+{ id: 'r4', g: 'cadeia', pessoa: '[Primaris]', papel: 'Primaris · Felix Legion II', turno: 'C', chip: cC, dias: 'sex, sáb, dom', de: '[Página B]', para: '[Página A]', regra: 'Felix Legion II recebeu a [Página A]' },
+{ id: 'r5', g: 'cadeia', pessoa: '[Secundus]', papel: 'Secundus · Felix Legion II', turno: 'D', chip: cD, dias: 'qua, qui, sex', de: '[Página B]', para: '[Página A]', regra: 'Felix Legion II recebeu a [Página A]' },
+{ id: 'r6', g: 'cadeia', pessoa: '[Titulares]', papel: '3 titulares · Cavalry III', turno: 'A/C/D', chip: cC, dias: '9 turnos', de: '[Página C]', para: '[Página B]', regra: 'Cavalry III recebeu a [Página B]' },
+{ id: 'r7', g: 'tertius', pessoa: '[Tertius]', papel: 'Tertius · Felix Legion', turno: 'D', chip: cD, dias: 'sex', de: '[Página B]', para: '[Página A]', regra: 'Tertius fica no time: [Página B] saiu do Felix Legion' },
+{ id: 'r8', g: 'buffer', pessoa: '[Buffer]', papel: 'Buffer', turno: 'D', chip: cD, dias: 'sáb', de: '[Página C]', para: '[Página C] (fica)', regra: 'Buffer não tem time: continua na página' },
+{ id: 'r9', g: 'aberta', pessoa: '[Titulares]', papel: '2 titulares · Vanguard II', turno: 'A/C', chip: cA, dias: '5 turnos', de: '[Página D]', para: 'assistente na [Página E] (Vanguard II)', regra: 'Vanguard II perdeu sem receber: vira sugestão' },
+{ id: 'r10', g: 'aberta', pessoa: 'lacuna', papel: 'D do Cavalry III passa de 35 fãs/h com [Página B] + [Página D]', turno: 'D', chip: cD, dias: 'qui, sáb', de: '[Página D]', para: 'Tertius do Cavalry ou Buffer', regra: 'Cavalry III recebeu sem perder; no A e no C os titulares absorvem' }
+];
+const defs = [['todas', 'Todas · ' + R.length], ['cadeia', 'Cadeia · 6'], ['tertius', 'Tertius e Buffer · 2'], ['aberta', 'A decidir · 2']];
+const filtros = defs.map((d) => ({ label: d[1], aria: s.filtro === d[0] ? 'true' : 'false', style: s.filtro === d[0] ? chipOn : chipOff, pick: () => this.setState({ filtro: d[0] }) }));
+const realoc = R.filter((r) => s.filtro === 'todas' || r.g === s.filtro || (s.filtro === 'tertius' && r.g === 'buffer')).map((r) => ({
+...r,
+paraStyle: r.g === 'aberta' ? 'color: #fdba74' : 'color: #86efac',
+botao: r.g === 'aberta' ? 'Ver sugestão' : 'Trocar',
+trocar: () => this.setState({ aviso: r.g === 'aberta' ? 'Sugestão aberta em Sugestões de troca: ' + r.regra + '.' : 'Escolha outra página da ' + r.papel.split(' · ')[1] + ' para ' + r.pessoa + '. O CSV é refeito na hora.' })
+}));
+const P = [
+{ id: 'pa', pagina: '[Página A]', resumo: 'sai Felix Legion I, entra Felix Legion II · 22 blocos refeitos', csv: ';;;F200002;F200002;F200002, F300009#;\n;;;F200005;F200005;;F200005\n;;;F200005;F200005;;F200005\n;;;;F200001;F200001;F200001\n;;;;F200001;F200001;F200001\n;;F200002;F200002;F200002, F300009#;;F200002' },
+{ id: 'pb', pagina: '[Página B]', resumo: 'sai Felix Legion II, entra Cavalry III · 22 blocos refeitos', csv: ';;;C300003;C300003;C300003;\n;;;C300001;;C300001;C300001\n;;;C300001;;C300001;C300001\n;;;C300002;C300002;C300002;\n;;;C300002;C300002;C300002;\n;;C300003;C300003;C300003;;C300003' },
+{ id: 'pc', pagina: '[Página C]', resumo: 'sai Cavalry III, entra Felix Legion I · 24 blocos refeitos · buffer mantido', csv: ';;;F100001;F100001;B900001;F100001\n;;;F100002;;F100002;F100002\n;;;F100002;;F100002;F100002\n;;;F100003;F100003;F100003;\n;;;F100003;F100003, B900002#;F100003;\n;;F100001;F100001;B900001;F100001;F100001' },
+{ id: 'pd', pagina: '[Página D]', resumo: 'sai Vanguard II, entra Cavalry III · 2 lacunas no D (qui, sáb): células vazias', csv: ';;;C300003;;C300003;\n;;;C300001;;C300001;C300001\n;;;C300001;;C300001;C300001\n;;;C300002;C300002;C300002;\n;;;C300002;C300002;C300002;\n;;C300003;;C300003;;C300003' }
+];
+const tagPend = 'padding: 2px 8px; border-radius: 6px; font-size: 12px; background: rgba(251,146,60,0.15); color: #fdba74';
+const tagMeio = 'padding: 2px 8px; border-radius: 6px; font-size: 12px; background: rgba(251,191,36,0.15); color: #fcd34d';
+const tagOk = 'padding: 2px 8px; border-radius: 6px; font-size: 12px; background: rgba(74,222,128,0.15); color: #86efac';
+const btnOn = 'height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.4); background: rgba(74,222,128,0.12); color: #bbf7d0; font-size: 12px';
+const btnOff = 'height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; font-size: 12px';
+const btnDis = 'height: 32px; padding: 0 12px; border-radius: 8px; border: 1px dashed #2a2129; background: transparent; color: #6b6f7a; font-size: 12px';
+const marca = (id, v) => { const m = Object.assign({}, s.marcas); m[id] = v; return m; };
+const posts = P.map((p) => {
+const m = s.marcas[p.id] || 0;
+return {
+pagina: p.pagina, resumo: p.resumo, ini: '21/10/2026', fim: '25/10/2026',
+status: m === 2 ? 'Postado · aguardando conferência' : (m === 1 ? 'Intervalo apagado' : 'A fazer'),
+tagStyle: m === 2 ? tagOk : (m === 1 ? tagMeio : tagPend),
+ativo: s.sel === p.id ? 'true' : 'false',
+box: 'padding: 12px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px; ' + (s.sel === p.id ? 'border: 1px solid #e91876; background: rgba(233,24,118,0.08)' : 'border: 1px solid #2a2129; background: #0f0c10'),
+pick: () => this.setState({ sel: p.id }),
+naoApagado: m < 1,
+btnApagar: m >= 1 ? btnOn : btnOff,
+btnPostar: m === 2 ? btnOn : (m === 1 ? btnOff : btnDis),
+apagar: () => this.setState({ marcas: marca(p.id, m >= 1 ? 0 : 1), sel: p.id }),
+postar: () => this.setState({ marcas: marca(p.id, m === 2 ? 1 : 2), sel: p.id, aviso: m === 2 ? '' : p.pagina + ' marcada como postada. A leitura do scheduleday confere em até 15 min.' })
+};
+});
+const sp = P.find((p) => p.id === s.sel) || P[0];
+const nPost = P.filter((p) => s.marcas[p.id] === 2).length;
+return {
+trocas: trocas, filtros: filtros, realoc: realoc, posts: posts,
+sel: { pagina: sp.pagina, ini: '21/10/2026', fim: '25/10/2026', csv: sp.csv },
+nPostadas: nPost, nPendente: P.length - nPost, temPendente: nPost < P.length,
+copiarCsv: () => this.setState({ aviso: 'CSV da ' + sp.pagina + ' copiado. Cole em "Code CSV" no Schedule Ajustment.' }),
+copiarDatas: () => this.setState({ aviso: 'Datas copiadas: Date Schedule 21/10/2026 · Date End 25/10/2026. Antes, Delete Range 22/10 a 25/10 e o T6 de 21/10 à mão.' }),
+baixarZip: () => this.setState({ aviso: 'Pacote gerado: 4 CSV (um por página) + roteiro.txt com Model, o que apagar (22/10 a 25/10 + T6 de 21/10), as datas de postagem e a ordem.' }),
+lerPlanner: () => this.setState({ aviso: 'Leitura do historicplanner iniciada. Trocas novas entram aqui e o pacote é refeito.' }),
+aviso: s.aviso !== '', avisoTexto: s.aviso, fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>

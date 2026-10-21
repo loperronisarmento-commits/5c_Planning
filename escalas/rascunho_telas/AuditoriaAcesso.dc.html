@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Auditoria de acesso</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Monitoramento</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Auditoria de acesso às páginas</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 800px">Quem tem acesso no Infloww × em quais páginas está escalado. Substitui o Schedule Access Audit; os "modelos escalados" passam a vir do plano publicado.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 2px; padding: 6px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #131014"><span style="font-size: 11px; color: #9ca0ab">Semana</span><span style="font-weight: 600">26/10 – 01/11/2026</span></label>
+<button type="button" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Baixar CSV</button>
+<button type="button" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Rodar auditoria</button>
+</div>
+</header>
+
+<section aria-label="Resumo" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px">
+<button type="button" style="text-align: left; background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; color: #f5f5f7; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Pendentes</span><span style="font-size: 24px; font-weight: 700">[n]</span></button>
+<button type="button" style="text-align: left; background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; color: #f5f5f7; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Remover acesso</span><span style="font-size: 24px; font-weight: 700; color: #fca5a5">[n]</span></button>
+<button type="button" style="text-align: left; background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; color: #f5f5f7; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Adicionar acesso</span><span style="font-size: 24px; font-weight: 700; color: #93c5fd">[n]</span></button>
+<button type="button" style="text-align: left; background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; color: #f5f5f7; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Desativar cadastro</span><span style="font-size: 24px; font-weight: 700; color: #fcd34d">[n]</span></button>
+<button type="button" style="text-align: left; background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; color: #f5f5f7; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">OK</span><span style="font-size: 24px; font-weight: 700; color: #86efac">[n]</span></button>
+</section>
+
+<section aria-label="Resultado" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Situação
+<select style="height: 38px; min-width: 150px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Pendentes</option><option>Remover</option><option>Adicionar</option><option>Desativar</option><option>OK</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Agência
+<select style="height: 38px; min-width: 150px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Todas</option><option>5C</option><option>Verge</option><option>Fatbear</option></select>
+</label>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 960px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Representante</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Agências com acesso</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Escalado (plano publicado)</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Remover</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Adicionar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">[Representante]<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">[código Infloww]</span></td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">5C · Verge</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f">[páginas da semana]</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; color: #fca5a5">[página fora da escala]</td>
+<td style="padding: 12px 8px; border-bottom: 1px solid #1f191f; color: #93c5fd">—</td>
+</tr>
+<tr>
+<td style="padding: 12px 8px">[Representante]<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">[código Infloww]</span></td>
+<td style="padding: 12px 8px">5C</td>
+<td style="padding: 12px 8px">[páginas da semana]</td>
+<td style="padding: 12px 8px; color: #fca5a5">—</td>
+<td style="padding: 12px 8px; color: #93c5fd">[página escalada sem acesso]</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Fonte: 5c_wfm_db.sp_rep_access_audit (~25 s por execução; uma por vez, com fila). Rodar depois de publicar a escala: quem foi escalado em página nova precisa do acesso antes do turno.</p>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

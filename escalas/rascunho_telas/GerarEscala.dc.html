@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Gerar escala</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Planejamento</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Gerar escala</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 780px">Gera um rascunho novo para o período. Nada é publicado: o rascunho abre na grade para revisão, e o que foi travado à mão na versão anterior é mantido.</p>
+</header>
+
+<div style="padding: 14px 16px; border-radius: 12px; background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.35); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; align-items: center">
+<span><b>7 indisponibilidades pendentes</b> neste período. Só as aprovadas viram folga; as pendentes entram como alerta na grade.</span>
+<a href="Aprovacao.dc.html" style="font-weight: 600">Revisar pedidos</a>
+</div>
+
+<section aria-label="Fontes de dados" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 style="margin: 0; font-size: 17px">Fontes de dados · antes de gerar</h2>
+<span style="color: #9ca0ab; font-size: 13px">API 5C (leitura) · atualização automática a cada 15 min pela etl_auto</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Fonte</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">O que traz</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Última atualização</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ação</span></th></tr></thead>
+<tbody>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><b>Escala realizada</b><br><span style="color: #9ca0ab; font-size: 12px">/api/PowerBi/scheduleday</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">quem trabalhou, faltas, trocas (releitura)</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">21:45 · <span style="color: #86efac">ok</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Atualizar agora</button></td></tr>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><b>Times, parties e membros</b><br><span style="color: #9ca0ab; font-size: 12px">/api/PowerBi/historicplanner</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">estrutura e páginas por party</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">21:45 · <span style="color: #86efac">ok</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Atualizar agora</button></td></tr>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><b>Headcount</b><br><span style="color: #9ca0ab; font-size: 12px">/api/PowerBi/headcount</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">pessoas ativas, Telegram</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">21:30 · <span style="color: #86efac">ok</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Atualizar agora</button></td></tr>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><b>Páginas</b><br><span style="color: #9ca0ab; font-size: 12px">/api/PowerBi/pages</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">páginas ativas e tier</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">21:30 · <span style="color: #86efac">ok</span></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Atualizar agora</button></td></tr>
+<tr><td style="padding: 10px 8px"><b>Capacity</b><br><span style="color: #9ca0ab; font-size: 12px">5c_planning (sp_fc_rodar_dia)</span></td><td style="padding: 10px 8px">necessidade por página e bloco, entradas e saídas</td><td style="padding: 10px 8px">20/10 06:30 · <span style="color: #fcd34d">recalcular após mudanças</span></td><td style="padding: 10px 8px; text-align: right"><button type="button" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Recalcular</button></td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">"Atualizar agora" usa as mesmas importações do portal (import_stream.php, com barra de progresso) e tem prioridade sobre a etl_auto. Com fonte desatualizada há mais de 1 h, o botão Gerar avisa antes de rodar.</p>
+</section>
+
+<section aria-label="Ponto de partida" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline">
+<h2 style="margin: 0; font-size: 17px">0 · Ponto de partida: releitura do realizado</h2>
+<span style="color: #9ca0ab; font-size: 13px">scheduleday de 12/10 a 25/10 · lido em 26/10 06:30</span>
+</div>
+<p style="margin: 0; color: #9ca0ab; max-width: 900px">Antes de planejar, o sistema lê o que cada pessoa trabalhou de fato (inclusive trocas, turnos extras e faltas) e recalcula a posição no ciclo dela. Assim, a semana nova começa de onde a anterior terminou e não cria anomalia por desenho.</p>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+<div style="padding: 12px 14px; border-radius: 12px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Pessoas lidas</span><span style="font-size: 22px; font-weight: 700">[n]</span></div>
+<div style="padding: 12px 14px; border-radius: 12px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Ciclos reancorados</span><span style="font-size: 22px; font-weight: 700; color: #fcd34d">[n]</span></div>
+<div style="padding: 12px 14px; border-radius: 12px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Chegam no limite de dias seguidos</span><span style="font-size: 22px; font-weight: 700">[n]</span><span style="color: #9ca0ab; font-size: 12px">folga obrigatória na segunda</span></div>
+<div style="padding: 12px 14px; border-radius: 12px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Anomalias não programadas na semana anterior</span><span style="font-size: 22px; font-weight: 700; color: #fca5a5">[n]</span></div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 900px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Exemplo</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Modelo</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">O que o realizado mostra</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Efeito no plano da semana</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Rep A · turno D</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">3x1</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Trabalhou sex 23, sáb 24 e dom 25 (o ciclo previa folga no sáb; trocou com colega)</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Folga obrigatória seg 26; ciclo reancorado a partir dela</td>
+</tr>
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Rep B · turno A</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">5x2</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">6 dias seguidos até dom 25 (turno extra não programado no sábado)</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Folga seg 26; vira alerta de anomalia não programada no Monitoramento</td>
+</tr>
+<tr>
+<td style="padding: 10px 8px">Rep C · turno C</td>
+<td style="padding: 10px 8px">3x1</td>
+<td style="padding: 10px 8px">Folga real na qui 22, não na qua 21 (indisponibilidade aprovada)</td>
+<td style="padding: 10px 8px">Trilha 2 → 3: as folgas da semana caem em seg 26 e sex 30</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.3); color: #bbf7d0; font-size: 13px">Validação do plano: o rascunho é checado com as mesmas regras do Monitoramento, pelo modelo de cada pessoa (3x1 ≤ 3 dias seguidos, 5x2 ≤ 5, 4x3 ≤ 4, folga a cada 7 dias). Plano com anomalia programada não pode ser publicado.</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<section aria-label="Parâmetros" style="flex: 1 1 420px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 17px">1 · Período e escopo</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">De
+<input type="date" value="2026-10-26" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Até
+<input type="date" value="2026-11-01" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+</label>
+</div>
+<fieldset style="margin: 0; border: 1px solid #2a2129; border-radius: 12px; padding: 12px 14px; display: flex; flex-wrap: wrap; gap: 10px 18px">
+<legend style="padding: 0 6px; color: #9ca0ab; font-size: 13px">Times (17 aptos · 4 com bloqueio)</legend>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Cavalry</label>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Aeterna</label>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Brat</label>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Lux</label>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Vanguard</label>
+<label style="display: flex; gap: 8px; align-items: center; color: #9ca0ab"><input type="checkbox" disabled="disabled" style="width: 18px; height: 18px">Felix Legion · bloqueado</label>
+<span style="color: #9ca0ab">+ 12</span>
+</fieldset>
+<h2 style="margin: 6px 0 0; font-size: 17px">2 · Demanda (Capacity)</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Cálculo do Capacity
+<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>20/10/2026 (último)</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Base da necessidade
+<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Maior bloco de 4 h do turno</option><option>Média dos 2 blocos</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Fãs/h por rep (limite)
+<input type="number" value="35" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Máx. páginas por rep
+<input type="number" value="3" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+</label>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 13px">Página com reps necessários ≥ 2 no turno recebe 1 regular + (reps − 1) assistentes. Página até 28 fãs/h pode dividir rep com outras (grupo de até 23 fãs/h).</p>
+<h2 style="margin: 6px 0 0; font-size: 17px">3 · Opções</h2>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="checked" disabled="disabled" style="width: 18px; height: 18px; accent-color: #e91876">Reler o realizado (scheduleday, últimos 14 dias) e reancorar ciclos · sempre ligado</label>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Manter alocações travadas à mão na versão anterior</label>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Equilibrar Tertius por mérito (alvo de 30% a 70% como regular) na janela de 4 semanas</label>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">Permitir Tertius de outro turno quando faltar no turno</label>
+</div>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Simular sem salvar</button>
+<button type="button" style="height: 44px; padding: 0 20px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Gerar rascunho v4</button>
+</div>
+</section>
+
+<section aria-label="Ordem de preenchimento" style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 17px">Ordem de preenchimento (por time, dia e turno)</h2>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<li style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: #0f0c10; border: 1px solid #2a2129">
+<span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #3a3238; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700">0</span>
+<span><b>Releitura do realizado</b><br><span style="color: #9ca0ab">Lê o scheduleday das últimas 2 semanas e recalcula folgas, dias seguidos e posição no ciclo de cada pessoa.</span></span>
+</li>
+<li style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: rgba(233,24,118,0.10)">
+<span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #c8105f; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700">1</span>
+<span><b>Party dona da página</b><br><span style="color: #9ca0ab">Primaris ou Secundus da party que está de turno, conforme o modelo de escala dele.</span></span>
+</li>
+<li style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: rgba(96,165,250,0.10)">
+<span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700">2</span>
+<span><b>Outras parties do time, em ordem</b><br><span style="color: #9ca0ab">Na folga do titular, o colega do mesmo turno da Party II assume; se não couber, Party III, e assim por diante. Respeita o limite de páginas e de fãs/h.</span></span>
+</li>
+<li style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: rgba(52,211,153,0.10)">
+<span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #047857; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700">3</span>
+<span><b>Tertius como regular</b><br><span style="color: #9ca0ab">O que sobrar sem titular. Tertius atendem o time todo, sem preferência pela party de cadastro.</span></span>
+</li>
+<li style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: rgba(251,146,60,0.10)">
+<span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #c2410c; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700">4</span>
+<span><b>Tertius como assistente</b><br><span style="color: #9ca0ab">Onde o Capacity pede 2+ reps. Nos passos 3 e 4, a vaga vai para quem está mais longe do próprio alvo de mérito (30% a 70% como regular, pelo quadrante desempenho × assiduidade).</span></span>
+</li>
+<li style="display: flex; gap: 14px; align-items: flex-start; padding: 12px 14px; border-radius: 12px; background: rgba(167,139,250,0.10)">
+<span style="flex: 0 0 auto; width: 28px; height: 28px; border-radius: 50%; background: #6d28d9; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700">5</span>
+<span><b>Buffers (pool sem time)</b><br><span style="color: #9ca0ab">Só depois dos Tertius do time. Usa o ciclo de folgas da Escala de Buffers. O que sobrar vira lacuna.</span></span>
+</li>
+</ol>
+</div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Última execução · v3 · 20/10 21:40</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Passo</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Turnos-página</th></tr></thead>
+<tbody>
+<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">1 · Party dona</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">[n]</td></tr>
+<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">2 · Outras parties</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">[n]</td></tr>
+<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">3 · Tertius regular</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">[n]</td></tr>
+<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">4 · Tertius assistente</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">[n]</td></tr>
+<tr><td style="padding: 8px; border-bottom: 1px solid #1f191f">5 · Buffers</td><td style="padding: 8px; border-bottom: 1px solid #1f191f; text-align: right">[n]</td></tr>
+<tr><td style="padding: 8px; color: #fca5a5">Lacunas</td><td style="padding: 8px; text-align: right; color: #fca5a5">[n]</td></tr>
+</tbody>
+</table>
+</div>
+<a href="GradeEscala.dc.html" style="align-self: flex-start; font-weight: 600">Abrir v3 na grade</a>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

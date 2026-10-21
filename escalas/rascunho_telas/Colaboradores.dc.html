@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Colaboradores</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Cadastros</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Colaboradores</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 760px">Turno fixo, modelo de escala e posição no ciclo de cada representante. Mudança vale a partir da data de vigência e fica no histórico.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Buscar
+<input type="search" placeholder="nome ou código" style="height: 40px; width: 220px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; padding: 0 12px; font-size: 14px">
+</label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Time
+<select style="height: 40px; min-width: 140px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Cavalry</option><option>Todos</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Situação
+<select style="height: 40px; min-width: 170px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Todos</option><option>Sem modelo de escala</option><option>Turno ≠ escala real</option></select>
+</label>
+<button type="button" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Importar turno do headcount_turno</button>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<section aria-label="Lista de colaboradores" style="flex: 999 1 620px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; background: rgba(233,24,118,0.10)">
+<span style="font-weight: 600">3 selecionados</span>
+<span style="color: #9ca0ab">aplicar em lote:</span>
+<select aria-label="Modelo em lote" style="height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"><option>Modelo…</option><option>3x1</option><option>5x2 fixo</option></select>
+<select aria-label="Turno em lote" style="height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"><option>Turno…</option><option>A</option><option>C</option><option>D</option></select>
+<button type="button" style="height: 34px; padding: 0 14px; border-radius: 8px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Aplicar</button>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse; font-size: 13px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; width: 28px"><span style="position: absolute; left: -9999px">Selecionar</span></th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Colaborador</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Party · cargo</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Turno fixo</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Modelo</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Ciclo (recalculado pelo realizado)</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Assistente</th>
+<th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Escala real (28 d)</th>
+</tr>
+</thead>
+<tbody>
+<tr style="background: rgba(233,24,118,0.06)">
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><input type="checkbox" checked="checked" aria-label="Selecionar Ivan" style="width: 18px; height: 18px; accent-color: #e91876"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Ivan A. P. Jr.<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">I043250</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Cavalry I · Secundus</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(251,191,36,0.16); color: #fcd34d">A</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">3x1</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">trilha 1 · folga 28/10</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">não se aplica</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">A 100%</td>
+</tr>
+<tr style="background: rgba(233,24,118,0.06)">
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><input type="checkbox" checked="checked" aria-label="Selecionar Fernanda" style="width: 18px; height: 18px; accent-color: #e91876"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Fernanda R. Souza<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">F156592</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Cavalry I · Secundus</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd">C</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">3x1</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">trilha 3 · folga 26/10</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">não se aplica</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">C 96%</td>
+</tr>
+<tr style="background: rgba(233,24,118,0.06)">
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><input type="checkbox" checked="checked" aria-label="Selecionar João Paulo" style="width: 18px; height: 18px; accent-color: #e91876"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">João Paulo G. Martins<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">J070909</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Cavalry I · Grand Primaris</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(233,24,118,0.18); color: #ff8cc0">D</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Primaris 3x1 + admin</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">trilha 2 · folga 27/10</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">não se aplica</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">D 88% · <span style="color: #fcd34d">C 12%</span></td>
+</tr>
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><input type="checkbox" aria-label="Selecionar Carolina" style="width: 18px; height: 18px; accent-color: #e91876"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Carolina X. Broggio<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">C099427</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Tertius do time</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd">C</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">3x1</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">trilha 0 · folga 29/10</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">sim</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">C 100%</td>
+</tr>
+<tr>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><input type="checkbox" aria-label="Selecionar Nicolas" style="width: 18px; height: 18px; accent-color: #e91876"></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Nicolas M. Campos<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">N027675</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Tertius do time</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd">C</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="padding: 3px 8px; border-radius: 6px; background: rgba(248,113,113,0.15); color: #fca5a5">sem modelo</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">—</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">sim</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">sem código Infloww</td>
+</tr>
+<tr>
+<td style="padding: 10px 8px"><input type="checkbox" aria-label="Selecionar Caio" style="width: 18px; height: 18px; accent-color: #e91876"></td>
+<td style="padding: 10px 8px">Caio C. B. Gabriades<br><span style="color: #9ca0ab; font-family: ui-monospace, Consolas, monospace">C016602</span></td>
+<td style="padding: 10px 8px">Tertius do time</td>
+<td style="padding: 10px 8px"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(251,191,36,0.16); color: #fcd34d">A</span></td>
+<td style="padding: 10px 8px">5x2 fixo</td>
+<td style="padding: 10px 8px">folga sáb e dom</td>
+<td style="padding: 10px 8px">sim</td>
+<td style="padding: 10px 8px">A 100%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<aside aria-label="Editar colaborador" style="flex: 1 1 340px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="color: #9ca0ab; font-size: 12px">Editando</span>
+<h2 style="margin: 0; font-size: 18px">João Paulo G. Martins</h2>
+<span style="color: #9ca0ab; font-size: 13px">J070909 · Cavalry I · Grand Primaris</span>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Turno fixo
+<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>D · T6/T1 (21h–05h)</option><option>A · T2/T3 (05h–13h)</option><option>C · T4/T5 (13h–21h)</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Modelo de escala
+<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Primaris 3x1 + admin</option><option>3x1</option><option>5x2 fixo</option><option>4x3</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Posição no ciclo · recalculada toda semana pela releitura do scheduleday (editar só para forçar)
+<input type="date" value="2026-10-24" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Vigente a partir de
+<input type="date" value="2026-10-26" style="height: 40px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px">
+</label>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; color: #9ca0ab">Próximos 14 dias</span>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; font-size: 12px; text-align: center">
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">seg 26<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: #241d24; color: #9ca0ab">ter 27<br>folga</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">qua 28<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">qui 29<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">sex 30<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: #241d24; color: #9ca0ab">sáb 31<br>folga</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">dom 1<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">seg 2<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(96,165,250,0.18)">ter 3<br>admin</span>
+<span style="padding: 8px 0; border-radius: 8px; background: #241d24; color: #9ca0ab">qua 4<br>folga</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">qui 5<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">sex 6<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: rgba(233,24,118,0.18)">sáb 7<br>D</span>
+<span style="padding: 8px 0; border-radius: 8px; background: #241d24; color: #9ca0ab">dom 8<br>folga</span>
+</div>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Observação
+<textarea rows="2" style="border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 10px; font-size: 14px; resize: vertical">Primaris: 1 dia admin a cada 12</textarea>
+</label>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Cancelar</button>
+<button type="button" style="height: 40px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Salvar</button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

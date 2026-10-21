@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Buffers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600; display: flex; justify-content: space-between">Buffers <sc-if value="{{ temPend }}" hint-placeholder-val="{{ true }}"><span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">{{ nPend }}</span></sc-if></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 18px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Planejamento · passo 5 · automático</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Buffers</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 820px">O pool é preenchido sozinho pela necessidade do Capacity, por dia e bloco de 4 h, depois dos times. Qualquer mudança na semana (entrada ou saída de página, estrutura, indisponibilidade) dispara novo cálculo. Dias já escalados nunca são retirados automaticamente.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="{{ ultimoStyle }}">{{ ultimo }}</span>
+<button type="button" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Exportar CSV T1–T6</button>
+<button type="button" onClick="{{ recalcular }}" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Recalcular agora</button>
+</div>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ temPend }}" hint-placeholder-val="{{ true }}">
+<section aria-label="Checagem de saídas de página" style="background: #131014; border: 1px solid rgba(251,146,60,0.5); border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-start">
+<div style="display: flex; flex-direction: column; gap: 4px; max-width: 860px">
+<h2 style="margin: 0; font-size: 17px; color: #fdba74">Checagem pendente · {{ nPend }} saídas de página detectadas em 20/10</h2>
+<span style="color: #d6d7dc; font-size: 13px">O sistema detectou as saídas e já calculou o efeito (−5,3 reps/h por turno, ≈ 23,5 pessoas), mas só aplica depois que alguém confere. Enquanto isso, a escala segue com a necessidade de antes e as sugestões de workload ficam retidas.</span>
+</div>
+<button type="button" onClick="{{ confirmarTodas }}" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Confirmar todas</button>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 900px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Página</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Time · party</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Por que o sistema acha que saiu</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Efeito por turno · pessoas</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Situação</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ações</span></th></tr></thead>
+<tbody>
+<sc-for list="{{ saidas }}" as="x" hint-placeholder-count="5">
+<tr>
+<th scope="row" style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: left">{{ x.nome }}</th>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">{{ x.party }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">{{ x.motivo }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right; color: #93c5fd">{{ x.efeito }}</td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><span style="{{ x.tagStyle }}">{{ x.situacao }}</span></td>
+<td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right; white-space: nowrap">
+<sc-if value="{{ x.aberta }}" hint-placeholder-val="{{ true }}"><button type="button" onClick="{{ x.confirmar }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Confirmar saída</button> <button type="button" onClick="{{ x.negar }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Não saiu</button></sc-if>
+<sc-if value="{{ x.fechada }}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{ x.reabrir }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: transparent; color: #d6d7dc">Desfazer</button></sc-if>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">O que conferir: a página está como churn ou cancelada no CRM? Saiu do Planner? Não é só uma pausa (página sem fãs por 1 ou 2 dias)? "Não saiu" descarta o gatilho e a página continua na necessidade; se ela continuar parada, o sistema pergunta de novo em 3 dias. Quem confirmou e quando fica no log.</p>
+</section>
+</sc-if>
+
+<sc-if value="{{ semPend }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 14px 16px; border-radius: 12px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.35); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">
+<span><b>Saídas de 20/10 conferidas:</b> {{ resumoChecagem }}</span>
+<span style="color: #9ca0ab">Escalas já feitas foram mantidas; o excesso virou sugestão de remoção de turno por falta de workload.</span>
+<a href="Sugestoes.dc.html" style="font-weight: 600">Ver sugestões de workload</a>
+</div>
+</sc-if>
+
+<section aria-label="Necessidade por dia e bloco" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<h2 style="margin: 0; font-size: 17px">Buffers por dia e bloco de 4 h · precisa / escalados</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 13px">
+<span style="display: flex; gap: 6px; align-items: center"><span style="width: 12px; height: 12px; border-radius: 3px; background: rgba(251,146,60,0.45)"></span>falta</span>
+<span style="display: flex; gap: 6px; align-items: center"><span style="width: 12px; height: 12px; border-radius: 3px; background: rgba(96,165,250,0.45)"></span>sobra (sugestão)</span>
+<span style="display: flex; gap: 6px; align-items: center"><span style="width: 12px; height: 12px; border-radius: 3px; background: #2a2129"></span>ok</span>
+<label style="display: flex; gap: 8px; align-items: center"><input type="checkbox" checked="{{ auto }}" onChange="{{ alternarAuto }}" style="width: 18px; height: 18px; accent-color: #e91876">Automático pelo Capacity</label>
+</div>
+</div>
+<sc-if value="{{ manual }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 10px 14px; border-radius: 10px; background: rgba(251,191,36,0.08); color: #fde68a; font-size: 13px">Modo manual: as células viram campos editáveis e o recálculo automático só avisa, sem mudar o pool.</div>
+</sc-if>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 900px; border-collapse: separate; border-spacing: 4px; font-size: 13px; text-align: center">
+<thead><tr style="color: #9ca0ab"><th scope="col" style="font-weight: 500; text-align: left; padding: 6px">Bloco</th><th scope="col" style="font-weight: 500">seg 26</th><th scope="col" style="font-weight: 500">ter 27</th><th scope="col" style="font-weight: 500">qua 28</th><th scope="col" style="font-weight: 500">qui 29</th><th scope="col" style="font-weight: 500">sex 30</th><th scope="col" style="font-weight: 500">sáb 31</th><th scope="col" style="font-weight: 500">dom 01</th></tr></thead>
+<tbody>
+<tr><th scope="row" style="text-align: left; padding: 6px; font-weight: 500">T2 · 05–09 <span style="color: #fcd34d">A</span></th><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(96,165,250,0.22)">sobra 1</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td></tr>
+<tr><th scope="row" style="text-align: left; padding: 6px; font-weight: 500">T3 · 09–13 <span style="color: #fcd34d">A</span></th><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(251,146,60,0.22)">falta 1</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td></tr>
+<tr><th scope="row" style="text-align: left; padding: 6px; font-weight: 500">T4 · 13–17 <span style="color: #93c5fd">C</span></th><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(251,146,60,0.22)">falta 1</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(251,146,60,0.22)">falta 1</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td></tr>
+<tr><th scope="row" style="text-align: left; padding: 6px; font-weight: 500">T5 · 17–21 <span style="color: #93c5fd">C</span></th><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(251,146,60,0.22)">falta 1</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(251,146,60,0.22)">falta 1</td></tr>
+<tr><th scope="row" style="text-align: left; padding: 6px; font-weight: 500">T6 · 21–01 <span style="color: #ff8cc0">D</span></th><td style="padding: 9px 4px; border-radius: 8px; background: rgba(96,165,250,0.22)">sobra 2</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(96,165,250,0.22)">sobra 2</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(96,165,250,0.22)">sobra 2</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td></tr>
+<tr><th scope="row" style="text-align: left; padding: 6px; font-weight: 500">T1 · 01–05 <span style="color: #ff8cc0">D</span></th><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: rgba(96,165,250,0.22)">sobra 1</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td><td style="padding: 9px 4px; border-radius: 8px; background: #2a2129">[n]/[n]</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Precisa = o que sobra da necessidade do Capacity (fc_escala_pagina, por bloco) depois de party dona, outras parties e Tertius. Buffer de turno D conta no dia em que começa. Clique numa célula para ver quem foi escalado e onde.</p>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+<section aria-label="Mudanças da semana" style="flex: 999 1 520px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Mudanças que dispararam recálculo</h2>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<li style="padding: 12px 14px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><b>20/10 · 10 saídas de página</b><span style="color: #9ca0ab; font-size: 12px">automático · calculado 21/10 00:12 · aplica após checagem</span></span>
+<span style="color: #d6d7dc; font-size: 13px">−5,3 reps/h por turno (Cynthia sozinha −2,0). Nenhum dia escalado retirado; 12 sugestões de remoção por falta de workload, liberadas quando a saída é confirmada.</span>
+</li>
+<li style="padding: 12px 14px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><b>20/10 · indisponibilidade aprovada</b><span style="color: #9ca0ab; font-size: 12px">WFM</span></span>
+<span style="color: #d6d7dc; font-size: 13px">Ivan A. P. Jr. (ter 27, A): coberto pela Party II, sem buffer extra.</span>
+</li>
+<li style="padding: 12px 14px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><b>17/10 · saída Natalya Scudder</b><span style="color: #9ca0ab; font-size: 12px">automático</span></span>
+<span style="color: #d6d7dc; font-size: 13px">−1,7 pessoa de necessidade. Sem efeito na semana de 26/10 (já recalculada).</span>
+</li>
+<li style="padding: 12px 14px; border-radius: 10px; background: rgba(251,146,60,0.06); border: 1px dashed rgba(251,146,60,0.4); display: flex; flex-direction: column; gap: 4px">
+<span style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap"><b>Exemplo · entrada de página nova</b><span style="color: #9ca0ab; font-size: 12px">quando houver</span></span>
+<span style="color: #d6d7dc; font-size: 13px">Página entra em fc_paginas_previstas/eventos → necessidade sobe nos blocos dela → buffers adicionados sozinhos onde faltar (nova versão do plano, com aviso) → falta nos times vira sugestão de Tertius.</span>
+</li>
+</ol>
+</section>
+
+<aside aria-label="Como o recálculo funciona" style="flex: 1 1 340px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Regras do recálculo</h2>
+<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; color: #d6d7dc">
+<li><b>Dispara</b> em: entrada ou saída de página, mudança de party/time, indisponibilidade aprovada, falta não programada e novo cálculo diário do Capacity (06:30).</li>
+<li><b>Saída de página</b> abre uma checagem para quem opera o sistema. O efeito só entra na escala depois da confirmação.</li>
+<li><b>Adiciona sozinho</b> buffers onde falta, criando uma nova versão do plano (ex.: v3.1) e avisando no Painel.</li>
+<li><b>Nunca retira</b> um dia já escalado. Sobra vira <a href="Sugestoes.dc.html">sugestão de remoção de turno por falta de workload</a>, que alguém aplica ou descarta.</li>
+<li><b>Times:</b> falta ou sobra de Tertius vai para a <a href="Estrutura.dc.html">Configuração dos times</a> e para Sugestões.</li>
+<li>Respeita o modelo de escala e o turno fixo de cada buffer.</li>
+</ul>
+</aside>
+</div>
+
+<section aria-label="Pool" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-end">
+<h2 style="margin: 0; font-size: 17px">Pool de buffers · 57 pessoas (A 21 · C 12 · D 24)</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<input type="search" aria-label="Buscar buffer" placeholder="Buscar nome ou código" style="height: 38px; width: 200px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px">
+<select aria-label="Turno" style="height: 38px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Todos os turnos</option><option>A</option><option>C</option><option>D</option></select>
+<button type="button" style="height: 38px; padding: 0 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Conferir roster</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 820px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Buffer</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Turno fixo</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Modelo</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Semana (seg → dom)</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Escalado / disponível</th></tr></thead>
+<tbody>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">[Buffer]</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">D</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">3x1</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; font-family: ui-monospace, Consolas, monospace; letter-spacing: 2px">■■□■■■□</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">5 / 5 · <span style="color: #93c5fd">sex com sobra</span></td></tr>
+<tr><td style="padding: 10px 8px">[Buffer]</td><td style="padding: 10px 8px">C</td><td style="padding: 10px 8px">3x1</td><td style="padding: 10px 8px; font-family: ui-monospace, Consolas, monospace; letter-spacing: 2px">■□■■■□■</td><td style="padding: 10px 8px; text-align: right">3 / 5 · <span style="color: #fdba74">cabe mais 2</span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { auto: true, aviso: '', chk: {} };
+}
+renderVals() {
+const s = this.state;
+const tagPend = 'padding: 3px 8px; border-radius: 6px; background: rgba(251,146,60,0.15); color: #fdba74';
+const tagOk = 'padding: 3px 8px; border-radius: 6px; background: rgba(74,222,128,0.15); color: #86efac';
+const tagNao = 'padding: 3px 8px; border-radius: 6px; background: #2a2129; color: #d6d7dc';
+const S = [
+['cyn', 'Cynthia', '−2,00 reps/h · −8,7 pessoas'],
+['cynt', 'xCynthia OFTV', '−0,33 · −1,5'],
+['f274m', 'Farrah 274m', '−0,41 · −1,8'],
+['f274s', 'Farrah 274s', '−0,33 · −1,5'],
+['f274t', 'Farrah 274t', '−0,33 · −1,5'],
+['s315m', 'Shay 315m', '−0,34 · −1,5'],
+['s315s', 'Shay 315s', '−0,33 · −1,5'],
+['jul', 'Julia Escorte', '−0,43 · −1,9'],
+['mar', 'Marine', '−0,43 · −1,9'],
+['amb', 'Ambre', '−0,43 · −1,9']
+].map((x) => [x[0], x[1], 'Inativada no cadastro de páginas em 20/10 (detecção automática)', x[2]]);
+const setChk = (id, v) => { const c = Object.assign({}, s.chk); if (v) { c[id] = v; } else { delete c[id]; } return c; };
+const saidas = S.map((x) => {
+const st = s.chk[x[0]];
+return {
+nome: x[1], party: 'conferir no Planner', motivo: x[2], efeito: x[3],
+situacao: st === 'ok' ? 'Saída confirmada' : (st === 'nao' ? 'Não saiu · gatilho descartado' : 'Aguardando checagem'),
+tagStyle: st === 'ok' ? tagOk : (st === 'nao' ? tagNao : tagPend),
+aberta: !st, fechada: !!st,
+confirmar: () => this.setState({ chk: setChk(x[0], 'ok'), aviso: x[1] + ': saída confirmada. Efeito aplicado na necessidade.' }),
+negar: () => this.setState({ chk: setChk(x[0], 'nao'), aviso: x[1] + ': gatilho descartado. A página continua na necessidade; nova checagem em 3 dias se seguir parada.' }),
+reabrir: () => this.setState({ chk: setChk(x[0], null), aviso: '' })
+};
+});
+const nPend = S.filter((x) => !s.chk[x[0]]).length;
+const nOk = S.filter((x) => s.chk[x[0]] === 'ok').length;
+const nNao = S.filter((x) => s.chk[x[0]] === 'nao').length;
+return {
+auto: s.auto, manual: !s.auto,
+alternarAuto: () => this.setState({ auto: !s.auto }),
+saidas: saidas, nPend: nPend, temPend: nPend > 0, semPend: nPend === 0,
+resumoChecagem: nOk + ' confirmadas' + (nNao ? ', ' + nNao + ' descartadas' : '') + '. Necessidade recalculada.',
+confirmarTodas: () => { const c = Object.assign({}, s.chk); S.forEach((x) => { if (!c[x[0]]) { c[x[0]] = 'ok'; } }); this.setState({ chk: c, aviso: 'Saídas confirmadas. Efeito aplicado e sugestões de workload liberadas.' }); },
+ultimo: nPend > 0 ? 'Saídas de página: ' + nPend + ' aguardando checagem' : 'Recalculado · gatilho: saídas de página conferidas',
+ultimoStyle: nPend > 0 ? 'padding: 6px 12px; border-radius: 999px; background: rgba(251,146,60,0.12); border: 1px solid rgba(251,146,60,0.45); color: #fdba74; font-size: 13px' : 'padding: 6px 12px; border-radius: 999px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; font-size: 13px',
+recalcular: () => this.setState({ aviso: nPend > 0 ? 'Recalculado agora. As saídas ainda não conferidas continuam fora do cálculo.' : 'Recalculado agora: nenhuma mudança nova. Escala mantida.' }),
+aviso: s.aviso !== '', avisoTexto: s.aviso, fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>

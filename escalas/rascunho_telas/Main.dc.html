@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Painel do planejamento</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+main a.card:hover{border-color:#e91876 !important}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Semana 26/10 – 01/11 · plano v3 · rascunho</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Painel do planejamento</h1>
+<p style="margin: 0; color: #9ca0ab">O que falta fazer antes de publicar, o que mudou na semana e onde a escala está apertada.</p>
+</div>
+<a href="Aprovacao.dc.html" style="height: 48px; display: inline-flex; align-items: center; gap: 10px; padding: 0 20px; border-radius: 12px; background: #c8105f; color: #fff; font-weight: 600; text-decoration: none">Próxima ação: aprovar 7 pedidos →</a>
+</header>
+
+<section aria-label="Indicadores" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px">
+<a class="card" href="GradeEscala.dc.html" style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #f5f5f7">
+<span style="color: #9ca0ab; font-size: 13px">Lacunas abertas</span>
+<span style="font-size: 28px; font-weight: 700; color: #f87171">[n]</span>
+<span style="color: #9ca0ab; font-size: 12px">ver na grade →</span>
+</a>
+<a class="card" href="Estrutura.dc.html" style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #f5f5f7">
+<span style="color: #9ca0ab; font-size: 13px">Parties fora da regra</span>
+<span style="font-size: 28px; font-weight: 700; color: #fbbf24">25 de 53</span>
+<span style="color: #9ca0ab; font-size: 12px">5 sem Primaris bloqueiam →</span>
+</a>
+<a class="card" href="Estrutura.dc.html" style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #f5f5f7">
+<span style="color: #9ca0ab; font-size: 13px">Tertius nos times</span>
+<span style="font-size: 28px; font-weight: 700">faltam ~52</span>
+<span style="color: #9ca0ab; font-size: 12px">sobram ~23 em outros →</span>
+</a>
+<a class="card" href="Aprovacao.dc.html" style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #f5f5f7">
+<span style="color: #9ca0ab; font-size: 13px">Indisponibilidades pendentes</span>
+<span style="font-size: 28px; font-weight: 700">7</span>
+<span style="color: #9ca0ab; font-size: 12px">1 urgente · 1 recorrente →</span>
+</a>
+<a class="card" href="Sugestoes.dc.html" style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #f5f5f7">
+<span style="color: #9ca0ab; font-size: 13px">Sugestões abertas</span>
+<span style="font-size: 28px; font-weight: 700">6</span>
+<span style="color: #9ca0ab; font-size: 12px">2 de workload →</span>
+</a>
+</section>
+
+<section aria-label="Mudou desde a geração" style="padding: 16px 18px; border-radius: 14px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.35); display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center">
+<b>Mudou desde a geração</b>
+<span>20/10: 10 saídas de página detectadas (−5,3 reps/h por turno). Efeito calculado, <b style="color: #fdba74">aguardando checagem</b> para entrar na escala.</span>
+<a href="Buffers.dc.html" style="font-weight: 600">Checar 10 saídas →</a>
+<a href="Sugestoes.dc.html" style="font-weight: 600">Ver sugestões de workload</a>
+<span style="flex-basis: 100%; height: 0"></span>
+<span>Planner: 4 páginas trocam de party na qua 21/10 às 21:00. Escala da semana já refeita (11 pessoas realocadas na própria party); faltam postar 4 páginas no site.</span>
+<a href="TrocasPagina.dc.html" style="font-weight: 600">Postar trocas →</a>
+</section>
+
+<section aria-label="Etapas da semana" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 17px">Etapas até publicar</h2>
+<ol style="margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px">
+<li><a class="card" href="Estrutura.dc.html" style="height: 100%; box-sizing: border-box; border: 1px solid #2a2129; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #0f0c10; text-decoration: none; color: #f5f5f7"><span style="font-size: 12px; color: #4ade80; font-weight: 600">1 · Concluída</span><span style="font-weight: 600">Conferir times</span><span style="color: #9ca0ab; font-size: 13px">sem bloqueio no Cavalry</span></a></li>
+<li><a class="card" href="Colaboradores.dc.html" style="height: 100%; box-sizing: border-box; border: 1px solid #fbbf24; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #0f0c10; text-decoration: none; color: #f5f5f7"><span style="font-size: 12px; color: #fbbf24; font-weight: 600">2 · 1 pendência</span><span style="font-weight: 600">Colaboradores</span><span style="color: #9ca0ab; font-size: 13px">1 Tertius sem modelo</span></a></li>
+<li><a class="card" href="Aprovacao.dc.html" style="height: 100%; box-sizing: border-box; border: 1px solid #fbbf24; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #0f0c10; text-decoration: none; color: #f5f5f7"><span style="font-size: 12px; color: #fbbf24; font-weight: 600">3 · Pendente</span><span style="font-weight: 600">Aprovar indisponibilidades</span><span style="color: #9ca0ab; font-size: 13px">7 pedidos · WFM</span></a></li>
+<li><a class="card" href="GerarEscala.dc.html" style="height: 100%; box-sizing: border-box; border: 1px solid #2a2129; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #0f0c10; text-decoration: none; color: #f5f5f7"><span style="font-size: 12px; color: #4ade80; font-weight: 600">4 · v3 gerada</span><span style="font-weight: 600">Gerar escala</span><span style="color: #9ca0ab; font-size: 13px">recalcula sozinho em mudanças</span></a></li>
+<li><a class="card" href="Sugestoes.dc.html" style="height: 100%; box-sizing: border-box; border: 1px solid #2a2129; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #0f0c10; text-decoration: none; color: #f5f5f7"><span style="font-size: 12px; color: #9ca0ab; font-weight: 600">5</span><span style="font-weight: 600">Revisar sugestões</span><span style="color: #9ca0ab; font-size: 13px">6 abertas</span></a></li>
+<li><a class="card" href="GradeEscala.dc.html" style="height: 100%; box-sizing: border-box; border: 1px solid #2a2129; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: #0f0c10; text-decoration: none; color: #f5f5f7"><span style="font-size: 12px; color: #9ca0ab; font-weight: 600">6</span><span style="font-weight: 600">Publicar</span><span style="color: #9ca0ab; font-size: 13px">checagem antes de confirmar</span></a></li>
+</ol>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px">
+<section aria-label="Necessidade por turno" style="flex: 1 1 420px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 17px">Necessidade × disponível (Capacity)</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px">
+<thead>
+<tr style="color: #9ca0ab; text-align: left">
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500">Turno</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Reps/h necessários</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Reps/h disponíveis</th>
+<th scope="col" style="padding: 8px 10px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Absenteísmo</th>
+</tr>
+</thead>
+<tbody>
+<tr><th scope="row" style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: left"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(251,191,36,0.16); color: #fcd34d">A · 05h–13h</span></th><td style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: right">57,0</td><td style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: right">69,0</td><td style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: right">8,9%</td></tr>
+<tr><th scope="row" style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: left"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd">C · 13h–21h</span></th><td style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: right">61,5</td><td style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: right">62,6</td><td style="padding: 10px; border-bottom: 1px solid #1f191f; text-align: right">9,9%</td></tr>
+<tr><th scope="row" style="padding: 10px; text-align: left"><span style="padding: 3px 9px; border-radius: 6px; background: rgba(233,24,118,0.18); color: #ff8cc0">D · 21h–05h</span></th><td style="padding: 10px; text-align: right">60,0</td><td style="padding: 10px; text-align: right">65,0</td><td style="padding: 10px; text-align: right">10,8%</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Necessidade de 19/10, antes das saídas de 20/10 (−5,3 reps/h por turno). Absenteísmo com a AF corrigida. <a href="Glossario.dc.html">O que é cada número?</a></p>
+</section>
+
+<section aria-label="Alertas" style="flex: 1 1 420px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Alertas</h2>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<li style="display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 10px; background: rgba(248,113,113,0.08)"><span style="flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #f87171; margin-top: 5px" aria-hidden="true"></span><span><b>5 parties sem Primaris e 11 sem página ativa</b> ficam fora da geração. <a href="Estrutura.dc.html">Configuração dos times</a></span></li>
+<li style="display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 10px; background: rgba(251,191,36,0.08)"><span style="flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #fbbf24; margin-top: 5px" aria-hidden="true"></span><span><b>Cavalry precisa de ~14 Tertius</b>; Vanguard e Prevail sobram ~11. <a href="Sugestoes.dc.html">Ver sugestão</a></span></li>
+<li style="display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 10px; background: rgba(251,191,36,0.08)"><span style="flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #fbbf24; margin-top: 5px" aria-hidden="true"></span><span><b>1 Tertius sem modelo de escala</b> (Nicolas M. Campos) ficou fora da geração. <a href="Colaboradores.dc.html">Configurar</a></span></li>
+<li style="display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 10px; background: rgba(96,165,250,0.08)"><span style="flex: 0 0 auto; width: 10px; height: 10px; border-radius: 50%; background: #60a5fa; margin-top: 5px" aria-hidden="true"></span><span><b>Mérito:</b> 2 Tertius longe do alvo de % regular. <a href="Tertius.dc.html">Ver quadrantes</a></span></li>
+</ul>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

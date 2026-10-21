@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Entrar</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; box-sizing: border-box; padding: 48px 16px; display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: center; background: radial-gradient(1000px 500px at 50% -10%, rgba(233,24,118,0.18), rgba(0,0,0,0) 60%), #000">
+
+<main style="flex: 0 1 440px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 20px; padding: 32px 28px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 24px; font-weight: 700">5C Escalas</span>
+<span style="color: #9ca0ab">Acesso do colaborador</span>
+</div>
+
+<ol aria-label="Etapas" style="margin: 0; padding: 0; list-style: none; display: flex; gap: 8px; font-size: 12px">
+<li style="{{ e1 }}">1 · Seu código</li>
+<li style="{{ e2 }}">2 · Código do Telegram</li>
+</ol>
+
+<sc-if value="{{ passo1 }}" hint-placeholder-val="{{ true }}">
+<form onSubmit="{{ enviar }}" style="display: flex; flex-direction: column; gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Código de representante
+<input type="text" autocomplete="username" inputmode="text" placeholder="ex.: A123456" value="{{ codigo }}" onInput="{{ digitarCodigo }}" style="height: 48px; box-sizing: border-box; border-radius: 12px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 14px; font-size: 18px; letter-spacing: 1px; font-family: ui-monospace, Consolas, monospace; text-transform: uppercase"></label>
+<sc-if value="{{ erro1 }}" hint-placeholder-val="{{ false }}">
+<span role="alert" style="padding: 10px 12px; border-radius: 10px; background: rgba(248,113,113,0.10); border: 1px solid rgba(248,113,113,0.35); color: #fca5a5; font-size: 13px">{{ erro1Texto }}</span>
+</sc-if>
+<button type="button" onClick="{{ enviar }}" style="height: 48px; border-radius: 12px; border: 0; background: #c8105f; color: #fff; font-weight: 600; font-size: 15px">Receber código no Telegram</button>
+<span style="color: #9ca0ab; font-size: 12px">A Nora (bot da 5C) manda um código de 6 dígitos para o Telegram cadastrado no seu headcount. Não tem senha para lembrar.</span>
+</form>
+</sc-if>
+
+<sc-if value="{{ passo2 }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="padding: 12px 14px; border-radius: 12px; background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.3); color: #bbf7d0; font-size: 13px">Código enviado pela Nora para <b>@{{ telegramMascarado }}</b>. Abra o Telegram e digite aqui.</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Código de 6 dígitos
+<input type="text" autocomplete="one-time-code" inputmode="numeric" maxlength="6" placeholder="••••••" value="{{ otp }}" onInput="{{ digitarOtp }}" style="height: 56px; box-sizing: border-box; border-radius: 12px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 14px; font-size: 26px; letter-spacing: 10px; text-align: center; font-family: ui-monospace, Consolas, monospace"></label>
+<sc-if value="{{ erro2 }}" hint-placeholder-val="{{ false }}">
+<span role="alert" style="padding: 10px 12px; border-radius: 10px; background: rgba(248,113,113,0.10); border: 1px solid rgba(248,113,113,0.35); color: #fca5a5; font-size: 13px">{{ erro2Texto }}</span>
+</sc-if>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 13px; color: #d6d7dc"><input type="checkbox" checked="{{ lembrar }}" onChange="{{ alternarLembrar }}" style="width: 18px; height: 18px; accent-color: #e91876">Manter conectado neste aparelho por 30 dias</label>
+<button type="button" onClick="{{ entrar }}" disabled="{{ otpIncompleto }}" style="{{ entrarStyle }}">Entrar</button>
+<div style="display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px">
+<button type="button" onClick="{{ voltar }}" style="padding: 0; border: 0; background: transparent; color: #d6d7dc; text-decoration: underline">Trocar código</button>
+<span style="color: #9ca0ab">Vale 5 min · <button type="button" onClick="{{ reenviar }}" style="padding: 0; border: 0; background: transparent; color: #ff5fa8; text-decoration: underline">reenviar</button></span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ ok }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; flex-direction: column; gap: 10px">
+<b>Tudo certo.</b>
+<span style="font-size: 13px">Você entra direto em Minha escala. Dá para pedir indisponibilidade e acompanhar a resposta do WFM por lá.</span>
+<a href="Solicitacao.dc.html" style="font-weight: 600">Ir para Minha escala →</a>
+</div>
+</sc-if>
+
+<div style="border-top: 1px solid #2a2129; padding-top: 14px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">
+<span>É da gestão, do WFM ou do Planejamento? <a href="Main.dc.html" style="font-weight: 600">Entrar com a conta do portal</a></span>
+<span>Telegram trocou ou não chega? Fale com o WFM para atualizar o cadastro.</span>
+</div>
+</main>
+
+<aside aria-label="Como funciona" style="flex: 0 1 380px; min-width: 0; display: flex; flex-direction: column; gap: 14px; color: #d6d7dc">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Rascunho · regras do login</span>
+<ul style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; font-size: 13px">
+<li><b>Quem entra:</b> quem está ativo no headcount com código de rep. Desligado ou afastado não recebe código.</li>
+<li><b>Código:</b> 6 dígitos, vale 5 minutos e uma vez só. Reenvio liberado depois de 60 s.</li>
+<li><b>Erros:</b> 5 códigos errados bloqueiam o acesso por 15 min e avisam o WFM.</li>
+<li><b>Sem Telegram no cadastro:</b> a tela não diz se o código existe; mostra a mesma mensagem e orienta procurar o WFM.</li>
+<li><b>O que o colaborador vê:</b> só a própria escala, os próprios pedidos e o Glossário. Nada de outras pessoas.</li>
+<li><b>Sessão:</b> 12 h, ou 30 dias se marcar "manter conectado". Todo acesso entra na Auditoria de acesso.</li>
+<li><b>Envio:</b> o portal chama a Nora pelo bot já usado no 5c_bot; o Telegram vem do headcount (vw_rep.telegram).</li>
+</ul>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { passo: 1, codigo: '', otp: '', erro1: '', erro2: '', lembrar: true, tentativas: 0 };
+}
+renderVals() {
+const s = this.state;
+const on = 'padding: 6px 10px; border-radius: 999px; background: rgba(233,24,118,0.18); color: #fff; font-weight: 600';
+const off = 'padding: 6px 10px; border-radius: 999px; background: #0f0c10; color: #9ca0ab; border: 1px solid #2a2129';
+const completo = /^\d{6}$/.test(s.otp);
+return {
+passo1: s.passo === 1, passo2: s.passo === 2, ok: s.passo === 3,
+e1: s.passo === 1 ? on : off, e2: s.passo === 2 ? on : off,
+codigo: s.codigo, otp: s.otp, lembrar: s.lembrar,
+telegramMascarado: 'ma•••••la',
+digitarCodigo: (e) => this.setState({ codigo: (e && e.target ? e.target.value : '').toUpperCase(), erro1: '' }),
+digitarOtp: (e) => this.setState({ otp: (e && e.target ? e.target.value : '').replace(/\D/g, '').slice(0, 6), erro2: '' }),
+alternarLembrar: () => this.setState({ lembrar: !s.lembrar }),
+enviar: (e) => { if (e && e.preventDefault) { e.preventDefault(); } if (!/^[A-Z]\d{6}$/.test(s.codigo.trim())) { this.setState({ erro1: 'Digite o código no formato letra + 6 números (ex.: A123456).' }); } else { this.setState({ passo: 2, otp: '', erro2: '' }); } },
+erro1: s.erro1 !== '', erro1Texto: s.erro1,
+otpIncompleto: !completo,
+entrarStyle: 'height: 48px; border-radius: 12px; border: 0; font-weight: 600; font-size: 15px; ' + (completo ? 'background: #c8105f; color: #fff' : 'background: #2a2129; color: #6b6f7a'),
+entrar: () => { if (s.otp === '000000') { const t = s.tentativas + 1; this.setState({ tentativas: t, erro2: 'Código errado. ' + (5 - t) + ' tentativas antes do bloqueio de 15 min.' }); } else { this.setState({ passo: 3 }); } },
+erro2: s.erro2 !== '', erro2Texto: s.erro2,
+voltar: () => this.setState({ passo: 1, otp: '' }),
+reenviar: () => this.setState({ otp: '', erro2: '', }),
+};
+}
+}
+</script>
+</body>
+</html>

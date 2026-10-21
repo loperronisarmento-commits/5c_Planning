@@ -1,0 +1,230 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-20T21:45:00Z"
+  },
+  "title": "5C Escalas — rascunho das telas",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1150,
+      "title": "01 Painel",
+      "expand": "fill"
+    },
+    "Estrutura.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 1150,
+      "title": "02 Configuração dos times (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Colaboradores.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 1080,
+      "title": "03 Colaboradores",
+      "expand": "fill"
+    },
+    "ModelosEscala.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 1300,
+      "title": "04 Modelos de escala",
+      "expand": "fill"
+    },
+    "GerarEscala.dc.html": {
+      "x": 0,
+      "y": 2500,
+      "w": 1440,
+      "h": 2050,
+      "title": "05 Gerar escala (releitura + validação)",
+      "expand": "fill"
+    },
+    "GradeEscala.dc.html": {
+      "x": 1520,
+      "y": 2500,
+      "w": 1440,
+      "h": 1300,
+      "title": "06 Grade da escala (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Tertius.dc.html": {
+      "x": 3040,
+      "y": 2500,
+      "w": 1440,
+      "h": 1350,
+      "title": "07 Equilíbrio Tertius por mérito",
+      "expand": "fill"
+    },
+    "Sugestoes.dc.html": {
+      "x": 4560,
+      "y": 2500,
+      "w": 1440,
+      "h": 1300,
+      "title": "08 Sugestões de troca (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Buffers.dc.html": {
+      "x": 6080,
+      "y": 2500,
+      "w": 1440,
+      "h": 1550,
+      "title": "09 Buffers (automático, clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Solicitacao.dc.html": {
+      "x": 0,
+      "y": 5000,
+      "w": 1440,
+      "h": 1150,
+      "title": "10 Solicitar indisponibilidade (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Aprovacao.dc.html": {
+      "x": 1520,
+      "y": 5000,
+      "w": 1440,
+      "h": 1150,
+      "title": "11 Aprovar indisponibilidade (WFM, clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Monitoramento.dc.html": {
+      "x": 0,
+      "y": 6600,
+      "w": 1440,
+      "h": 900,
+      "title": "12 Anomalias da escala",
+      "expand": "fill"
+    },
+    "AuditoriaAcesso.dc.html": {
+      "x": 1520,
+      "y": 6600,
+      "w": 1440,
+      "h": 1000,
+      "title": "13 Auditoria de acesso",
+      "expand": "fill"
+    },
+    "Acessos.dc.html": {
+      "x": 3040,
+      "y": 6600,
+      "w": 1440,
+      "h": 1000,
+      "title": "14 Acessos por tela (Administração, clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Glossario.dc.html": {
+      "x": 4560,
+      "y": 6600,
+      "w": 1440,
+      "h": 1400,
+      "title": "15 Glossário (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Funil.dc.html": {
+      "x": 7600,
+      "y": 2500,
+      "w": 1440,
+      "h": 1900,
+      "title": "16 Funil de entrada de páginas (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "TrocasPagina.dc.html": {
+      "x": 9120,
+      "y": 2500,
+      "w": 1440,
+      "h": 2000,
+      "title": "18 Trocas de página · realocar e postar (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "NoraBot.dc.html": {
+      "x": 3040,
+      "y": 5000,
+      "w": 1440,
+      "h": 900,
+      "title": "19 Pedido de indisponibilidade pela Nora (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    },
+    "Login.dc.html": {
+      "x": 4560,
+      "y": 5000,
+      "w": 1440,
+      "h": 900,
+      "title": "17 Login do colaborador no site · fase 2 (clicável)",
+      "expand": "fill",
+      "is_interactive": true
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Estrutura.dc.html",
+    "Colaboradores.dc.html",
+    "ModelosEscala.dc.html",
+    "GerarEscala.dc.html",
+    "GradeEscala.dc.html",
+    "Tertius.dc.html",
+    "Sugestoes.dc.html",
+    "Buffers.dc.html",
+    "Solicitacao.dc.html",
+    "Aprovacao.dc.html",
+    "Monitoramento.dc.html",
+    "AuditoriaAcesso.dc.html",
+    "Acessos.dc.html",
+    "Glossario.dc.html",
+    "Funil.dc.html",
+    "TrocasPagina.dc.html",
+    "NoraBot.dc.html",
+    "Login.dc.html"
+  ],
+  "notes": {
+    "row1": {
+      "x": 0,
+      "y": -320,
+      "text": "Cadastros: estrutura, pessoas e modelos de escala",
+      "kind": "title1",
+      "maxW": 7500
+    },
+    "row2": {
+      "x": 0,
+      "y": 2180,
+      "text": "Planejamento: gerar, revisar, equilibrar, trocar, buffers e páginas",
+      "kind": "title1",
+      "maxW": 10600
+    },
+    "row3": {
+      "x": 0,
+      "y": 4680,
+      "text": "Indisponibilidade e acesso do colaborador",
+      "kind": "title1",
+      "maxW": 7500
+    },
+    "row4": {
+      "x": 0,
+      "y": 6280,
+      "text": "Monitoramento, administração e ajuda",
+      "kind": "title1",
+      "maxW": 7500
+    }
+  },
+  "designSystems": []
+}

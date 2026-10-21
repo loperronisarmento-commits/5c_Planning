@@ -1,0 +1,364 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Grade da escala</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Cavalry</option><option>Todos os times</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 16px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">{{ statusPlano }}</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Grade da escala · Cavalry</h1>
+<p style="margin: 0; color: #9ca0ab">Semana 26/10 – 01/11 · necessidade do Capacity de 20/10 · clique numa célula para ver o porquê e trocar</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<button type="button" onClick="{{ abrirExport }}" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Exportar / postar</button>
+<button type="button" onClick="{{ abrirPublicar }}" disabled="{{ publicado }}" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">{{ botaoPublicar }}</button>
+</div>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<span style="display: flex; gap: 8px; flex-wrap: wrap"><a href="AuditoriaAcesso.dc.html" style="color: #bbf7d0; font-weight: 600">Rodar auditoria de acesso</a><button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button></span>
+</div>
+</sc-if>
+
+<div style="padding: 12px 16px; border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">
+<span><b>4 lacunas</b> (todas de assistente) · 10 turnos por Buffer · <span style="color: #86efac">0 anomalias programadas</span></span>
+<span style="color: #9ca0ab">Causa principal: Nicolas M. Campos (Tertius C) sem modelo de escala.</span>
+<a href="Colaboradores.dc.html" style="font-weight: 600">Configurar</a>
+<a href="Sugestoes.dc.html" style="font-weight: 600">Ver 3 sugestões</a>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<div role="tablist" aria-label="Turno" style="display: flex; padding: 4px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<sc-for list="{{ turnos }}" as="t" hint-placeholder-count="3">
+<button type="button" role="tab" aria-selected="{{ t.aria }}" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+</sc-for>
+</div>
+<div role="tablist" aria-label="Visão" style="display: flex; padding: 4px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<button type="button" role="tab" aria-selected="{{ vPagAria }}" onClick="{{ verPagina }}" style="{{ vPagStyle }}">Por página</button>
+<button type="button" role="tab" aria-selected="{{ vPesAria }}" onClick="{{ verPessoa }}" style="{{ vPesStyle }}">Por pessoa</button>
+</div>
+</div>
+<div role="group" aria-label="Destacar" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="color: #9ca0ab; font-size: 13px">Destacar:</span>
+<sc-for list="{{ origens }}" as="o" hint-placeholder-count="6">
+<button type="button" aria-pressed="{{ o.aria }}" onClick="{{ o.pick }}" style="{{ o.style }}"><span style="{{ o.dot }}"></span>{{ o.label }}</button>
+</sc-for>
+<a href="Glossario.dc.html" aria-label="O que significa cada cor" style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid #3a3238; display: inline-flex; align-items: center; justify-content: center; text-decoration: none; color: #d6d7dc; font-size: 13px">?</a>
+</div>
+</div>
+
+<sc-if value="{{ outroTurno }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 10px 14px; border-radius: 10px; background: rgba(96,165,250,0.08); color: #cfe0ff; font-size: 13px">Neste rascunho só o turno C tem dados; os turnos A e D usam o mesmo layout.</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+<section aria-label="Grade" style="flex: 999 1 760px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 14px; overflow-x: auto">
+<sc-if value="{{ isPagina }}" hint-placeholder-val="{{ true }}">
+<table style="width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 4px; font-size: 12px">
+<thead>
+<tr style="color: #9ca0ab">
+<th scope="col" style="text-align: left; font-weight: 500; padding: 6px; width: 170px">Página · necessidade</th>
+<sc-for list="{{ dias }}" as="d" hint-placeholder-count="7"><th scope="col" style="font-weight: 500; padding: 6px">{{ d }}</th></sc-for>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ linhas }}" as="l" hint-placeholder-count="5">
+<tr>
+<th scope="row" style="text-align: left; padding: 8px; background: #0f0c10; border-radius: 8px; font-weight: 500; vertical-align: top"><b>{{ l.pagina }}</b><br><span style="color: #9ca0ab">{{ l.info }}</span></th>
+<sc-for list="{{ l.celulas }}" as="c" hint-placeholder-count="7">
+<td style="padding: 0; vertical-align: top">
+<button type="button" onClick="{{ c.pick }}" aria-label="{{ c.aria }}" style="{{ c.box }}">
+<span style="{{ c.rStyle }}">{{ c.rTxt }}</span>
+<sc-if value="{{ c.temA }}" hint-placeholder-val="{{ false }}"><span style="{{ c.aStyle }}">{{ c.aTxt }}</span></sc-if>
+</button>
+</td>
+</sc-for>
+</tr>
+</sc-for>
+<tr>
+<th scope="row" style="text-align: left; padding: 8px; font-weight: 500; color: #9ca0ab; vertical-align: top">Folgas e indisponíveis</th>
+<sc-for list="{{ folgas }}" as="f" hint-placeholder-count="7"><td style="padding: 6px; color: #9ca0ab; vertical-align: top; font-size: 12px">{{ f }}</td></sc-for>
+</tr>
+</tbody>
+</table>
+</sc-if>
+<sc-if value="{{ isPessoa }}" hint-placeholder-val="{{ false }}">
+<table style="width: 100%; min-width: 920px; border-collapse: separate; border-spacing: 4px; font-size: 12px">
+<thead>
+<tr style="color: #9ca0ab">
+<th scope="col" style="text-align: left; font-weight: 500; padding: 6px; width: 170px">Pessoa · papel</th>
+<sc-for list="{{ dias }}" as="d" hint-placeholder-count="7"><th scope="col" style="font-weight: 500; padding: 6px">{{ d }}</th></sc-for>
+<th scope="col" style="font-weight: 500; padding: 6px">Dias</th>
+</tr>
+</thead>
+<tbody>
+<sc-for list="{{ pessoas }}" as="p" hint-placeholder-count="5">
+<tr>
+<th scope="row" style="text-align: left; padding: 8px; background: #0f0c10; border-radius: 8px; font-weight: 500; vertical-align: top"><b>{{ p.nome }}</b><br><span style="color: #9ca0ab">{{ p.papel }}</span></th>
+<sc-for list="{{ p.dias }}" as="x" hint-placeholder-count="7"><td style="{{ x.style }}">{{ x.txt }}</td></sc-for>
+<td style="padding: 6px; text-align: center; color: #d6d7dc">{{ p.total }}</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</sc-if>
+</section>
+
+<aside aria-label="Detalhe da célula" style="flex: 1 1 300px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="color: #9ca0ab; font-size: 12px">Célula selecionada</span>
+<h2 style="margin: 0; font-size: 17px">{{ sel.titulo }}</h2>
+<span style="color: #9ca0ab; font-size: 13px">{{ sel.need }}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; background: #0f0c10">
+<span style="font-size: 13px; color: #9ca0ab">Regular</span>
+<span><b>{{ sel.rNome }}</b> · {{ sel.rOrigem }}</span>
+<span style="font-size: 12px; color: #9ca0ab">{{ sel.rPorque }}</span>
+</div>
+<sc-if value="{{ sel.temA }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 10px; background: #0f0c10">
+<span style="font-size: 13px; color: #9ca0ab">Assistente</span>
+<span><b>{{ sel.aNome }}</b> · {{ sel.aOrigem }}</span>
+<span style="font-size: 12px; color: #9ca0ab">{{ sel.aPorque }}</span>
+</div>
+</sc-if>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Trocar regular por
+<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>{{ sel.rNome }} (atual)</option><option>Carolina X. · Tertius · livre</option><option>Buffer do pool C · 3 livres</option><option>Fernanda R. · Party I · passaria de 35 fãs/h</option></select>
+</label>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">Travar (a próxima geração não mexe)</label>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" style="height: 40px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Histórico</button>
+<button type="button" onClick="{{ salvarCelula }}" style="height: 40px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Salvar célula</button>
+</div>
+</aside>
+</div>
+
+<sc-if value="{{ modalExport }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="Exportar e postar escala" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10">
+<div style="width: 100%; max-width: 760px; max-height: 92vh; overflow-y: auto; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 18px">Exportar / postar a escala · Cavalry · 26/10 – 01/11</h2>
+<div role="radiogroup" aria-label="Formato" style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" role="radio" aria-checked="{{ fmtAtualAria }}" onClick="{{ fmtAtual }}" style="{{ fmtAtualStyle }}">Formato de postagem atual (T1–T6)</button>
+<button type="button" role="radio" aria-checked="{{ fmtLongoAria }}" onClick="{{ fmtLongo }}" style="{{ fmtLongoStyle }}">Uma linha por turno (para API)</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Páginas<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Todas do Cavalry (1 arquivo por página, .zip)</option><option>Nicole Doshi</option><option>Midwest Emma Free 221s</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Turnos<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>A, C e D</option><option>Só C</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Versão<select style="height: 40px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>v3 · {{ statusPlano }}</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 13px; color: #9ca0ab">{{ previaTitulo }}</span>
+<pre style="margin: 0; padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2129; background: #0b090c; color: #e5e7eb; font-family: ui-monospace, Consolas, monospace; font-size: 12px; line-height: 1.6; white-space: pre; overflow-x: auto">{{ previa }}</pre>
+<span style="color: #9ca0ab; font-size: 12px">{{ previaNota }}</span>
+</div>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(96,165,250,0.08); color: #cfe0ff; font-size: 13px">Postagem direta no 5C Schedule fica disponível quando a API de escrita do scheduleday existir (hoje a API só tem leitura). Até lá: copie ou baixe o CSV e poste do jeito atual. Depois de postar, a próxima leitura do scheduleday confere se bateu com o plano.</div>
+<div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap">
+<button type="button" onClick="{{ fecharExport }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Fechar</button>
+<button type="button" onClick="{{ copiar }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Copiar</button>
+<button type="button" onClick="{{ baixar }}" style="height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Baixar .csv</button>
+<button type="button" disabled="disabled" title="Disponível quando a API de escrita do scheduleday existir" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px dashed #4a3f48; background: transparent; color: #9ca0ab">Postar via API · em breve</button>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ modalPublicar }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="Publicar escala" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10">
+<div style="width: 100%; max-width: 560px; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 18px">Publicar a escala v3 do Cavalry?</h2>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px">
+<li style="display: flex; gap: 10px"><span style="color: #4ade80; font-weight: 700">✓</span>0 anomalias programadas (limites pelo modelo de cada pessoa)</li>
+<li style="display: flex; gap: 10px"><span style="color: #4ade80; font-weight: 700">✓</span>Estrutura sem violação bloqueante no Cavalry</li>
+<li style="display: flex; gap: 10px"><span style="color: #fbbf24; font-weight: 700">!</span>4 lacunas de assistente continuam abertas</li>
+<li style="display: flex; gap: 10px"><span style="color: #fbbf24; font-weight: 700">!</span>1 indisponibilidade pendente na semana (Julio, sex 30)</li>
+</ul>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="{{ ciente }}" onChange="{{ alternarCiente }}" style="width: 18px; height: 18px; accent-color: #e91876">Estou ciente das lacunas e do pedido pendente</label>
+<p style="margin: 0; color: #9ca0ab; font-size: 13px">Publicar trava esta versão, gera o CSV T1–T6 e passa a valer para Anomalias e Auditoria de acesso. Mudanças depois disso criam a v4.</p>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" onClick="{{ fecharPublicar }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Voltar e revisar</button>
+<button type="button" onClick="{{ confirmarPublicar }}" disabled="{{ naoCiente }}" style="{{ estiloConfirmar }}">Publicar v3</button>
+</div>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1250}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { turno: 'C', visao: 'pagina', destaque: 'todas', sel: '3-2', modal: false, ciente: false, publicado: false, aviso: '', exp: false, fmt: 'atual' };
+}
+renderVals() {
+const s = this.state;
+const dias = ['seg 26', 'ter 27', 'qua 28', 'qui 29', 'sex 30', 'sáb 31', 'dom 01'];
+const cor = {
+P: 'background: rgba(233,24,118,0.22); color: #ffd0e6', O: 'background: rgba(96,165,250,0.22); color: #cfe0ff',
+T: 'background: rgba(52,211,153,0.20); color: #b7f5dd', TA: 'background: rgba(251,146,60,0.22); color: #ffd9b5',
+B: 'background: rgba(167,139,250,0.22); color: #e2d9ff', L: 'border: 1px dashed #f87171; color: #fca5a5'
+};
+const nomeOrigem = { P: 'party dona · passo 1', O: 'outra party · passo 2', T: 'Tertius regular · passo 3', TA: 'Tertius assistente · passo 4', B: 'Buffer · passo 5', L: 'lacuna' };
+const porque = {
+P: 'Titular da party dona, de turno pelo 3x1.', O: 'Titular de outra party do mesmo turno; coube no limite de fãs/h.',
+T: 'Titular de folga e nenhuma party com capacidade no turno.', TA: 'O Capacity pede 2 reps; Tertius mais longe do alvo de assistente.',
+B: 'Sem Tertius livre no time; veio do pool de Buffers.', L: 'Ninguém disponível depois de todos os passos.'
+};
+const R = (n, o) => ({ n: n, o: o });
+const linhasBase = [
+{ pagina: 'Midwest Emma Free 221s', info: 'Cavalry I · 30–37 fãs/h', c: [[R('Carolina X.', 'T')], [R('Fernanda R.', 'P')], [R('Fernanda R.', 'P'), R('Buffer', 'B')], [R('Fernanda R.', 'P'), R('Buffer', 'B')], [R('Carolina X.', 'T')], [R('Fernanda R.', 'P')], [R('Fernanda R.', 'P')]] },
+{ pagina: 'Nicole Doshi', info: 'Cavalry II · 33–43 fãs/h', c: [[R('Mariana R.', 'P'), R('Buffer', 'B')], [R('Carolina X.', 'T'), R('lacuna', 'L')], [R('Mariana R.', 'P')], [R('Mariana R.', 'P'), R('lacuna', 'L')], [R('Mariana R.', 'P'), R('Buffer', 'B')], [R('Carolina X.', 'T'), R('Buffer', 'B')], [R('Mariana R.', 'P'), R('Carolina X.', 'TA')]] },
+{ pagina: 'Nicole Free + OFTV', info: 'Cavalry II · 2–3 fãs/h · agrupável', c: [[R('Mariana R.', 'P')], [R('Fernanda R.', 'O')], [R('Mariana R.', 'P')], [R('Mariana R.', 'P')], [R('Mariana R.', 'P')], [R('Fernanda R.', 'O')], [R('Mariana R.', 'P')]] },
+{ pagina: 'CJ Miles + CJ VIP', info: 'Cavalry III · 34–44 fãs/h', c: [[R('Julio E.', 'P'), R('Buffer', 'B')], [R('Julio E.', 'P'), R('Buffer', 'B')], [R('Carolina X.', 'T'), R('Buffer', 'B')], [R('Julio E.', 'P')], [R('Julio E. !', 'P'), R('lacuna', 'L')], [R('Julio E.', 'P')], [R('Buffer', 'B'), R('lacuna', 'L')]] },
+{ pagina: 'Molly Stewart VIP', info: 'Cavalry IV · 21–29 fãs/h', c: [[R('Leticia B.', 'P')], [R('Leticia B.', 'P')], [R('Leticia B.', 'P')], [R('Buffer', 'B')], [R('Leticia B.', 'P')], [R('Buffer', 'B')], [R('Leticia B.', 'P')]] }
+];
+const chip = 'display: block; padding: 5px 7px; border-radius: 6px; font-size: 12px; text-align: left; ';
+const linhas = linhasBase.map((l, i) => ({
+pagina: l.pagina, info: l.info,
+celulas: l.c.map((cel, j) => {
+const id = i + '-' + j;
+const r = cel[0]; const a = cel[1];
+const casa = s.destaque === 'todas' || cel.some((x) => x.o === s.destaque || (s.destaque === 'T' && x.o === 'TA'));
+const sel = s.sel === id;
+return {
+rTxt: r.n, rStyle: chip + cor[r.o], temA: !!a, aTxt: a ? 'Assist. · ' + a.n : '', aStyle: a ? chip + cor[a.o] : '',
+aria: l.pagina + ', ' + dias[j],
+box: 'width: 100%; min-height: 64px; display: flex; flex-direction: column; gap: 4px; padding: 6px; border-radius: 8px; background: #0f0c10; color: #f5f5f7; text-align: left; ' + (sel ? 'border: 2px solid #e91876; ' : 'border: 2px solid transparent; ') + (casa ? '' : 'opacity: 0.25; '),
+pick: () => this.setState({ sel: id })
+};
+})
+}));
+const [si, sj] = s.sel.split('-').map((x) => parseInt(x, 10));
+const sc = linhasBase[si].c[sj];
+const selInfo = {
+titulo: linhasBase[si].pagina + ' · ' + dias[sj] + ' · C',
+need: sc.length > 1 ? '2 reps no pico (1 regular + 1 assistente)' : '1 rep no pico',
+rNome: sc[0].n, rOrigem: nomeOrigem[sc[0].o], rPorque: porque[sc[0].o],
+temA: sc.length > 1, aNome: sc[1] ? sc[1].n : '', aOrigem: sc[1] ? nomeOrigem[sc[1].o] : '', aPorque: sc[1] ? porque[sc[1].o] : ''
+};
+const folgas = ['Fernanda', 'Mariana', 'Julio', 'Leticia · Carolina', 'Fernanda · Julio (pendente)', 'Mariana · Leticia (aprovada)', 'Julio'];
+const gente = [['Fernanda R.', 'Secundus · Cavalry I'], ['Mariana R.', 'Secundus · Cavalry II'], ['Julio E.', 'Adept Primaris · Cavalry III'], ['Leticia B.', 'Adept Primaris · Cavalry IV'], ['Carolina X.', 'Tertius do time']];
+const pessoas = gente.map((g) => {
+let total = 0;
+const ds = dias.map((d, j) => {
+const parts = [];
+linhasBase.forEach((l) => l.c[j].forEach((x, k) => { if (x.n.replace(' !', '') === g[0]) { parts.push((k === 1 ? 'Assist. ' : '') + l.pagina.split(' ')[0] + ' ' + (l.pagina.split(' ')[1] || '')); } }));
+const folga = folgas[j].indexOf(g[0].split(' ')[0]) >= 0;
+if (parts.length) { total += 1; }
+return { txt: parts.length ? parts.join(' + ') : (folga ? 'folga' : '—'), style: 'padding: 8px 6px; border-radius: 8px; font-size: 12px; ' + (parts.length ? 'background: rgba(233,24,118,0.14); color: #ffd0e6' : 'background: #241d24; color: #9ca0ab') };
+});
+return { nome: g[0], papel: g[1], dias: ds, total: total + ' de 7' };
+});
+const tabOn = 'height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: rgba(233,24,118,0.18); color: #fff; font-weight: 600';
+const tabOff = 'height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc';
+const turnos = [['A', 'A · 05h–13h'], ['C', 'C · 13h–21h'], ['D', 'D · 21h–05h']].map((t) => ({ label: t[1], aria: s.turno === t[0] ? 'true' : 'false', style: s.turno === t[0] ? tabOn : tabOff, pick: () => this.setState({ turno: t[0] }) }));
+const oDefs = [['todas', 'Tudo', ''], ['L', 'Lacunas · 4', '#f87171'], ['P', 'Party dona', '#e91876'], ['O', 'Outra party', '#60a5fa'], ['T', 'Tertius', '#34d399'], ['B', 'Buffer', '#a78bfa']];
+const origens = oDefs.map((o) => ({
+label: o[1], aria: s.destaque === o[0] ? 'true' : 'false',
+dot: o[2] ? 'display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; background: ' + o[2] : 'display: none',
+style: 'height: 32px; padding: 0 12px; border-radius: 999px; font-size: 13px; display: inline-flex; align-items: center; ' + (s.destaque === o[0] ? 'border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff; font-weight: 600' : 'border: 1px solid #2a2129; background: #131014; color: #d6d7dc'),
+pick: () => this.setState({ destaque: o[0] })
+}));
+return {
+dias: dias, linhas: linhas, folgas: folgas, pessoas: pessoas, sel: selInfo, turnos: turnos, origens: origens,
+outroTurno: s.turno !== 'C',
+isPagina: s.visao === 'pagina', isPessoa: s.visao === 'pessoa',
+vPagStyle: s.visao === 'pagina' ? tabOn : tabOff, vPesStyle: s.visao === 'pessoa' ? tabOn : tabOff,
+vPagAria: s.visao === 'pagina' ? 'true' : 'false', vPesAria: s.visao === 'pessoa' ? 'true' : 'false',
+verPagina: () => this.setState({ visao: 'pagina' }), verPessoa: () => this.setState({ visao: 'pessoa' }),
+statusPlano: s.publicado ? 'Plano v3 · publicado' : 'Plano v3 · rascunho',
+botaoPublicar: s.publicado ? 'v3 publicada' : 'Publicar v3', publicado: s.publicado,
+abrirPublicar: () => this.setState({ modal: true, ciente: false }),
+modalExport: s.exp,
+abrirExport: () => this.setState({ exp: true }), fecharExport: () => this.setState({ exp: false }),
+fmtAtual: () => this.setState({ fmt: 'atual' }), fmtLongo: () => this.setState({ fmt: 'longo' }),
+fmtAtualAria: s.fmt === 'atual' ? 'true' : 'false', fmtLongoAria: s.fmt === 'longo' ? 'true' : 'false',
+fmtAtualStyle: 'height: 40px; padding: 0 14px; border-radius: 10px; font-weight: 600; ' + (s.fmt === 'atual' ? 'border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff' : 'border: 1px solid #2a2129; background: #0f0c10; color: #d6d7dc'),
+fmtLongoStyle: 'height: 40px; padding: 0 14px; border-radius: 10px; font-weight: 600; ' + (s.fmt === 'longo' ? 'border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff' : 'border: 1px solid #2a2129; background: #0f0c10; color: #d6d7dc'),
+previaTitulo: s.fmt === 'atual' ? 'Prévia · Nicole Doshi.csv · 6 linhas (T1 a T6) × 7 dias (seg a dom)' : 'Prévia · cavalry_2026-10-26.csv · uma linha por pessoa, página, dia e bloco',
+previa: s.fmt === 'atual'
+? ';;;;;;\n;;;;;;\n;;;;;;\nM443425, [buffer]#;C099427;M443425;M443425;M443425, [buffer]#;C099427, [buffer]#;M443425, C099427#\nM443425, [buffer]#;C099427;M443425;M443425;M443425, [buffer]#;C099427, [buffer]#;M443425, C099427#\n;;;;;;'
+: 'data;bloco;pagina;codigo;papel;origem\n2026-10-26;T4;Nicole Doshi;M443425;REGULAR;PARTY_DONA\n2026-10-26;T4;Nicole Doshi;[buffer];ASSISTENTE;BUFFER\n2026-10-27;T4;Nicole Doshi;C099427;REGULAR;TERTIUS\n2026-10-27;T4;Nicole Doshi;;ASSISTENTE;LACUNA',
+previaNota: s.fmt === 'atual' ? 'Formato do Schedule Ajustment: linha = bloco T1…T6, sempre 7 colunas de seg a dom separadas por ";" (dia fora do intervalo fica vazio), ", " separa os códigos. # = assistente. O $ (secondary: outro turno no mesmo horário, como num double) o site calcula sozinho no input. O T1 de segunda é o fim do turno D de domingo da semana anterior. Prévia filtrada no turno C.' : 'Formato pensado para a futura API de escrita e para auditoria: inclui papel e origem de cada alocação; lacunas saem com código vazio.',
+copiar: () => this.setState({ aviso: 'CSV copiado para a área de transferência.' }),
+baixar: () => this.setState({ exp: false, aviso: 'Arquivo gerado: 1 CSV por página do Cavalry (.zip), formato de postagem atual.' }),
+fecharPublicar: () => this.setState({ modal: false }),
+modalPublicar: s.modal, ciente: s.ciente, naoCiente: !s.ciente,
+alternarCiente: () => this.setState({ ciente: !s.ciente }),
+estiloConfirmar: 'height: 42px; padding: 0 18px; border-radius: 10px; border: 0; font-weight: 600; ' + (s.ciente ? 'background: #c8105f; color: #fff' : 'background: #3a3238; color: #9ca0ab'),
+confirmarPublicar: () => this.setState({ modal: false, publicado: true, aviso: 'Escala v3 publicada. CSV T1–T6 pronto para download. Quem foi escalado em página nova precisa de acesso no Infloww.' }),
+salvarCelula: () => this.setState({ aviso: 'Célula salva na v3 (rascunho). Marque "Travar" para a próxima geração não mexer.' }),
+aviso: s.aviso !== '', avisoTexto: s.aviso, fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>

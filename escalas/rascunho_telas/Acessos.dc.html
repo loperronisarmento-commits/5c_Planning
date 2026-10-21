@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Acessos por tela</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Administração</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Acessos por tela</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 800px">Quem usa o sistema e o que cada perfil pode ver ou fazer. Login do MIS Portal; uma tabela só para o sistema inteiro (substitui as duas tabelas de acesso de hoje).</p>
+</div>
+<button type="button" onClick="{{ abrirNovo }}" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Adicionar usuário</button>
+</header>
+
+<sc-if value="{{ salvo }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; justify-content: space-between; gap: 10px; align-items: center">
+<span>Acesso salvo. A pessoa vê as telas novas no próximo login.</span>
+<button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button>
+</div>
+</sc-if>
+
+<section aria-label="Usuários" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #9ca0ab">Buscar
+<input type="search" placeholder="nome ou login" style="height: 40px; width: 240px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 14px"></label>
+<div role="tablist" aria-label="Perfil" style="display: flex; flex-wrap: wrap; padding: 3px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">
+<button type="button" role="tab" aria-selected="true" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: rgba(233,24,118,0.18); color: #fff; font-weight: 600">Todos</button>
+<button type="button" role="tab" aria-selected="false" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc">Admin</button>
+<button type="button" role="tab" aria-selected="false" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc">WFM</button>
+<button type="button" role="tab" aria-selected="false" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc">Gestor do time</button>
+<button type="button" role="tab" aria-selected="false" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc">Colaborador</button>
+<button type="button" role="tab" aria-selected="false" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc">Leitura</button>
+</div>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Usuário do portal</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Perfil</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Escopo</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Liberado por</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500"><span style="position: absolute; left: -9999px">Ações</span></th></tr></thead>
+<tbody>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">[usuário MIS]</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><select aria-label="Perfil" style="height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"><option>Admin</option><option>WFM</option><option>Gestor do time</option><option>Leitura</option></select></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Todos os times</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">migrado do Schedule Anomalies</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Revogar</button></td></tr>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">[analista WFM]</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f"><select aria-label="Perfil" style="height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"><option>WFM</option><option>Admin</option><option>Gestor do time</option><option>Leitura</option></select></td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">Todos os times</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">[admin] · 20/10</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right"><button type="button" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Revogar</button></td></tr>
+<tr><td style="padding: 10px 8px">[Grand Primaris]</td><td style="padding: 10px 8px"><select aria-label="Perfil" style="height: 34px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px"><option>Gestor do time</option><option>Leitura</option></select></td><td style="padding: 10px 8px">Cavalry</td><td style="padding: 10px 8px; color: #9ca0ab">[admin] · 20/10</td><td style="padding: 10px 8px; text-align: right"><button type="button" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Revogar</button></td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">O admin não consegue revogar o próprio acesso. Toda mudança fica no histórico (quem, quando, antes e depois).</p>
+</section>
+
+<section aria-label="O que cada perfil pode fazer" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 17px">O que cada perfil pode fazer</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 900px; border-collapse: collapse; font-size: 13px; text-align: center">
+<thead><tr style="color: #9ca0ab"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: left">Perfil</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Planejamento</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Cadastros</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Aprovar</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Solicitar</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Anomalias</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Auditoria de acesso</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Administração</th></tr></thead>
+<tbody>
+<tr><th scope="row" style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: left; font-weight: 500">Admin (MIS / Planejamento)</th><td style="padding: 10px; border-bottom: 1px solid #1f191f">editar</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">editar</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">editar</td></tr>
+<tr><th scope="row" style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: left; font-weight: 500">WFM</th><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">aprovar</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td></tr>
+<tr><th scope="row" style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: left; font-weight: 500">Gestor do time</th><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver o time</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">ver o time</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">próprio</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">o time</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td></tr>
+<tr><th scope="row" style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: left; font-weight: 500">Colaborador</th><td style="padding: 10px; border-bottom: 1px solid #1f191f">própria escala</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">próprio</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td><td style="padding: 10px; border-bottom: 1px solid #1f191f">—</td></tr>
+<tr><th scope="row" style="padding: 10px 8px; text-align: left; font-weight: 500">Leitura (diretoria)</th><td style="padding: 10px">ver</td><td style="padding: 10px">ver</td><td style="padding: 10px">—</td><td style="padding: 10px">—</td><td style="padding: 10px">ver</td><td style="padding: 10px">—</td><td style="padding: 10px">—</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<sc-if value="{{ novo }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="Adicionar usuário" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10">
+<div style="width: 100%; max-width: 520px; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 18px">Adicionar usuário</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Usuário do MIS Portal
+<input type="search" placeholder="buscar por nome ou login" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 14px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Perfil
+<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>WFM</option><option>Gestor do time</option><option>Colaborador</option><option>Leitura</option><option>Admin</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Escopo (para Gestor do time)
+<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 14px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Código do colaborador (para Colaborador)
+<input type="text" placeholder="ex.: J621606" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 14px"></label>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" onClick="{{ fecharNovo }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Cancelar</button>
+<button type="button" onClick="{{ salvarNovo }}" style="height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Salvar acesso</button>
+</div>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { novo: false, salvo: false };
+}
+renderVals() {
+return {
+novo: this.state.novo,
+salvo: this.state.salvo,
+abrirNovo: () => this.setState({ novo: true, salvo: false }),
+fecharNovo: () => this.setState({ novo: false }),
+salvarNovo: () => this.setState({ novo: false, salvo: true }),
+fecharAviso: () => this.setState({ salvo: false })
+};
+}
+}
+</script>
+</body>
+</html>

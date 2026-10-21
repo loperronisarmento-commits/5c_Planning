@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Solicitar indisponibilidade</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do colaborador" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Colaborador</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Minha escala</a>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Solicitar indisponibilidade</a>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+<div style="margin-top: auto; padding: 12px; border-radius: 12px; background: #131014; border: 1px solid #2a2129; display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">Mariana R. Vilela</span>
+<span style="color: #9ca0ab; font-size: 12px">Cavalry II · Secundus · turno C · 3x1</span>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 22px">
+<header style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Indisponibilidade</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Solicitar indisponibilidade</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 760px">O pedido vai para a equipe de WFM. Até ser aprovado, você continua escalado normalmente.</p>
+</header>
+<div style="padding: 12px 16px; border-radius: 12px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.35); color: #cfe0ff; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center">
+<span><b>Mais fácil pelo Telegram:</b> mande /pedido para a Nora. Ela mostra seus dias escalados e você escolhe com botões. A resposta do WFM chega por lá; a consulta dos pedidos fica aqui no site.</span>
+<a href="NoraBot.dc.html" style="font-weight: 600">Ver como funciona</a>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<form style="flex: 999 1 560px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<div role="radiogroup" aria-label="Tipo de pedido" style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" role="radio" aria-checked="{{ umChecked }}" onClick="{{ setUm }}" style="{{ umStyle }}">Um dia</button>
+<button type="button" role="radio" aria-checked="{{ variosChecked }}" onClick="{{ setVarios }}" style="{{ variosStyle }}">Vários dias seguidos</button>
+<button type="button" role="radio" aria-checked="{{ recChecked }}" onClick="{{ setRec }}" style="{{ recStyle }}">Recorrente</button>
+</div>
+
+<sc-if value="{{ isUm }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Data
+<input type="date" value="2026-10-30" style="height: 44px; max-width: 260px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 15px">
+</label>
+<div style="padding: 12px 14px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #9ca0ab">Nesse dia você está escalado</span>
+<span>sex 30/10 · turno C (13h–21h) · Nicole Doshi · regular</span>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isVarios }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">De
+<input type="date" value="2026-11-16" style="height: 44px; width: 220px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 15px">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Até
+<input type="date" value="2026-11-20" style="height: 44px; width: 220px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 15px">
+</label>
+<span style="align-self: flex-end; padding: 10px 0; color: #9ca0ab">5 dias · 3 com escala, 2 já são folga do ciclo</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ isRec }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px">
+<fieldset style="margin: 0; padding: 0; border: 0; display: flex; flex-direction: column; gap: 8px">
+<legend style="padding: 0 0 8px; color: #9ca0ab; font-size: 13px">Dia da semana</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">seg</label>
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">ter</label>
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #e91876; background: rgba(233,24,118,0.10)"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">qua</label>
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">qui</label>
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">sex</label>
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">sáb</label>
+<label style="display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #e91876">dom</label>
+</div>
+</fieldset>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Frequência
+<select style="height: 44px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 15px"><option>Toda semana</option><option>A cada 2 semanas</option><option>1 vez por mês</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Horário que precisa
+<select style="height: 44px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px; font-size: 15px"><option>15h às 16h (bloco T4)</option><option>Turno inteiro</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">A partir de
+<input type="date" value="2026-10-28" style="height: 44px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 15px">
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Até
+<input type="date" value="2026-12-16" style="height: 44px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 15px">
+</label>
+</div>
+<div style="padding: 12px 14px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; color: #9ca0ab">8 datas · você vê como fica cada uma antes de enviar</span>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; font-size: 13px">
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 28/10<br><span style="color: #9ca0ab">folga do ciclo · não conta</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 04/11<br><span style="color: #cfe0ff">escalada · bloco T4</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 11/11<br><span style="color: #cfe0ff">escalada · bloco T4</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 18/11<br><span style="color: #cfe0ff">escalada · bloco T4</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 25/11<br><span style="color: #9ca0ab">folga do ciclo · não conta</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 02/12<br><span style="color: #cfe0ff">escalada · bloco T4</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 09/12<br><span style="color: #cfe0ff">escalada · bloco T4</span></span>
+<span style="padding: 8px 10px; border-radius: 8px; background: #1b161c">qua 16/12<br><span style="color: #cfe0ff">escalada · bloco T4</span></span>
+</div>
+</div>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(96,165,250,0.08); color: #cfe0ff; font-size: 13px">Pedido recorrente vale por no máximo 3 meses; depois é renovado. A WFM pode aprovar a série inteira ou só algumas datas.</div>
+</div>
+</sc-if>
+
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Motivo
+<select style="height: 44px; max-width: 360px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px; font-size: 15px"><option>Saúde / consulta</option><option>Assunto pessoal</option><option>Estudo / prova</option><option>Viagem</option><option>Outro</option></select>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Detalhes (opcional)
+<textarea rows="3" style="border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 12px; font-size: 15px; resize: vertical">Sessão semanal com psicólogo.</textarea>
+</label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Anexo (opcional)
+<input type="file" style="color: #d6d7dc; font-size: 14px">
+</label>
+<div style="padding: 12px 14px; border-radius: 10px; background: rgba(96,165,250,0.08); color: #cfe0ff; font-size: 13px">Pedidos com menos de 72 h de antecedência chegam como urgentes para a WFM.</div>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" style="height: 44px; padding: 0 20px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Enviar pedido</button>
+</div>
+</form>
+
+<section aria-label="Meus pedidos" style="flex: 1 1 340px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Meus pedidos</h2>
+<span style="color: #9ca0ab; font-size: 13px">1 nos últimos 90 dias · 1 desde a admissão</span>
+<ul style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px">
+<li style="padding: 12px 14px; border-radius: 10px; background: #0f0c10; display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center">
+<span><b>Toda quarta · 15h–16h</b><br><span style="color: #9ca0ab; font-size: 13px">28/10 a 16/12 · 6 datas com escala</span></span>
+<span style="display: flex; gap: 8px; align-items: center"><span style="padding: 3px 9px; border-radius: 999px; background: rgba(251,191,36,0.16); color: #fcd34d; font-size: 12px; font-weight: 600">Pendente</span><button type="button" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Cancelar</button></span>
+</li>
+</ul>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { modo: 'rec' };
+}
+renderVals() {
+const modo = this.state.modo;
+const base = 'height: 44px; padding: 0 16px; border-radius: 10px; font-size: 14px; font-weight: 600; ';
+const on = base + 'border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff';
+const off = base + 'border: 1px solid #2a2129; background: #0f0c10; color: #d6d7dc';
+return {
+isUm: modo === 'um',
+isVarios: modo === 'varios',
+isRec: modo === 'rec',
+umChecked: modo === 'um' ? 'true' : 'false',
+variosChecked: modo === 'varios' ? 'true' : 'false',
+recChecked: modo === 'rec' ? 'true' : 'false',
+umStyle: modo === 'um' ? on : off,
+variosStyle: modo === 'varios' ? on : off,
+recStyle: modo === 'rec' ? on : off,
+setUm: () => this.setState({ modo: 'um' }),
+setVarios: () => this.setState({ modo: 'varios' }),
+setRec: () => this.setState({ modo: 'rec' })
+};
+}
+}
+</script>
+</body>
+</html>

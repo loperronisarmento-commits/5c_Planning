@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Aprovar indisponibilidade</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">{{ pendentes }}</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 18px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Indisponibilidade · equipe de WFM</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Aprovar indisponibilidade</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 780px">Só pedido aprovado vira folga. Veja quem cobre, se o turno do time fica descoberto e quantas vezes a pessoa já pediu. Mais urgentes primeiro. Pedidos feitos pela Nora caem nesta mesma fila ("via Nora"); a decisão volta para o colaborador pela Nora.</p>
+</div>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<span style="display: flex; gap: 8px"><button type="button" onClick="{{ desfazer }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0; font-weight: 600">Desfazer</button><button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button></span>
+</div>
+</sc-if>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<div role="tablist" aria-label="Situação" style="display: flex; padding: 4px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<sc-for list="{{ abas }}" as="a" hint-placeholder-count="4">
+<button type="button" role="tab" aria-selected="{{ a.aria }}" onClick="{{ a.pick }}" style="{{ a.style }}">{{ a.label }}</button>
+</sc-for>
+</div>
+<div role="group" aria-label="Tipo" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{ tipos }}" as="t" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{ t.aria }}" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+<section aria-label="Fila de pedidos" style="flex: 999 1 560px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{ fila }}" as="p" hint-placeholder-count="4">
+<button type="button" onClick="{{ p.pick }}" aria-pressed="{{ p.ativo }}" style="{{ p.box }}">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 180px"><b>{{ p.nome }}</b><span style="color: #9ca0ab; font-size: 12px">{{ p.cargo }}</span></span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 150px"><span>{{ p.quando }}</span><span style="{{ p.turnoChip }}">{{ p.turno }}</span></span>
+<span style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 220px"><span style="{{ p.impStyle }}">{{ p.impacto }}</span><span style="color: #9ca0ab; font-size: 12px">{{ p.motivo }} · pedidos {{ p.contagem }}</span></span>
+<span style="display: flex; flex-direction: column; gap: 4px; align-items: flex-end"><span style="{{ p.statusStyle }}">{{ p.status }}</span><span style="color: #9ca0ab; font-size: 12px">{{ p.enviado }}</span></span>
+</button>
+</sc-for>
+<sc-if value="{{ vazio }}" hint-placeholder-val="{{ false }}">
+<div style="padding: 24px; text-align: center; color: #9ca0ab">Nenhum pedido neste filtro.</div>
+</sc-if>
+</section>
+
+<aside aria-label="Decisão" style="flex: 1 1 380px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="color: #9ca0ab; font-size: 12px">Pedido selecionado</span>
+<h2 style="margin: 0; font-size: 18px">{{ d.nome }} · {{ d.quando }}</h2>
+<span style="color: #9ca0ab; font-size: 13px">{{ d.cargo }} · turno {{ d.turno }}</span>
+<span style="color: #d6d7dc; font-size: 13px">{{ d.motivo }} · "{{ d.detalhe }}"</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; text-align: center">
+<span style="{{ d.c90Style }}"><b style="font-size: 18px">{{ d.c90 }}</b><br><span style="color: #9ca0ab; font-size: 12px">últimos 90 dias</span></span>
+<span style="padding: 8px 4px; border-radius: 8px; background: #1b161c"><b style="font-size: 18px">{{ d.ctotal }}</b><br><span style="color: #9ca0ab; font-size: 12px">desde a admissão</span></span>
+<span style="padding: 8px 4px; border-radius: 8px; background: #1b161c"><b style="font-size: 18px">{{ d.crec }}</b><br><span style="color: #9ca0ab; font-size: 12px">recorrentes ativos</span></span>
+</div>
+<div style="padding: 12px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 6px; font-size: 13px">
+<span style="color: #9ca0ab">Se aprovar</span>
+<span style="{{ d.impStyle }}">{{ d.impacto }}</span>
+<span style="color: #9ca0ab">{{ d.cobertura }}</span>
+</div>
+<sc-if value="{{ d.recorrente }}" hint-placeholder-val="{{ false }}">
+<fieldset style="margin: 0; border: 1px solid #2a2129; border-radius: 10px; padding: 10px 12px; display: flex; flex-wrap: wrap; gap: 8px">
+<legend style="padding: 0 6px; color: #9ca0ab; font-size: 12px">Datas com escala (desmarque para recusar só aquela)</legend>
+<label style="display: flex; gap: 6px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">04/11</label>
+<label style="display: flex; gap: 6px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">11/11</label>
+<label style="display: flex; gap: 6px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">18/11</label>
+<label style="display: flex; gap: 6px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">02/12</label>
+<label style="display: flex; gap: 6px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">09/12</label>
+<label style="display: flex; gap: 6px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">16/12</label>
+</fieldset>
+</sc-if>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Comentário para o colaborador {{ d.obrigatorio }}
+<textarea rows="3" value="{{ comentario }}" onChange="{{ escrever }}" style="border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 10px; font-size: 14px; resize: vertical"></textarea>
+</label>
+<sc-if value="{{ erroComentario }}" hint-placeholder-val="{{ false }}"><span role="alert" style="color: #fca5a5; font-size: 13px">Para recusar, escreva o motivo: o colaborador vê esse texto.</span></sc-if>
+<label style="display: flex; gap: 10px; align-items: center"><input type="checkbox" checked="checked" style="width: 18px; height: 18px; accent-color: #e91876">Ao aprovar, gerar sugestão de cobertura</label>
+<div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap">
+<button type="button" onClick="{{ recusar }}" disabled="{{ d.decidido }}" style="height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid #f87171; background: transparent; color: #fca5a5; font-weight: 600">Recusar</button>
+<button type="button" onClick="{{ aprovar }}" disabled="{{ d.decidido }}" style="height: 44px; padding: 0 20px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">{{ d.botaoAprovar }}</button>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { sel: 'daniel', aba: 'PENDENTE', tipo: 'todos', decisoes: {}, ultimo: '', aviso: '', comentario: '', erro: false };
+}
+renderVals() {
+const s = this.state;
+const chipA = 'padding: 2px 8px; border-radius: 6px; background: rgba(251,191,36,0.16); color: #fcd34d; align-self: flex-start; font-size: 12px';
+const chipC = 'padding: 2px 8px; border-radius: 6px; background: rgba(96,165,250,0.16); color: #93c5fd; align-self: flex-start; font-size: 12px';
+const chipD = 'padding: 2px 8px; border-radius: 6px; background: rgba(233,24,118,0.18); color: #ff8cc0; align-self: flex-start; font-size: 12px';
+const verm = 'color: #fca5a5'; const amar = 'color: #fcd34d'; const verd = 'color: #86efac';
+const base = [
+{ id: 'daniel', nome: 'Daniel F. Amado', cargo: 'Cavalry II · Knight Primaris', quando: 'qui 29/10', turno: 'D', chip: chipD, motivo: 'Estudo / prova', detalhe: 'Prova à noite.', c90: 5, ctotal: 9, crec: 0, impacto: 'Nicole Doshi sem regular e sem assistente', impStyle: verm, cobertura: 'Time sem Tertius no D; 1 Buffer livre. Urgente: menos de 72 h.', enviado: '20/10 · urgente · via Nora', urgente: true, recorrente: false, rank: 0 },
+{ id: 'julio', nome: 'Julio E. C. Antezana', cargo: 'Cavalry III · Adept Primaris', quando: 'sex 30/10', turno: 'C', chip: chipC, motivo: 'Assunto pessoal', detalhe: 'Prova da faculdade à tarde.', c90: 2, ctotal: 4, crec: 0, impacto: 'Coberto com Tertius + Buffer', impStyle: amar, cobertura: '3º dia da semana sem titular na party; 2 de 4 titulares do C fora no dia.', enviado: '20/10 · via Nora', urgente: false, recorrente: false, rank: 1 },
+{ id: 'mariana', nome: 'Mariana R. Vilela', cargo: 'Cavalry II · Secundus', quando: 'toda quarta · 15h–16h', turno: 'C', chip: chipC, motivo: 'Saúde / consulta', detalhe: 'Sessão semanal com psicólogo.', c90: 1, ctotal: 1, crec: 0, impacto: '6 datas com escala: 4 com Tertius · 2 com Buffer', impStyle: amar, cobertura: 'Só o bloco T4; o resto do turno segue normal. Vale até 16/12.', enviado: '20/10 · recorrente', urgente: false, recorrente: true, rank: 2 },
+{ id: 'ivan', nome: 'Ivan A. P. Jr.', cargo: 'Cavalry I · Secundus', quando: 'ter 27/10', turno: 'A', chip: chipA, motivo: 'Saúde / consulta', detalhe: 'Exame de rotina.', c90: 1, ctotal: 1, crec: 0, impacto: 'Coberto pela Party II (Italo R.)', impStyle: verd, cobertura: 'Página pequena; cabe no limite de fãs/h do Italo.', enviado: '19/10', urgente: false, recorrente: false, rank: 3 }
+];
+const status = (p) => s.decisoes[p.id] || 'PENDENTE';
+const filtrados = base.filter((p) => (s.aba === 'TODOS' || status(p) === s.aba) && (s.tipo === 'todos' || (s.tipo === 'urgentes' && p.urgente) || (s.tipo === 'recorrentes' && p.recorrente)));
+const stStyle = { PENDENTE: 'padding: 2px 8px; border-radius: 999px; background: rgba(251,191,36,0.16); color: #fcd34d; font-size: 12px; font-weight: 600', APROVADO: 'padding: 2px 8px; border-radius: 999px; background: rgba(74,222,128,0.14); color: #86efac; font-size: 12px; font-weight: 600', RECUSADO: 'padding: 2px 8px; border-radius: 999px; background: rgba(248,113,113,0.14); color: #fca5a5; font-size: 12px; font-weight: 600' };
+const stLabel = { PENDENTE: 'Pendente', APROVADO: 'Aprovado', RECUSADO: 'Recusado' };
+const fila = filtrados.map((p) => ({
+nome: p.nome, cargo: p.cargo, quando: p.quando, turno: 'Turno ' + p.turno, turnoChip: p.chip, impacto: p.impacto, impStyle: p.impStyle + '; font-size: 13px',
+motivo: p.motivo, contagem: p.c90 + ' · ' + p.ctotal, enviado: p.enviado, status: stLabel[status(p)], statusStyle: stStyle[status(p)],
+ativo: s.sel === p.id ? 'true' : 'false',
+box: 'display: flex; flex-wrap: wrap; gap: 12px; align-items: center; width: 100%; padding: 12px 14px; border-radius: 12px; color: #f5f5f7; text-align: left; ' + (s.sel === p.id ? 'border: 1px solid #e91876; background: rgba(233,24,118,0.10)' : 'border: 1px solid transparent; background: #0f0c10'),
+pick: () => this.setState({ sel: p.id, comentario: '', erro: false })
+}));
+const d0 = base.find((p) => p.id === s.sel) || base[0];
+const decidido = status(d0) !== 'PENDENTE';
+const proximo = (exceto) => { const pend = base.filter((p) => p.id !== exceto && !s.decisoes[p.id]); return pend.length ? pend[0].id : exceto; };
+const decidir = (st) => {
+if (st === 'RECUSADO' && !s.comentario.trim()) { this.setState({ erro: true }); return; }
+const dec = Object.assign({}, s.decisoes); dec[d0.id] = st;
+this.setState({ decisoes: dec, ultimo: d0.id, aviso: (st === 'APROVADO' ? 'Aprovado: ' : 'Recusado: ') + d0.nome + ' · ' + d0.quando + (st === 'APROVADO' ? '. Folga entra na escala e uma sugestão de cobertura foi criada.' : '. O colaborador recebe o comentário.'), sel: proximo(d0.id), comentario: '', erro: false });
+};
+const pendentes = base.filter((p) => !s.decisoes[p.id]).length + 3;
+const abaDefs = [['PENDENTE', 'Pendentes · ' + pendentes], ['APROVADO', 'Aprovados'], ['RECUSADO', 'Recusados'], ['TODOS', 'Todos']];
+const tabOn = 'height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: rgba(233,24,118,0.18); color: #fff; font-weight: 600';
+const tabOff = 'height: 36px; padding: 0 14px; border-radius: 8px; border: 0; background: transparent; color: #d6d7dc';
+const chipOn = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #e91876; background: rgba(233,24,118,0.16); color: #fff; font-weight: 600';
+const chipOff = 'height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid #2a2129; background: #131014; color: #d6d7dc';
+return {
+pendentes: pendentes,
+abas: abaDefs.map((a) => ({ label: a[1], aria: s.aba === a[0] ? 'true' : 'false', style: s.aba === a[0] ? tabOn : tabOff, pick: () => this.setState({ aba: a[0] }) })),
+tipos: [['todos', 'Todos'], ['urgentes', 'Urgentes · 1'], ['recorrentes', 'Recorrentes · 1']].map((t) => ({ label: t[1], aria: s.tipo === t[0] ? 'true' : 'false', style: s.tipo === t[0] ? chipOn : chipOff, pick: () => this.setState({ tipo: t[0] }) })),
+fila: fila, vazio: fila.length === 0,
+d: {
+nome: d0.nome, quando: d0.quando, cargo: d0.cargo, turno: d0.turno, motivo: d0.motivo, detalhe: d0.detalhe,
+c90: d0.c90, ctotal: d0.ctotal, crec: d0.crec,
+c90Style: 'padding: 8px 4px; border-radius: 8px; ' + (d0.c90 >= 4 ? 'background: rgba(251,191,36,0.14); color: #fcd34d' : 'background: #1b161c'),
+impacto: d0.impacto, impStyle: d0.impStyle + '; font-weight: 600', cobertura: d0.cobertura,
+recorrente: d0.recorrente, decidido: decidido,
+botaoAprovar: decidido ? stLabel[status(d0)] : (d0.recorrente ? 'Aprovar datas marcadas' : 'Aprovar'),
+obrigatorio: '(obrigatório para recusar)'
+},
+comentario: s.comentario, escrever: (e) => this.setState({ comentario: e && e.target ? e.target.value : '', erro: false }),
+erroComentario: s.erro,
+aprovar: () => decidir('APROVADO'), recusar: () => decidir('RECUSADO'),
+aviso: s.aviso !== '', avisoTexto: s.aviso,
+desfazer: () => { const dec = Object.assign({}, s.decisoes); delete dec[s.ultimo]; this.setState({ decisoes: dec, sel: s.ultimo, aviso: '' }); },
+fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>

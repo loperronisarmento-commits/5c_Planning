@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Funil de entrada de páginas</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0;background:#000;color:#f5f5f7;font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px}
+a{color:#ff5fa8}a:hover{color:#ff8cc0}
+button{cursor:pointer}button:hover{filter:brightness(1.2)}button:disabled{cursor:not-allowed;filter:none}
+:focus-visible{outline:2px solid #ff5fa8;outline-offset:2px}
+nav a:hover{background:rgba(255,255,255,0.06)}
+tbody tr:hover td{background-color:rgba(255,255,255,0.025)}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: radial-gradient(1200px 500px at 70% -10%, rgba(233,24,118,0.16), rgba(0,0,0,0) 60%), #000">
+<nav aria-label="Menu do sistema" style="flex: 1 1 240px; max-width: 260px; box-sizing: border-box; padding: 24px 16px; display: flex; flex-direction: column; gap: 20px; border-right: 1px solid #2a2129; background: #0b090c">
+<div style="display: flex; flex-direction: column; gap: 2px; padding: 0 8px">
+<span style="font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: #9ca0ab">MIS Portal</span>
+<span style="font-size: 20px; font-weight: 700">5C Escalas</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #2a2129; background: #131014">
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Semana<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>26/10 – 01/11 (rascunho v3)</option><option>19/10 – 25/10 (publicada)</option><option>02/11 – 08/11</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: #9ca0ab">Time<select style="height: 36px; border-radius: 8px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 8px; font-size: 13px"><option>Todos os times</option><option>Cavalry</option><option>Aeterna</option><option>Brat</option></select></label>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Planejamento</span>
+<a href="Main.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Painel</a>
+<a href="GerarEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Gerar escala</a>
+<a href="GradeEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Grade da escala</a>
+<a href="Tertius.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Equilíbrio Tertius</a>
+<a href="Sugestoes.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Sugestões de troca <span style="background: #1d4ed8; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">6</span></a>
+<a href="Buffers.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Buffers</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Páginas</span>
+<a href="Funil.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #fff; background: rgba(233,24,118,0.18); font-weight: 600">Funil de entrada</a>
+<a href="TrocasPagina.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Trocas de página <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">4</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Cadastros</span>
+<a href="Estrutura.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Configuração dos times <span style="background: #b45309; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">25</span></a>
+<a href="Colaboradores.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Colaboradores</a>
+<a href="ModelosEscala.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Modelos de escala</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Indisponibilidade</span>
+<a href="Solicitacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Solicitar</a>
+<a href="Aprovacao.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc; display: flex; justify-content: space-between">Aprovar (WFM) <span style="background: #c8105f; color: #fff; border-radius: 999px; padding: 0 8px; font-size: 12px">7</span></a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Monitoramento</span>
+<a href="Monitoramento.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Anomalias da escala</a>
+<a href="AuditoriaAcesso.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Auditoria de acesso</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Administração</span>
+<a href="Acessos.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Acessos por tela</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #9ca0ab; padding: 0 8px 4px">Ajuda</span>
+<a href="Glossario.dc.html" style="padding: 9px 10px; border-radius: 8px; text-decoration: none; color: #d6d7dc">Glossário</a>
+</div>
+</nav>
+<main style="flex: 999 1 560px; min-width: 0; box-sizing: border-box; padding: 32px 40px 48px; display: flex; flex-direction: column; gap: 18px">
+<header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #ff5fa8">Páginas</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Funil de entrada de páginas</h1>
+<p style="margin: 0; color: #9ca0ab; max-width: 820px">Espelha o funil do CRM (5c_crm): cada card do CRM vira uma página prevista. Data de entrada vem do contrato. Como o CRM normalmente só traz o tier, o volume vem do arquétipo: páginas ativas com faturamento e perfil parecidos. Aqui se ajusta a previsão e se define para qual time e party a página vai. Ao entrar em Active, a escala e os buffers são recalculados sozinhos.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<span style="color: #9ca0ab; font-size: 13px">CRM lido às 21:45</span>
+<button type="button" style="height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7">Atualizar do CRM</button>
+<a href="#" style="height: 44px; display: inline-flex; align-items: center; padding: 0 18px; border-radius: 10px; background: #c8105f; color: #fff; font-weight: 600; text-decoration: none">Cadastrar página no CRM ↗</a>
+</div>
+</header>
+
+<sc-if value="{{ aviso }}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 16px; border-radius: 12px; background: rgba(74,222,128,0.10); border: 1px solid rgba(74,222,128,0.35); color: #bbf7d0; display: flex; justify-content: space-between; gap: 10px; align-items: center">
+<span>{{ avisoTexto }}</span>
+<button type="button" onClick="{{ fecharAviso }}" style="height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid rgba(74,222,128,0.35); background: transparent; color: #bbf7d0">Fechar</button>
+</div>
+</sc-if>
+
+<section aria-label="Impacto previsto" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px">
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Páginas no funil</span><span style="font-size: 24px; font-weight: 700">{{ total }}</span><span style="color: #9ca0ab; font-size: 12px">pipeline + onboarding + confirmadas</span></div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Reps/h por turno (ponderado)</span><span style="font-size: 24px; font-weight: 700; color: #fdba74">+{{ repsPond }}</span><span style="color: #9ca0ab; font-size: 12px">probabilidade × necessidade</span></div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Pessoas a mais (ponderado)</span><span style="font-size: 24px; font-weight: 700; color: #fdba74">+{{ hcPond }}</span><span style="color: #9ca0ab; font-size: 12px">entra no plano de turmas</span></div>
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px"><span style="color: #9ca0ab; font-size: 13px">Saídas na semana passada</span><span style="font-size: 24px; font-weight: 700; color: #93c5fd">10 páginas</span><span style="color: #9ca0ab; font-size: 12px">20/10 · −5,3 reps/h por turno</span></div>
+</section>
+
+<div style="padding: 12px 16px; border-radius: 12px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.3); color: #fde68a; font-size: 13px">Para a previsão funcionar, o card no CRM precisa de: cliente com <b>tier</b>, contrato com <b>data de início</b> e etapa atualizada. Hoje o CRM tem só 3 cards de teste em Pipeline; os cards abaixo são exemplos. Cards sem tier ou sem data aparecem com aviso "dados faltando no CRM".</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start">
+<section aria-label="Funil" style="flex: 999 1 640px; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px">
+<sc-for list="{{ colunas }}" as="col" hint-placeholder-count="4">
+<div style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 260px">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 2px 4px"><b style="{{ col.cor }}">{{ col.nome }}</b><span style="color: #9ca0ab; font-size: 12px">{{ col.qtd }}</span></div>
+<sc-for list="{{ col.cards }}" as="c" hint-placeholder-count="2">
+<button type="button" onClick="{{ c.pick }}" aria-pressed="{{ c.ativo }}" style="{{ c.box }}">
+<span style="display: flex; justify-content: space-between; gap: 8px"><b>{{ c.nome }}</b><span style="padding: 1px 7px; border-radius: 6px; background: #2a2129; font-size: 12px">{{ c.tier }}</span></span>
+<span style="color: #9ca0ab; font-size: 12px">{{ c.receita }} · {{ c.fans }}</span>
+<span style="font-size: 12px">{{ c.reps }}</span>
+<span style="color: #9ca0ab; font-size: 11px">{{ c.crm }}</span>
+<span style="display: flex; justify-content: space-between; gap: 8px; font-size: 12px"><span style="color: #9ca0ab">{{ c.data }} · {{ c.prob }}</span><span style="{{ c.destStyle }}">{{ c.destino }}</span></span>
+</button>
+</sc-for>
+</div>
+</sc-for>
+</section>
+
+<aside aria-label="Página selecionada" style="flex: 1 1 340px; min-width: 0; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="color: #9ca0ab; font-size: 12px">Página selecionada</span>
+<h2 style="margin: 0; font-size: 18px">{{ sel.nome }}</h2>
+<span style="color: #9ca0ab; font-size: 13px">{{ sel.etapa }} · tier {{ sel.tier }} · {{ sel.data }} · {{ sel.prob }}</span>
+</div>
+<div style="padding: 12px; border-radius: 10px; background: #0f0c10; display: flex; flex-direction: column; gap: 8px; font-size: 13px">
+<span style="display: flex; justify-content: space-between; gap: 8px; align-items: center"><span style="color: #9ca0ab">Estimativa por arquétipo</span><span style="{{ sel.confStyle }}">{{ sel.conf }}</span></span>
+<span>Do CRM: <b>tier {{ sel.tier }}</b> ({{ sel.receita }}) · perfil <b>{{ sel.perfil }}</b></span>
+<span>Arquétipo <b>{{ sel.arq }}</b>: {{ sel.arqBase }}</span>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; text-align: center">
+<span style="padding: 6px; border-radius: 8px; background: rgba(251,191,36,0.10)"><span style="color: #fcd34d; font-size: 11px">A</span><br><b>{{ sel.fa }}</b></span>
+<span style="padding: 6px; border-radius: 8px; background: rgba(96,165,250,0.10)"><span style="color: #93c5fd; font-size: 11px">C</span><br><b>{{ sel.fc }}</b></span>
+<span style="padding: 6px; border-radius: 8px; background: rgba(233,24,118,0.10)"><span style="color: #ff8cc0; font-size: 11px">D</span><br><b>{{ sel.fd }}</b></span>
+</div>
+<span>{{ sel.fans }} · {{ sel.reps }}</span>
+<span style="color: #9ca0ab; font-size: 12px">{{ sel.formula }}</span>
+<button type="button" onClick="{{ verArq }}" style="height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #2a2129; background: #131014; color: #f5f5f7; align-self: flex-start">Ver páginas do arquétipo</button>
+</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 13px; color: #9ca0ab">Destino sugerido (melhor primeiro)</span>
+<sc-for list="{{ sel.opcoes }}" as="o" hint-placeholder-count="3">
+<label style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10">
+<input type="radio" name="destino" checked="{{ o.checked }}" style="accent-color: #e91876; width: 18px; height: 18px; margin-top: 2px">
+<span style="display: flex; flex-direction: column; gap: 2px"><b>{{ o.nome }}</b><span style="color: #9ca0ab; font-size: 12px">{{ o.porque }}</span></span>
+</label>
+</sc-for>
+</div>
+<span style="color: #9ca0ab; font-size: 12px">{{ sel.crm }}</span>
+<div style="display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap">
+<button type="button" onClick="{{ abrirNova }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Ajustar previsão</button>
+<button type="button" onClick="{{ simular }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Simular na escala</button>
+<button type="button" onClick="{{ definir }}" style="height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Definir destino</button>
+</div>
+</aside>
+</div>
+
+<section aria-label="Impacto por semana" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px">Impacto previsto por semana de entrada (ponderado pela probabilidade)</h2>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 760px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Semana</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Páginas</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">A</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">C</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">D</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Pessoas</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Cobre com</th></tr></thead>
+<tbody>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">02/11</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">[Página prevista 1]</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+1,0</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+1,0</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+1,0</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+4,4</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">sobra de Tertius de Vanguard</td></tr>
+<tr><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">09/11</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">[Página prevista 2]</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+2,4</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+2,4</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+2,4</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f; text-align: right">+10,6</td><td style="padding: 10px 8px; border-bottom: 1px solid #1f191f">turma de 19/11 · Buffers até lá</td></tr>
+<tr><td style="padding: 10px 8px">16/11</td><td style="padding: 10px 8px">[Página prevista 3]</td><td style="padding: 10px 8px; text-align: right">+0,2</td><td style="padding: 10px 8px; text-align: right">+0,2</td><td style="padding: 10px 8px; text-align: right">+0,2</td><td style="padding: 10px 8px; text-align: right">+0,9</td><td style="padding: 10px 8px">agrupada em party com capacidade</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Pessoas = reps/h ÷ (75% de presença × (1 − absenteísmo)) somado nos 3 turnos. Vai para o plano de turmas do Capacity (fc_paginas_previstas).</p>
+</section>
+
+<section aria-label="Arquétipos de página" style="background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; align-items: flex-end">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 17px">Arquétipos de página (base da estimativa)</h2>
+<span style="color: #9ca0ab; font-size: 13px">Páginas ativas agrupadas por faixa de faturamento (tier) e perfil. Fãs/h médios dos últimos 28 dias, por turno. Recalculado toda segunda.</span>
+</div>
+<span style="color: #9ca0ab; font-size: 12px">base 21/09 – 18/10 · 93 páginas com dado</span>
+</div>
+<div style="overflow-x: auto">
+<table style="width: 100%; min-width: 860px; border-collapse: collapse; font-size: 13px">
+<thead><tr style="color: #9ca0ab; text-align: left"><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Arquétipo</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Faturamento/mês</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">Páginas</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">A</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">C</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500; text-align: right">D</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Faixa (fãs/h)</th><th scope="col" style="padding: 8px; border-bottom: 1px solid #2a2129; font-weight: 500">Confiança</th></tr></thead>
+<tbody>
+<sc-for list="{{ arquetipos }}" as="a" hint-placeholder-count="8">
+<tr style="{{ a.rowStyle }}"><th scope="row" style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: left">{{ a.nome }}</th><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; color: #9ca0ab">{{ a.faixaUsd }}</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right">{{ a.n }}</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right">{{ a.a }}</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right">{{ a.c }}</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f; text-align: right">{{ a.d }}</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f">{{ a.faixa }}</td><td style="padding: 9px 8px; border-bottom: 1px solid #1f191f"><span style="{{ a.confStyle }}">{{ a.conf }}</span></td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; color: #9ca0ab; font-size: 12px">Como o sistema escolhe: mesmo tier e mesmo perfil (Main, VIP, Free, OFTV). Com menos de 3 páginas, junta o perfil do mesmo tier; sem nenhuma, interpola entre os tiers vizinhos pela receita e marca confiança baixa. A curva por dia da semana e bloco (T1–T6) também vem das páginas do arquétipo. Se o WFM souber de uma página bem parecida, pode escolher ela como referência em "Ajustar previsão". Na 1ª semana em Active a página usa a estimativa; depois passa a usar os fãs reais.</p>
+</section>
+
+<sc-if value="{{ nova }}" hint-placeholder-val="{{ false }}">
+<div role="dialog" aria-modal="true" aria-label="Ajustar previsão" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10">
+<div style="width: 100%; max-width: 620px; background: #131014; border: 1px solid #2a2129; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 18px">Ajustar previsão · {{ sel.nome }}</h2>
+<p style="margin: 0; color: #9ca0ab; font-size: 13px">Vale só para a escala e o Capacity; o CRM não muda. Campos em branco usam o que vem do CRM.</p>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Página / modelo<input type="text" placeholder="nome" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Plataforma<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>OnlyFans</option><option>Fanvue</option><option>MYM</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Perfil da página<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Main</option><option>VIP</option><option>Free</option><option>OFTV</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Base da estimativa<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>Arquétipo (tier + perfil)</option><option>Página de referência…</option><option>Fãs/h informados</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Página de referência (opcional)<input type="search" placeholder="página ativa parecida" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">ou fãs/h previstos<input type="number" placeholder="se já souber" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 12px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Data prevista de entrada<input type="date" value="2026-11-09" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Probabilidade<select style="height: 42px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7; padding: 0 10px"><option>50% · em negociação</option><option>80% · contrato enviado</option><option>100% · confirmada</option><option>20% · prospecção</option></select></label>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #9ca0ab">Card do CRM<input type="text" value="{{ sel.crm }}" readonly="readonly" style="height: 42px; box-sizing: border-box; border-radius: 10px; border: 1px solid #2a2129; background: #1b161c; color: #b9bcc5; padding: 0 12px"></label>
+<div style="display: flex; gap: 10px; justify-content: flex-end">
+<button type="button" onClick="{{ fecharNova }}" style="height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid #2a2129; background: #0f0c10; color: #f5f5f7">Cancelar</button>
+<button type="button" onClick="{{ salvarNova }}" style="height: 42px; padding: 0 18px; border-radius: 10px; border: 0; background: #c8105f; color: #fff; font-weight: 600">Salvar e calcular impacto</button>
+</div>
+</div>
+</div>
+</sc-if>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1900}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+this.state = { sel: 'p2', nova: false, aviso: '', destinos: {} };
+}
+renderVals() {
+const s = this.state;
+const P = [
+{ id: 'p1', col: 'onb', crm: 'CRM card #[id] · contrato ativo, início 02/11', nome: '[Página prevista 1]', tier: 'B', receita: 'US$ 121–200k/mês', perfil: 'Main', arq: 'B · Main', arqBase: '4 páginas, 27,4 a 36,2 fãs/h', fa: '25,3', fc: '32,1', fd: '34,4', conf: 'Confiança média', confN: 2, formula: 'Fórmula antiga (receita ÷ 720 × k): 33,3 fãs/h.', fans: '~31 fãs/h', reps: '1 rep por turno (A divide rep)', data: '02/11', prob: '100%', etapa: 'Onboarding · contrato ativo',
+opcoes: [['Vanguard · Vanguard II', 'Vanguard tem sobra de 6,7 Tertius e a party tem 1 página'], ['Prevail · Prevail III', 'sobra de 4,6 Tertius; party com 2 páginas'], ['Nova criar party', 'só se vier com mais páginas da mesma modelo']] },
+{ id: 'p2', col: 'onb', crm: 'CRM card #[id] · contrato pendente, início 09/11', nome: '[Página prevista 2]', tier: 'S', receita: 'US$ 450–800k/mês', perfil: 'Main', arq: 'S (vazio)', arqBase: 'nenhuma página S ativa; interpolado entre A (4 páginas, ~36) e SS (1 página, ~118)', fa: '~73', fc: '~78', fd: '~74', conf: 'Confiança baixa', confN: 1, formula: 'Fórmula antiga: 100 fãs/h. Vale escolher uma página de referência.', fans: '~75 fãs/h', reps: '3 reps por turno (1 regular + 2 assistentes)', data: '09/11', prob: '80%', etapa: 'Onboarding',
+opcoes: [['Party nova dedicada', 'página tier S pede party própria, como as Arch da Skylar'], ['Vanguard + Tertius de Prevail', 'cobre 2 dos 3 reps por turno; o 3º vem de Buffer até a turma'], ['Cavalry', 'não recomendado: já falta ~14 Tertius']] },
+{ id: 'p3', col: 'pipe', crm: 'CRM card #[id] · sem contrato, data estimada', nome: '[Página prevista 3]', tier: 'D', receita: 'US$ 41–60k/mês', perfil: 'Main', arq: 'D · Main', arqBase: '8 páginas, 3,9 a 18,8 fãs/h', fa: '9,3', fc: '10,4', fd: '9,2', conf: 'Confiança alta', confN: 3, formula: 'Fórmula antiga: 11,7 fãs/h.', fans: '~10 fãs/h', reps: 'agrupável (divide rep com até 2 páginas)', data: '16/11', prob: '50%', etapa: 'Pipeline',
+opcoes: [['Felix Legion · Felix Legion I', 'titulares sobrando no C; página pequena cabe no grupo'], ['Gladius · Gladius I', 'party sem página hoje'], ['Juno', 'saldo próximo de zero']] },
+{ id: 'p4', col: 'pipe', crm: 'CRM card #[id] · dados faltando no CRM: data de início', nome: '[Página prevista 4]', tier: 'C', receita: 'US$ 61–120k/mês', perfil: 'VIP', arq: 'C · VIP', arqBase: '6 páginas, 9,2 a 21,7 fãs/h', fa: '14,2', fc: '18,4', fd: '16,3', conf: 'Confiança alta', confN: 3, formula: 'Fórmula antiga: 22,2 fãs/h (superestima o tier C).', fans: '~16 fãs/h', reps: 'agrupável (~0,7 rep por turno)', data: 'sem data', prob: '20%', etapa: 'Pipeline',
+opcoes: [['Definir quando tiver data', 'probabilidade baixa: entra só no cenário'], ['Gladius · Gladius I', 'party sem página hoje'], ['Brat', 'sobra no A']] }
+];
+const cols = [['pipe', 'Pipeline · 30%', 'color: #a78bfa'], ['onb', 'Onboarding · 80%', 'color: #fcd34d'], ['act', 'Active · 1ª semana', 'color: #86efac']];
+const card = (p) => {
+const dest = s.destinos[p.id];
+return {
+nome: p.nome, tier: p.tier, receita: p.receita, fans: p.fans, reps: p.reps, data: p.data, prob: p.prob, crm: p.crm,
+destino: dest ? '→ ' + dest : 'sem destino', destStyle: dest ? 'color: #86efac' : 'color: #fcd34d',
+ativo: s.sel === p.id ? 'true' : 'false',
+box: 'display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 12px; border-radius: 12px; color: #f5f5f7; text-align: left; ' + (s.sel === p.id ? 'border: 1px solid #e91876; background: rgba(233,24,118,0.10)' : 'border: 1px solid #2a2129; background: #0f0c10'),
+pick: () => this.setState({ sel: p.id })
+};
+};
+const colunas = cols.map((c) => { const cs = P.filter((p) => p.col === c[0]); return { nome: c[1], cor: c[2], qtd: cs.length, cards: cs.map(card) }; });
+const sp = P.find((p) => p.id === s.sel) || P[0];
+const confCor = ['', 'padding: 2px 8px; border-radius: 6px; font-size: 12px; background: rgba(248,113,113,0.15); color: #fca5a5', 'padding: 2px 8px; border-radius: 6px; font-size: 12px; background: rgba(251,191,36,0.15); color: #fcd34d', 'padding: 2px 8px; border-radius: 6px; font-size: 12px; background: rgba(74,222,128,0.15); color: #86efac'];
+const A = [
+['SS · VIP', '801k–1,1M', 1, '117,5', '122,4', '115,0', '118,3', 1],
+['A · Main', '201–450k', 4, '33,8', '38,8', '35,3', '14,8 a 51,1', 2],
+['B · Main', '121–200k', 4, '25,3', '32,1', '34,4', '27,4 a 36,2', 2],
+['C · Main', '61–120k', 13, '17,2', '19,5', '17,8', '8,4 a 31,3', 3],
+['C · VIP', '61–120k', 6, '14,2', '18,4', '16,3', '9,2 a 21,7', 3],
+['D · Main', '41–60k', 8, '9,3', '10,4', '9,2', '3,9 a 18,8', 3],
+['E · Main', '21–40k', 12, '—', '—', '—', '4,4 a 17,0 (média 9,8)', 3],
+['F · Main', 'até 20k', 29, '—', '—', '—', '2,0 a 9,1 (média 6,3)', 3]
+];
+const confTxt = ['', 'Baixa', 'Média', 'Alta'];
+const arquetipos = A.map((a) => ({ nome: a[0], faixaUsd: 'US$ ' + a[1], n: a[2], a: a[3], c: a[4], d: a[5], faixa: a[6], conf: confTxt[a[7]], confStyle: confCor[a[7]], rowStyle: a[0] === sp.arq ? 'background: rgba(233,24,118,0.08)' : '' }));
+return {
+colunas: colunas, total: P.length, repsPond: '3,7', hcPond: '16,5', arquetipos: arquetipos,
+verArq: () => this.setState({ aviso: 'Arquétipo ' + sp.arq + ': lista das páginas usadas, com fãs/h de cada uma e a curva por dia e bloco (abre em painel).' }),
+sel: { nome: sp.nome, etapa: sp.etapa, crm: sp.crm, tier: sp.tier, data: sp.data, prob: sp.prob, receita: sp.receita, fans: sp.fans, reps: sp.reps,
+perfil: sp.perfil, arq: sp.arq, arqBase: sp.arqBase, fa: sp.fa, fc: sp.fc, fd: sp.fd, conf: sp.conf, confStyle: confCor[sp.confN], formula: sp.formula,
+opcoes: sp.opcoes.map((o, i) => ({ nome: o[0], porque: o[1], checked: i === 0 })) },
+definir: () => { const d = Object.assign({}, s.destinos); d[sp.id] = sp.opcoes[0][0]; this.setState({ destinos: d, aviso: sp.nome + ': destino definido (' + sp.opcoes[0][0] + '). Entra na geração quando a página for confirmada.' }); },
+simular: () => this.setState({ aviso: 'Simulação: ' + sp.nome + ' em ' + sp.opcoes[0][0] + ' abre um rascunho paralelo (v3-sim) sem mexer no plano.' }),
+abrirNova: () => this.setState({ nova: true }), fecharNova: () => this.setState({ nova: false }),
+salvarNova: () => this.setState({ nova: false, aviso: 'Previsão ajustada (só na escala). Impacto recalculado e incluído no plano de turmas.' }),
+nova: s.nova, aviso: s.aviso !== '', avisoTexto: s.aviso, fecharAviso: () => this.setState({ aviso: '' })
+};
+}
+}
+</script>
+</body>
+</html>
