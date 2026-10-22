@@ -5,7 +5,8 @@
 // o módulo usa, e se a sessão está mesmo em READ ONLY.
 // ===============================================
 
-$sessao = escQ1('SELECT @@session.transaction_read_only AS so_leitura, @@session.max_execution_time AS limite_ms, VERSION() AS versao');
+$sessao = escQ1('SELECT @@session.transaction_read_only AS so_leitura, @@session.max_execution_time AS limite_ms, VERSION() AS versao')
+    ?? ['so_leitura' => null, 'limite_ms' => 0, 'versao' => '?'];
 
 $fontes = [
     'Planner · trocas de página' => '`5c_historic_planner`.`historic_page_planner`',
@@ -24,6 +25,7 @@ $fontes = [
     'CRM · clientes' => '`5c_crm`.`clients`',
     'CRM · contratos' => '`5c_crm`.`contracts`',
     'Schedule Anomalies · acessos (primeira carga)' => ESC_TABELA_ACESSO,
+    'MIS Portal · usuários (id e login)' => '`5c_wfm_mis_web`.`mis_login`',
     '5C Escalas · acessos' => escT('esc_acesso'),
     '5C Escalas · colaboradores' => escT('esc_colaborador_config'),
     '5C Escalas · planos' => escT('esc_plano'),

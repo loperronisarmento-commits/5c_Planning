@@ -28,7 +28,22 @@ const ESC_PODE = [
 function escCarregarPerfil(int $userId): ?array {
     $linha = escQ1('SELECT user_id, nome, perfil, times, ativo FROM ' . escT('esc_acesso') . ' WHERE user_id = ?', [$userId]);
     if ($linha) {
-        return (int) $linha['ativo'] === 1 ? $linha : null;
+        if ((int) $linha['ativo'] !== 1) {
+            return null;
+        }
+        if (($linha['nome'] ?? '') === '') {
+            // Primeiro acesso sem nome: usa o login do portal e grava.
+            try {
+                $login = escUsuariosPortal()[$userId] ?? '';
+                if ($login !== '') {
+                    $linha['nome'] = nomeDoLogin($login);
+                    escW('UPDATE ' . escT('esc_acesso') . ' SET nome = ? WHERE user_id = ? AND (nome IS NULL OR nome = \'\')', [$linha['nome'], $userId]);
+                }
+            } catch (Throwable $e) {
+                appLog('warning', 'Não deu para ler o login do portal', ['erro' => $e->getMessage()]);
+            }
+        }
+        return $linha;
     }
     $vazia = escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_acesso'));
     if ((int) ($vazia['n'] ?? 0) > 0) {
@@ -36,12 +51,38 @@ function escCarregarPerfil(int $userId): ?array {
     }
     // Tabela vazia: copia os acessos do Schedule Anomalies (uma vez só).
     $origem = escQ('SELECT user_id, is_admin FROM `5c_wfm_mis_web`.`mis_module_access_schedule_anomalies`');
+    $logins = [];
+    try {
+        $logins = escUsuariosPortal();
+    } catch (Throwable $e) {
+        $logins = [];
+    }
     foreach ($origem as $o) {
-        escW('INSERT IGNORE INTO ' . escT('esc_acesso') . ' (user_id, perfil, criado_por) VALUES (?, ?, 0)',
-            [(int) $o['user_id'], (int) $o['is_admin'] === 1 ? 'ADMIN' : 'LEITURA']);
+        $uid = (int) $o['user_id'];
+        escW('INSERT IGNORE INTO ' . escT('esc_acesso') . ' (user_id, nome, perfil, criado_por) VALUES (?, ?, ?, 0)',
+            [$uid, isset($logins[$uid]) ? nomeDoLogin($logins[$uid]) : null, (int) $o['is_admin'] === 1 ? 'ADMIN' : 'LEITURA']);
     }
     $linha = escQ1('SELECT user_id, nome, perfil, times, ativo FROM ' . escT('esc_acesso') . ' WHERE user_id = ?', [$userId]);
     return $linha && (int) $linha['ativo'] === 1 ? $linha : null;
+}
+
+// Usuários do MIS Portal (só id e login; nunca as colunas de senha/CPF).
+function escUsuariosPortal(): array {
+    static $mapa = null;
+    if ($mapa === null) {
+        $mapa = [];
+        foreach (escQ('SELECT id, mis_usr_login FROM `5c_wfm_mis_web`.`mis_login` WHERE is_approved = 1 ORDER BY mis_usr_login') as $u) {
+            $mapa[(int) $u['id']] = (string) $u['mis_usr_login'];
+        }
+    }
+    return $mapa;
+}
+
+// "luis.sarmento@5ccompany.com" -> "Luis Sarmento"
+function nomeDoLogin(?string $login): string {
+    $local = strtolower((string) strstr((string) $login, '@', true) ?: (string) $login);
+    $local = preg_replace('~\+.*$~', '', $local);
+    return ucwords(str_replace(['.', '_', '-'], ' ', $local));
 }
 
 function escPode(string $acao): bool {
