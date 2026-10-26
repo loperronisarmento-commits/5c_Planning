@@ -25,6 +25,33 @@ API MisDev → 209.159.144.7 (5c_headcount.headcount, 5c_pages.paginas)
 
 Para voltar atrás: `NS_99_desfazer.sql` e recoloque as 2 linhas no `run_auto.php`.
 
+## Fanvue e históricos (NS_05 a NS_07)
+
+Rode depois do NS_01: os históricos usam os servidores criados nele.
+
+| # | Script | O que faz |
+|---|---|---|
+| 1 | `NS_05_fanvue_e_historicos.sql` | Servidor e federada do Fanvue (**troque `<usuario>`, `<senha>` e `<porta>`**), federadas dos históricos, as tabelas locais `5c_headcount.headcount_history`, `5c_pages.paginas_history`, o de-para de criadora e o log, e as 3 procedures. |
+| 2 | `NS_07_validacao_fanvue_historicos.sql`, bloco A | A federada lê e toda criadora tem de-para. |
+| 3 | Os 3 `CALL` no fim do NS_05 | Primeira carga. Hoje o Fanvue traz só as vendas da Ivy Vale depois da última carga do etl_fanvue (~60 a 70 linhas). |
+| 4 | NS_07, blocos B | Log, invoices por mês iguais, produção igual ao bruto, históricos completos. |
+| 5 | `NS_06_events_fanvue_historicos.sql` | Históricos às :04/:14/…, Fanvue às :05/:15/…. |
+| 6 | NS_07, bloco C | Depois de 20 a 30 min. |
+
+**Fanvue.** Grava como o `etl_fanvue` do portal, só para invoices que o .11 ainda não tem:
+- `statements_fanvue`: bruto, com Paid At em UTC;
+- `statements`: Paid At − 3 h, valores sem sinal, "… FanVue", complete/reverse. A classificação continua vindo do `ev_refresh_statements_class_15min`.
+
+Nada que já existe é alterado. O `etl_fanvue` pode continuar: se receber depois a mesma linha, ignora. Criadora nova no Fanvue entra em `5c_wfm_db.fanvue_criadora_de_para` e depois rode `CALL 5c_wfm_db.sp_sync_fanvue_novo_servidor(0);`. Até lá, as vendas dela ficam como "pendentes" no log. Tipo desconhecido (já apareceu um "Giveaway") entra só no bruto e também fica no log.
+
+**Históricos.** Tabelas novas, só de leitura, com os mesmos ids do servidor novo:
+- `headcount_history`: entrada, mudança (com os campos em `changed_fields`), saída e volta de cada pessoa, desde 13/10/2026;
+- `paginas_history`: o mesmo por página, com o JSON de antes, desde 21/10/2026.
+
+Exemplos de consulta no NS_07, bloco B5. O `totalTime` muda todo dia para quase todos, então filtre os campos que interessam.
+
+**Avisar o DBA:** apesar do nome, o `paid_at_utc` do `fanvue_data.statements_raw` está em horário de Brasília em todas as linhas. Exemplo: a FVE-20261020-48379 está às 07:47:13 lá e às 10:47:13 UTC no .11. O espelho soma 3 h para gravar o Paid At (UTC). Se o DBA corrigir a coluna, é preciso trocar as duas contas marcadas com "FUSO" na `sp_sync_fanvue_novo_servidor`.
+
 ## etl_auto
 
 Em `mis_portal/systems/etl_auto/run_auto.php`, apague estas 2 linhas (o Historic Planner continua):
