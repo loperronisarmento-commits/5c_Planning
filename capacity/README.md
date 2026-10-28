@@ -4,7 +4,9 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 
 - **Hierarquia:** unidade (OUM) → OM por turno → 3 OS em rodízio 5x2.
 - **Carteiras:** duas por unidade (C1 e C2).
-- **Postos por página e turno:** cada posto é 1 rep online o turno inteiro. Páginas pequenas são agrupadas: até 3 por rep se forem da mesma modelo; até 2 se as modelos forem diferentes (Política, decisão de 28/10).
+- **Postos por página e turno:** cada posto é 1 rep online o turno inteiro. Páginas pequenas são agrupadas em duas fases (decisão de 28/10):
+  1. primeiro as da mesma modelo, até 3 por rep (ex.: CJ VIP + CJ Miles, Jena Wolfy VIP + Free);
+  2. as que ficaram sozinhas, entre modelos diferentes, até 2 por rep (Política).
 - **Necessidade:**
   - **Titulares (quadro fixo enxuto):** postos × 1,5, arredondado para cima. É a escala 5x2 rotativa em ciclo de 21 dias: cada pessoa trabalha 14 de 21 dias (21 ÷ 14 = 1,5).
   - **Buffer:** cobre todas as faltas e os aumentos de fluxo. O quadro fixo não tem folga para isso (decisões de 27 e 28/10). Segue quatro fatores previsíveis:
@@ -37,6 +39,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 4 | `5C_Planning_13_validacao_postos.sql` | Recalcula 26/10 e hoje e compara com a referência. Tudo deve sair "ok". |
 | 5 | `5C_Planning_14_quadro_e_turmas_cenarios.sql` | Quadro alvo e vagas por unidade e turno nos 2 cenários, e o plano de turmas de cada um. Não mexe no plano oficial (`fc_contratacoes`). |
 | 6 | `5C_Planning_15_adotar_cenario_capacity.sql` | Adota o cenário Capacity (decisão de 28/10): troca as turmas planejadas a partir de 07/12 em `fc_contratacoes`, com cópia de segurança, e recalcula. Tem o bloco para desfazer. |
+| 7 | `5C_Planning_16_postos_semana_01nov.sql` | Grava os postos com `data_calculo` = 28/10, já agrupando primeiro a mesma modelo. É a base fixa que o Planning tool usa na escala de 01/11 a 08/11. Rodar depois do 11 (versão 1.1) e do 13. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -48,25 +51,25 @@ Recalculando 26/10 com os fãs/h que o banco tem hoje para 12–25/10, a referê
 
 | Postos | Titulares | Buffer | Precisa | Tem | Saldo |
 |---|---|---|---|---|---|
-| 175 | 265 | 62 | **327** | 220 | **−107** |
+| 177 | 269 | 61 | **330** | 220 | **−110** |
 
 | Turno | Buffers presentes por dia | Buffer do turno | U1 / U2 / U3 |
 |---|---|---|---|
-| A | 12,7 | 20 | 6 / 7 / 7 |
-| C | 13,6 | 21 | 7 / 7 / 7 |
-| D | 13,7 | 21 | 6 / 7 / 8 |
+| A | 12,2 | 19 | 6 / 7 / 6 |
+| C | 13,4 | 21 | 6 / 8 / 7 |
+| D | 13,6 | 21 | 6 / 7 / 8 |
 
 | Unidade · turno | Postos | Titulares | Faltas/dia | Pico/dia | Presentes/dia | Buffer | Precisa | Tem | Saldo |
 |---|---|---|---|---|---|---|---|---|---|
-| U1 · A | 17 | 26 | 1,6 | 2,2 | 4,2 | 6 | 32 | 25 | −7 |
-| U1 · C | 18 | 27 | 1,9 | 1,9 | 4,2 | 7 | 34 | 20 | −14 |
+| U1 · A | 17 | 26 | 1,6 | 2,1 | 4,0 | 6 | 32 | 25 | −7 |
+| U1 · C | 18 | 27 | 1,9 | 1,8 | 4,2 | 6 | 33 | 20 | −13 |
 | U1 · D | 17 | 26 | 1,9 | 1,6 | 4,0 | 6 | 32 | 21 | −11 |
 | U2 · A | 19 | 29 | 1,8 | 2,1 | 4,3 | 7 | 36 | 28 | −8 |
-| U2 · C | 19 | 29 | 2,0 | 2,3 | 4,8 | 7 | 36 | 25 | −11 |
-| U2 · D | 20 | 30 | 2,2 | 1,9 | 4,7 | 7 | 37 | 30 | −7 |
-| U3 · A | 21 | 32 | 2,0 | 1,9 | 4,2 | 7 | 39 | 23 | −16 |
-| U3 · C | 22 | 33 | 2,3 | 1,8 | 4,6 | 7 | 40 | 24 | −16 |
-| U3 · D | 22 | 33 | 2,5 | 1,9 | 5,0 | 8 | 41 | 24 | −17 |
+| U2 · C | 19 | 29 | 2,0 | 2,3 | 4,9 | 8 | 37 | 25 | −12 |
+| U2 · D | 21 | 32 | 2,4 | 1,9 | 4,8 | 7 | 39 | 30 | −9 |
+| U3 · A | 21 | 32 | 2,0 | 1,6 | 3,9 | 6 | 38 | 23 | −15 |
+| U3 · C | 23 | 35 | 2,4 | 1,5 | 4,4 | 7 | 42 | 24 | −18 |
+| U3 · D | 22 | 33 | 2,5 | 1,9 | 4,9 | 8 | 41 | 24 | −17 |
 
 Taxa de falta (31/08–25/10), absenteísmo + falha administrativa sem dobra: A 9,1% + 0,2% · C 10,3% + 0,2% · D 10,9% + 0,4%.
 
@@ -74,13 +77,14 @@ Como a conta mudou:
 - 27/10: 162 postos × 1,4 + 15% = 269; × 1,5 + 15% = 286; com o buffer calculado = 318; com o buffer igual nos 3 núcleos = 325; com o buffer contado no total do turno = 315.
 - 28/10, Política de 2 páginas por rep quando as modelos são diferentes: 161 → 175 postos e 244 → 265 titulares. O pico cai um pouco, porque os grupos menores têm mais capacidade.
 - 28/10, falha administrativa sem `AF_DOBRA`: o buffer cai de 70 (já com a regra das 2 páginas; seria 335 no total) para 62.
-- Resultado: **327**.
+- 28/10, agrupar primeiro a mesma modelo: os postos com 2+ páginas da mesma modelo passam de 3 para 28; 175 → 177 postos (U2 · C1 turno D e U3 · C1 turno C), 265 → 269 titulares, buffer 62 → 61. Os 10 pares que continuam separados não cabem juntos (as duas páginas passam de 28 fãs/h ou somam mais de 31,5) ou têm regra própria (Mikayla).
+- Resultado: **330**. O plano de turmas adotado (simulado com 327) não muda: com o teto de 20 por turma, o alvo de 330 dá as mesmas 315 contratações e fecha no mesmo fim de junho.
 
 O 13 confere o buffer de cada turno exatamente. Na distribuição entre unidades aceita diferença de 1, porque no turno A a U1 e a U3 ficam quase empatadas.
 
 O relatório de 27/10 deu 162 postos com até 3 páginas por rep; a diferença de 1 posto (U1 · C1, turno D) é do `msgdashboard`, atualizado depois.
 
-A lógica da procedure foi conferida contra o `posts.py` nas 18 combinações de carteira e turno, com os mesmos fãs/h e o limite antigo (3 páginas): o número de postos é o mesmo em todas. A regra das 2 páginas foi conferida no espelho da procedure (175 postos). Em empates de arredondamento (carga terminada em ,x5) o MySQL arredonda para cima e o Python para o par. Isso pode trocar qual página pequena entra em qual grupo, mas não muda nenhuma contagem.
+A lógica da procedure foi conferida contra o `posts.py` nas 18 combinações de carteira e turno, com os mesmos fãs/h e o limite antigo (3 páginas): o número de postos é o mesmo em todas. A regra das 2 páginas foi conferida no espelho da procedure (175 postos), e o agrupamento em duas fases também (177 postos). Em empates de arredondamento (carga terminada em ,x5) o MySQL arredonda para cima e o Python para o par. Isso pode trocar qual página pequena entra em qual grupo, mas não muda nenhuma contagem.
 
 ## Onde ler
 

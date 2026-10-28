@@ -60,6 +60,7 @@ DROP TABLE IF EXISTS fc_buffer_turno;
 DROP TABLE IF EXISTS fc_wrk_pico;
 DROP TABLE IF EXISTS fc_wrk_pico_dia;
 DROP TABLE IF EXISTS fc_wrk_buf_taxa;
+DROP TABLE IF EXISTS fc_wrk_pc_solo;
 DROP TABLE IF EXISTS fc_wrk_pc_bin_item;
 DROP TABLE IF EXISTS fc_wrk_pc_bin;
 DROP TABLE IF EXISTS fc_wrk_pc_item;

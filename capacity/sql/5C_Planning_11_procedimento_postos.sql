@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 5C | Forecast de WFM — 11. Postos por página e necessidade da estrutura em unidades
--- Schema: 5c_planning        Versão 1.0 — 27/10/2026
+-- Schema: 5c_planning        Versão 1.1 — 28/10/2026 (agrupa primeiro as páginas da mesma modelo)
 --
 -- sp_fc_postos(p_data): mesma regra do posts.py de 27/10, por carteira e turno.
 --   Carga da página no turno = maior média de bloco de 4 h dos 2 blocos do turno,
@@ -13,10 +13,11 @@
 --   - Acima de teto_apoio: titular com 35; o excedente vira apoio (agrupado com páginas
 --     pequenas) ou, se passar de limite_compartilhada, assistente(s).
 --   - Acima de limite_compartilhada, ou EXCLUSIVA: titular próprio (no teto se > 35).
---   - O resto é agrupado, da maior para a menor, até max_paginas_rep por rep (mesma modelo) ou
---     max_paginas_rep_modelos_diferentes (2, Política) e dentro de 35 × (1 − s × (n − 1)),
---     s = 10% mesma modelo / 20% modelos diferentes; prefere a mesma modelo e, depois, o grupo
---     que fica mais justo. Um grupo tem no máximo um apoio.
+--   - O resto é agrupado em duas fases (decisão de 28/10: primeiro as páginas da mesma modelo):
+--     1) só a mesma modelo, até max_paginas_rep por rep e dentro de 35 × (1 − 10% × (n − 1));
+--     2) as que ficaram sozinhas, entre modelos, até max_paginas_rep_modelos_diferentes (2, Política)
+--        e dentro de 35 × (1 − 20% × (n − 1)).
+--     Em cada fase, da maior para a menor, no grupo que fica mais justo. Um grupo tem no máximo um apoio.
 --   Necessidade por unidade e turno:
 --   - titulares = ↑ postos × fator_pessoas_posto (1,5: 5x2 rotativo de 21 dias; quadro fixo enxuto);
 --   - buffer contado no total do turno: ↑ Σ presentes × 3 ÷ 2 (o buffer segue a folga do núcleo),
@@ -35,6 +36,16 @@
 -- =====================================================================
 SET NAMES utf8mb4;
 USE `5c_planning`;
+
+-- Tabela de trabalho da fase 2 do agrupamento (páginas que ficaram sozinhas na fase da mesma modelo)
+CREATE TABLE IF NOT EXISTS fc_wrk_pc_solo (
+  ordem   INT          NOT NULL,
+  pagina  VARCHAR(150) NOT NULL,
+  modelo  VARCHAR(150) NOT NULL,
+  f       DECIMAL(6,1) NOT NULL,
+  apoio   TINYINT      NOT NULL,
+  PRIMARY KEY (ordem)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 DELIMITER $$
 
@@ -148,7 +159,10 @@ BEGIN
   END LOOP;
   CLOSE c_pag;
 
-  -- 2. Agrupamento das páginas pequenas (da maior para a menor)
+  -- 2. Agrupamento das páginas pequenas, em duas fases (decisão de 28/10):
+  --    2a. primeiro só páginas da mesma modelo (até max_paginas_rep, capacidade 35 × (1 − 10% × (n − 1)));
+  --    2b. as que ficaram sozinhas são combinadas entre modelos (até max_paginas_rep_modelos_diferentes).
+  --    Em cada fase: da maior para a menor; o grupo que cabe e fica mais justo.
   BEGIN
     DECLARE v_fim2 INT DEFAULT 0;
     DECLARE v_id, v_bin INT;
@@ -160,24 +174,77 @@ BEGIN
     DECLARE c_it CURSOR FOR SELECT id, pagina, modelo, f, apoio FROM fc_wrk_pc_item ORDER BY f DESC, id;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fim2 = 1;
 
+    -- 2a. Mesma modelo
     OPEN c_it;
     its: LOOP
       FETCH c_it INTO v_id, v_ip, v_im, v_if, v_ia;
       IF v_fim2 = 1 THEN LEAVE its; END IF;
 
-      -- melhor grupo: cabe na capacidade; prefere a mesma modelo, depois a menor folga
-      -- (grupo com modelos diferentes: no máximo v_maxd páginas, pela Política)
       SET v_bin = NULL;
       SELECT b.bin INTO v_bin
       FROM fc_wrk_pc_bin b
-      WHERE b.n < IF(b.modelo_unico = v_im, v_maxp, v_maxd)
+      WHERE b.modelo_unico = v_im
+        AND b.n < v_maxp
+        AND NOT (v_ia = 1 AND b.apoio = 1)
+        AND b.soma + v_if <= v_lp * (1 - v_s1 * b.n)
+      ORDER BY v_lp * (1 - v_s1 * b.n) - (b.soma + v_if), b.bin
+      LIMIT 1;
+      SET v_fim2 = 0;   -- a busca sem resultado não é o fim do cursor
+
+      IF v_bin IS NULL THEN
+        SET v_nb = v_nb + 1;
+        INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira) VALUES (v_nb, 1, v_if, v_ia, v_im, v_ip);
+        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, f, apoio) VALUES (v_nb, 1, v_ip, v_im, v_if, v_ia);
+      ELSE
+        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, f, apoio)
+        SELECT v_bin, n + 1, v_ip, v_im, v_if, v_ia FROM fc_wrk_pc_bin WHERE bin = v_bin;
+        UPDATE fc_wrk_pc_bin SET n = n + 1, soma = soma + v_if, apoio = GREATEST(apoio, v_ia) WHERE bin = v_bin;
+      END IF;
+    END LOOP;
+    CLOSE c_it;
+
+    -- as páginas que ficaram sozinhas saem dos grupos e vão para a fase 2b
+    TRUNCATE TABLE fc_wrk_pc_solo;
+    INSERT INTO fc_wrk_pc_solo (ordem, pagina, modelo, f, apoio)
+    SELECT b.bin, i.pagina, i.modelo, i.f, i.apoio
+    FROM fc_wrk_pc_bin b JOIN fc_wrk_pc_bin_item i ON i.bin = b.bin
+    WHERE b.n = 1;
+    DELETE i FROM fc_wrk_pc_bin_item i JOIN fc_wrk_pc_bin b ON b.bin = i.bin WHERE b.n = 1;
+    DELETE FROM fc_wrk_pc_bin WHERE n = 1;
+  END;
+
+  BEGIN
+    DECLARE v_fim2 INT DEFAULT 0;
+    DECLARE v_bin INT;
+    DECLARE v_nb, v_nb1 INT;
+    DECLARE v_ip VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    DECLARE v_im VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    DECLARE v_if DECIMAL(6,1);
+    DECLARE v_ia TINYINT;
+    DECLARE c_so CURSOR FOR SELECT pagina, modelo, f, apoio FROM fc_wrk_pc_solo ORDER BY f DESC, ordem;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fim2 = 1;
+
+    SELECT COALESCE(MAX(bin), 0) INTO v_nb FROM fc_wrk_pc_bin;
+    SET v_nb = GREATEST(v_nb, (SELECT COALESCE(MAX(ordem), 0) FROM fc_wrk_pc_solo)), v_nb1 = v_nb;
+
+    -- 2b. Modelos diferentes: só entre os grupos novos desta fase
+    OPEN c_so;
+    sos: LOOP
+      FETCH c_so INTO v_ip, v_im, v_if, v_ia;
+      IF v_fim2 = 1 THEN LEAVE sos; END IF;
+
+      SET v_bin = NULL;
+      SELECT b.bin INTO v_bin
+      FROM fc_wrk_pc_bin b
+      WHERE b.bin > v_nb1
+        AND b.n < IF(b.modelo_unico = v_im, v_maxp, v_maxd)
         AND NOT (v_ia = 1 AND b.apoio = 1)
         AND b.soma + v_if <= v_lp * (1 - IF(b.modelo_unico = v_im, v_s1, v_s2) * b.n)
       ORDER BY EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.modelo = v_im) DESC,
                v_lp * (1 - IF(b.modelo_unico = v_im, v_s1, v_s2) * b.n) - (b.soma + v_if),
                b.bin
       LIMIT 1;
-      SET v_fim2 = 0;   -- a busca sem resultado não é o fim do cursor
+      SET v_fim2 = 0;
 
       IF v_bin IS NULL THEN
         SET v_nb = v_nb + 1;
@@ -192,22 +259,24 @@ BEGIN
          WHERE bin = v_bin;
       END IF;
     END LOOP;
-    CLOSE c_it;
+    CLOSE c_so;
   END;
 
-  -- 3. Cada grupo vira um posto
+  -- 3. Cada grupo vira um posto (numerados em sequência depois dos postos próprios)
   INSERT INTO fc_postos (data_calculo, carteira, turno, posto, unidade, tipo, pagina_principal, n_paginas,
                          carga, capacidade, no_teto, exclusiva, excedente)
-  SELECT p_data, p_cart, p_tur, v_n + b.bin, p_un,
+  SELECT p_data, p_cart, p_tur, v_n + r.rn, p_un,
          CASE WHEN b.apoio = 1 THEN IF(b.n = 1, 'assistente', 'apoio') ELSE IF(b.n = 1, 'titular', 'double') END,
          b.primeira, b.n, b.soma,
          ROUND(v_lp * (1 - IF(b.modelo_unico IS NOT NULL, v_s1, v_s2) * (b.n - 1)), 1), 0, 0, NULL
-  FROM fc_wrk_pc_bin b;
+  FROM fc_wrk_pc_bin b
+  JOIN (SELECT bin, ROW_NUMBER() OVER (ORDER BY bin) AS rn FROM fc_wrk_pc_bin) r ON r.bin = b.bin;
 
   INSERT INTO fc_postos_pagina (data_calculo, carteira, turno, posto, pagina, fans_h, apoio, fracao)
-  SELECT p_data, p_cart, p_tur, v_n + i.bin, i.pagina, i.f, i.apoio, 1 / b.n
+  SELECT p_data, p_cart, p_tur, v_n + r.rn, i.pagina, i.f, i.apoio, 1 / b.n
   FROM fc_wrk_pc_bin_item i
-  JOIN fc_wrk_pc_bin b ON b.bin = i.bin;
+  JOIN fc_wrk_pc_bin b ON b.bin = i.bin
+  JOIN (SELECT bin, ROW_NUMBER() OVER (ORDER BY bin) AS rn FROM fc_wrk_pc_bin) r ON r.bin = b.bin;
 END $$
 
 -- ---------------------------------------------------------------------
