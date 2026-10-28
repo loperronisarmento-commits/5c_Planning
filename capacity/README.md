@@ -36,6 +36,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 3 | `5C_Planning_12_carga_estrutura_01nov.sql` | Carga de 01/11: 6 carteiras, 86 páginas (com modelo e regra), 39 líderes e 220 reps. |
 | 4 | `5C_Planning_13_validacao_postos.sql` | Recalcula 26/10 e hoje e compara com a referência. Tudo deve sair "ok". |
 | 5 | `5C_Planning_14_quadro_e_turmas_cenarios.sql` | Quadro alvo e vagas por unidade e turno nos 2 cenários, e o plano de turmas de cada um. Não mexe no plano oficial (`fc_contratacoes`). |
+| 6 | `5C_Planning_15_adotar_cenario_capacity.sql` | Adota o cenário Capacity (decisão de 28/10): troca as turmas planejadas a partir de 07/12 em `fc_contratacoes`, com cópia de segurança, e recalcula. Tem o bloco para desfazer. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -152,7 +153,9 @@ Pontos de atenção:
   - Capacity: U1 32 · U2 26 · U3 49;
   - 12 por OS: U1 42 · U2 25 · U3 37.
 
-O plano oficial (`fc_contratacoes`) segue com as turmas de 26/10 (script 09). O bloco 5 do script 14 troca o plano oficial pelo cenário escolhido e recalcula.
+**Decisão de 28/10: o cenário Capacity vira o plano oficial.** O script 15 troca as turmas planejadas a partir de 07/12 em `fc_contratacoes` pelas do cenário. As turmas de 02/11 e 16/11 já confirmadas ficam como estão. No total são 315 pessoas: 35 já confirmadas e 280 em 14 turmas planejadas, até 28/06/2027.
+
+Com o teto de 20 por turma, os dois cenários contratam o mesmo número de pessoas por turma. Só a divisão entre turnos muda, em 5 turmas de fev a mai. A escolha pesa mais na divisão das vagas entre as unidades.
 
 ## O que não muda
 
@@ -160,5 +163,4 @@ O plano oficial (`fc_contratacoes`) segue com as turmas de 26/10 (script 09). O 
 
 Ainda falta decidir:
 - se o plano semanal (`vw_fc_plano_semanal`) passa a usar a necessidade da estrutura nova, em vez do modelo de 19/10;
-- qual cenário de contratação vira o plano oficial (bloco 5 do script 14);
 - se o TRN aguenta turmas maiores que 20.
