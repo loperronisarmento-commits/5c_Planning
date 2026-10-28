@@ -22,6 +22,7 @@ require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/acesso.php';
 require_once __DIR__ . '/lib/dados.php';
 require_once __DIR__ . '/lib/motor.php';
+require_once __DIR__ . '/lib/motor_v4.php';
 
 // ---------- nível 1: logado no MIS Portal? ----------
 startSecureSession();

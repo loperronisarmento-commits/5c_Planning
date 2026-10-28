@@ -207,7 +207,17 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
   <div class="kpi"><span class="muted">Blocos alocados</span><strong><?php echo (int) ($resumo['blocos'] ?? 0); ?></strong><span class="muted small"><?php echo (int) ($resumo['pessoas'] ?? 0); ?> pessoas configuradas</span></div>
   <div class="kpi"><span class="muted">Lacunas</span><strong class="<?php echo !empty($resumo['lacunas']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['lacunas'] ?? 0); ?></strong><span class="muted small">blocos sem ninguém</span></div>
   <div class="kpi"><span class="muted">Anomalias programadas</span><strong class="<?php echo !empty($resumo['anomalias']) ? 'vermelho' : ''; ?>"><?php echo (int) ($resumo['anomalias'] ?? 0); ?></strong><span class="muted small">dias seguidos acima do modelo</span></div>
+  <?php if (($resumo['estrutura'] ?? '') === 'V4'): ?>
+  <div class="kpi"><span class="muted">Buffers de plantão</span><strong><?php echo (int) ($resumo['buffers_ociosos'] ?? 0); ?></strong><span class="muted small">pessoa-turnos sem posto (cobrem faltas)</span></div>
+  <div class="kpi"><span class="muted">Postos sem ninguém</span><strong class="<?php echo !empty($resumo['vagas_sem_ninguem']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['vagas_sem_ninguem'] ?? 0); ?></strong><span class="muted small">de <?php echo (int) ($resumo['vagas_dia'] ?? 0); ?> posto-dias<?php
+    $porUT = [];
+    foreach ($resumo['vagas_sem_ninguem_por_unidade_turno'] ?? [] as $ut => $n) {
+        $porUT[] = 'U' . $ut[0] . ' ' . $ut[1] . ': ' . (int) $n;
+    }
+    echo $porUT ? ' · ' . h(implode(' · ', $porUT)) : ''; ?></span></div>
+  <?php else: ?>
   <div class="kpi"><span class="muted">Buffers sem página</span><strong><?php echo (int) ($resumo['buffers_ociosos'] ?? 0); ?></strong><span class="muted small">turnos sem necessidade</span></div>
+  <?php endif; ?>
 </section>
 
 <section class="panel">

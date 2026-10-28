@@ -674,13 +674,28 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         unset($t);
     }
 
-    $saida = escMotorAlocar([
-        'dias' => $dias, 'config' => $config, 'estado' => $estado,
-        'estrutura' => escEstrutura(), 'paginas' => escMotorPaginas(),
-        'cap' => $cap, 'indisp' => escMotorIndisp($dias), 'travadas' => $travadas,
-    ]);
+    if (escV4Ativo($seg)) {
+        // Estrutura de 01/11 (motor_v4.php). Na semana da virada só entram os
+        // dias a partir dela; antes disso vale a escala já postada.
+        $virada = escV4DiaVirada();
+        $inicio = max($seg, $virada);
+        $saida = escMotorAlocarV4([
+            'dias' => $dias, 'est' => escV4Carregar(end($dias)), 'indisp' => escMotorIndisp($dias),
+            'travadas' => $travadas, 'virada' => $virada,
+            'presentes' => in_array($virada, $dias, true) ? escV4PresentesTransicao($virada) : [],
+            'realizado' => escMotorRealizado(escMaisDias($inicio, -14), escMaisDias($inicio, -1)),
+        ]);
+        $estruturaPlano = 'V4';
+    } else {
+        $saida = escMotorAlocar([
+            'dias' => $dias, 'config' => $config, 'estado' => $estado,
+            'estrutura' => escEstrutura(), 'paginas' => escMotorPaginas(),
+            'cap' => $cap, 'indisp' => escMotorIndisp($dias), 'travadas' => $travadas,
+        ]);
+        $estruturaPlano = 'V3';
+    }
 
-    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado) {
+    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano) {
         // Releitura do realizado.
         $linhasEstado = [];
         foreach ($estado as $rep => $e) {
@@ -732,8 +747,8 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         }
 
         $parametros = ['fotos' => $fotoIds, 'ancora' => ESC_ANCORA, 'modo' => $modo];
-        escW('INSERT INTO ' . escT('esc_plano') . ' (semana_inicio, semana_fim, time_nome, versao, subversao, status, plano_anterior_id, recalculo_id, capacity_calculo, entradas_hash, parametros, resumo, gerado_por) VALUES (?, ?, \'\', ?, ?, \'RASCUNHO\', ?, ?, ?, ?, ?, ?, ?)', [
-            $seg, end($dias), $versao, $subversao, $base ? (int) $base['id'] : null, $recalculoId,
+        escW('INSERT INTO ' . escT('esc_plano') . ' (semana_inicio, semana_fim, time_nome, estrutura, versao, subversao, status, plano_anterior_id, recalculo_id, capacity_calculo, entradas_hash, parametros, resumo, gerado_por) VALUES (?, ?, \'\', ?, ?, ?, \'RASCUNHO\', ?, ?, ?, ?, ?, ?, ?)', [
+            $seg, end($dias), $estruturaPlano, $versao, $subversao, $base ? (int) $base['id'] : null, $recalculoId,
             $cap['dc'], escHashEntradas($fotoIds), json_encode($parametros), json_encode($saida['resumo'], JSON_UNESCAPED_UNICODE), $userId,
         ]);
         $planoId = escUltimoId();
@@ -742,7 +757,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
             $a['plano_id'] = $planoId;
         }
         unset($a);
-        escInserirLote('esc_plano_alocacao', ['plano_id', 'dia', 'bloco', 'turno', 'page_id', 'pagina', 'rep_code', 'papel', 'origem', 'travada', 'motivo'], $alocacoes);
+        escInserirLote('esc_plano_alocacao', ['plano_id', 'dia', 'bloco', 'turno', 'page_id', 'pagina', 'posto_id', 'vaga', 'rep_code', 'papel', 'origem', 'travada', 'motivo'], $alocacoes);
 
         $folgas = array_map(static fn($f) => $f + ['plano_id' => $planoId], $saida['folgas']);
         escInserirLote('esc_plano_folga', ['plano_id', 'rep_code', 'dia', 'tipo', 'ref_id'], $folgas);
@@ -781,7 +796,9 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
             $sugs[] = ['plano_id' => $planoId, 'recalculo_id' => $recalculoId, 'tipo' => 'COBERTURA',
                 'titulo' => count($itens) . ' bloco(s) sem ninguém em ' . date('d/m', strtotime($dia)) . ' no turno ' . $turno,
                 'descricao' => implode(', ', array_slice(array_unique($itens), 0, 30)),
-                'efeito' => 'Cobrir na grade (ajuste manual) com Tertius ou Buffer de folga, ou aceitar a lacuna.',
+                'efeito' => $estruturaPlano === 'V4'
+                    ? 'Cobrir na grade (ajuste manual) com um buffer de plantão do turno, ou aceitar a lacuna.'
+                    : 'Cobrir na grade (ajuste manual) com Tertius ou Buffer de folga, ou aceitar a lacuna.',
                 'dados' => json_encode(['dia' => $dia, 'turno' => $turno]), 'status' => 'ABERTA'];
         }
         escInserirLote('esc_sugestao', ['plano_id', 'recalculo_id', 'tipo', 'titulo', 'descricao', 'efeito', 'dados', 'status'], $sugs);
