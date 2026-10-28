@@ -5,6 +5,8 @@
 // o módulo usa, e se a sessão está mesmo em READ ONLY.
 // ===============================================
 
+escExigir('admin');
+
 $sessao = escQ1('SELECT @@session.transaction_read_only AS so_leitura, @@session.max_execution_time AS limite_ms, VERSION() AS versao')
     ?? ['so_leitura' => null, 'limite_ms' => 0, 'versao' => '?'];
 

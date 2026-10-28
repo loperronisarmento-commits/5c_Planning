@@ -70,16 +70,24 @@ function escNovaConexao(): PDO {
         $opcoes[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
     }
 
-    // Conexão recusada (2002) costuma ser passageira na rede até o .11: tenta de novo antes de desistir.
-    for ($tentativa = 1; ; $tentativa++) {
+    // Conexão recusada (2002) costuma ser passageira no caminho até o MySQL: tenta de novo
+    // por até ~15 s (0,5 · 1 · 2 · 3 · 4 · 5 s) antes de desistir, e registra cada tentativa.
+    $esperas = [0.5, 1, 2, 3, 4, 5];
+    for ($tentativa = 0; ; $tentativa++) {
         try {
             $pdo = new PDO($dsn, (string) env('DB_USER'), (string) env('DB_PASS'), $opcoes);
+            if ($tentativa > 0 && function_exists('appLog')) {
+                appLog('warning', 'Conexão com o banco aceita depois de nova tentativa', ['tentativas' => $tentativa + 1, 'host' => $host]);
+            }
             break;
         } catch (PDOException $e) {
-            if ($tentativa >= 4 || strpos($e->getMessage(), '[2002]') === false) {
+            if ($tentativa >= count($esperas) || strpos($e->getMessage(), '[2002]') === false) {
+                if (function_exists('appLog')) {
+                    appLog('error', 'Conexão com o banco recusada', ['tentativas' => $tentativa + 1, 'host' => $host, 'erro' => $e->getMessage()]);
+                }
                 throw $e;
             }
-            usleep(500000 * $tentativa);
+            usleep((int) ($esperas[$tentativa] * 1000000));
         }
     }
     $pdo->exec('SET SESSION max_execution_time = ' . (int) ESC_MAX_EXECUCAO_MS);
@@ -88,8 +96,18 @@ function escNovaConexao(): PDO {
 
 // ---------- leitura ----------
 
+// Ações que gravam (POST) usam uma conexão só, a de gravação, também para ler: abrir uma
+// segunda conexão no meio da ação é onde a conexão recusada (2002) costuma aparecer. A
+// leitura continua passando pelo filtro de SELECT/WITH de escQ.
+function escConexaoUnica(bool $ligar = true): void {
+    $GLOBALS['ESC_CONEXAO_UNICA'] = $ligar;
+}
+
 function escDb(): PDO {
     static $pdo = null;
+    if (!empty($GLOBALS['ESC_CONEXAO_UNICA']) && !$pdo instanceof PDO) {
+        return escDbW();
+    }
     if (!$pdo instanceof PDO) {
         $pdo = escNovaConexao();
         $pdo->exec('SET SESSION TRANSACTION READ ONLY');

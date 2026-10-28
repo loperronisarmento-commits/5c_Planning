@@ -77,13 +77,74 @@ function escV4Carregar(string $dia): array {
             'nucleo' => (int) $p['nucleo_id'], 'nivel' => (int) $p['nivel']];
     }
     $postos = [];
-    foreach (escQ('SELECT id, unidade, carteira, turno, seq, tipo, pagina_principal, carga, nucleo_dono_id, nucleo_cobertura_id FROM '
+    foreach (escQ('SELECT id, unidade, carteira, turno, seq, tipo, pagina_principal, carga, capacidade, nucleo_dono_id, nucleo_cobertura_id FROM '
         . escT('esc_posto') . ' WHERE' . $vig, [$dia, $dia]) as $p) {
         $postos[(int) $p['id']] = $p + ['paginas' => []];
     }
+    $nomes = [];
     if ($postos) {
-        foreach (escQ('SELECT posto_id, pagina, page_id, apoio FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id IN (' . escIn(array_keys($postos)) . ')', array_keys($postos)) as $pp) {
-            $postos[(int) $pp['posto_id']]['paginas'][] = ['pagina' => $pp['pagina'], 'page_id' => (int) $pp['page_id'], 'apoio' => (int) $pp['apoio'] === 1];
+        foreach (escQ('SELECT posto_id, pagina, page_id, apoio, fracao FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id IN (' . escIn(array_keys($postos)) . ')', array_keys($postos)) as $pp) {
+            $postos[(int) $pp['posto_id']]['paginas'][] = ['pagina' => $pp['pagina'], 'page_id' => (int) $pp['page_id'], 'apoio' => (int) $pp['apoio'] === 1,
+                'fracao' => (float) $pp['fracao']];
+            $nomes[$pp['pagina']] = true;
+        }
+    }
+    // Faturamento médio por dia de cada página e turno (US$, statement por bloco): ordem de preenchimento.
+    $receita = [];
+    if ($nomes) {
+        $n = max(1, (int) escV4Param('v4_receita_dias', '28'));
+        foreach (escQ("SELECT CREATOR_NAME AS pagina,
+                              SUM(CASE WHEN Turno IN ('T2','T3') THEN US_AMOUNT ELSE 0 END) AS a,
+                              SUM(CASE WHEN Turno IN ('T4','T5') THEN US_AMOUNT ELSE 0 END) AS c,
+                              SUM(CASE WHEN Turno IN ('T6','T1') THEN US_AMOUNT ELSE 0 END) AS d
+                         FROM `5c_wfm_db_mis`.`tab_statement_interval`
+                        WHERE Date >= DATE_SUB(CURDATE(), INTERVAL {$n} DAY) AND Date < CURDATE() AND STATUS = 'complete'
+                          AND CREATOR_NAME IN (" . escIn(array_keys($nomes)) . ')
+                        GROUP BY CREATOR_NAME', array_keys($nomes)) as $r) {
+            $receita[$r['pagina']] = ['A' => (float) $r['a'] / $n, 'C' => (float) $r['c'] / $n, 'D' => (float) $r['d'] / $n];
+        }
+    }
+    // Modelo de cada página (Capacity): o over só junta páginas dentro da Política.
+    $modeloPag = [];
+    if ($nomes) {
+        foreach (escQ('SELECT pagina, modelo FROM `5c_planning`.`fc_pagina_carteira` WHERE vigente_ate IS NULL AND pagina IN (' . escIn(array_keys($nomes)) . ')', array_keys($nomes)) as $r) {
+            $modeloPag[$r['pagina']] = $r['modelo'];
+        }
+    }
+    $pagOverlap = escQ1('SELECT id, name FROM `5c_pages`.`pages` WHERE name = ? ORDER BY active DESC, id LIMIT 1', [escV4Param('v4_overlap_pagina', '5C Schedule')]);
+
+    // Melhores SRs nas páginas dos tiers prioritários (Intraday: SS, A, B): venda por hora do SR
+    // na página (cap_rep_hora, horas só nela, últimos v4_receita_dias dias) e a geral dele.
+    $tiersPrio = array_filter(array_map('trim', explode(',', escV4Param('v4_tiers_melhores_srs', 'SS,A,B'))));
+    $melhores = ['tiers' => array_fill_keys($tiersPrio, true), 'tier' => [], 'pagina' => [], 'geral' => []];
+    if ($nomes && $tiersPrio && $pessoas) {
+        foreach (escQ('SELECT Page AS pagina, MAX(Tier) AS tier FROM `5c_wfm_db_mis`.`tab_intraday_base`
+                        WHERE Date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) AND Page IN (' . escIn(array_keys($nomes)) . ') GROUP BY Page', array_keys($nomes)) as $r) {
+            $melhores['tier'][$r['pagina']] = (string) $r['tier'];
+        }
+        $prio = array_keys(array_filter($melhores['tier'], static fn($t) => isset($melhores['tiers'][$t])));
+        $codDe = [];
+        foreach (escQ('SELECT UPPER(rep_code) AS rep, code_infloww FROM `5c_wfm_db_mis`.`vw_rep_estrutura_atual` WHERE code_infloww IS NOT NULL AND rep_code IN (' . escIn(array_keys($pessoas)) . ')', array_keys($pessoas)) as $r) {
+            $codDe[$r['code_infloww']] = $r['rep'];
+        }
+        $n = max(1, (int) escV4Param('v4_receita_dias', '28'));
+        if ($codDe) {
+            foreach (escQ("SELECT SUBSTRING_INDEX(rep, ' ', 1) AS cod, SUM(valor_comprado) / COUNT(*) AS usd_h
+                             FROM `5c_capacity`.`cap_rep_hora` WHERE dia >= DATE_SUB(CURDATE(), INTERVAL {$n} DAY) GROUP BY cod") as $r) {
+                if (isset($codDe[$r['cod']])) {
+                    $melhores['geral'][$codDe[$r['cod']]] = (float) $r['usd_h'];
+                }
+            }
+            if ($prio) {
+                foreach (escQ("SELECT SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas AS pagina, SUM(valor_comprado) / COUNT(*) AS usd_h
+                                 FROM `5c_capacity`.`cap_rep_hora`
+                                WHERE dia >= DATE_SUB(CURDATE(), INTERVAL {$n} DAY) AND n_paginas = 1 AND paginas IN (" . escIn($prio) . ')
+                                GROUP BY cod, paginas HAVING COUNT(*) >= 3', $prio) as $r) {
+                    if (isset($codDe[$r['cod']])) {
+                        $melhores['pagina'][$r['pagina']][$codDe[$r['cod']]] = (float) $r['usd_h'];
+                    }
+                }
+            }
         }
     }
     $equipes = [];
@@ -92,7 +153,26 @@ function escV4Carregar(string $dia): array {
     }
     $overlap = escV4Param('v4_overlap_posicao_ciclo', '');
     return ['modelo' => $modelo, 'nucleos' => $nucleos, 'pessoas' => $pessoas, 'postos' => $postos, 'equipes' => $equipes,
-        'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02'), 'overlap_idx' => $overlap === '' ? null : (int) $overlap];
+        'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02'),
+        'overlap_posicoes' => array_map('intval', array_filter(array_map('trim', explode(',', $overlap)), 'strlen')),
+        'overlap_pagina' => $pagOverlap ? ['page_id' => (int) $pagOverlap['id'], 'pagina' => $pagOverlap['name']] : null,
+        'receita' => $receita, 'modelo_pagina' => $modeloPag, 'over_max' => (float) escV4Param('v4_over_capacity_max', '0.15'),
+        'melhores' => $melhores];
+}
+
+// Capacidade de um SR com as páginas de 2 postos juntas, pela Política do Capacity:
+// mesma modelo até 3 páginas (35 × (1 − 10% × (n − 1))); modelos diferentes até 2 (28).
+// null = a Política não deixa juntar.
+function escV4CapacidadeJunta(array $a, array $b, array $modeloPag): ?float {
+    $pags = [];
+    foreach (array_merge($a['paginas'], $b['paginas']) as $pg) {
+        $pags[$pg['pagina']] = $modeloPag[$pg['pagina']] ?? ('?' . $pg['pagina']);
+    }
+    $n = count($pags);
+    if (count(array_unique($pags)) === 1 && $n <= 3) {
+        return 35.0 * (1 - 0.10 * ($n - 1));
+    }
+    return $n <= 2 ? 28.0 : null;
 }
 
 // Quem fecha o turno D às 05:00 de $dia (T1): do plano da semana anterior; sem
@@ -144,36 +224,54 @@ function escMotorAlocarV4(array $in): array {
     $nucleos = $est['nucleos'];
     $pessoas = $est['pessoas'];
     $equipes = $est['equipes'];
-    // Dia de treinamento do 5x2 (o 15º dia de trabalho do ciclo): o SR entra como Overlap
-    // no posto dele, fora da conta das vagas. null = sem Overlap.
-    $overlapIdx = $est['overlap_idx'] ?? null;
+    // Dia de treinamento do 5x2 (o 15º dia de trabalho do ciclo): o SR entra como Overlap na
+    // página 5C Schedule, fora da conta das vagas, ou cobre lacuna. null = sem Overlap.
+    // Cada SR tem o próprio dia de Overlap: os SRs de cada núcleo (por código) se revezam
+    // entre as posições de folga do ciclo do parâmetro, para não cair todo mundo no mesmo dia.
+    $posicoes = $est['overlap_posicoes'] ?? (isset($est['overlap_idx']) ? [(int) $est['overlap_idx']] : []);
+    $overlapDe = [];
+    if ($posicoes) {
+        $porNucleo = [];
+        foreach ($pessoas as $rep => $p) {
+            $porNucleo[$p['nucleo']][] = (string) $rep;
+        }
+        foreach ($porNucleo as $reps) {
+            sort($reps);
+            foreach ($reps as $i => $rep) {
+                $overlapDe[$rep] = $posicoes[$i % count($posicoes)];
+            }
+        }
+    }
 
     // Páginas que cada pessoa conhece (em qualquer equipe) — afinidade.
-    // Posto de cada pessoa para o Overlap: a vaga de maior fatia, a do dono antes.
     $conhece = [];
-    $postoDe = [];
     foreach ($equipes as $pid => $vagas) {
-        foreach ($vagas as $vaga => $reps) {
+        foreach ($vagas as $reps) {
             foreach ($reps as $rep => $f) {
                 foreach ($est['postos'][$pid]['paginas'] ?? [] as $pg) {
                     $conhece[$rep][$pg['pagina']] = true;
                 }
-                $chave = [(float) $f, $vaga === 'DONO' ? 1 : 0, -(int) $pid];
-                if (isset($est['postos'][$pid]) && (!isset($postoDe[$rep]) || $chave > $postoDe[$rep]['chave'])) {
-                    $postoDe[$rep] = ['pid' => (int) $pid, 'vaga' => $vaga, 'chave' => $chave];
-                }
             }
         }
     }
-    // Postos por unidade e turno, na ordem de preenchimento.
+    // Faturamento de cada posto no turno dele: Σ (faturamento da página × fração do posto na página).
+    $receitaPosto = [];
+    foreach ($est['postos'] as $pid => $p) {
+        $receitaPosto[$pid] = 0.0;
+        foreach ($p['paginas'] as $pg) {
+            $receitaPosto[$pid] += ($est['receita'][$pg['pagina']][$p['turno']] ?? 0) * ($pg['fracao'] ?? (1 / max(1, count($p['paginas']))));
+        }
+    }
+    // Postos por unidade e turno, na ordem de preenchimento: do maior faturamento para o menor
+    // (no mesmo faturamento, titular antes de double, apoio e assistente; depois a maior carga).
     $postosUT = [];
     foreach ($est['postos'] as $pid => $p) {
         $postosUT[(int) $p['unidade']][$p['turno']][] = $pid;
     }
     foreach ($postosUT as &$porTurno) {
         foreach ($porTurno as &$lista) {
-            usort($lista, static fn($a, $b) => [ESC_V4_ORDEM_TIPO[$est['postos'][$a]['tipo']] ?? 9, -(float) $est['postos'][$a]['carga'], $a]
-                <=> [ESC_V4_ORDEM_TIPO[$est['postos'][$b]['tipo']] ?? 9, -(float) $est['postos'][$b]['carga'], $b]);
+            usort($lista, static fn($a, $b) => [-round($receitaPosto[$a], 2), ESC_V4_ORDEM_TIPO[$est['postos'][$a]['tipo']] ?? 9, -(float) $est['postos'][$a]['carga'], $a]
+                <=> [-round($receitaPosto[$b], 2), ESC_V4_ORDEM_TIPO[$est['postos'][$b]['tipo']] ?? 9, -(float) $est['postos'][$b]['carga'], $b]);
         }
         unset($lista);
     }
@@ -199,7 +297,8 @@ function escMotorAlocarV4(array $in): array {
     $diasVaga = [];  // [posto|vaga] = dias em que a vaga abriu
     $ultimo = [];    // [posto] = quem atuou no posto da última vez (menos troca de gente)
     $trabalhou = []; // [rep][dia] = true (para anomalias; o Overlap não conta)
-    $overlaps = [];  // [rep, dia, turno, posto] no dia de treinamento
+    $overlaps = [];  // [rep, dia, turno] na página 5C Schedule
+    $sobrecargas = 0; // vagas-dia cobertas acima da capacidade (até over_max)
 
     foreach ($dias as $dia) {
         if ($dia < $virada) {
@@ -234,8 +333,8 @@ function escMotorAlocarV4(array $in): array {
                     }
                     if (!isset($ativos[$p['nucleo']])) {
                         $ind = $indisp[$rep][$dia][$turno] ?? null;
-                        if ($overlapIdx !== null && $ind === null
-                            && escV4IndiceCiclo($nucleos[$p['nucleo']], $ciclo, $est['ancora'], $dia) === $overlapIdx) {
+                        if (isset($overlapDe[$rep]) && $ind === null
+                            && escV4IndiceCiclo($nucleos[$p['nucleo']], $ciclo, $est['ancora'], $dia) === $overlapDe[$rep]) {
                             $overlapUT[$u][$rep] = $p;
                         } else {
                             $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'ROTACAO', 'ref_id' => null];
@@ -296,11 +395,59 @@ function escMotorAlocarV4(array $in): array {
                 return $melhor;
             };
 
+            // 0. Páginas dos tiers prioritários (SS, A, B): o melhor SR do turno na página entra antes
+            //    da equipe fixa (maior venda/hora na página; sem histórico nela, a venda/hora geral).
+            $mel = $est['melhores'] ?? null;
+            if (!$transicao && $mel && !empty($mel['tiers'])) {
+                foreach ($estadoUT as $u => &$st) {
+                    foreach ($st['vagas'] as &$v) {
+                        $p = $est['postos'][$v['pid']];
+                        $pag = null;
+                        foreach ($p['paginas'] as $pg) {
+                            if (!$pg['apoio'] && ($pag === null || ($est['receita'][$pg['pagina']][$turno] ?? 0) > ($est['receita'][$pag][$turno] ?? 0))) {
+                                $pag = $pg['pagina'];
+                            }
+                        }
+                        $pag = $pag ?? ($p['paginas'][0]['pagina'] ?? null);
+                        if ($pag === null || !isset($mel['tiers'][$mel['tier'][$pag] ?? ''])) {
+                            continue;
+                        }
+                        $melhor = null;
+                        $kMelhor = null;
+                        foreach ($st['disp'] as $rep => $pp) {
+                            if (isset($usado[$rep])) {
+                                continue;
+                            }
+                            $naPag = $mel['pagina'][$pag][$rep] ?? null;
+                            $geral = $mel['geral'][$rep] ?? 0.0;
+                            $k = [$naPag !== null ? 1 : 0, $naPag ?? $geral, $geral, (int) ($pp['nivel'] ?? 0), $rep];
+                            if ($kMelhor === null || $k > $kMelhor) {
+                                $kMelhor = $k;
+                                $melhor = $rep;
+                            }
+                        }
+                        if ($melhor === null || $kMelhor[1] <= 0) {
+                            continue;
+                        }
+                        $v['rep'] = $melhor;
+                        $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
+                        $v['motivo'] = 'melhor SR do turno para ' . $pag . ' (tier ' . $mel['tier'][$pag] . ', US$ '
+                            . number_format($kMelhor[1], 0, ',', '.') . '/h ' . ($kMelhor[0] ? 'na página' : 'no geral') . ')';
+                        $usado[$melhor] = true;
+                    }
+                    unset($v);
+                }
+                unset($st);
+            }
+
             foreach ($estadoUT as $u => &$st) {
                 // 1. equipe fixa da vaga (preferência). Fica quem atuou da última
                 //    vez enquanto estiver abaixo da própria fatia (menos troca de
                 //    gente na página); senão, quem está mais abaixo da fatia.
                 foreach ($st['vagas'] as &$v) {
+                    if ($v['rep'] !== null) {
+                        continue; // já tem o melhor SR da página (etapa 0)
+                    }
                     $melhor = null;
                     $chaveMelhor = null;
                     foreach ($v['equipe'] as $rep => $fatia) {
@@ -387,6 +534,160 @@ function escMotorAlocarV4(array $in): array {
                 unset($st);
             }
 
+            if (!$transicao) {
+                // Lacunas do turno, da página de maior faturamento para a de menor.
+                $listarLacunas = static function () use (&$estadoUT, $receitaPosto): array {
+                    $l = [];
+                    foreach ($estadoUT as $u => $st) {
+                        foreach ($st['vagas'] as $i => $v) {
+                            if ($v['rep'] === null) {
+                                $l[] = [$u, $i, $receitaPosto[$v['pid']]];
+                            }
+                        }
+                    }
+                    usort($l, static fn($a, $b) => $b[2] <=> $a[2]);
+                    return $l;
+                };
+                $lacunas = $listarLacunas();
+
+                // 4. Quem está de Overlap (dia de treinamento) e sobra cobre a lacuna no posto,
+                //    dentro da capacidade dele: primeiro da mesma unidade, depois das outras do turno.
+                foreach ($lacunas as [$u, $i]) {
+                    $cands = array_keys($overlapUT[$u] ?? []);
+                    if (!$cands) {
+                        foreach ($overlapUT as $u2 => $rs) {
+                            $cands = array_merge($cands, array_keys($rs));
+                        }
+                    }
+                    $rep = $cands ? $escolher($cands, $est['postos'][$estadoUT[$u]['vagas'][$i]['pid']]) : null;
+                    if ($rep !== null) {
+                        $estadoUT[$u]['vagas'][$i]['rep'] = $rep;
+                        $estadoUT[$u]['vagas'][$i]['origem'] = 'BUFFER_NUCLEO';
+                        $estadoUT[$u]['vagas'][$i]['motivo'] = 'dia de treinamento (Overlap) usado para cobrir a lacuna';
+                        $estadoUT[$u]['vagas'][$i]['treino'] = true; // não conta nos dias seguidos, como o Overlap
+                        foreach (array_keys($overlapUT) as $u2) {
+                            unset($overlapUT[$u2][$rep]);
+                        }
+                        $usado[$rep] = true;
+                    }
+                }
+
+                // 5. Página de faturamento maior ainda vazia: o SR do posto de menor faturamento da unidade
+                //    (abaixo dela) muda para lá; a lacuna fica na página menor. Não tira o regular de uma
+                //    página que tem assistente alocado.
+                $temAssistente = static function (array $vagasU, int $j) use ($est): bool {
+                    $w = $est['postos'][$vagasU[$j]['pid']];
+                    if ($w['tipo'] === 'assistente') {
+                        return false;
+                    }
+                    foreach ($w['paginas'] as $pg) {
+                        if ($pg['apoio']) {
+                            continue;
+                        }
+                        $assist = false;
+                        $outroRegular = false;
+                        foreach ($vagasU as $k => $x) {
+                            if ($k === $j || $x['rep'] === null) {
+                                continue;
+                            }
+                            foreach ($est['postos'][$x['pid']]['paginas'] as $pg2) {
+                                if ($pg2['pagina'] !== $pg['pagina']) {
+                                    continue;
+                                }
+                                if ($est['postos'][$x['pid']]['tipo'] === 'assistente' || $pg2['apoio']) {
+                                    $assist = true;
+                                } else {
+                                    $outroRegular = true;
+                                }
+                            }
+                        }
+                        if ($assist && !$outroRegular) {
+                            return true;
+                        }
+                    }
+                    return false;
+                };
+                foreach ($lacunas as [$u, $i, $rec]) {
+                    if ($estadoUT[$u]['vagas'][$i]['rep'] !== null || $rec <= 0) {
+                        continue;
+                    }
+                    $fonte = null;
+                    $recFonte = null;
+                    foreach ($estadoUT[$u]['vagas'] as $j => $w) {
+                        if ($w['rep'] === null || $j === $i || !empty($w['treino']) || $receitaPosto[$w['pid']] >= $rec) {
+                            continue;
+                        }
+                        if ($fonte === null || $receitaPosto[$w['pid']] < $recFonte) {
+                            if (!$temAssistente($estadoUT[$u]['vagas'], $j)) {
+                                $fonte = $j;
+                                $recFonte = $receitaPosto[$w['pid']];
+                            }
+                        }
+                    }
+                    if ($fonte !== null) {
+                        $w = $estadoUT[$u]['vagas'][$fonte];
+                        $estadoUT[$u]['vagas'][$i]['rep'] = $w['rep'];
+                        $estadoUT[$u]['vagas'][$i]['origem'] = 'BUFFER_NUCLEO';
+                        $estadoUT[$u]['vagas'][$i]['motivo'] = 'remanejado de ' . $est['postos'][$w['pid']]['pagina_principal']
+                            . ' (faturamento menor) para a página de faturamento maior';
+                        $estadoUT[$u]['vagas'][$fonte]['rep'] = null;
+                        $estadoUT[$u]['vagas'][$fonte]['origem'] = null;
+                        $estadoUT[$u]['vagas'][$fonte]['motivo'] = null;
+                    }
+                }
+                $lacunas = $listarLacunas();
+
+                // 6. Ainda vazio: um SR já alocado no turno da unidade acumula o posto, se a Política deixa
+                //    juntar as páginas e a carga fica até over_max acima da capacidade. Acima de 100% fica
+                //    sinalizado (SOBRECARGA): previsão de problema de capacity.
+                $maxOver = (float) ($est['over_max'] ?? 0);
+                $semAcumular = ['assistente' => true, 'apoio' => true];
+                $acumula = [];
+                foreach ($lacunas as [$u, $i]) {
+                    $v = $estadoUT[$u]['vagas'][$i];
+                    $alvo = $est['postos'][$v['pid']];
+                    if ($v['rep'] !== null || isset($semAcumular[$alvo['tipo']])) {
+                        continue;
+                    }
+                    $melhor = null;
+                    $kMelhor = null;
+                    foreach ($estadoUT[$u]['vagas'] as $j => $w) {
+                        $rep = $w['rep'];
+                        if ($rep === null || $j === $i || isset($acumula[$rep]) || $w['origem'] === 'SOBRECARGA') {
+                            continue;
+                        }
+                        $base = $est['postos'][$w['pid']];
+                        if (isset($semAcumular[$base['tipo']])) {
+                            continue;
+                        }
+                        $cap = escV4CapacidadeJunta($base, $alvo, $est['modelo_pagina'] ?? []);
+                        if ($cap === null) {
+                            continue;
+                        }
+                        $carga = (float) $base['carga'] + (float) $alvo['carga'];
+                        $razao = $carga / $cap;
+                        if ($razao > 1 + $maxOver + 1e-9) {
+                            continue;
+                        }
+                        $k = [-round($razao, 3), $afinidade($rep, $alvo), $rep];
+                        if ($kMelhor === null || $k > $kMelhor) {
+                            $kMelhor = $k;
+                            $melhor = ['rep' => $rep, 'base' => $base, 'carga' => $carga, 'cap' => $cap, 'razao' => $razao];
+                        }
+                    }
+                    if ($melhor !== null) {
+                        $acima = $melhor['razao'] > 1 + 1e-9;
+                        $estadoUT[$u]['vagas'][$i]['rep'] = $melhor['rep'];
+                        $estadoUT[$u]['vagas'][$i]['origem'] = $acima ? 'SOBRECARGA' : 'BUFFER_NUCLEO';
+                        $estadoUT[$u]['vagas'][$i]['motivo'] = 'acumula com ' . $melhor['base']['pagina_principal'] . ': '
+                            . str_replace('.', ',', (string) round($melhor['carga'], 1)) . ' de ' . str_replace('.', ',', (string) round($melhor['cap'], 1))
+                            . ' fãs/h (' . round($melhor['razao'] * 100) . '% da capacidade)' . ($acima ? ' · previsão de problema de capacity' : '');
+                        $acumula[$melhor['rep']] = true;
+                        $sobrecargas += $acima ? 1 : 0;
+                    }
+                }
+            }
+
             // Saída por página e bloco
             foreach ($estadoUT as $u => $st) {
                 foreach ($st['vagas'] as $v) {
@@ -397,7 +698,9 @@ function escMotorAlocarV4(array $in): array {
                         $lacunasUT[$u . $turno] = ($lacunasUT[$u . $turno] ?? 0) + 1;
                     } else {
                         $feito[$v['rep']][$v['chave']] = ($feito[$v['rep']][$v['chave']] ?? 0) + 1;
-                        $trabalhou[$v['rep']][$dia] = true;
+                        if (empty($v['treino'])) {
+                            $trabalhou[$v['rep']][$dia] = true;
+                        }
                         $ultimo[$v['pid']] = $v['rep'];
                     }
                     foreach ($p['paginas'] as $pg) {
@@ -436,48 +739,34 @@ function escMotorAlocarV4(array $in): array {
                 }
             }
 
-            // Overlap: no dia de treinamento o SR fica no posto dele como Overlap (no CSV, código
-            // com "-5"), além de quem cobre a vaga. Depois se decide se vira buffer ou treinamento.
+            // Overlap: no dia de treinamento o SR que não cobriu lacuna vai para a página 5C Schedule
+            // (no CSV, código com "-5"). De lá se decide se vira buffer ou treinamento.
+            $pgOv = $est['overlap_pagina'] ?? null;
             foreach ($overlapUT as $u => $reps) {
                 foreach ($reps as $rep => $p) {
-                    $alvo = $postoDe[$rep] ?? null;
-                    if ($alvo === null) {
-                        // Sem equipe: o maior posto de que o núcleo dele é dono.
-                        foreach ($postosUT[$u][$turno] ?? [] as $pid) {
-                            if ((int) $est['postos'][$pid]['nucleo_dono_id'] === (int) $p['nucleo']) {
-                                $alvo = ['pid' => $pid, 'vaga' => 'DONO'];
-                                break;
-                            }
-                        }
-                    }
-                    if ($alvo === null) {
+                    if ($pgOv === null) {
                         $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'ROTACAO', 'ref_id' => null];
                         continue;
                     }
-                    $po = $est['postos'][$alvo['pid']];
-                    foreach ($po['paginas'] as $pg) {
-                        foreach ($blocos as $bloco) {
-                            $diaB = $diaBloco[$bloco];
-                            if (isset($travadasPorCelula[$diaB . '|' . $bloco . '|' . $pg['page_id']])) {
-                                continue;
-                            }
-                            $ind = $indisp[$rep][$dia][$turno] ?? null;
-                            if ($ind && is_array($ind['blocos']) && in_array($bloco, $ind['blocos'], true)) {
-                                continue;
-                            }
-                            $alocacoes[] = [
-                                'dia' => $diaB, 'bloco' => $bloco, 'turno' => $turno,
-                                'page_id' => $pg['page_id'], 'pagina' => $pg['pagina'],
-                                'posto_id' => $alvo['pid'], 'vaga' => $alvo['vaga'],
-                                'rep_code' => $rep,
-                                'papel' => ($po['tipo'] === 'assistente' || $pg['apoio']) ? 'ASSISTENTE' : 'REGULAR',
-                                'origem' => 'OVERLAP', 'travada' => 0,
-                                'motivo' => 'Overlap: dia de treinamento do 5x2 (buffer ou treinamento a decidir)',
-                            ];
-                            $resumoOrigem['OVERLAP'] = ($resumoOrigem['OVERLAP'] ?? 0) + 1;
+                    foreach ($blocos as $bloco) {
+                        $diaB = $diaBloco[$bloco];
+                        if (isset($travadasPorCelula[$diaB . '|' . $bloco . '|' . $pgOv['page_id']])) {
+                            continue;
                         }
+                        $ind = $indisp[$rep][$dia][$turno] ?? null;
+                        if ($ind && is_array($ind['blocos']) && in_array($bloco, $ind['blocos'], true)) {
+                            continue;
+                        }
+                        $alocacoes[] = [
+                            'dia' => $diaB, 'bloco' => $bloco, 'turno' => $turno,
+                            'page_id' => $pgOv['page_id'], 'pagina' => $pgOv['pagina'],
+                            'posto_id' => null, 'vaga' => null,
+                            'rep_code' => $rep, 'papel' => 'REGULAR', 'origem' => 'OVERLAP', 'travada' => 0,
+                            'motivo' => 'Overlap: dia de treinamento do 5x2 (buffer ou treinamento a decidir)',
+                        ];
+                        $resumoOrigem['OVERLAP'] = ($resumoOrigem['OVERLAP'] ?? 0) + 1;
                     }
-                    $overlaps[] = ['rep_code' => $rep, 'dia' => $dia, 'turno' => $turno, 'posto_id' => $alvo['pid']];
+                    $overlaps[] = ['rep_code' => $rep, 'dia' => $dia, 'turno' => $turno];
                 }
             }
         }
@@ -534,6 +823,7 @@ function escMotorAlocarV4(array $in): array {
             'vagas_sem_ninguem_por_unidade_turno' => $lacunasUT,
             'paginas_sem_party' => [],
             'overlaps' => count($overlaps),
+            'sobrecargas' => $sobrecargas,
         ],
     ];
 }

@@ -105,7 +105,7 @@ foreach ($saidas as $s) {
           <?php if (escPode('decidir')): ?>
           <form method="post" action="<?php echo h(link_tela('saidas', ['dias' => $dias])); ?>" class="acoes">
             <?php echo campoCsrf(); ?><input type="hidden" name="evento_id" value="<?php echo (int) $s['id']; ?>">
-            <input type="text" name="observacao" placeholder="observação" size="12">
+            <input type="text" name="observacao" placeholder="observação" size="12" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
             <?php if ($dec !== 'CONFIRMADA'): ?><button type="submit" name="decisao" value="CONFIRMADA" class="botao primario">Confirmar</button><?php endif; ?>
             <?php if ($dec !== 'NAO_SAIU'): ?><button type="submit" name="decisao" value="NAO_SAIU" class="botao">Não saiu</button><?php endif; ?>
             <?php if ($dec !== 'PENDENTE'): ?><button type="submit" name="decisao" value="PENDENTE" class="botao">Desfazer</button><?php endif; ?>

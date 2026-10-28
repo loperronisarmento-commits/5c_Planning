@@ -419,6 +419,7 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
 | `ES_09_transicao_01nov.sql` | Virada em 01/11 05:00 com 01/11 de transição (substitui o ES_08). Termina com quantos escalados de 01/11 entram: em 28/10, 145 SRs; 10 futuros OS e 7 futuros OM/OUM ficam de fora. |
 | `ES_10_postos_capacity_28out.sql` | Gerado por `gerador/gerar_es10.py`. Troca os postos pelos do Capacity (`fc_postos` de 28/10, com as páginas da mesma modelo juntas pela regra nova do Capacity) e remonta a proposta de equipe de cada vaga, mantendo cada SR nas páginas que já fazia no turno. Os postos e equipes de antes ficam só com o dia 31/10. |
 | `ES_11_overlap_treinamento.sql` | Origem OVERLAP e o parâmetro `v4_overlap_posicao_ciclo` = 1: no dia de treinamento (15º dia do 5x2, a folga isolada da semana 1) o SR entra como Overlap no posto dele, com `-5` no CSV. |
+| `ES_12_faturamento_overlap_over.sql` | Origem SOBRECARGA e os parâmetros `v4_receita_dias` (28), `v4_over_capacity_max` (0,15) e `v4_overlap_pagina` (5C Schedule): vagas por faturamento, Overlap na página 5C Schedule e acúmulo até 15% acima da capacidade, sinalizado. |
 | `ES_08_virada_02nov.sql` | Passa a virada para 02/11 01:00 e deixa sem dia de transição (`v4_dia_transicao` vazio): a escala antiga vai até 01/11 T6. |
 | `ES_07_conferencia_v4.sql` | Só leitura: conferência do plano da semana de 02/11 depois de gerar. |
 | `ES_98_desfazer_v4.sql` | Desfaz o ES_05 e o ES_04 sem apagar o schema. |

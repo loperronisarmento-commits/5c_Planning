@@ -282,7 +282,7 @@ $partiesNomes = array_column($parties, 'party');
   <form method="post" action="<?php echo h(link_tela('times')); ?>" class="form-grade">
     <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="pendencia">
     <label>Tipo<select name="tipo"><option value="MOVER">Mover de party</option><option value="ADICIONAR">Adicionar ao time</option><option value="REMOVER">Remover do time</option><option value="PASSAR_TERTIUS">Passar a Tertius</option><option value="PROMOVER">Promover</option></select></label>
-    <label>Código<input type="text" name="rep_code" placeholder="ex.: M443425" required></label>
+    <label>Colaborador<input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="buscar nome ou código" required></label>
     <label>Time de destino<select name="time_para"><option value="">(o mesmo)</option><?php foreach ($times as $t): ?><option><?php echo h($t); ?></option><?php endforeach; ?></select></label>
     <label>Party de destino<select name="party_para"><option value="">(a mesma / não se aplica)</option><?php foreach ($partiesNomes as $pn): ?><option><?php echo h($pn); ?></option><?php endforeach; ?></select></label>
     <label>Papel<select name="papel_para"><option value="">(o mesmo)</option><option>Primaris</option><option>Secundus</option><option>Tertius</option></select></label>

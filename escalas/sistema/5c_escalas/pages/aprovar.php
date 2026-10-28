@@ -165,7 +165,7 @@ $estrutura = escEstrutura();
   <h2>Lançar pedido em nome de alguém</h2>
   <form method="post" action="<?php echo h(link_tela('aprovar')); ?>" class="form-grade">
     <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="lancar">
-    <label>Código do colaborador<input type="text" name="rep_code" placeholder="ex.: M443425" required></label>
+    <label>Colaborador<input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="buscar nome ou código" required></label>
     <label>Tipo<select name="tipo"><option value="UM_DIA">Um dia</option><option value="VARIOS_DIAS">Vários dias</option><option value="RECORRENTE">Recorrente</option></select></label>
     <label>De<input type="date" name="inicio" required></label>
     <label>Até (vários dias / recorrente)<input type="date" name="fim"></label>

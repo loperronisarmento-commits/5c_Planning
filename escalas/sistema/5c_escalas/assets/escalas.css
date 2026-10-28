@@ -110,6 +110,11 @@ select, input[type="search"] { height: 38px; border-radius: 10px; border: 1px so
 
 .pessoa { display: inline-block; margin: 0 8px 4px 0; }
 .regras, .roteiro { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.busca-select { height: 32px; margin-bottom: 4px; border-radius: 8px; border: 1px solid var(--panel-border); background: var(--campo-bg); color: var(--texto); padding: 0 10px; font-size: 13px; width: 100%; box-sizing: border-box; }
+input[type="search"] { box-sizing: border-box; }
+.modal-fundo { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 16px; padding: 18px 20px; width: min(760px, 100%); max-height: 90vh; overflow: auto; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); }
+.modal input[type="search"] { width: 100%; box-sizing: border-box; }
 .cartao-csv { border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px; background: var(--campo-bg); display: flex; flex-direction: column; gap: 8px; }
 pre.csv { margin: 0; padding: 10px 12px; border-radius: 8px; background: #000; border: 1px solid var(--panel-border); color: #d6d7dc; font-size: 12px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, Consolas, monospace; }
 .acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -147,7 +152,15 @@ input[type="text"], input[type="number"], input[type="date"] { height: 36px; bor
 details > summary { list-style: none; display: inline-flex; margin-top: 4px; }
 details > summary::-webkit-details-marker { display: none; }
 details[open] > summary { margin-bottom: 8px; }
-table.grade td.celula { min-width: 110px; font-size: 12px; }
+table.grade td.celula { min-width: 118px; font-size: 12px; line-height: 1.55; }
+/* Grade: cabeçalho e coluna das páginas ficam visíveis ao rolar. */
+.grade-rolagem { max-height: 74vh; overflow: auto; border: 1px solid var(--panel-border); border-radius: 12px; }
+.grade-rolagem table.grade thead th { position: sticky; top: 0; z-index: 2; background: #17121a; }
+.grade-rolagem table.grade .col-pagina { position: sticky; left: 0; z-index: 1; background: var(--panel-bg); min-width: 170px; box-shadow: inset -1px 0 0 var(--panel-border); }
+.grade-rolagem table.grade thead th.col-pagina { z-index: 3; background: #17121a; }
+.grade-rolagem table.grade tbody tr:hover td.col-pagina { background: #1a151c; }
+.legenda { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.pessoa-cel.amostra { border: 1px solid currentColor; padding: 1px 8px; border-radius: 999px; }
 table.grade td.celula a { display: block; color: inherit; text-decoration: none; }
 table.grade td.celula:hover { background: rgba(255, 255, 255, 0.04); }
 table.grade td.lacuna { background: rgba(251, 146, 60, 0.10); }
@@ -163,6 +176,7 @@ table.grade td.travada { box-shadow: inset 3px 0 0 #a78bfa; }
 .origem-buffer_nucleo { color: #86efac; }
 .origem-transicao { color: #fcd34d; }
 .origem-overlap { color: #f9a8d4; }
+.origem-sobrecarga { color: #fb923c; font-weight: 600; }
 .quadrado { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 2px; vertical-align: middle; }
 .quadrado.trabalho { background: var(--accent); }
 .quadrado.folga { background: #3a3238; }

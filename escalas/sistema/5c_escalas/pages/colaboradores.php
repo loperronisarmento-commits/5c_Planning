@@ -20,7 +20,7 @@ if (escPost()) {
         $folgas .= !empty($_POST['folga'][$i]) ? '1' : '0';
     }
     $desde = (string) ($_POST['vigente_desde'] ?? date('Y-m-d'));
-    if (!isset(ESC_TURNOS[$turno]) || !in_array($tipo, ['TIME', 'BUFFER'], true) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $desde)) {
+    if (!isset(ESC_TURNOS[$turno]) || !in_array($tipo, ['TIME', 'BUFFER', 'NUCLEO'], true) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $desde)) {
         throw new RuntimeException('Turno, tipo ou data inválidos.');
     }
     $m = escQ1('SELECT id, tipo FROM ' . escT('esc_modelo_escala') . ' WHERE id = ? AND ativo = 1', [$modelo]);
@@ -44,8 +44,11 @@ if (escPost()) {
             if ($atual) {
                 escW('UPDATE ' . escT('esc_colaborador_config') . ' SET vigente_ate = ?, atualizado_por = ? WHERE id = ?', [escMaisDias($desde, -1), escUserId(), (int) $atual['id']]);
             }
-            escW('INSERT INTO ' . escT('esc_colaborador_config') . ' (rep_code, modelo_id, tipo, turno, trilha, folgas_fixas, pode_assistente, vigente_desde, observacao, origem, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, \'TELA\', ?)',
-                [$rep, $novo['modelo_id'], $novo['tipo'], $novo['turno'], $novo['trilha'], $novo['folgas_fixas'], $novo['pode_assistente'], $desde, $novo['observacao'], escUserId()]);
+            // A nova vigência leva junto a estrutura de 01/11 (unidade, núcleo, nível, função, fatia, âncora).
+            escW('INSERT INTO ' . escT('esc_colaborador_config') . ' (rep_code, modelo_id, tipo, turno, trilha, ancora, folgas_fixas, pode_assistente, unidade, nucleo_id, nivel, funcao, fatia_regular, vigente_desde, observacao, origem, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'TELA\', ?)',
+                [$rep, $novo['modelo_id'], $novo['tipo'], $novo['turno'], $novo['trilha'], $atual['ancora'] ?? null, $novo['folgas_fixas'], $novo['pode_assistente'],
+                 $atual['unidade'] ?? null, $atual['nucleo_id'] ?? null, $atual['nivel'] ?? null, $atual['funcao'] ?? null, $atual['fatia_regular'] ?? null,
+                 $desde, $novo['observacao'], escUserId()]);
         }
         escLog('colaborador.salvar', 'esc_colaborador_config', $rep, $atual, $novo + ['vigente_desde' => $desde]);
     });
@@ -93,10 +96,10 @@ $dsem = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
   <h2><?php echo $ce ? 'Editar ' . h($edit) . ' · ' . h($nomes[$edit] ?? '') : 'Novo colaborador'; ?></h2>
   <form method="post" action="<?php echo h(link_tela('colaboradores')); ?>" class="form-grade">
     <?php echo campoCsrf(); ?>
-    <label>Código<input type="text" name="rep_code" value="<?php echo h($edit === 'NOVO' ? '' : $edit); ?>" <?php echo $ce ? 'readonly' : ''; ?> required></label>
+    <label>Colaborador<input type="search" name="rep_code" value="<?php echo h($edit === 'NOVO' ? '' : $edit); ?>" <?php echo $ce ? 'readonly' : 'list="lista-colaboradores" autocomplete="off" placeholder="buscar nome ou código"'; ?> required></label>
     <label>Modelo<select name="modelo_id"><?php foreach ($modelos as $m): ?><option value="<?php echo (int) $m['id']; ?>" <?php echo (int) $m['id'] === (int) $c['modelo_id'] ? 'selected' : ''; ?>><?php echo h($m['nome']); ?></option><?php endforeach; ?></select></label>
     <label>Turno fixo<select name="turno"><?php foreach (['A' => 'A · 05–13', 'C' => 'C · 13–21', 'D' => 'D · 21–05'] as $t => $r): ?><option value="<?php echo $t; ?>" <?php echo $c['turno'] === $t ? 'selected' : ''; ?>><?php echo h($r); ?></option><?php endforeach; ?></select></label>
-    <label>Tipo<select name="tipo"><option value="TIME" <?php echo $c['tipo'] === 'TIME' ? 'selected' : ''; ?>>Time</option><option value="BUFFER" <?php echo $c['tipo'] === 'BUFFER' ? 'selected' : ''; ?>>Buffer</option></select></label>
+    <label>Tipo<select name="tipo"><option value="TIME" <?php echo $c['tipo'] === 'TIME' ? 'selected' : ''; ?>>Time</option><option value="BUFFER" <?php echo $c['tipo'] === 'BUFFER' ? 'selected' : ''; ?>>Buffer</option><option value="NUCLEO" <?php echo $c['tipo'] === 'NUCLEO' ? 'selected' : ''; ?>>Núcleo (estrutura nova)</option></select></label>
     <label>Trilha (vazio = calcular)<input type="number" name="trilha" min="0" max="13" value="<?php echo h($c['trilha'] ?? ''); ?>"></label>
     <label>Vale a partir de<input type="date" name="vigente_desde" value="<?php echo h(date('Y-m-d')); ?>"></label>
     <fieldset class="dias-folga"><legend>Folgas fixas (só modelo semana fixa)</legend>

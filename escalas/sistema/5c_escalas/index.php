@@ -18,6 +18,9 @@ require_once __DIR__ . '/config/logger.php';
 require_once __DIR__ . '/config/config.php';
 require_once SHARED_ROOT . 'helpers/auth.php';
 require_once __DIR__ . '/lib/db.php';
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    escConexaoUnica();
+}
 require_once __DIR__ . '/lib/helpers.php';
 require_once __DIR__ . '/lib/acesso.php';
 require_once __DIR__ . '/lib/dados.php';
@@ -90,6 +93,18 @@ if ($erroBanco !== null || $usuario === null) {
 }
 $GLOBALS['ESC_USUARIO'] = $usuario;
 
+// Os campos de busca de colaborador mandam "Nome (CÓDIGO)": fica só o código.
+$soCodigo = static function (&$v): void {
+    if (is_string($v) && preg_match('~\(([A-Za-z]\d{6})\)\s*$~', $v, $m)) {
+        $v = strtoupper($m[1]);
+    }
+};
+array_walk_recursive($_POST, $soCodigo);
+array_walk_recursive($_GET, $soCodigo);
+
+// As telas usam $p nos próprios laços (ex.: foreach ($pedidos as $p)): guarda qual tela é.
+$telaAtual = $p;
+
 // ---------- POST e downloads (antes de qualquer HTML) ----------
 if (escPost() || isset($_GET['baixar'])) {
     try {
@@ -98,6 +113,7 @@ if (escPost() || isset($_GET['baixar'])) {
         }
         require __DIR__ . '/' . $telas[$p][1];
     } catch (Throwable $e) {
+        $p = $telaAtual;
         appLog('error', 'Erro em ação', ['p' => $p, 'erro' => $e->getMessage(), 'linha' => $e->getLine(), 'arquivo' => basename($e->getFile())]);
         $msg = $e instanceof RuntimeException ? $e->getMessage() : 'Não deu para concluir. Detalhes em logs/app.log.';
         $volta = array_intersect_key($_GET, array_flip(['semana', 'plano', 'time', 'turno', 'status', 'corte']));
@@ -113,12 +129,35 @@ ob_start();
 try {
     require __DIR__ . '/' . $telas[$p][1];
 } catch (Throwable $e) {
+    $p = $telaAtual;
     appLog('error', 'Erro na tela', ['p' => $p, 'erro' => $e->getMessage(), 'linha' => $e->getLine(), 'arquivo' => basename($e->getFile())]);
     echo '<section class="panel erro"><h2>Não deu para carregar esta tela</h2><p class="muted">'
         . h($e instanceof RuntimeException ? $e->getMessage() : 'Erro ao consultar o banco. Detalhes em logs/app.log.')
         . '</p></section>';
 }
 $conteudo = ob_get_clean();
+$p = $telaAtual;
+
+// Listas de busca (só quando a tela usa): colaboradores ativos e páginas ativas.
+$listas = '';
+try {
+    if (strpos($conteudo, 'list="lista-colaboradores"') !== false) {
+        $listas .= '<datalist id="lista-colaboradores">';
+        foreach (escQ("SELECT UPPER(code) AS code, name, position FROM `5c_headcount`.`headcount` WHERE active = 1 AND code IS NOT NULL ORDER BY name") as $l) {
+            $listas .= '<option value="' . h(trim((string) $l['name']) . ' (' . $l['code'] . ')') . '">' . h((string) $l['position']) . '</option>';
+        }
+        $listas .= '</datalist>';
+    }
+    if (strpos($conteudo, 'list="lista-paginas"') !== false) {
+        $listas .= '<datalist id="lista-paginas">';
+        foreach (escQ('SELECT DISTINCT name FROM `5c_pages`.`pages` WHERE active = 1 ORDER BY name') as $l) {
+            $listas .= '<option value="' . h((string) $l['name']) . '"></option>';
+        }
+        $listas .= '</datalist>';
+    }
+} catch (Throwable $e) {
+    appLog('error', 'Listas de busca', ['erro' => $e->getMessage()]);
+}
 
 $menu = [
     'Planejamento' => [['painel', 'Painel'], ['gerar', 'Gerar escala'], ['grade', 'Grade da escala'], ['tertius', 'Equilíbrio Tertius'], ['sugestoes', 'Sugestões de troca'], ['buffers', 'Buffers']],
@@ -167,6 +206,7 @@ try {
 <main class="conteudo">
   <?php echo avisos(); ?>
   <?php echo $conteudo; ?>
+  <?php echo $listas; ?>
 </main>
 </div>
 <script src="<?php echo h(MODULE_URL); ?>/assets/escalas.js?v=<?php echo @filemtime(__DIR__ . '/assets/escalas.js') ?: time(); ?>"></script>

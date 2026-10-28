@@ -117,10 +117,10 @@ $confianca = static function (int $n): array {
         <details><summary class="botao">Ajustar previsão e destino</summary>
           <form method="post" action="<?php echo h(link_tela('funil')); ?>" class="form-grade">
             <?php echo campoCsrf(); ?><input type="hidden" name="crm_card_id" value="<?php echo (int) $c['id']; ?>">
-            <label>Página<input type="text" name="pagina" value="<?php echo h($pv['pagina'] ?? $c['cliente']); ?>"></label>
+            <label>Página<input type="search" name="pagina" list="lista-paginas" autocomplete="off" value="<?php echo h($pv['pagina'] ?? $c['cliente']); ?>"></label>
             <label>Perfil<select name="perfil"><?php foreach (['MAIN' => 'Main', 'VIP' => 'VIP', 'FREE' => 'Free', 'OFTV' => 'OFTV'] as $k => $r): ?><option value="<?php echo $k; ?>" <?php echo ($pv['perfil'] ?? 'MAIN') === $k ? 'selected' : ''; ?>><?php echo $r; ?></option><?php endforeach; ?></select></label>
             <label>Base<select name="base"><option value="ARQUETIPO">Arquétipo</option><option value="REFERENCIA" <?php echo ($pv['base'] ?? '') === 'REFERENCIA' ? 'selected' : ''; ?>>Página de referência</option><option value="INFORMADO" <?php echo ($pv['base'] ?? '') === 'INFORMADO' ? 'selected' : ''; ?>>Fãs/h informados</option></select></label>
-            <label>Página de referência<input type="text" name="pagina_referencia" value="<?php echo h($pv['pagina_referencia'] ?? ''); ?>"></label>
+            <label>Página de referência<input type="search" name="pagina_referencia" list="lista-paginas" autocomplete="off" value="<?php echo h($pv['pagina_referencia'] ?? ''); ?>"></label>
             <label>Fãs/h A<input type="text" name="fans_h_a" value="<?php echo h($pv['fans_h_a'] ?? ''); ?>"></label>
             <label>Fãs/h C<input type="text" name="fans_h_c" value="<?php echo h($pv['fans_h_c'] ?? ''); ?>"></label>
             <label>Fãs/h D<input type="text" name="fans_h_d" value="<?php echo h($pv['fans_h_d'] ?? ''); ?>"></label>

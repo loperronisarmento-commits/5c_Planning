@@ -30,8 +30,14 @@ if (escPost()) {
             throw new RuntimeException('Célula inválida.');
         }
         $pagina = escQ1('SELECT pagina FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id = ? LIMIT 1', [$planoId, $pid]);
-        $regular = strtoupper(trim((string) ($_POST['regular'] ?? '')));
-        $assist = array_filter(array_map(static fn($x) => strtoupper(trim($x)), explode(',', (string) ($_POST['assistentes'] ?? ''))));
+        // A busca manda "Nome (CÓDIGO)"; também vale o código puro.
+        $codigo = static function (string $v): string {
+            $v = strtoupper(trim($v));
+            return preg_match('~\(([A-Z]\d{6})\)\s*$~', $v, $m) ? $m[1] : $v;
+        };
+        $regular = $codigo((string) ($_POST['regular'] ?? ''));
+        $brutos = is_array($_POST['assistentes'] ?? null) ? $_POST['assistentes'] : explode(',', (string) ($_POST['assistentes'] ?? ''));
+        $assist = array_values(array_unique(array_filter(array_map(static fn($x) => $codigo((string) $x), $brutos))));
         foreach (array_merge([$regular], $assist) as $c) {
             if ($c !== '' && !preg_match('~^[A-Z]\d{6}$~', $c)) {
                 throw new RuntimeException('Código inválido: ' . $c . ' (formato letra + 6 números).');
@@ -48,11 +54,13 @@ if (escPost()) {
                 if ($regular === '' && !$assist) {
                     $linhas[] = ['rep' => null, 'papel' => 'REGULAR', 'origem' => 'LACUNA'];
                 }
+                // Na página do Overlap (5C Schedule) o ajuste continua Overlap: sai com -5 no CSV.
+                $origem = ($pagina['pagina'] ?? '') === escV4Param('v4_overlap_pagina', '5C Schedule') ? 'OVERLAP' : 'MANUAL';
                 if ($regular !== '') {
-                    $linhas[] = ['rep' => $regular, 'papel' => 'REGULAR', 'origem' => 'MANUAL'];
+                    $linhas[] = ['rep' => $regular, 'papel' => 'REGULAR', 'origem' => $origem];
                 }
                 foreach ($assist as $a) {
-                    $linhas[] = ['rep' => $a, 'papel' => 'ASSISTENTE', 'origem' => 'MANUAL'];
+                    $linhas[] = ['rep' => $a, 'papel' => $origem === 'OVERLAP' ? 'REGULAR' : 'ASSISTENTE', 'origem' => $origem];
                 }
                 foreach ($linhas as $l) {
                     escW('INSERT INTO ' . escT('esc_plano_alocacao') . ' (plano_id, dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo, alterado_em, alterado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), ?)',
@@ -64,6 +72,9 @@ if (escPost()) {
         escVoltar('grade', ['plano' => $planoId, 'turno' => $turno, 'time' => $_GET['time'] ?? ''], 'Célula ajustada e travada (recálculos mantêm).');
     }
     if ($acao === 'publicar') {
+        if ($plano['status'] !== 'RASCUNHO') {
+            throw new RuntimeException('Esta versão está ' . strtolower($plano['status']) . ': só dá para publicar o rascunho atual. Abra a versão mais recente em Gerar escala.');
+        }
         $resumo = json_decode((string) $plano['resumo'], true) ?: [];
         if (!empty($resumo['anomalias']) && empty($_POST['ciente'])) {
             throw new RuntimeException('Há ' . (int) $resumo['anomalias'] . ' anomalia(s) programada(s). Marque "estou ciente" para publicar assim.');
@@ -188,8 +199,8 @@ if (isset($_GET['baixar'])) {
     return;
 }
 
-$aba = $_GET['aba'] ?? 'pagina';
-$turnoSel = $_GET['turno'] ?? 'C';
+$aba = is_string($_GET['aba'] ?? null) ? $_GET['aba'] : 'pagina';
+$turnoSel = is_string($_GET['turno'] ?? null) ? $_GET['turno'] : 'C';
 if (!isset(ESC_TURNOS[$turnoSel])) {
     $turnoSel = 'C';
 }
@@ -203,6 +214,15 @@ sort($times);
 $timeSel = (string) ($_GET['time'] ?? '');
 $nomes = escNomes();
 $resumo = json_decode((string) $plano['resumo'], true) ?: [];
+// Nome curto que se repete entre os SRs do plano (ex.: dois "Gustavo Pereira") sai com o código.
+$curtos = [];
+foreach (array_unique(array_filter(array_column($aloc, 'rep_code'))) as $c) {
+    $curtos[nomeCurto($nomes[$c] ?? $c)][$c] = true;
+}
+$nomeCelula = static function (string $c) use ($nomes, $curtos): string {
+    $curto = nomeCurto($nomes[$c] ?? $c);
+    return count($curtos[$curto] ?? []) > 1 ? $curto . ' · ' . $c : $curto;
+};
 
 // Primeiro bloco do turno representa o turno na grade.
 $blocoRef = ESC_TURNOS[$turnoSel][0];
@@ -216,13 +236,27 @@ foreach ($aloc as $a) {
     }
     $grade[$pid][substr($a['dia'], 0, 10)][] = $a;
 }
+// Estrutura nova: a linha mostra a carteira da página (dos postos da semana), não a party.
+$ehV4 = ($plano['estrutura'] ?? 'V3') === 'V4';
+$carteiraDe = [];
+if ($ehV4) {
+    $fimSemana = escMaisDias($seg, 6);
+    foreach (escQ('SELECT DISTINCT pp.page_id, p.carteira FROM ' . escT('esc_posto_pagina') . ' pp JOIN ' . escT('esc_posto') . ' p ON p.id = pp.posto_id
+                    WHERE p.vigente_desde <= ? AND (p.vigente_ate IS NULL OR p.vigente_ate >= ?) ORDER BY p.carteira', [$fimSemana, $fimSemana]) as $l) {
+        $carteiraDe[(int) $l['page_id']][] = $l['carteira'];
+    }
+}
+$pagOverlap = $ehV4 ? escV4Param('v4_overlap_pagina', '5C Schedule') : '';
 $listaPaginas = [];
 foreach ($paginasPlano as $pid => $nome) {
     $time = $porId[$pid]['time'] ?? '';
-    if ($timeSel !== '' && $time !== $timeSel) {
+    if (!$ehV4 && $timeSel !== '' && $time !== $timeSel) {
         continue;
     }
-    $listaPaginas[] = ['id' => $pid, 'nome' => $nome, 'time' => $time, 'party' => $porId[$pid]['party'] ?? ''];
+    $rotulo = $ehV4
+        ? ($nome === $pagOverlap ? 'Overlap · dia de treinamento (-5)' : (implode(' · ', array_unique($carteiraDe[$pid] ?? [])) ?: 'fora dos postos'))
+        : ($porId[$pid]['party'] ?? '');
+    $listaPaginas[] = ['id' => $pid, 'nome' => $nome, 'time' => $ehV4 ? '' : $time, 'party' => $rotulo];
 }
 usort($listaPaginas, static fn($a, $b) => [$a['time'], $a['party'], $a['nome']] <=> [$b['time'], $b['party'], $b['nome']]);
 
@@ -245,6 +279,7 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
   <div class="kpi"><span class="muted">Anomalias programadas</span><strong class="<?php echo !empty($resumo['anomalias']) ? 'vermelho' : ''; ?>"><?php echo (int) ($resumo['anomalias'] ?? 0); ?></strong><span class="muted small">dias seguidos acima do modelo</span></div>
   <?php if (($resumo['estrutura'] ?? '') === 'V4'): ?>
   <div class="kpi"><span class="muted">Buffers de plantão</span><strong><?php echo (int) ($resumo['buffers_ociosos'] ?? 0); ?></strong><span class="muted small">pessoa-turnos sem posto (cobrem faltas)</span></div>
+  <div class="kpi"><span class="muted">Acima da capacidade</span><strong class="<?php echo !empty($resumo['sobrecargas']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['sobrecargas'] ?? 0); ?></strong><span class="muted small">posto-dias acumulados por um SR até <?php echo (int) round((float) escV4Param('v4_over_capacity_max', '0.15') * 100); ?>% acima (⚠ na grade)</span></div>
   <div class="kpi"><span class="muted">Postos sem ninguém</span><strong class="<?php echo !empty($resumo['vagas_sem_ninguem']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['vagas_sem_ninguem'] ?? 0); ?></strong><span class="muted small">de <?php echo (int) ($resumo['vagas_dia'] ?? 0); ?> posto-dias<?php
     $porUT = [];
     foreach ($resumo['vagas_sem_ninguem_por_unidade_turno'] ?? [] as $ut => $n) {
@@ -268,10 +303,12 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
       <select name="turno" onchange="this.form.submit()" aria-label="Turno">
         <?php foreach (['A' => 'Turno A (05–13)', 'C' => 'Turno C (13–21)', 'D' => 'Turno D (21–05)'] as $t => $rot): ?><option value="<?php echo $t; ?>" <?php echo $t === $turnoSel ? 'selected' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
       </select>
+      <?php if (!$ehV4): ?>
       <select name="time" onchange="this.form.submit()" aria-label="Time">
         <option value="">Todos os times</option>
         <?php foreach ($times as $t): ?><option <?php echo $t === $timeSel ? 'selected' : ''; ?>><?php echo h($t); ?></option><?php endforeach; ?>
       </select>
+      <?php endif; ?>
     </form>
   </div>
 
@@ -292,20 +329,20 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
   </div>
 
 <?php if ($aba === 'pagina'): ?>
-  <div class="tabela-rolagem">
+  <div class="tabela-rolagem grade-rolagem">
   <table class="grade">
-    <thead><tr><th>Página</th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?><th></th></tr></thead>
+    <thead><tr><th class="col-pagina">Página</th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?><th></th></tr></thead>
     <tbody>
     <?php foreach ($listaPaginas as $pg): ?>
       <tr>
-        <td><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: 'sem party'); ?></span></td>
+        <td class="col-pagina"><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: 'sem party'); ?></span></td>
         <?php foreach ($dias as $d): $cel = $grade[$pg['id']][$d] ?? []; $lac = $cel && !array_filter($cel, static fn($x) => $x['rep_code'] !== null); ?>
           <td class="celula <?php echo $lac ? 'lacuna' : ''; ?> <?php echo array_filter($cel, static fn($x) => (int) $x['travada'] === 1) ? 'travada' : ''; ?>">
-            <a href="<?php echo h(link_tela('grade', $params + ['pg' => $pg['id'], 'dia' => $d])); ?>#detalhe">
+            <a href="<?php echo h(link_tela('grade', $params + ['pg' => $pg['id'], 'dia' => $d])); ?>" data-manter-rolagem>
             <?php if (!$cel): ?><span class="muted">—</span><?php endif; ?>
             <?php foreach ($cel as $x): ?>
               <?php if ($x['rep_code'] === null): ?><span class="laranja">lacuna</span><br>
-              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php echo h(nomeCurto($nomes[$x['rep_code']] ?? $x['rep_code'])); ?><?php echo $x['origem'] === 'OVERLAP' ? ' -5' : ($x['papel'] === 'ASSISTENTE' ? ' #' : ''); ?></span><br><?php endif; ?>
+              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php echo h($nomeCelula($x['rep_code'])); ?><?php echo $x['origem'] === 'OVERLAP' ? ' -5' : ($x['papel'] === 'ASSISTENTE' ? ' #' : ''); ?><?php echo $x['origem'] === 'SOBRECARGA' ? ' ⚠' : ''; ?></span><br><?php endif; ?>
             <?php endforeach; ?>
             </a>
           </td>
@@ -317,11 +354,20 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
     </tbody>
   </table>
   </div>
-  <p class="muted small">Mostrando o bloco <?php echo h($blocoRef); ?> do turno <?php echo h($turnoSel); ?>. Cores: <?php echo ($plano['estrutura'] ?? 'V3') === 'V4' ? 'vaga do dono, cobertura, buffer do núcleo, transição, Overlap (-5), ajuste manual' : 'party dona, outra party, rodízio, Buffer, ajuste manual'; ?>. "#" = assistente. Clique na célula para ver o porquê e ajustar.</p>
+  <div class="legenda small">
+    <span class="muted">Bloco <?php echo h($blocoRef); ?> do turno <?php echo h($turnoSel); ?> ·</span>
+    <?php foreach ($ehV4
+        ? ['vaga_dono' => 'vaga do dono', 'vaga_cobertura' => 'cobertura', 'buffer_nucleo' => 'buffer do núcleo', 'transicao' => 'transição', 'overlap' => 'Overlap (-5)', 'sobrecarga' => 'acima da capacidade ⚠', 'manual' => 'ajuste manual']
+        : ['party_dona' => 'party dona', 'outra_party' => 'outra party', 'tertius' => 'rodízio', 'buffer' => 'Buffer', 'manual' => 'ajuste manual'] as $cls => $rot): ?>
+      <span class="pessoa-cel origem-<?php echo $cls; ?> amostra"><?php echo h($rot); ?></span>
+    <?php endforeach; ?>
+    <span class="muted">· "#" = assistente · clique na célula para ver o porquê e ajustar</span>
+  </div>
 
   <?php if ($sel): $pgSel = $porId[$sel['page_id']] ?? ['nome' => $paginasPlano[$sel['page_id']] ?? '', 'party' => '']; ?>
-  <div class="cartao-csv" id="detalhe">
-    <div class="linha-titulo"><strong><?php echo h($pgSel['nome']); ?> · <?php echo h(dataBr($sel['dia'], true)); ?> · turno <?php echo h($turnoSel); ?></strong><a class="botao" href="<?php echo h(link_tela('grade', $params)); ?>">Fechar</a></div>
+  <div class="modal-fundo" role="dialog" aria-modal="true" aria-label="Ajustar célula">
+  <div class="modal">
+    <div class="linha-titulo"><strong><?php echo h($pgSel['nome']); ?> · <?php echo h(dataBr($sel['dia'], true)); ?> · turno <?php echo h($turnoSel); ?></strong><a class="botao" href="<?php echo h(link_tela('grade', $params)); ?>" data-manter-rolagem data-fechar-modal>Fechar</a></div>
     <ul class="regras small">
       <?php foreach ($sel['linhas'] as $x): ?>
         <li><?php echo $x['rep_code'] ? h(($nomes[$x['rep_code']] ?? '') . ' (' . $x['rep_code'] . ')') : '<span class="laranja">lacuna</span>'; ?> · <?php echo h(strtolower($x['papel'])); ?> · <?php echo h($x['motivo']); ?><?php echo (int) $x['travada'] ? ' · <strong>travado</strong>' : ''; ?></li>
@@ -331,17 +377,30 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
     <?php if (escPode('planejar') && $ehRascunho):
         $reg = ''; $ass = [];
         foreach ($sel['linhas'] as $x) { if ($x['rep_code'] && $x['papel'] === 'REGULAR' && $reg === '') { $reg = $x['rep_code']; } elseif ($x['rep_code']) { $ass[] = $x['rep_code']; } }
+        $rotulo = static fn(string $c): string => $c === '' ? '' : (($nomes[$c] ?? $c) . ' (' . $c . ')');
+        // Busca: SRs do turno primeiro (estrutura nova), depois todo mundo do headcount.
+        $srsTurno = [];
+        foreach (escQ('SELECT UPPER(rep_code) AS c, unidade, nivel FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND turno = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)", [$turnoSel, $sel['dia'], $sel['dia']]) as $l) {
+            $srsTurno[$l['c']] = 'U' . $l['unidade'] . ' · SR ' . $l['nivel'];
+        }
     ?>
-    <form method="post" action="<?php echo h(link_tela('grade', $params)); ?>" class="form-grade">
+    <datalist id="lista-srs">
+      <?php foreach ($srsTurno as $c => $info): ?><option value="<?php echo h($rotulo($c)); ?>"><?php echo h($info . ' · turno ' . $turnoSel); ?></option><?php endforeach; ?>
+      <?php foreach ($nomes as $c => $n): if (isset($srsTurno[$c]) || !preg_match('~^[A-Z]\d{6}$~', (string) $c)) { continue; } ?><option value="<?php echo h($n . ' (' . $c . ')'); ?>"></option><?php endforeach; ?>
+    </datalist>
+    <form method="post" action="<?php echo h(link_tela('grade', $params)); ?>" class="form-grade" data-manter-rolagem>
       <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="editar"><input type="hidden" name="page_id" value="<?php echo (int) $sel['page_id']; ?>"><input type="hidden" name="dia" value="<?php echo h($sel['dia']); ?>"><input type="hidden" name="turno" value="<?php echo h($turnoSel); ?>">
-      <label>Regular (código)<input type="text" name="regular" value="<?php echo h($reg); ?>" placeholder="ex.: M443425"></label>
-      <label>Assistentes (códigos separados por vírgula)<input type="text" name="assistentes" value="<?php echo h(implode(', ', $ass)); ?>"></label>
+      <label>Regular<input type="search" name="regular" list="lista-srs" value="<?php echo h($rotulo($reg)); ?>" placeholder="buscar nome ou código" autocomplete="off" autofocus></label>
+      <?php for ($k = 0; $k < max(4, count($ass) + 1); $k++): ?>
+      <label>Assistente <?php echo $k + 1; ?><input type="search" name="assistentes[]" list="lista-srs" value="<?php echo h($rotulo($ass[$k] ?? '')); ?>" placeholder="buscar nome ou código" autocomplete="off"></label>
+      <?php endfor; ?>
       <button type="submit" class="botao primario">Salvar e travar</button>
-      <span class="muted small">Vale para os dois blocos do turno. Deixe tudo vazio para marcar como lacuna.</span>
+      <span class="muted small">Vale para os dois blocos do turno. Deixe tudo vazio para marcar como lacuna. Esc fecha.</span>
     </form>
     <?php elseif (!$ehRascunho): ?>
       <p class="muted small">Versão <?php echo h(strtolower($plano['status'])); ?>: para ajustar, crie um rascunho a partir dela.</p>
     <?php endif; ?>
+  </div>
   </div>
   <?php endif; ?>
 
