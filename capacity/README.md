@@ -40,6 +40,8 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 5 | `5C_Planning_14_quadro_e_turmas_cenarios.sql` | Quadro alvo e vagas por unidade e turno nos 2 cenários, e o plano de turmas de cada um. Não mexe no plano oficial (`fc_contratacoes`). |
 | 6 | `5C_Planning_15_adotar_cenario_capacity.sql` | Adota o cenário Capacity (decisão de 28/10): troca as turmas planejadas a partir de 07/12 em `fc_contratacoes`, com cópia de segurança, e recalcula. Tem o bloco para desfazer. |
 | 7 | `5C_Planning_16_postos_semana_01nov.sql` | Grava os postos com `data_calculo` = 28/10, já agrupando primeiro a mesma modelo. É a base fixa que o Planning tool usa na escala de 01/11 a 08/11. Rodar depois do 11 (versão 1.1) e do 13. |
+| 8 | `5C_Planning_17_turma_0211_real.sql` | Corrige a turma de 02/11 em `fc_contratacoes` para os contratados reais: A 4 · C 7 · D 4. O total continua 15. |
+| 9 | `5C_Planning_18_sem_skylar.sql` | Tira a Skylar Mae VIP da estrutura (a modelo saiu em 28/10) e recalcula a base de 28/10. Depois dele, o 13 não confere mais: a referência de 26/10 tinha a Skylar. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -160,6 +162,19 @@ Pontos de atenção:
 **Decisão de 28/10: o cenário Capacity vira o plano oficial.** O script 15 troca as turmas planejadas a partir de 07/12 em `fc_contratacoes` pelas do cenário. As turmas de 02/11 e 16/11 já confirmadas ficam como estão. No total são 315 pessoas: 35 já confirmadas e 280 em 14 turmas planejadas, até 28/06/2027.
 
 Com o teto de 20 por turma, os dois cenários contratam o mesmo número de pessoas por turma. Só a divisão entre turnos muda, em 5 turmas de fev a mai. A escolha pesa mais na divisão das vagas entre as unidades.
+
+## Saída da Skylar (28/10)
+
+A Skylar Mae VIP (U1 · C1) ocupava 4 postos em cada turno: 1 titular e 3 assistentes, pela regra `SKYLAR` (limite 40, mínimo 4). A modelo saiu em 28/10. O script 18 fecha a vigência da página em `fc_pagina_carteira` e recalcula a base de 28/10. Nenhuma outra página muda de posto, porque a Skylar nunca dividia posto.
+
+| Base de 28/10 | Postos | Titulares | Buffer (A / C / D) | Precisa | Tem | Saldo |
+|---|---|---|---|---|---|---|
+| Com a Skylar | 172 | 259 | 62 (19 / 22 / 21) | 321 | 220 | −101 |
+| Sem a Skylar | 160 | 241 | 59 (18 / 20 / 21) | **300** | 220 | **−80** |
+
+- **Só a U1 muda:** 13 / 14 / 12 postos e 20 / 21 / 18 titulares. O pico da U1 cai de 2,18 / 1,96 / 1,62 para 1,82 / 1,35 / 1,62.
+- **A U1 · C1 fica pequena:** 5 / 5 / 4 postos, contra 8 / 9 / 8 da U1 · C2. Os reps que estavam na Skylar sobram ali.
+- **O plano de turmas não foi mexido:** continua com 315 contratações. O alvo do quadro caiu cerca de 21, então rever as turmas a partir de 07/12 é decisão do usuário.
 
 ## O que não muda
 
