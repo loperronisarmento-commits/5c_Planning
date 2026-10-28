@@ -36,7 +36,8 @@ ON DUPLICATE KEY UPDATE valor = VALUES(valor), descricao = VALUES(descricao);
 --   buffer do turno = ↑ Σ presentes × núcleos ÷ (núcleos − núcleos de folga)   (× 3 ÷ 2: o buffer segue a folga do núcleo)
 --   cada unidade recebe a sua parte proporcional aos presentes, nunca menos que buffer_minimo_nucleo × núcleos;
 --   dentro da unidade, o Planning tool divide entre os núcleos (desigual, respeitando o mínimo)
---   taxa de falta = absenteísmo + peso_af_buffer × falha administrativa (abs_adh_af, por turno)
+--   taxa de falta = absenteísmo + peso_af_buffer × falha administrativa (abs_adh_af, por turno);
+--                   a AF_DOBRA não entra (decisão de 28/10: a dobra é decisão de escala; com os buffers ela some)
 --   pico = percentil_pico dos dias: no pior horário do dia, soma dos fãs que passam da capacidade
 --          dos postos de cada página (com tolerância até teto_pico_fans_rep por rep) ÷ limite_padrao
 INSERT INTO fc_parametros (chave, valor, descricao) VALUES
@@ -44,7 +45,7 @@ INSERT INTO fc_parametros (chave, valor, descricao) VALUES
  ('buffer_minimo_nucleo',     2,    'Buffer mínimo de cada núcleo; acima disso a distribuição entre núcleos é livre (contagem global por turno)'),
  ('nucleos_folga_dia',        1,    'Núcleos de folga por dia no 5x2 rotativo de 21 dias (2 de 3 trabalham)'),
  ('janela_buffer_dias',       56,   'Dias de histórico de absenteísmo e falha administrativa (abs_adh_af) para o buffer'),
- ('peso_af_buffer',           1.00, 'Peso da falha administrativa no buffer: AF deixa o posto descoberto (trabalhou fora da escala ou em outro turno)'),
+ ('peso_af_buffer',           1.00, 'Peso da falha administrativa no buffer (sem AF_DOBRA): AF deixa o posto descoberto (trabalhou fora da escala)'),
  ('janela_pico_dias',         28,   'Dias de histórico (fc_fans_pagina_hora) para medir os picos acima dos postos'),
  ('percentil_pico',           0.50, 'Pico coberto pelo buffer: 0,50 = pico de um dia típico (mediana dos picos diários)'),
  ('teto_pico_fans_rep',       40,   'Só conta como pico o que passa de 40 fãs/h por rep (teto individual da Política); planejamento é 35'),
@@ -52,6 +53,7 @@ INSERT INTO fc_parametros (chave, valor, descricao) VALUES
  ('assistente_fixo_minimo',   2,    'Postos mínimos por turno nas páginas com assistente fixo (titular + 1)'),
  ('desconto_mesma_modelo',    0.10, 'Perda de capacidade por página extra da mesma modelo no agrupamento: 35 × (1 − 10% × (n−1))'),
  ('desconto_modelo_diferente',0.20, 'Perda de capacidade por página extra de modelo diferente: 35 × (1 − 20% × (n−1))'),
+ ('max_paginas_rep_modelos_diferentes', 2, 'Máximo de páginas por rep quando as modelos são diferentes (Política; mesma modelo: max_paginas_rep)'),
  ('janela_postos_dias',       14,   'Dias de histórico (fc_fans_pagina_hora) para a carga de cada página nos postos'),
  ('carga_minima_posto',       0.50, 'Página com menos fãs/h que isto no turno não ocupa posto (ex.: OFTV parada)')
 ON DUPLICATE KEY UPDATE descricao = VALUES(descricao);

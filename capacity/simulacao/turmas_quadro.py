@@ -1,7 +1,7 @@
 # Plano de turmas para o quadro da estrutura de 01/11 (dois cenários).
 # Mesmas regras do sim.py de 26/10, com:
 #   - foto de 27/10: 220 reps (A 76 · C 69 · D 75);
-#   - alvo por turno: CAPACITY = titulares (postos × 1,5) + buffer do turno (faltas, falha adm. e pico; 100 / 111 / 104 = 315)
+#   - alvo por turno: CAPACITY = titulares (postos × 1,5) + buffer do turno (faltas, falha adm. sem dobra e pico; Política de 2 páginas; 107 / 110 / 110 = 327)
 #                     QUADRO   = 12 reps por OS (3 OS × 3 unidades × 12 = 108 por turno = 324);
 #   - saídas = 6,4% do quadro ATUAL por mês (cresce com o quadro), peso A 14/59 · C 24/59 · D 21/59;
 #   - novatos: 12% saem em 30 dias, mais 11% até 90 dias; treinamento de 14 dias; teto de 20 por turma;
@@ -11,7 +11,7 @@ from datetime import date, timedelta as td
 T = 'ACD'
 SHARE = {'A': 14 / 59, 'C': 24 / 59, 'D': 21 / 59}
 INI = date(2026, 10, 27); H0 = {'A': 76, 'C': 69, 'D': 75}
-ALVOS = {'capacity': {'A': 100, 'C': 111, 'D': 104}, 'quadro': {'A': 108, 'C': 108, 'D': 108}}
+ALVOS = {'capacity': {'A': 107, 'C': 110, 'D': 110}, 'quadro': {'A': 108, 'C': 108, 'D': 108}}
 FIXAS = [(date(2026, 11, 2), {'A': 0, 'C': 9, 'D': 6}), (date(2026, 11, 16), {'A': 5, 'C': 9, 'D': 6})]
 DATAS = [date(2026, 12, 7)] + [date(2027, 1, 11) + td(14 * i) for i in range(13)]   # até 21/06/2027
 TETO = 20

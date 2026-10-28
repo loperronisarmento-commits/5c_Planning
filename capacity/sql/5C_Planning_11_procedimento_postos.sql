@@ -13,15 +13,16 @@
 --   - Acima de teto_apoio: titular com 35; o excedente vira apoio (agrupado com páginas
 --     pequenas) ou, se passar de limite_compartilhada, assistente(s).
 --   - Acima de limite_compartilhada, ou EXCLUSIVA: titular próprio (no teto se > 35).
---   - O resto é agrupado, da maior para a menor, até max_paginas_rep por rep e dentro de
---     35 × (1 − s × (n − 1)), s = 10% mesma modelo / 20% modelos diferentes; prefere a
---     mesma modelo e, depois, o grupo que fica mais justo. Um grupo tem no máximo um apoio.
+--   - O resto é agrupado, da maior para a menor, até max_paginas_rep por rep (mesma modelo) ou
+--     max_paginas_rep_modelos_diferentes (2, Política) e dentro de 35 × (1 − s × (n − 1)),
+--     s = 10% mesma modelo / 20% modelos diferentes; prefere a mesma modelo e, depois, o grupo
+--     que fica mais justo. Um grupo tem no máximo um apoio.
 --   Necessidade por unidade e turno:
 --   - titulares = ↑ postos × fator_pessoas_posto (1,5: 5x2 rotativo de 21 dias; quadro fixo enxuto);
 --   - buffer contado no total do turno: ↑ Σ presentes × 3 ÷ 2 (o buffer segue a folga do núcleo),
 --     com presentes = (postos × taxa de falta + pico) ÷ (1 − taxa de falta) em cada unidade; o turno é
 --     distribuído entre as unidades pela parte de cada uma, nunca abaixo de buffer_minimo_nucleo × 3, onde
---     taxa de falta = absenteísmo + peso_af_buffer × falha administrativa do turno (abs_adh_af) e
+--     taxa de falta = absenteísmo + peso_af_buffer × falha administrativa do turno (abs_adh_af, sem AF_DOBRA) e
 --     pico = percentil_pico dos picos diários: no pior horário do dia, os fãs que passam da
 --     capacidade dos postos de cada página (tolerância até teto_pico_fans_rep por rep), em reps.
 --   "Tem" = reps reais vigentes em fc_estrutura_rep.
@@ -44,7 +45,7 @@ DROP PROCEDURE IF EXISTS sp_fc_postos_carteira $$
 CREATE PROCEDURE sp_fc_postos_carteira(IN p_data DATE, IN p_cart VARCHAR(8), IN p_un TINYINT, IN p_tur CHAR(1))
 BEGIN
   DECLARE v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2 DECIMAL(10,4);
-  DECLARE v_kmin, v_afmin, v_maxp INT;
+  DECLARE v_kmin, v_afmin, v_maxp, v_maxd INT;
   DECLARE v_fim INT DEFAULT 0;
   DECLARE v_pag VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_mod VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -69,8 +70,9 @@ BEGIN
          COALESCE(MAX(IF(chave = 'desconto_modelo_diferente', valor, NULL)), 0.20),
          CAST(COALESCE(MAX(IF(chave = 'skylar_minimo', valor, NULL)), 4) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'assistente_fixo_minimo', valor, NULL)), 2) AS SIGNED),
-         CAST(COALESCE(MAX(IF(chave = 'max_paginas_rep', valor, NULL)), 3) AS SIGNED)
-    INTO v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2, v_kmin, v_afmin, v_maxp
+         CAST(COALESCE(MAX(IF(chave = 'max_paginas_rep', valor, NULL)), 3) AS SIGNED),
+         CAST(COALESCE(MAX(IF(chave = 'max_paginas_rep_modelos_diferentes', valor, NULL)), 2) AS SIGNED)
+    INTO v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2, v_kmin, v_afmin, v_maxp, v_maxd
   FROM fc_parametros;
 
   TRUNCATE TABLE fc_wrk_pc_item;
@@ -164,10 +166,11 @@ BEGIN
       IF v_fim2 = 1 THEN LEAVE its; END IF;
 
       -- melhor grupo: cabe na capacidade; prefere a mesma modelo, depois a menor folga
+      -- (grupo com modelos diferentes: no máximo v_maxd páginas, pela Política)
       SET v_bin = NULL;
       SELECT b.bin INTO v_bin
       FROM fc_wrk_pc_bin b
-      WHERE b.n < v_maxp
+      WHERE b.n < IF(b.modelo_unico = v_im, v_maxp, v_maxd)
         AND NOT (v_ia = 1 AND b.apoio = 1)
         AND b.soma + v_if <= v_lp * (1 - IF(b.modelo_unico = v_im, v_s1, v_s2) * b.n)
       ORDER BY EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.modelo = v_im) DESC,
@@ -309,12 +312,14 @@ BEGIN
          ON r.carteira = c.carteira AND r.turno = t.turno
   WHERE c.ativo = 1;
 
-  -- 4. Taxa de falta por turno: absenteísmo e falha administrativa (abs_adh_af, janela_buffer_dias)
+  -- 4. Taxa de falta por turno: absenteísmo e falha administrativa (abs_adh_af, janela_buffer_dias).
+  --    A AF_DOBRA não entra: a dobra é decisão de escala, não falta (com os buffers ela some).
   TRUNCATE TABLE fc_wrk_buf_taxa;
   INSERT INTO fc_wrk_buf_taxa (turno, taxa_abs, taxa_af)
-  SELECT z.tu, SUM(z.classificacao = 'ABS') / COUNT(*), SUM(z.classificacao = 'AF') / COUNT(*)
+  SELECT z.tu, SUM(z.classificacao = 'ABS') / COUNT(*),
+         SUM(z.classificacao = 'AF' AND IFNULL(z.motivo_classificacao, '') <> 'AF_DOBRA') / COUNT(*)
   FROM (SELECT CASE WHEN a.hora IN (5, 9) THEN 'A' WHEN a.hora IN (13, 17) THEN 'C' ELSE 'D' END AS tu,
-               a.classificacao,
+               a.classificacao, a.motivo_classificacao,
                IF(a.hora = 1, a.dia - INTERVAL 1 DAY, a.dia) AS td
         FROM `5c_wfm_db_mis`.abs_adh_af a
         WHERE a.dia >= p_data - INTERVAL (v_jb + 1) DAY AND a.dia < p_data) z

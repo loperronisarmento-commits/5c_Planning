@@ -4,7 +4,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 
 - **Hierarquia:** unidade (OUM) → OM por turno → 3 OS em rodízio 5x2.
 - **Carteiras:** duas por unidade (C1 e C2).
-- **Postos por página e turno:** cada posto é 1 rep online o turno inteiro.
+- **Postos por página e turno:** cada posto é 1 rep online o turno inteiro. Páginas pequenas são agrupadas: até 3 por rep se forem da mesma modelo; até 2 se as modelos forem diferentes (Política, decisão de 28/10).
 - **Necessidade:**
   - **Titulares (quadro fixo enxuto):** postos × 1,5, arredondado para cima. É a escala 5x2 rotativa em ciclo de 21 dias: cada pessoa trabalha 14 de 21 dias (21 ÷ 14 = 1,5).
   - **Buffer:** cobre todas as faltas e os aumentos de fluxo. O quadro fixo não tem folga para isso (decisões de 27 e 28/10). Segue quatro fatores previsíveis:
@@ -13,7 +13,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
     - falha administrativa;
     - aumento de fluxo.
     - **Faltas por dia** = postos × (absenteísmo + falha administrativa) do turno, nos últimos 56 dias (`abs_adh_af`).
-      - A falha administrativa entra inteira: desde a revisão de 20/10 ela quer dizer que a pessoa trabalhou fora da escala ou em outro turno, e o posto ficou descoberto.
+      - A falha administrativa entra sem a `AF_DOBRA` (decisão de 28/10). A dobra era 91% da AF e é decisão de escala, não falta; com os buffers ela deixa de existir. Fica só a `AF_FORA` (trabalhou fora da escala).
     - **Pico por dia** = mediana dos picos diários dos últimos 28 dias.
       - O pico de um dia é o pior horário: soma dos fãs que passam da capacidade dos postos de cada página, convertida em reps (÷ 35).
       - Só conta o que passa de 40 fãs/h por rep, o teto individual da Política.
@@ -47,40 +47,39 @@ Recalculando 26/10 com os fãs/h que o banco tem hoje para 12–25/10, a referê
 
 | Postos | Titulares | Buffer | Precisa | Tem | Saldo |
 |---|---|---|---|---|---|
-| 161 | 244 | 71 | **315** | 220 | **−95** |
+| 175 | 265 | 62 | **327** | 220 | **−107** |
 
 | Turno | Buffers presentes por dia | Buffer do turno | U1 / U2 / U3 |
 |---|---|---|---|
-| A | 14,5 | 22 | 7 / 7 / 8 |
-| C | 16,2 | 25 | 8 / 9 / 8 |
-| D | 15,5 | 24 | 7 / 8 / 9 |
+| A | 12,7 | 20 | 6 / 7 / 7 |
+| C | 13,6 | 21 | 7 / 7 / 7 |
+| D | 13,7 | 21 | 6 / 7 / 8 |
 
 | Unidade · turno | Postos | Titulares | Faltas/dia | Pico/dia | Presentes/dia | Buffer | Precisa | Tem | Saldo |
 |---|---|---|---|---|---|---|---|---|---|
-| U1 · A | 15 | 23 | 1,7 | 2,5 | 4,8 | 7 | 30 | 25 | −5 |
-| U1 · C | 17 | 26 | 2,3 | 2,0 | 4,9 | 8 | 34 | 20 | −14 |
-| U1 · D | 15 | 23 | 2,0 | 2,0 | 4,6 | 7 | 30 | 21 | −9 |
-| U2 · A | 17 | 26 | 2,0 | 2,4 | 4,9 | 7 | 33 | 28 | −5 |
-| U2 · C | 18 | 27 | 2,4 | 2,5 | 5,8 | 9 | 36 | 25 | −11 |
-| U2 · D | 18 | 27 | 2,3 | 2,1 | 5,1 | 8 | 35 | 30 | −5 |
-| U3 · A | 19 | 29 | 2,2 | 2,1 | 4,9 | 8 | 37 | 23 | −14 |
-| U3 · C | 22 | 33 | 3,0 | 1,8 | 5,5 | 8 | 41 | 24 | −17 |
-| U3 · D | 20 | 30 | 2,6 | 2,4 | 5,8 | 9 | 39 | 24 | −15 |
+| U1 · A | 17 | 26 | 1,6 | 2,2 | 4,2 | 6 | 32 | 25 | −7 |
+| U1 · C | 18 | 27 | 1,9 | 1,9 | 4,2 | 7 | 34 | 20 | −14 |
+| U1 · D | 17 | 26 | 1,9 | 1,6 | 4,0 | 6 | 32 | 21 | −11 |
+| U2 · A | 19 | 29 | 1,8 | 2,1 | 4,3 | 7 | 36 | 28 | −8 |
+| U2 · C | 19 | 29 | 2,0 | 2,3 | 4,8 | 7 | 36 | 25 | −11 |
+| U2 · D | 20 | 30 | 2,2 | 1,9 | 4,7 | 7 | 37 | 30 | −7 |
+| U3 · A | 21 | 32 | 2,0 | 1,9 | 4,2 | 7 | 39 | 23 | −16 |
+| U3 · C | 22 | 33 | 2,3 | 1,8 | 4,6 | 7 | 40 | 24 | −16 |
+| U3 · D | 22 | 33 | 2,5 | 1,9 | 5,0 | 8 | 41 | 24 | −17 |
 
-Taxa de falta (31/08–25/10), absenteísmo + falha administrativa: A 9,1% + 2,4% · C 10,3% + 3,2% · D 10,9% + 2,1%.
+Taxa de falta (31/08–25/10), absenteísmo + falha administrativa sem dobra: A 9,1% + 0,2% · C 10,3% + 0,2% · D 10,9% + 0,4%.
 
-Como a conta mudou no dia 27/10:
-- 162 postos × 1,4 + 15% = 269;
-- × 1,5 + 15% = 286;
-- com o buffer calculado = 318;
-- com o buffer igual nos 3 núcleos (3 por núcleo) = 325;
-- com o buffer contado no total do turno = **315**.
+Como a conta mudou:
+- 27/10: 162 postos × 1,4 + 15% = 269; × 1,5 + 15% = 286; com o buffer calculado = 318; com o buffer igual nos 3 núcleos = 325; com o buffer contado no total do turno = 315.
+- 28/10, Política de 2 páginas por rep quando as modelos são diferentes: 161 → 175 postos e 244 → 265 titulares. O pico cai um pouco, porque os grupos menores têm mais capacidade.
+- 28/10, falha administrativa sem `AF_DOBRA`: o buffer cai de 70 (já com a regra das 2 páginas; seria 335 no total) para 62.
+- Resultado: **327**.
 
-O 13 confere o buffer de cada turno exatamente. Na distribuição entre unidades aceita diferença de 1, porque a U2 e a U3 estão empatadas no turno A.
+O 13 confere o buffer de cada turno exatamente. Na distribuição entre unidades aceita diferença de 1, porque no turno A a U1 e a U3 ficam quase empatadas.
 
-A diferença é 1 posto na U1 · C1, turno D, porque o `msgdashboard` foi atualizado depois de 27/10.
+O relatório de 27/10 deu 162 postos com até 3 páginas por rep; a diferença de 1 posto (U1 · C1, turno D) é do `msgdashboard`, atualizado depois.
 
-A lógica da procedure foi conferida contra o `posts.py` nas 18 combinações de carteira e turno, com os mesmos fãs/h: o número de postos é o mesmo em todas. Em empates de arredondamento (carga terminada em ,x5) o MySQL arredonda para cima e o Python para o par. Isso pode trocar qual página pequena entra em qual grupo, mas não muda nenhuma contagem.
+A lógica da procedure foi conferida contra o `posts.py` nas 18 combinações de carteira e turno, com os mesmos fãs/h e o limite antigo (3 páginas): o número de postos é o mesmo em todas. A regra das 2 páginas foi conferida no espelho da procedure (175 postos). Em empates de arredondamento (carga terminada em ,x5) o MySQL arredonda para cima e o Python para o par. Isso pode trocar qual página pequena entra em qual grupo, mas não muda nenhuma contagem.
 
 ## Onde ler
 
@@ -116,12 +115,13 @@ O detalhe fica nas tabelas, com histórico de 180 dias:
   - buffer: `peso_af_buffer` (1), `percentil_pico` (0,50), `teto_pico_fans_rep` (40), `janela_buffer_dias` (56), `janela_pico_dias` (28);
   - `desconto_mesma_modelo` e `desconto_modelo_diferente`;
   - `janela_postos_dias` e `carga_minima_posto`;
-  - mais os de antes: `limite_padrao` 35, `limite_compartilhada` 28, `max_paginas_rep` 3 e outros.
+  - `max_paginas_rep_modelos_diferentes` (2, Política);
+  - mais os de antes: `limite_padrao` 35, `limite_compartilhada` 28, `max_paginas_rep` 3 (mesma modelo) e outros.
 - **Reps:** `fc_estrutura_rep` tem a foto de 27/10. Quando o Planning tool tiver o cadastro próprio de quem está em cada unidade, turno e OS, ele passa a alimentar esta tabela.
 
 ## Plano de contratação com o quadro novo (2 cenários)
 
-Simulado em 27/10 a partir dos 220 reps reais: A 76 · C 69 · D 75. Script: `simulacao/turmas_quadro.py`.
+Simulado em 28/10 a partir dos 220 reps reais (foto de 27/10): A 76 · C 69 · D 75. Script: `simulacao/turmas_quadro.py`.
 
 As regras são as do plano de 26/10:
 - turmas de 02/11 e 16/11 já pedidas;
@@ -132,24 +132,24 @@ As regras são as do plano de 26/10:
 
 | | Capacity | Quadro de 12 por OS |
 |---|---|---|
-| Alvo (A / C / D) | 100 / 111 / 104 = **315** | 108 / 108 / 108 = **324** |
-| Vagas hoje | 95 | 104 |
+| Alvo (A / C / D) | 107 / 110 / 110 = **327** | 108 / 108 / 108 = **324** |
+| Vagas hoje | 107 | 104 |
 | Contratações até a turma de 08/03 | 155 | 155 |
-| Falta ≤ 5 pessoas | início de jun/2027 | meados de jun/2027 |
-| Contratações até jun/2027 | 309 | 315 |
+| Falta ≤ 5 pessoas | fim de jun/2027 | meados de jun/2027 |
+| Contratações até jun/2027 | 315 | 315 |
 | Depois de fechar | ~20 por turma (reposição) | ~20 por turma (reposição) |
 
 Pontos de atenção:
-- **Os dois cenários ficam perto.** Com o buffer do turno, a necessidade (315) fica 9 abaixo do quadro de 12 por OS (324).
+- **Os dois cenários ficaram quase iguais no total.** A necessidade (327) passou o quadro de 12 por OS (324) em 3.
 - **A distribuição entre unidades é diferente:**
-  - a U3 precisa de mais que 12 por OS: 37 / 41 / 39 contra 36 por turno;
-  - a U1 e a U2 precisam de menos: 30–36.
+  - a U3 precisa de mais que 12 por OS: 39 / 40 / 41 contra 36 por turno;
+  - a U1 precisa de menos (32–34); a U2 fica perto (36–37).
 - **O teto de 20 por turma segura o plano:** todas as turmas até junho saem cheias.
-  - Com teto de 25, a falta fecha em abr/2027; com 30, no início de mar/2027.
+  - Com teto de 25, a falta fecha em abr/2027; com 30, no fim de mar/2027.
   - Isso depende de o Treinamento (TRN) conseguir turmas maiores.
-- **Pior momento:** 24/01, com falta de 91 no cenário Capacity, por causa das 5 semanas sem turma entre 07/12 e 11/01.
+- **Pior momento:** 24/01, com falta de 103 no cenário Capacity, por causa das 5 semanas sem turma entre 07/12 e 11/01.
 - **Vagas por unidade (`vw_fc_11_quadro_vagas`):**
-  - Capacity: U1 28 · U2 21 · U3 46;
+  - Capacity: U1 32 · U2 26 · U3 49;
   - 12 por OS: U1 42 · U2 25 · U3 37.
 
 O plano oficial (`fc_contratacoes`) segue com as turmas de 26/10 (script 09). O bloco 5 do script 14 troca o plano oficial pelo cenário escolhido e recalcula.
