@@ -678,11 +678,21 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         // Estrutura de 01/11 (motor_v4.php). Na semana da virada só entram os
         // dias a partir dela; antes disso vale a escala já postada.
         $virada = escV4DiaVirada();
+        $transicao = substr(escV4Param('v4_dia_transicao', $virada), 0, 10); // '' = sem transição
         $inicio = max($seg, $virada);
+        $indisp = escMotorIndisp($dias);
+        if (in_array($virada, $dias, true) && $transicao !== $virada) {
+            // Quem está no turno D postado na véspera da virada vai até as 05:00 do
+            // dia da virada: fica fora do turno A desse dia (seriam 16 h seguidas).
+            foreach (escQ("SELECT DISTINCT UPPER(codigo) AS code FROM `5c_schedule`.`scheduleday`
+                            WHERE shiftDateAndHour = ? AND modeloId <> 3", [escMaisDias($virada, -1) . 'T21:00:00']) as $l) {
+                $indisp[$l['code']][$virada]['A'] ??= ['id' => null, 'blocos' => null];
+            }
+        }
         $saida = escMotorAlocarV4([
-            'dias' => $dias, 'est' => escV4Carregar(end($dias)), 'indisp' => escMotorIndisp($dias),
-            'travadas' => $travadas, 'virada' => $virada,
-            'presentes' => in_array($virada, $dias, true) ? escV4PresentesTransicao($virada) : [],
+            'dias' => $dias, 'est' => escV4Carregar(end($dias)), 'indisp' => $indisp,
+            'travadas' => $travadas, 'virada' => $virada, 'transicao' => $transicao,
+            'presentes' => in_array($transicao, $dias, true) ? escV4PresentesTransicao($transicao) : [],
             'realizado' => escMotorRealizado(escMaisDias($inicio, -14), escMaisDias($inicio, -1)),
         ]);
         $estruturaPlano = 'V4';

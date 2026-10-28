@@ -97,9 +97,29 @@ $aloc = escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem
 if (isset($_GET['baixar'])) {
     // O T1 de segunda é o fim do turno D do domingo anterior: vem do plano da semana anterior.
     $anterior = escPlanoAtual(escMaisDias($seg, -7));
-    if ($anterior) {
-        $aloc = array_merge($aloc, escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . " WHERE plano_id = ? AND dia = ? AND bloco = 'T1'", [(int) $anterior['id'], $seg]));
+    $t1Anterior = $anterior ? escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . " WHERE plano_id = ? AND dia = ? AND bloco = 'T1'", [(int) $anterior['id'], $seg]) : [];
+    if (!$t1Anterior) {
+        // Sem plano da semana anterior (virada): o T1 já postado ou, se não houver,
+        // quem está no T6 de domingo no scheduleday continua o turno D.
+        $nomesPag = array_column($aloc, 'pagina', 'page_id');
+        $postado = [];
+        foreach (escQ("SELECT modeloId, SUBSTRING(shiftDateAndHour, 12, 2) AS hora, UPPER(codigo) AS code, assitente
+                         FROM `5c_schedule`.`scheduleday`
+                        WHERE shiftDateAndHour IN (?, ?) AND modeloId <> 3",
+                      [escMaisDias($seg, -1) . 'T21:00:00', $seg . 'T01:00:00']) as $r) {
+            $postado[(int) $r['modeloId']][$r['hora']][$r['code']] = (int) $r['assitente'] === 1;
+        }
+        foreach ($postado as $pid => $horas) {
+            if (!isset($nomesPag[$pid])) {
+                continue;
+            }
+            foreach ($horas['01'] ?? $horas['21'] as $code => $assist) {
+                $t1Anterior[] = ['dia' => $seg, 'bloco' => 'T1', 'turno' => 'D', 'page_id' => $pid, 'pagina' => $nomesPag[$pid],
+                    'rep_code' => $code, 'papel' => $assist ? 'ASSISTENTE' : 'REGULAR', 'origem' => 'MANUAL', 'travada' => 0, 'motivo' => 'continua o turno D postado'];
+            }
+        }
     }
+    $aloc = array_merge($aloc, $t1Anterior);
     $porPagina = [];
     foreach ($aloc as $a) {
         if ($a['rep_code'] === null) {

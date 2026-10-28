@@ -366,12 +366,12 @@ Iguais à v3:
 - **D1 · Fonte da estrutura:** o Planner. Mudança feita pelo sistema gera um resumo para o funcionário do Planejamento aplicar no site da 5C. O site atualiza os times, e isso volta ao banco pela leitura do Planner.
 - **D2 · Posto:** pessoas fixas no posto, mais backup para a folga do titular. A seção 2, item 3, traz a forma: cada posto tem a vaga do dono e a da cobertura (de outro núcleo), cada uma com equipe fixa.
 - **D3 · Folgas:** rotativas, no ciclo de 21 dias (5x2, 5x2 e 4x3; a semana de 4x3 inclui sábado e domingo), com P1, P2 e P3 defasados em 1 semana entre os 3 núcleos do turno. Planilha de 27/10.
-- **D11 · Virada:** a escala nova sai por este sistema. A virada é em **01/11 às 05:00** (do T2 em diante). Até lá vale a escala atual.
+- **D11 · Virada:** a escala nova sai por este sistema. A virada era em 01/11 às 05:00; em 28/10 a escala antiga foi postada até **01/11 T6**, e o sistema passa a fazer a partir do **turno A de 02/11** (`ES_08`). O T1 de 02/11 é o fim do turno D postado.
 - **D13 · Planner:**
   - Guild = unidade; Team = OM e quem está abaixo; Party = Decurio e o núcleo dele; membros = Equites.
   - A página fica com a Guild.
   - Postos e equipes ficam só no 5C Escalas, com histórico. Carteiras ficam no `5c_planning` (ver abaixo).
-- **D14 · Âncora:** a semana de 02/11 é a semana 1. O domingo 01/11 é de transição: monta-se com quem já está escalado nos turnos programados, e só depois valem todas as regras.
+- **D14 · Âncora:** a semana de 02/11 é a semana 1. O domingo 01/11 seria de transição; com a escala antiga postada até 01/11 T6 (28/10), não há mais dia de transição.
 - **D15 · Backup:** deve dar a menor troca possível de pessoas atuando numa página. Ficou equipe fixa por vaga, com as 7 regras do montador da seção 2, item 3, testadas no modelo de 27/10.
 - **D16 · Nomes:** Decurio = OS; Equites = reps.
 - **Buffers:** cada núcleo (equipe do supervisor) tem o próprio grupo de buffers, que segue a folga do núcleo.
@@ -416,6 +416,8 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
 | `ES_04_estrutura_unidades.sql` | Só adiciona:<br>- tabelas `esc_unidade`, `esc_lideranca`, `esc_nucleo`, `esc_posto`, `esc_posto_pagina` e `esc_vaga_equipe`;<br>- colunas novas em colaboradores, plano e alocação;<br>- o modelo "5x2 rotativo 21 dias";<br>- os parâmetros `v4_*` (fatia por nível 80/60/40%, âncora 02/11, virada 01/11 05:00);<br>- a view `vw_esc_estrutura_rep` para o Capacity.<br>Pode rodar de novo. |
 | `ES_05_carga_estrutura_27out.sql` | Gerado por `gerador/gerar_es05.py` a partir do modelo de 27/10:<br>- 3 unidades, 3 OUM e 9 OM;<br>- 27 núcleos;<br>- 245 pessoas: 219 Equites e 26 Decurios com código;<br>- 162 postos com as páginas;<br>- a **proposta** de equipe de cada vaga (status PROPOSTA).<br>Fecha a configuração antiga dessas pessoas em 31/10. Termina com consultas de conferência. Pode rodar de novo. |
 | `ES_06_ajuste_pessoas_01nov.sql` | Fecha a configuração da v3 dos 12 desligados.<br>Põe nos núcleos os 20 reps ativos que estavam fora do modelo de 27/10:<br>- turno = o que mais trabalharam em 14 dias;<br>- nível pelo cargo de hoje;<br>- núcleo = o mais curto do turno.<br>Entram sem equipe fixa. |
+| `ES_08_virada_02nov.sql` | Passa a virada para 02/11 01:00 e deixa sem dia de transição (`v4_dia_transicao` vazio): a escala antiga vai até 01/11 T6. |
+| `ES_07_conferencia_v4.sql` | Só leitura: conferência do plano da semana de 02/11 depois de gerar. |
 | `ES_98_desfazer_v4.sql` | Desfaz o ES_05 e o ES_04 sem apagar o schema. |
 
 **Motor v4 (`lib/motor_v4.php`, 28/10):** o "Gerar escala" usa sozinho a v4 em toda semana a partir da virada.
@@ -425,14 +427,15 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
   3. buffer do outro núcleo em serviço no turno;
   4. lacuna.
 - Quem fica sem vaga é o buffer de plantão e não vai para o CSV.
-- **01/11** monta-se com quem está escalado no `scheduleday` nesse dia, no turno em que está.
+- **Virada em 02/11 (`ES_08`):** o motor começa no turno A de 02/11. O T1 de 02/11 sai no CSV com o T1 já postado ou, se não houver, com quem está no T6 de 01/11 (continua o turno D). Quem está nesse turno D fica fora do turno A de 02/11 (seriam 16 h seguidas; em 28/10 eram 4 pessoas).
+- **Dia de transição** (`v4_dia_transicao`, hoje vazio): se tiver um dia, ele é montado com quem está escalado no `scheduleday`, no turno em que está.
 - **Teste com os dados carregados (ES_05 + ES_06)**, sem nenhuma violação:
   - ninguém em 2 postos no mesmo turno, nenhum trabalho na folga do núcleo nem fora do turno, nenhum assistente sem titular na página;
   - todos com 4 ou 5 dias na semana.
 - **Semana de 02/11:**
   - 58 posto-dias sem ninguém, em média 8 por dia: U1 C 17, U2 C 10, U3 A 12, U3 C 14, U3 D 5;
   - média de 2,8 pessoas diferentes por página e turno na semana (o mínimo na rotação é 2).
-- **01/11:** 24 postos sem ninguém.
+- **01/11** (quando ainda era transição): 24 postos sem ninguém.
 
 **O que a carga encontrou:**
 - **Isabel da Silva Marinho** (Decurio da U2, turno A) não está no headcount. O núcleo entra sem código de Decurio, e ela fica fora da lista de pessoas.
@@ -450,9 +453,9 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
   - Em média cada página-turno vê 3,2 pessoas no ciclo: as vagas dos níveis 0 a 2 são divididas.
   - Um núcleo não empresta gente a outro, por isso a falta passa um pouco da conta simples.
 
-## 10. Próximos passos (virada em 01/11, 05:00)
+## 10. Próximos passos (virada em 02/11, turno A)
 
-O prazo é curto: a escala de **01/11 (a partir do T2) a 08/11** precisa sair do sistema até **quinta, 29/10, às 18:00** (Política 6.1). Ordem proposta, só com o que essa escala precisa:
+O prazo é curto: a escala de **02/11 a 08/11** precisa sair do sistema até **quinta, 29/10, às 18:00** (Política 6.1). Ordem proposta, só com o que essa escala precisa:
 
 1. **28/10:**
    - responder os buffers em núcleo e OM/OUM (itens 1 e 2 das abertas);
@@ -463,7 +466,7 @@ O prazo é curto: a escala de **01/11 (a partir do T2) a 08/11** precisa sair do
    - grade por posto e CSV T1–T6 por página;
    - testes no harness da v3 (php-wasm com o banco simulado);
    - o zip para instalar.
-3. **29/10, até 18:00:** gerar, revisar e publicar a escala de 01/11 a 08/11; os CSVs vão para o Schedule Ajustment.
+3. **29/10, até 18:00:** gerar, revisar e publicar a escala de 02/11 a 08/11; os CSVs vão para o Schedule Ajustment.
 4. **Depois da virada:** telas 02, 07 e 20 completas, resumo para o Planner, as demais telas no canvas e o restante das decisões.
 
 **Núcleos de hoje × o que a rotação pede** (modelo de 27/10). O núcleo de cada rep é o supervisor de referência; nenhum rep tem supervisor de outra unidade ou turno.

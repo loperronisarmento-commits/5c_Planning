@@ -74,13 +74,13 @@ Toda alteração vai para `esc_log` (quem, quando, antes e depois).
 
 ## Estrutura de 01/11/2026 (v4)
 
-Toda semana a partir da virada (parâmetro `v4_virada`, 01/11 às 05:00) é gerada pelo `lib/motor_v4.php`. Antes de gerar, rode os scripts `ES_04`, `ES_05` e `ES_06` (`escalas/sql/`).
+Toda semana a partir da virada (parâmetro `v4_virada`) é gerada pelo `lib/motor_v4.php`. Antes de gerar, rode os scripts `ES_04`, `ES_05`, `ES_06` e `ES_08` (`escalas/sql/`). Com o `ES_08`, a escala antiga vai até 01/11 T6 e o motor começa no turno A de 02/11.
 - **Rotação:** 3 núcleos por unidade e turno, ciclo de 21 dias (P1 ter/sáb/dom · P2 seg/sex · P3 qua/qui). Todo dia 2 núcleos trabalham.
 - **Vagas:** cada posto (foto do Capacity em `esc_posto`) tem a vaga do dono (núcleo dono, nos dias dele) e a de cobertura (outro núcleo, nas folgas do dono).
 - **Ordem de preenchimento:** equipe fixa da vaga (`esc_vaga_equipe`, como preferência) → outra pessoa do núcleo → buffer do outro núcleo do turno → lacuna.
 - **Buffer de plantão:** quem fica sem vaga. Não vai para o CSV.
-- **01/11:** dia de transição, montado com quem está escalado no `scheduleday` nesse dia.
-- **CSV:** a semana de 02/11 pega o T1 de segunda do plano da semana de 26/10, que tem só o dia 01/11. Gere as duas semanas.
+- **Dia de transição** (parâmetro `v4_dia_transicao`, vazio desde o `ES_08`): se tiver um dia, ele é montado com quem está escalado no `scheduleday` nesse dia.
+- **T1 de 02/11:** é o fim do turno D postado em 01/11. Sem plano da semana anterior, o CSV repete o T1 já postado ou, se não houver, quem está no T6 de domingo. Quem está nesse turno D fica fora do turno A de 02/11.
 
 ## Recálculo e De→Para
 

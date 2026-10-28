@@ -17,8 +17,10 @@
 //   4. o que sobrar vira lacuna.
 // Quem fica sem vaga no dia é o buffer de plantão do núcleo.
 //
-// 01/11 (dia da virada, do T2 em diante) é transição: entra quem já está
-// escalado no scheduleday nesse dia, no turno em que está escalado.
+// A escala antiga vai até 01/11 T6 (parâmetro v4_virada = 02/11): o motor
+// começa no turno A de 02/11 e o T1 de 02/11 (fim do turno D de 01/11) vem
+// do scheduleday no CSV. Se v4_dia_transicao tiver um dia, esse dia é
+// montado com quem já está escalado no scheduleday, no turno em que está.
 //
 // Saída no mesmo formato do escMotorAlocar (v3), com posto_id e vaga.
 // ===============================================
@@ -111,6 +113,7 @@ function escMotorAlocarV4(array $in): array {
     $est = $in['est'];
     $indisp = $in['indisp'];
     $virada = $in['virada'];
+    $diaTransicao = $in['transicao'] ?? $virada; // '' = sem dia de transição
     $presentes = $in['presentes'] ?? [];
     $ciclo = $est['modelo']['ciclo'];
     $nucleos = $est['nucleos'];
@@ -167,7 +170,7 @@ function escMotorAlocarV4(array $in): array {
         if ($dia < $virada) {
             continue;
         }
-        $transicao = $dia === $virada;
+        $transicao = $dia === $diaTransicao;
         foreach (ESC_TURNOS as $turno => $blocos) {
             $diaBloco = [$blocos[0] => $dia, $blocos[1] => $turno === 'D' ? escMaisDias($dia, 1) : $dia];
             $estadoUT = [];
