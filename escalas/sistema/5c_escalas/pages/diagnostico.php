@@ -84,6 +84,8 @@ try {
   <div class="kpi"><span class="muted">Trava dos outros schemas</span><strong class="<?php echo $travaOutros ? 'verde' : 'vermelho'; ?>"><?php echo $travaOutros ? 'Ativa' : 'Falhou'; ?></strong><span class="muted small">só grava em 5c_escalas</span></div>
   <div class="kpi"><span class="muted">Seu acesso</span><strong><?php echo h(strtolower($GLOBALS['ESC_USUARIO']['perfil'] ?? '')); ?></strong><span class="muted small">user_id <?php echo escUserId(); ?></span></div>
   <div class="kpi"><span class="muted">Limite por consulta</span><strong><?php echo num(((int) $sessao['limite_ms']) / 1000, 0); ?> s</strong><span class="muted small">max_execution_time</span></div>
+  <?php $end = escDbEndereco(); ?>
+  <div class="kpi"><span class="muted">Endereço do banco</span><strong><?php echo h($end['host'] . ':' . $end['porta']); ?></strong><span class="muted small"><?php echo $end['variavel'] === 'ESC_DB_HOST' ? 'ESC_DB_HOST, só deste módulo' : 'DB_HOST do portal'; ?></span></div>
   <div class="kpi"><span class="muted">PHP · MySQL</span><strong><?php echo h(PHP_VERSION); ?></strong><span class="muted small">MySQL <?php echo h($sessao['versao']); ?></span></div>
 </section>
 

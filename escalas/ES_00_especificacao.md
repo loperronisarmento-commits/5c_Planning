@@ -7,16 +7,16 @@ Sistema de planejamento de escalas no MIS Portal (PHP, servidor `.11`). O 5C Esc
 
 O Planning tool incorpora três módulos que existem hoje: **Escala de Buffers**, **Schedule Anomalies** e **Schedule Access Audit**.
 
-**O que mudou da v3 para a v4:** a estrutura de **01/11/2026** substitui Guild → Time → Party, Tertius e o 3x1. Os detalhes estão no pacote de 27/10: `estrutura_unidades/doc_estrutura.md`.
+**O que mudou da v3 para a v4:** a estrutura de **01/11/2026** substitui Guild → Time → Party, os cargos antigos e o 3x1. Os detalhes estão no pacote de 27/10: `estrutura_unidades/doc_estrutura.md`.
 
 | Era (v3, até 31/10) | Passa a ser (v4, a partir de 02/11) |
 |---|---|
 | Team → Party → membros, do Planner | Unidade → carteira (C1/C2) → postos → reps |
-| Primaris, Secundus, Tertius (cargos) | Níveis 0 a 5 pelo % de hoje; liderança OUM, OM, OS |
+| Cargos antigos | SR de nível 0 a 5 pelo % de hoje; liderança OUM, OM, OS |
 | Necessidade por página e bloco de 4 h (`fc_escala_pagina`) | Postos por página e turno (posts.py), × 1,5 (rotação de 21 dias) + 15% de buffer |
-| Escala 3x1, Primaris 3x1 + admin | 5x2 rotativo em ciclo de 21 dias (5x2, 5x2, 4x3), por núcleo (Decurio + Equites) |
-| Ordem: party dona → time → Tertius → buffer | Equipe fixa da vaga (dono ou cobertura de outro núcleo) → buffer do núcleo |
-| Mérito dos Tertius (% regular por quadrante) | % de turno regular por nível (níveis 0 e 1 em rodízio) |
+| Escala 3x1, 3x1 + admin do cargo antigo mais alto | 5x2 rotativo em ciclo de 21 dias (5x2, 5x2, 4x3), por núcleo (OS + SRs) |
+| Ordem: party dona → time → cargo de rodízio → buffer | Equipe fixa da vaga (dono ou cobertura de outro núcleo) → buffer do núcleo |
+| Mérito do cargo de rodízio (% regular por quadrante) | % de turno regular por nível (níveis 0 e 1 em rodízio) |
 
 **O que não muda:**
 - indisponibilidade e Nora;
@@ -37,15 +37,15 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
   - cada OUM tem 3 OM, um por turno;
   - cada OM tem 3 OS, no mesmo turno.
   - Ordem no organograma: D (T6/T1), C (T4/T5), A (T2/T3).
-- **Núcleos:** cada OS é o **Decurio** de um núcleo. Os reps do núcleo são os **Equites** dele (1.1 a 1.n). Cada unidade tem 9 núcleos: Decurios 1 a 3 no turno A, 4 a 6 no C e 7 a 9 no D.
+- **Núcleos:** cada núcleo tem um **OS** (Operational Supervisor) e os **SRs** (Sales Representatives, nível 0 a 5) dele (1.1 a 1.n). Cada unidade tem 9 núcleos: OS 1 a 3 no turno A, 4 a 6 no C e 7 a 9 no D.
 - **No Planner (D13):**
 
   | Estrutura nova | Planner |
   |---|---|
   | Unidade | Guild (sem uso hoje) |
   | OM e quem está abaixo dele (unidade × turno) | Team |
-  | Decurio e a equipe dele (o núcleo) | Party |
-  | Equites | Membros da party |
+  | OS e a equipe dele (o núcleo) | Party |
+  | SRs | Membros da party |
 
   - A página fica atribuída à Guild ("Assigned to Guild"), não mais à party: cada party atende um turno só.
   - O Planner já aceita isso hoje, com Team e Party vazios.
@@ -95,20 +95,20 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
   | Apoio | página acima de 40 fãs/h: o titular fica com 35 e o excedente vai para um rep que também é titular de páginas pequenas |
   | Assistente fixo | Skylar Mae VIP (3 por turno), Mikayla Free e Midwest Emma Free 221s (1 por turno cada) |
 
-- **Pessoas:** cada rep (Equite) tem unidade, turno, núcleo (o Decurio), nível e a(s) vaga(s) fixa(s) que ocupa. No modelo de 27/10 são 220 reps reais e 39 líderes. A necessidade é de 269 pessoas no chat (230 titulares + 39 de buffer), com falta de 49. Essa conta usa o fator 1,4; com 1,5 a necessidade sobe (o Capacity refaz).
+- **Pessoas:** cada rep (SR) tem unidade, turno, núcleo (o OS), nível e a(s) vaga(s) fixa(s) que ocupa. No modelo de 27/10 são 220 reps reais e 39 líderes. A necessidade é de 269 pessoas no chat (230 titulares + 39 de buffer), com falta de 49. Essa conta usa o fator 1,4; com 1,5 a necessidade sobe (o Capacity refaz).
 - **Níveis:**
-  - Primaris vira nível 5 (cai de 5,5% para 4,5%; é o único que cai).
-  - Secundus vira nível 3.
-  - Tertius e quem está sem cargo viram nível 1.
+  - O cargo antigo mais alto vira SR 5 (cai de 5,5% para 4,5%; é o único que cai).
+  - O cargo intermediário vira SR 3.
+  - O cargo de rodízio e quem está sem cargo viram SR 1.
   - Contratados novos entram no nível 0.
   - Os níveis 2 e 4 ficam vazios, como degraus de promoção.
-  - **Turnos regulares por nível (27/10):** todos abaixo do Decurio fazem turnos regulares e acompanham a folga do núcleo.
+  - **Turnos regulares por nível (27/10):** todos abaixo do OS fazem turnos regulares e acompanham a folga do núcleo.
     - Os níveis 3 a 5 atuam sempre em página.
     - Os níveis 0 a 2 alternam entre atuar em uma ou mais páginas e a função de **buffer**. O nível define a fatia regular: nível 2 mais, nível 1 médio, nível 0 menos.
 
 ## 2. O que o Planning tool faz
 
-1. **Estrutura das unidades.** Unidades, carteiras com as páginas, liderança (OUM, OM, Decurios), núcleos, postos e quem ocupa cada posto.
+1. **Estrutura das unidades.** Unidades, carteiras com as páginas, liderança (OUM, OM, OS), núcleos, postos e quem ocupa cada posto.
    - **Fonte: o Planner** (decisão D1). O sistema lê a estrutura do `historicplanner`, que reflete o que o Planejamento ajusta nos times do site da 5C.
    - **Mudar algo pelo sistema gera um resumo** para o funcionário do Planejamento aplicar no site. O resumo diz:
      - quem muda de núcleo, de posto ou de turno;
@@ -121,13 +121,13 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
    - **O que vai para o resumo do Planner:**
      - página → Guild;
      - pessoa → Party (núcleo), e com isso o Team e o turno;
-     - OM e Decurio.
+     - OM e OS.
    - **O que fica só no sistema:**
      - página → carteira;
      - posto e a equipe fixa de cada vaga.
      - Tudo com histórico (quem, quando, de → para) e no De→Para.
 2. **Colaboradores.** Cada pessoa tem:
-   - unidade, turno (A, C ou D) e núcleo (Decurio);
+   - unidade, turno (A, C ou D) e núcleo (OS);
    - nível;
    - vaga(s) fixa(s): a do posto próprio ou de cobertura (níveis 3 a 5) ou até 2 vagas com fatia regular (níveis 0 a 2), mais os dias de buffer (ver o item 3);
    - modelo de escala (o 5x2 rotativo de 21 dias, herdado do núcleo) e vigência.
@@ -177,8 +177,8 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
    - no máximo 4 pessoas em página comum e 5 na SS;
    - limite de páginas por rep (decisão **D8**).
 5. **Escala da liderança.**
-   - O Decurio segue a folga do próprio núcleo, então todo dia há 2 Decurios em serviço por unidade e turno.
-   - Que carteira cada Decurio acompanha no dia é a decisão **D6**.
+   - O OS segue a folga do próprio núcleo, então todo dia há 2 OS em serviço por unidade e turno.
+   - Que carteira cada OS acompanha no dia é a decisão **D6**.
    - A escala dos OM e dos OUM também entra (decisão **D6b**).
    - A liderança não ocupa posto no chat. Ela aparece na grade e nas telas de equipe, mas não no CSV das páginas.
 6. **Recálculo durante a semana.** É disparado por:
@@ -197,7 +197,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
    - Por isso o buffer segue a folga do núcleo: há sempre buffer dos 2 núcleos em serviço.
    - O tamanho esperado (buffer do Capacity, 15%) vem da seção Capacity. O Planning tool mostra o buffer real do dia contra o esperado.
    - Tem um modo manual para ajustar.
-8. **Equipes e níveis** (substitui o Equilíbrio Tertius).
+8. **Equipes e níveis** (substitui a tela de equilíbrio da estrutura antiga).
    - Mostra quem está fixo em cada vaga, as equipes dos níveis 0 a 2 e a fatia regular de cada pessoa contra a do nível.
    - Mostra os dias de buffer feitos no ciclo.
    - Sugere promover (nível 0 → 1 → 2 → 3) quem está acima da fatia com bom desempenho. Mudança de nível só vale a partir de segunda às 05:00 (Política 6.2).
@@ -238,14 +238,14 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 | Seção | Telas (número do rascunho v3 → o que muda) |
 |---|---|
 | (contexto no menu) | Semana e **Unidade** (no lugar de Time), escolhidas uma vez |
-| Planejamento | 01 Painel · 05 Gerar escala · 06 Grade · **07 Equipes e níveis** (era Equilíbrio Tertius) · 08 Sugestões · 09 Buffers |
+| Planejamento | 01 Painel · 05 Gerar escala · 06 Grade · **07 Equipes e níveis** (substitui a tela de equilíbrio antiga) · 08 Sugestões · 09 Buffers |
 | Equipe | **02 Estrutura das unidades** (era Configuração dos times: unidades, carteiras, páginas, núcleos, postos e equipes) · **20 Rotação e liderança** (nova) · 03 Colaboradores · 04 Modelos de escala |
 | Páginas | 16 Funil de entrada (destino = unidade e carteira) · 18 Trocas de página (entre carteiras e unidades) |
 | Indisponibilidade | 19 Pedido pela Nora · 10 Solicitar no site · 11 Aprovar (WFM) |
 | Acesso do colaborador | 17 Login no site (fase 2) |
 | Monitoramento | 12 Anomalias · 13 Auditoria de acesso |
 | Administração | 14 Acessos por tela (perfis por unidade, turno e carteira: decisão **D12**) |
-| Ajuda | 15 Glossário, com os termos novos: unidade, carteira, núcleo, Decurio, Equites, posto, vaga, cobertura, buffer, apoio, OUM, OM, nível, P1/P2/P3 |
+| Ajuda | 15 Glossário, com os termos novos: unidade, carteira, núcleo, OS, SRs, posto, vaga, cobertura, buffer, apoio, OUM, OM, nível, P1/P2/P3 |
 
 **Mudanças por tela:**
 - **01 Painel:** indicadores por unidade e turno (postos, precisa, tem, saldo), núcleos em serviço no dia, pendências do Planner e o prazo de quinta 18:00.
@@ -253,7 +253,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
   - Ações: mover página, trocar a equipe de uma vaga, mudar alguém de núcleo.
   - Cada ação gera o resumo para o Planejamento aplicar no site (D1).
 - **03 Colaboradores:** colunas de unidade, turno, núcleo, nível, vaga(s), fatia regular no ciclo e dias de buffer.
-- **04 Modelos:** o padrão é o 5x2 rotativo de 21 dias, com P1, P2 e P3 editáveis e a checagem de 2 núcleos por dia. O 3x1 e o 4x3 ficam para exceções. O "Primaris 3x1 + admin" sai.
+- **04 Modelos:** o padrão é o 5x2 rotativo de 21 dias, com P1, P2 e P3 editáveis e a checagem de 2 núcleos por dia. O 3x1 e o 4x3 ficam para exceções. O modelo 3x1 + admin da estrutura antiga sai.
 - **05 Gerar e 06 Grade:** a grade passa a ter 3 visões:
   - **por posto:** posto × dia, mostrando quem está e se é da vaga do dono, da cobertura ou buffer;
   - **por pessoa;**
@@ -263,7 +263,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 - **09 Buffers:** o pool por unidade e turno, ligado ao buffer do Capacity.
 - **20 Rotação e liderança (nova):** a planilha de 21 dias dentro do sistema.
   - Os 3 núcleos de cada turno, com a semana P1, P2 ou P3 de cada um e a checagem de 2 ativos por dia.
-  - Os Decurios seguem a folga do núcleo.
+  - Os OS seguem a folga do núcleo.
   - A cobertura dos OM e OUM.
 
 ## 4. Integrações
@@ -314,8 +314,8 @@ As 22 tabelas da v3 continuam (scripts `escalas/sql/ES_01` a `ES_03`, já instal
 | Tabela | O que guarda |
 |---|---|
 | `esc_unidade` | U1–U3 ↔ Guild do Planner, OUM, vigência |
-| `esc_lideranca` | OUM, OM por turno, Decurio de cada núcleo, vigência |
-| `esc_nucleo` | Unidade, turno, número (1 a 3), Decurio e a trilha da rotação (P1, P3 ou P2 na semana 1), vigência |
+| `esc_lideranca` | OUM, OM por turno, OS de cada núcleo, vigência |
+| `esc_nucleo` | Unidade, turno, número (1 a 3), OS e a trilha da rotação (P1, P3 ou P2 na semana 1), vigência |
 | `esc_posto` | Foto dos postos do Capacity (`5c_planning.fc_postos` e `fc_postos_pagina`) usada em cada plano, com o núcleo dono e o núcleo que cobre a folga |
 | `esc_vaga_equipe` | Quem está fixo em cada vaga (dono e cobertura de cada posto): uma pessoa de nível 3 a 5, ou a equipe de 2 ou 3 pessoas de nível 0 a 2 com a fatia de cada uma. Com vigência. É a base da medida de estabilidade (equipes mantidas de uma semana para a outra) |
 
@@ -338,7 +338,7 @@ Mudanças nas tabelas atuais (colunas novas; as antigas ficam para o histórico)
   - Ciclo `101110001110111100111`: P1 `1011100`, P2 `0111011`, P3 `1100111`, de segunda a domingo; 1 = trabalha.
   - O núcleo 1 começa no P1 (deslocamento 0), o núcleo 2 no P3 (14) e o núcleo 3 no P2 (7).
   - A fórmula do motor v3 (`idx = (dias + t + L − 1) mod L`) já serve.
-  - O "Primaris 3x1 + admin" fica inativo.
+  - O modelo 3x1 + admin da estrutura antiga fica inativo.
 - **`esc_parametro`:** buffer por unidade e turno, limite de páginas por rep e a data-âncora da rotação (D14).
 - **Carga inicial (ES_05):** vem do modelo de 27/10 (`estrutura_unidades/data_real_final.json`): unidades, carteiras, liderança, postos e o posto de cada rep. O núcleo de cada rep sai do supervisor de referência (`sup`). As equipes de cada vaga (com os pares de cobertura) o sistema propõe e o usuário confirma (ver o item 3 da seção 2).
 
@@ -366,14 +366,14 @@ Iguais à v3:
 - **D1 · Fonte da estrutura:** o Planner. Mudança feita pelo sistema gera um resumo para o funcionário do Planejamento aplicar no site da 5C. O site atualiza os times, e isso volta ao banco pela leitura do Planner.
 - **D2 · Posto:** pessoas fixas no posto, mais backup para a folga do titular. A seção 2, item 3, traz a forma: cada posto tem a vaga do dono e a da cobertura (de outro núcleo), cada uma com equipe fixa.
 - **D3 · Folgas:** rotativas, no ciclo de 21 dias (5x2, 5x2 e 4x3; a semana de 4x3 inclui sábado e domingo), com P1, P2 e P3 defasados em 1 semana entre os 3 núcleos do turno. Planilha de 27/10.
-- **D11 · Virada:** a escala nova sai por este sistema. A virada era em 01/11 às 05:00; em 28/10 a escala antiga foi postada até **01/11 T6**, e o sistema passa a fazer a partir do **turno A de 02/11** (`ES_08`). O T1 de 02/11 é o fim do turno D postado.
+- **D11 · Virada:** a escala nova sai por este sistema. A virada é em **01/11 às 05:00** (do T2 em diante, `ES_09`). Até lá vale a escala atual. Em 28/10 a escala antiga foi postada até 01/11 T6; o `ES_08` deixa a virada no turno A de 02/11, sem transição, se for preciso.
 - **D13 · Planner:**
-  - Guild = unidade; Team = OM e quem está abaixo; Party = Decurio e o núcleo dele; membros = Equites.
+  - Guild = unidade; Team = OM e quem está abaixo; Party = OS e o núcleo dele; membros = SRs.
   - A página fica com a Guild.
   - Postos e equipes ficam só no 5C Escalas, com histórico. Carteiras ficam no `5c_planning` (ver abaixo).
-- **D14 · Âncora:** a semana de 02/11 é a semana 1. O domingo 01/11 seria de transição; com a escala antiga postada até 01/11 T6 (28/10), não há mais dia de transição.
+- **D14 · Âncora:** a semana de 02/11 é a semana 1. O domingo 01/11 é de transição: as páginas são cobertas por quem já está escalado nesse dia, no turno em que está, só SRs (quem vai virar OS, OM ou OUM fica de fora). Depois valem todas as regras.
 - **D15 · Backup:** deve dar a menor troca possível de pessoas atuando numa página. Ficou equipe fixa por vaga, com as 7 regras do montador da seção 2, item 3, testadas no modelo de 27/10.
-- **D16 · Nomes:** Decurio = OS; Equites = reps.
+- **D16 · Nomes (28/10):** Operational Unit Manager (OUM), Operational Manager (OM), Operational Supervisor (OS) e Sales Representative (SR, nível 0 a 5). Os nomes antigos de cargo saem da ferramenta.
 - **Buffers:** cada núcleo (equipe do supervisor) tem o próprio grupo de buffers, que segue a folga do núcleo.
   - Os níveis 0 a 2 alternam entre atuar em uma ou mais páginas e a função de buffer.
   - Todos fazem turnos regulares; o nível define quantos (2 mais, 1 médio, 0 menos).
@@ -389,11 +389,11 @@ Iguais à v3:
 5. **D8 · Páginas por rep:** o posts.py agrupa até 3 de modelos diferentes; a Política (5.3.1) permite 2 quando são diferentes. Qual vale?
 6. **D9 · Apoio no CSV:** quem faz apoio na página grande entra como assistente (`#`) ou como regular?
 7. **D7 · Página que muda de carteira:** quem está fixo no posto vai junto ou fica na carteira?
-8. **D12 · Acesso por perfil:** o OUM vê a própria unidade, o OM o próprio turno e o Decurio o próprio núcleo? Algum deles aprova indisponibilidade, ou só o WFM?
+8. **D12 · Acesso por perfil:** o OUM vê a própria unidade, o OM o próprio turno e o OS o próprio núcleo? Algum deles aprova indisponibilidade, ou só o WFM?
 
 **Resolvidas pelas respostas acima:**
 - **D4:** a cobertura fica dentro da unidade e do turno. A cobertura pode estar na outra carteira; entre unidades, só buffer.
-- **D6:** o Decurio acompanha o próprio núcleo, que é a party dele no Planner. Os Equites dele podem ocupar postos das 2 carteiras.
+- **D6:** o OS acompanha o próprio núcleo, que é a party dele no Planner. Os SRs dele podem ocupar postos das 2 carteiras.
 
 **Perguntas da v3 que continuam:**
 - Remoção de turno por workload: com quanta antecedência avisar a pessoa e por qual canal.
@@ -405,7 +405,7 @@ Iguais à v3:
 - Antecedência da indisponibilidade: 72 h.
 - Limite de horas: 52 h por semana e 12 h seguidas.
 - Horizonte: escala semanal, entregue na quinta.
-- O dia administrativo do Primaris e a cobertura entre parties deixaram de existir.
+- O dia administrativo do cargo antigo mais alto e a cobertura entre parties deixaram de existir.
 
 ## 9. Scripts da v4 (28/10)
 
@@ -414,8 +414,11 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
 | Script | O que faz |
 |---|---|
 | `ES_04_estrutura_unidades.sql` | Só adiciona:<br>- tabelas `esc_unidade`, `esc_lideranca`, `esc_nucleo`, `esc_posto`, `esc_posto_pagina` e `esc_vaga_equipe`;<br>- colunas novas em colaboradores, plano e alocação;<br>- o modelo "5x2 rotativo 21 dias";<br>- os parâmetros `v4_*` (fatia por nível 80/60/40%, âncora 02/11, virada 01/11 05:00);<br>- a view `vw_esc_estrutura_rep` para o Capacity.<br>Pode rodar de novo. |
-| `ES_05_carga_estrutura_27out.sql` | Gerado por `gerador/gerar_es05.py` a partir do modelo de 27/10:<br>- 3 unidades, 3 OUM e 9 OM;<br>- 27 núcleos;<br>- 245 pessoas: 219 Equites e 26 Decurios com código;<br>- 162 postos com as páginas;<br>- a **proposta** de equipe de cada vaga (status PROPOSTA).<br>Fecha a configuração antiga dessas pessoas em 31/10. Termina com consultas de conferência. Pode rodar de novo. |
+| `ES_05_carga_estrutura_27out.sql` | Gerado por `gerador/gerar_es05.py` a partir do modelo de 27/10:<br>- 3 unidades, 3 OUM e 9 OM;<br>- 27 núcleos;<br>- 245 pessoas: 219 SRs e 26 OS com código;<br>- 162 postos com as páginas;<br>- a **proposta** de equipe de cada vaga (status PROPOSTA).<br>Fecha a configuração antiga dessas pessoas em 31/10. Termina com consultas de conferência. Pode rodar de novo. |
 | `ES_06_ajuste_pessoas_01nov.sql` | Fecha a configuração da v3 dos 12 desligados.<br>Põe nos núcleos os 20 reps ativos que estavam fora do modelo de 27/10:<br>- turno = o que mais trabalharam em 14 dias;<br>- nível pelo cargo de hoje;<br>- núcleo = o mais curto do turno.<br>Entram sem equipe fixa. |
+| `ES_09_transicao_01nov.sql` | Virada em 01/11 05:00 com 01/11 de transição (substitui o ES_08). Termina com quantos escalados de 01/11 entram: em 28/10, 145 SRs; 10 futuros OS e 7 futuros OM/OUM ficam de fora. |
+| `ES_10_postos_capacity_28out.sql` | Gerado por `gerador/gerar_es10.py`. Troca os postos pelos do Capacity (`fc_postos` de 28/10, com as páginas da mesma modelo juntas pela regra nova do Capacity) e remonta a proposta de equipe de cada vaga, mantendo cada SR nas páginas que já fazia no turno. Os postos e equipes de antes ficam só com o dia 31/10. |
+| `ES_11_overlap_treinamento.sql` | Origem OVERLAP e o parâmetro `v4_overlap_posicao_ciclo` = 1: no dia de treinamento (15º dia do 5x2, a folga isolada da semana 1) o SR entra como Overlap no posto dele, com `-5` no CSV. |
 | `ES_08_virada_02nov.sql` | Passa a virada para 02/11 01:00 e deixa sem dia de transição (`v4_dia_transicao` vazio): a escala antiga vai até 01/11 T6. |
 | `ES_07_conferencia_v4.sql` | Só leitura: conferência do plano da semana de 02/11 depois de gerar. |
 | `ES_98_desfazer_v4.sql` | Desfaz o ES_05 e o ES_04 sem apagar o schema. |
@@ -427,18 +430,19 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
   3. buffer do outro núcleo em serviço no turno;
   4. lacuna.
 - Quem fica sem vaga é o buffer de plantão e não vai para o CSV.
-- **Virada em 02/11 (`ES_08`):** o motor começa no turno A de 02/11. O T1 de 02/11 sai no CSV com o T1 já postado ou, se não houver, com quem está no T6 de 01/11 (continua o turno D). Quem está nesse turno D fica fora do turno A de 02/11 (seriam 16 h seguidas; em 28/10 eram 4 pessoas).
-- **Dia de transição** (`v4_dia_transicao`, hoje vazio): se tiver um dia, ele é montado com quem está escalado no `scheduleday`, no turno em que está.
+- **Transição em 01/11 (`ES_09`):** as páginas de 01/11 (T2 a T6 e o T1 de 02/11) são cobertas por quem está escalado no `scheduleday`, só SRs. O CSV da semana de 26/10 repete o que já está postado antes de 01/11 05:00, para não apagar nada no site.
+- **Emenda de turno:** quem fecha o turno D às 05:00 do primeiro dia do plano fica fora do turno A desse dia (seriam 16 h seguidas).
+- **Sem transição (`ES_08`):** o motor começa no turno A de 02/11 e o T1 de 02/11 sai no CSV com o T1 postado ou com quem está no T6 de 01/11.
 - **Teste com os dados carregados (ES_05 + ES_06)**, sem nenhuma violação:
   - ninguém em 2 postos no mesmo turno, nenhum trabalho na folga do núcleo nem fora do turno, nenhum assistente sem titular na página;
   - todos com 4 ou 5 dias na semana.
 - **Semana de 02/11:**
   - 58 posto-dias sem ninguém, em média 8 por dia: U1 C 17, U2 C 10, U3 A 12, U3 C 14, U3 D 5;
   - média de 2,8 pessoas diferentes por página e turno na semana (o mínimo na rotação é 2).
-- **01/11** (quando ainda era transição): 24 postos sem ninguém.
+- **01/11:** 15 postos sem ninguém, todos na U3 (com a escala postada em 28/10; antes eram 24).
 
 **O que a carga encontrou:**
-- **Isabel da Silva Marinho** (Decurio da U2, turno A) não está no headcount. O núcleo entra sem código de Decurio, e ela fica fora da lista de pessoas.
+- **Isabel da Silva Marinho** (OS da U2, turno A) não está no headcount. O núcleo entra sem código de OS, e ela fica fora da lista de pessoas.
 - Um rep do modelo estava "(sem Cadastro)" (B109639) e ficou de fora.
 - **Daniswings 157m** ficou inativa no cadastro depois de 27/10. Entra nos postos com o id dela, e a conferência avisa.
 - **Proposta de equipes:** 424 linhas. Falta de gente para cobrir as vagas, por unidade e turno:
@@ -453,9 +457,9 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
   - Em média cada página-turno vê 3,2 pessoas no ciclo: as vagas dos níveis 0 a 2 são divididas.
   - Um núcleo não empresta gente a outro, por isso a falta passa um pouco da conta simples.
 
-## 10. Próximos passos (virada em 02/11, turno A)
+## 10. Próximos passos (virada em 01/11, 05:00)
 
-O prazo é curto: a escala de **02/11 a 08/11** precisa sair do sistema até **quinta, 29/10, às 18:00** (Política 6.1). Ordem proposta, só com o que essa escala precisa:
+O prazo é curto: a escala de **01/11 (a partir do T2) a 08/11** precisa sair do sistema até **quinta, 29/10, às 18:00** (Política 6.1). Ordem proposta, só com o que essa escala precisa:
 
 1. **28/10:**
    - responder os buffers em núcleo e OM/OUM (itens 1 e 2 das abertas);
@@ -466,7 +470,7 @@ O prazo é curto: a escala de **02/11 a 08/11** precisa sair do sistema até **q
    - grade por posto e CSV T1–T6 por página;
    - testes no harness da v3 (php-wasm com o banco simulado);
    - o zip para instalar.
-3. **29/10, até 18:00:** gerar, revisar e publicar a escala de 02/11 a 08/11; os CSVs vão para o Schedule Ajustment.
+3. **29/10, até 18:00:** gerar, revisar e publicar a escala de 01/11 a 08/11; os CSVs vão para o Schedule Ajustment.
 4. **Depois da virada:** telas 02, 07 e 20 completas, resumo para o Planner, as demais telas no canvas e o restante das decisões.
 
 **Núcleos de hoje × o que a rotação pede** (modelo de 27/10). O núcleo de cada rep é o supervisor de referência; nenhum rep tem supervisor de outra unidade ou turno.

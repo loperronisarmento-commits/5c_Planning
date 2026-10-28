@@ -120,6 +120,21 @@ if (isset($_GET['baixar'])) {
         }
     }
     $aloc = array_merge($aloc, $t1Anterior);
+    // Semana da virada: antes dela o CSV repete o que já está postado, para não apagar nada no site.
+    $viradaSlot = str_replace(' ', 'T', escV4Param('v4_virada', '2026-11-01 05:00')) . ':00';
+    if (escV4Ativo($seg) && $viradaSlot > $seg . 'T01:00:00') {
+        $nomesPag = array_column($aloc, 'pagina', 'page_id');
+        if ($nomesPag) {
+            foreach (escQ('SELECT modeloId, shiftDateAndHour AS slot, UPPER(codigo) AS code, assitente
+                             FROM `5c_schedule`.`scheduleday`
+                            WHERE shiftDateAndHour >= ? AND shiftDateAndHour < ? AND modeloId IN (' . escIn(array_keys($nomesPag)) . ')',
+                          array_merge([$seg . 'T01:00:00', $viradaSlot], array_keys($nomesPag))) as $r) {
+                $aloc[] = ['dia' => substr($r['slot'], 0, 10), 'bloco' => blocoDaHora(substr($r['slot'], 11, 2)), 'turno' => '',
+                    'page_id' => (int) $r['modeloId'], 'pagina' => $nomesPag[(int) $r['modeloId']], 'rep_code' => $r['code'],
+                    'papel' => (int) $r['assitente'] === 1 ? 'ASSISTENTE' : 'REGULAR', 'origem' => 'MANUAL', 'travada' => 0, 'motivo' => 'já postado'];
+            }
+        }
+    }
     $porPagina = [];
     foreach ($aloc as $a) {
         if ($a['rep_code'] === null) {
@@ -127,7 +142,8 @@ if (isset($_GET['baixar'])) {
         }
         $slot = substr($a['dia'], 0, 10) . 'T' . escHoraDoBloco($a['bloco']) . ':00:00';
         $porPagina[(int) $a['page_id']]['nome'] = $a['pagina'];
-        $porPagina[(int) $a['page_id']]['cel'][$slot][$a['rep_code']] = $a['papel'] === 'ASSISTENTE';
+        // Overlap (dia de treinamento) sai com "-5", o motivo que o CSV do site lê; assistente com "#".
+        $porPagina[(int) $a['page_id']]['cel'][$slot][$a['rep_code']] = $a['origem'] === 'OVERLAP' ? '-5' : $a['papel'] === 'ASSISTENTE';
     }
     $arquivoDe = static fn(string $nome) => preg_replace('~[^A-Za-z0-9_-]+~', '_', $nome) . '_' . $seg . '.csv';
     if ($_GET['baixar'] === 'csv') {
@@ -289,7 +305,7 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
             <?php if (!$cel): ?><span class="muted">—</span><?php endif; ?>
             <?php foreach ($cel as $x): ?>
               <?php if ($x['rep_code'] === null): ?><span class="laranja">lacuna</span><br>
-              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php echo h(nomeCurto($nomes[$x['rep_code']] ?? $x['rep_code'])); ?><?php echo $x['papel'] === 'ASSISTENTE' ? ' #' : ''; ?></span><br><?php endif; ?>
+              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php echo h(nomeCurto($nomes[$x['rep_code']] ?? $x['rep_code'])); ?><?php echo $x['origem'] === 'OVERLAP' ? ' -5' : ($x['papel'] === 'ASSISTENTE' ? ' #' : ''); ?></span><br><?php endif; ?>
             <?php endforeach; ?>
             </a>
           </td>
@@ -301,7 +317,7 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
     </tbody>
   </table>
   </div>
-  <p class="muted small">Mostrando o bloco <?php echo h($blocoRef); ?> do turno <?php echo h($turnoSel); ?>. Cores: party dona, outra party, Tertius, Buffer, ajuste manual. "#" = assistente. Clique na célula para ver o porquê e ajustar.</p>
+  <p class="muted small">Mostrando o bloco <?php echo h($blocoRef); ?> do turno <?php echo h($turnoSel); ?>. Cores: <?php echo ($plano['estrutura'] ?? 'V3') === 'V4' ? 'vaga do dono, cobertura, buffer do núcleo, transição, Overlap (-5), ajuste manual' : 'party dona, outra party, rodízio, Buffer, ajuste manual'; ?>. "#" = assistente. Clique na célula para ver o porquê e ajustar.</p>
 
   <?php if ($sel): $pgSel = $porId[$sel['page_id']] ?? ['nome' => $paginasPlano[$sel['page_id']] ?? '', 'party' => '']; ?>
   <div class="cartao-csv" id="detalhe">
@@ -337,7 +353,7 @@ $ehRascunho = $plano['status'] === 'RASCUNHO';
         if ($a['rep_code'] === null || $a['bloco'] !== ESC_TURNOS[$a['turno']][0]) {
             continue;
         }
-        $porPessoa[$a['rep_code']][substr($a['dia'], 0, 10)][] = $a['pagina'] . ($a['papel'] === 'ASSISTENTE' ? ' #' : '');
+        $porPessoa[$a['rep_code']][substr($a['dia'], 0, 10)][] = $a['pagina'] . ($a['origem'] === 'OVERLAP' ? ' -5' : ($a['papel'] === 'ASSISTENTE' ? ' #' : ''));
     }
     $folgas = [];
     foreach (escQ('SELECT rep_code, dia, tipo FROM ' . escT('esc_plano_folga') . ' WHERE plano_id = ?', [$planoId]) as $f) {

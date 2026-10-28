@@ -681,12 +681,11 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         $transicao = substr(escV4Param('v4_dia_transicao', $virada), 0, 10); // '' = sem transição
         $inicio = max($seg, $virada);
         $indisp = escMotorIndisp($dias);
-        if (in_array($virada, $dias, true) && $transicao !== $virada) {
-            // Quem está no turno D postado na véspera da virada vai até as 05:00 do
-            // dia da virada: fica fora do turno A desse dia (seriam 16 h seguidas).
-            foreach (escQ("SELECT DISTINCT UPPER(codigo) AS code FROM `5c_schedule`.`scheduleday`
-                            WHERE shiftDateAndHour = ? AND modeloId <> 3", [escMaisDias($virada, -1) . 'T21:00:00']) as $l) {
-                $indisp[$l['code']][$virada]['A'] ??= ['id' => null, 'blocos' => null];
+        if ($inicio !== $transicao) {
+            // Quem fecha o turno D às 05:00 do primeiro dia do plano fica fora do
+            // turno A desse dia (seriam 16 h seguidas; acontece na virada).
+            foreach (escV4FimTurnoD($inicio) as $code) {
+                $indisp[$code][$inicio]['A'] ??= ['id' => null, 'blocos' => null];
             }
         }
         $saida = escMotorAlocarV4([
@@ -1005,7 +1004,7 @@ function escNomeFonte(string $fonte): string {
 
 // ---------- CSV do Schedule Ajustment a partir do plano ----------
 
-// $celulas[slot 'Y-m-dTHH:00:00'] = [rep => assistente(bool)]
+// $celulas[slot 'Y-m-dTHH:00:00'] = [rep => assistente(bool) ou o sufixo do código, ex. '-5']
 function escCsvT1T6(array $celulas, string $seg, string $desdeSlot = ''): string {
     $linhas = [];
     foreach (ESC_BLOCOS as $hora => $bloco) {
@@ -1016,7 +1015,7 @@ function escCsvT1T6(array $celulas, string $seg, string $desdeSlot = ''): string
             if ($slot >= $desdeSlot && !empty($celulas[$slot])) {
                 $codigos = [];
                 foreach ($celulas[$slot] as $code => $assist) {
-                    $codigos[] = $code . ($assist ? '#' : '');
+                    $codigos[] = $code . (is_string($assist) ? $assist : ($assist ? '#' : ''));
                 }
                 $cel = implode(', ', $codigos);
             }

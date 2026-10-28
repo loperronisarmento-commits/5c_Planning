@@ -36,9 +36,21 @@ if (!function_exists('checarMysqlSaudavel')) {
     }
 }
 
+// ESC_DB_HOST e ESC_DB_PORT (opcionais no .env) valem só para este módulo, sem mexer nas
+// outras aplicações do portal. Ex.: ESC_DB_HOST=127.0.0.1 quando o MySQL está na mesma
+// máquina do portal. Sem eles, usa DB_HOST e DB_PORT.
+function escDbEndereco(): array {
+    $host = (string) env('ESC_DB_HOST', '');
+    $porta = (string) env('ESC_DB_PORT', '');
+    return [
+        'host' => $host !== '' ? $host : (string) env('DB_HOST'),
+        'porta' => $porta !== '' ? $porta : (string) env('DB_PORT', '3306'),
+        'variavel' => $host !== '' ? 'ESC_DB_HOST' : 'DB_HOST',
+    ];
+}
+
 function escNovaConexao(): PDO {
-    $host = (string) env('DB_HOST');
-    $porta = (string) env('DB_PORT', '3306');
+    ['host' => $host, 'porta' => $porta] = escDbEndereco();
     $banco = (string) env('DB_NAME', '');
     $charset = (string) env('DB_CHARSET', 'utf8mb4');
 
@@ -58,7 +70,18 @@ function escNovaConexao(): PDO {
         $opcoes[PDO::MYSQL_ATTR_MULTI_STATEMENTS] = false;
     }
 
-    $pdo = new PDO($dsn, (string) env('DB_USER'), (string) env('DB_PASS'), $opcoes);
+    // Conexão recusada (2002) costuma ser passageira na rede até o .11: tenta de novo antes de desistir.
+    for ($tentativa = 1; ; $tentativa++) {
+        try {
+            $pdo = new PDO($dsn, (string) env('DB_USER'), (string) env('DB_PASS'), $opcoes);
+            break;
+        } catch (PDOException $e) {
+            if ($tentativa >= 4 || strpos($e->getMessage(), '[2002]') === false) {
+                throw $e;
+            }
+            usleep(500000 * $tentativa);
+        }
+    }
     $pdo->exec('SET SESSION max_execution_time = ' . (int) ESC_MAX_EXECUCAO_MS);
     return $pdo;
 }

@@ -28,6 +28,7 @@ Rode no Navicat, nesta ordem, os scripts de `escalas/sql/`:
    - Todas as tabelas com leitura OK.
 
 Usa o mesmo `.env` da plataforma (`env()` de `mis_portal/api/config/env.php`). Nenhuma credencial fica nesta pasta.
+- **Endereço só deste módulo (opcional):** `ESC_DB_HOST` e `ESC_DB_PORT` no `.env` valem só para o 5C Escalas. Com o MySQL na mesma máquina do portal, use `ESC_DB_HOST=127.0.0.1`: a conexão não passa pela rede, e as outras aplicações continuam com o `DB_HOST`. O Diagnóstico mostra qual endereço está em uso.
 
 ## Acesso
 
@@ -74,13 +75,16 @@ Toda alteração vai para `esc_log` (quem, quando, antes e depois).
 
 ## Estrutura de 01/11/2026 (v4)
 
-Toda semana a partir da virada (parâmetro `v4_virada`) é gerada pelo `lib/motor_v4.php`. Antes de gerar, rode os scripts `ES_04`, `ES_05`, `ES_06` e `ES_08` (`escalas/sql/`). Com o `ES_08`, a escala antiga vai até 01/11 T6 e o motor começa no turno A de 02/11.
+Toda semana a partir da virada (parâmetro `v4_virada`) é gerada pelo `lib/motor_v4.php`. Antes de gerar, rode os scripts `ES_04`, `ES_05`, `ES_06` e `ES_09` (`escalas/sql/`). Com o `ES_09`, a virada é 01/11 às 05:00 e 01/11 é dia de transição. O `ES_08` é a alternativa sem transição, com o motor começando no turno A de 02/11.
 - **Rotação:** 3 núcleos por unidade e turno, ciclo de 21 dias (P1 ter/sáb/dom · P2 seg/sex · P3 qua/qui). Todo dia 2 núcleos trabalham.
 - **Vagas:** cada posto (foto do Capacity em `esc_posto`) tem a vaga do dono (núcleo dono, nos dias dele) e a de cobertura (outro núcleo, nas folgas do dono).
 - **Ordem de preenchimento:** equipe fixa da vaga (`esc_vaga_equipe`, como preferência) → outra pessoa do núcleo → buffer do outro núcleo do turno → lacuna.
+- **Postos:** vêm do Capacity (`fc_postos` de um `data_calculo` fixo), carregados pelo `ES_10` (gerado por `sql/gerador/gerar_es10.py`), que remonta as equipes mantendo cada SR nas páginas que já fazia.
 - **Buffer de plantão:** quem fica sem vaga. Não vai para o CSV.
-- **Dia de transição** (parâmetro `v4_dia_transicao`, vazio desde o `ES_08`): se tiver um dia, ele é montado com quem está escalado no `scheduleday` nesse dia.
-- **T1 de 02/11:** é o fim do turno D postado em 01/11. Sem plano da semana anterior, o CSV repete o T1 já postado ou, se não houver, quem está no T6 de domingo. Quem está nesse turno D fica fora do turno A de 02/11.
+- **Overlap (dia de treinamento):** o 15º dia de trabalho do ciclo, a folga isolada da semana 1 (posição do parâmetro `v4_overlap_posicao_ciclo`, `ES_11`). O SR entra no posto dele como Overlap, além de quem cobre a vaga, e no CSV o código sai com `-5`. Depois se decide se vira buffer ou treinamento.
+- **Dia de transição** (parâmetro `v4_dia_transicao`, 01/11 pelo `ES_09`): as páginas desse dia são cobertas por quem já está escalado no `scheduleday`, no turno em que está. Só entram SRs; quem vai virar OS, OM ou OUM fica de fora.
+- **CSV da semana da virada:** antes da virada, repete o que já está postado, para não apagar nada no site. Gere a semana de 26/10 (só 01/11) e depois a de 02/11, que pega o T1 de segunda do plano anterior.
+- **Emenda de turno:** quem fecha o turno D às 05:00 do primeiro dia do plano fica fora do turno A desse dia (seriam 16 h seguidas).
 
 ## Recálculo e De→Para
 

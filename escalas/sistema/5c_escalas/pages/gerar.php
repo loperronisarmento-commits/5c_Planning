@@ -40,7 +40,22 @@ if (escPost()) {
     throw new RuntimeException('Ação desconhecida.');
 }
 
-$parties = escFormacaoParties();
+// Semana na estrutura de 01/11: o motor v4 não usa times nem parties.
+$v4 = null;
+if (escV4Ativo($seg)) {
+    $dv = max($seg, escV4DiaVirada());
+    $vig = ' vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)';
+    $v4 = [
+        'srs' => (int) escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND nucleo_id IS NOT NULL AND" . $vig, [$dv, $dv])['n'],
+        'nucleos' => (int) escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_nucleo') . ' WHERE' . $vig, [$dv, $dv])['n'],
+        'unidades' => (int) escQ1('SELECT COUNT(DISTINCT unidade) AS n FROM ' . escT('esc_nucleo') . ' WHERE' . $vig, [$dv, $dv])['n'],
+        'postos' => (int) escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_posto') . ' WHERE' . $vig, [$dv, $dv])['n'],
+    ];
+    $eq = escQ1('SELECT COUNT(*) AS n, SUM(status = \'PROPOSTA\') AS propostas FROM ' . escT('esc_vaga_equipe') . ' WHERE' . $vig, [$dv, $dv]);
+    $v4['equipes'] = (int) $eq['n'];
+    $v4['propostas'] = (int) $eq['propostas'];
+}
+$parties = $v4 ? [] : escFormacaoParties();
 $bloqueantes = array_values(array_filter($parties, static function ($l) {
     foreach ($l['regras'] as $r) {
         if ($r[2]) {
@@ -77,11 +92,19 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
     <span class="muted small">Versão atual: <strong><?php echo $atual ? h(escPlanoRotulo($atual) . ' · ' . strtolower($atual['status'])) : 'nenhuma'; ?></strong></span>
   </form>
 
+  <?php if ($v4): ?>
+  <div class="kpis">
+    <div class="kpi"><span class="muted">Estrutura nova</span><strong><?php echo (int) $v4['srs']; ?></strong><span class="muted small">SRs em <?php echo (int) $v4['nucleos']; ?> núcleos de <?php echo (int) $v4['unidades']; ?> unidades · rotação de 21 dias</span></div>
+    <div class="kpi"><span class="muted">Postos</span><strong><?php echo (int) $v4['postos']; ?></strong><span class="muted small">foto do Capacity, cada um com vaga do dono e de cobertura</span></div>
+    <div class="kpi"><span class="muted">Equipes das vagas</span><strong><?php echo (int) $v4['equipes']; ?></strong><span class="muted small"><?php echo (int) $v4['propostas']; ?> ainda como proposta · a equipe é preferência, não trava</span></div>
+  </div>
+  <?php else: ?>
   <div class="kpis">
     <div class="kpi"><span class="muted">Pessoas configuradas</span><strong><?php echo (int) ($config['n'] ?? 0); ?></strong><span class="muted small"><?php echo (int) ($config['buffers'] ?? 0); ?> Buffers · posição no ciclo pela releitura do realizado</span></div>
     <div class="kpi"><span class="muted">Capacity</span><strong><?php echo h(dataBr($capacity['dc'] ?? null)); ?></strong><span class="muted small">dias fora do horizonte usam o mesmo dia da semana</span></div>
     <div class="kpi"><span class="muted">Parties que bloqueiam</span><strong class="<?php echo $bloqueantes ? 'laranja' : ''; ?>"><?php echo count($bloqueantes); ?></strong><span class="muted small">sem Primaris ou sem página: as páginas delas vão para outras parties e Buffers</span></div>
   </div>
+  <?php endif; ?>
 
   <?php if (escPode('planejar')): ?>
   <div class="acoes">
@@ -103,11 +126,19 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php else: ?>
   <p class="muted small">Seu perfil só visualiza. Gerar e recalcular: Planejamento ou Admin.</p>
   <?php endif; ?>
+  <?php if ($v4): ?>
+  <ol class="roteiro muted small">
+    <li><strong>Estrutura nova</strong> (a partir de <?php echo h(dataBr(escV4DiaVirada())); ?>): unidade → turno → 3 núcleos; todo dia 2 núcleos trabalham. Os times e parties atuais não entram.</li>
+    <li><strong>Ordem de preenchimento de cada vaga:</strong> equipe fixa da vaga → outra pessoa do núcleo → buffer do outro núcleo do turno → lacuna. Quem fica sem vaga é buffer de plantão (não vai para o CSV).</li>
+    <li><strong>Recálculo:</strong> qualquer mudança nas entradas gera uma nova subversão (v1.1). Ajuste feito na grade fica travado.</li>
+  </ol>
+  <?php else: ?>
   <ol class="roteiro muted small">
     <li><strong>Releitura:</strong> lê as últimas 4 semanas do scheduleday e descobre onde cada pessoa está no ciclo e quantos dias seguidos já trabalhou.</li>
     <li><strong>Ordem de preenchimento:</strong> party dona → outras parties do time → Tertius regular → Tertius assistente → Buffers → lacuna.</li>
     <li><strong>Recálculo:</strong> qualquer mudança no Capacity, estrutura, páginas, colaboradores, pedidos aprovados ou modelos gera uma nova subversão (v3.1). Quem já está na escala publicada não sai sozinho: vira sugestão.</li>
   </ol>
+  <?php endif; ?>
 </section>
 
 <section class="panel">

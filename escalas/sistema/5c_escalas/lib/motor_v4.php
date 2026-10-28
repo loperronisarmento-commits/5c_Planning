@@ -3,7 +3,7 @@
 // ARQUIVO: 5c_escalas/lib/motor_v4.php
 // Motor da estrutura de 01/11/2026 (spec v4).
 //
-// Unidade → turno → 3 núcleos (Decurio + Equites) na rotação de 21 dias
+// Unidade → turno → 3 núcleos (OS + SRs) na rotação de 21 dias
 // (P1 ter/sáb/dom · P2 seg/sex · P3 qua/qui): todo dia 2 núcleos de cada
 // unidade e turno trabalham. Cada posto (vem do Capacity, foto em
 // esc_posto) tem a vaga do DONO (núcleo dono, nos dias dele) e a de
@@ -47,11 +47,15 @@ function escV4Ativo(string $seg): bool {
     return escMaisDias($seg, 6) >= escV4DiaVirada();
 }
 
-function escV4NucleoTrabalha(array $nucleo, string $ciclo, string $ancora, string $dia): bool {
+// Posição do núcleo no ciclo de 21 dias nesse dia.
+function escV4IndiceCiclo(array $nucleo, string $ciclo, string $ancora, string $dia): int {
     $L = strlen($ciclo);
     $dias = (int) round((strtotime($dia) - strtotime($ancora)) / 86400);
-    $idx = ((($dias + (int) $nucleo['deslocamento']) % $L) + $L) % $L;
-    return $ciclo[$idx] === '1';
+    return ((($dias + (int) $nucleo['deslocamento']) % $L) + $L) % $L;
+}
+
+function escV4NucleoTrabalha(array $nucleo, string $ciclo, string $ancora, string $dia): bool {
+    return $ciclo[escV4IndiceCiclo($nucleo, $ciclo, $ancora, $dia)] === '1';
 }
 
 // ---------- leituras ----------
@@ -86,11 +90,32 @@ function escV4Carregar(string $dia): array {
     foreach (escQ('SELECT posto_id, vaga, UPPER(rep_code) AS rep, fatia FROM ' . escT('esc_vaga_equipe') . ' WHERE' . $vig, [$dia, $dia]) as $e) {
         $equipes[(int) $e['posto_id']][$e['vaga']][$e['rep']] = (float) $e['fatia'];
     }
+    $overlap = escV4Param('v4_overlap_posicao_ciclo', '');
     return ['modelo' => $modelo, 'nucleos' => $nucleos, 'pessoas' => $pessoas, 'postos' => $postos, 'equipes' => $equipes,
-        'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02')];
+        'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02'), 'overlap_idx' => $overlap === '' ? null : (int) $overlap];
+}
+
+// Quem fecha o turno D às 05:00 de $dia (T1): do plano da semana anterior; sem
+// ele, o T1 postado ou, se não houver, quem está no T6 postado da véspera.
+function escV4FimTurnoD(string $dia): array {
+    $ant = escPlanoAtual(segundaDaSemana(escMaisDias($dia, -1)));
+    if ($ant) {
+        $l = escQ('SELECT DISTINCT UPPER(rep_code) AS code FROM ' . escT('esc_plano_alocacao') . " WHERE plano_id = ? AND dia = ? AND bloco = 'T1' AND rep_code IS NOT NULL", [(int) $ant['id'], $dia]);
+        if ($l) {
+            return array_column($l, 'code');
+        }
+    }
+    foreach ([$dia . 'T01:00:00', escMaisDias($dia, -1) . 'T21:00:00'] as $slot) {
+        $l = escQ('SELECT DISTINCT UPPER(codigo) AS code FROM `5c_schedule`.`scheduleday` WHERE shiftDateAndHour = ? AND modeloId <> 3', [$slot]);
+        if ($l) {
+            return array_column($l, 'code');
+        }
+    }
+    return [];
 }
 
 // Quem já está escalado no dia da virada (scheduleday), por turno: T2/T3 → A, T4/T5 → C, T6 → D.
+// Só SRs da estrutura nova entram (quem vai virar OS, OM ou OUM fica de fora).
 function escV4PresentesTransicao(string $dia): array {
     $linhas = escQ("SELECT UPPER(codigo) AS code, SUBSTRING(shiftDateAndHour, 12, 2) AS hora
                       FROM `5c_schedule`.`scheduleday`
@@ -119,14 +144,23 @@ function escMotorAlocarV4(array $in): array {
     $nucleos = $est['nucleos'];
     $pessoas = $est['pessoas'];
     $equipes = $est['equipes'];
+    // Dia de treinamento do 5x2 (o 15º dia de trabalho do ciclo): o SR entra como Overlap
+    // no posto dele, fora da conta das vagas. null = sem Overlap.
+    $overlapIdx = $est['overlap_idx'] ?? null;
 
     // Páginas que cada pessoa conhece (em qualquer equipe) — afinidade.
+    // Posto de cada pessoa para o Overlap: a vaga de maior fatia, a do dono antes.
     $conhece = [];
+    $postoDe = [];
     foreach ($equipes as $pid => $vagas) {
-        foreach ($vagas as $reps) {
+        foreach ($vagas as $vaga => $reps) {
             foreach ($reps as $rep => $f) {
                 foreach ($est['postos'][$pid]['paginas'] ?? [] as $pg) {
                     $conhece[$rep][$pg['pagina']] = true;
+                }
+                $chave = [(float) $f, $vaga === 'DONO' ? 1 : 0, -(int) $pid];
+                if (isset($est['postos'][$pid]) && (!isset($postoDe[$rep]) || $chave > $postoDe[$rep]['chave'])) {
+                    $postoDe[$rep] = ['pid' => (int) $pid, 'vaga' => $vaga, 'chave' => $chave];
                 }
             }
         }
@@ -164,7 +198,8 @@ function escMotorAlocarV4(array $in): array {
     $feito = [];     // [rep][posto|vaga] = dias feitos na semana
     $diasVaga = [];  // [posto|vaga] = dias em que a vaga abriu
     $ultimo = [];    // [posto] = quem atuou no posto da última vez (menos troca de gente)
-    $trabalhou = []; // [rep][dia] = true (para anomalias)
+    $trabalhou = []; // [rep][dia] = true (para anomalias; o Overlap não conta)
+    $overlaps = [];  // [rep, dia, turno, posto] no dia de treinamento
 
     foreach ($dias as $dia) {
         if ($dia < $virada) {
@@ -175,6 +210,7 @@ function escMotorAlocarV4(array $in): array {
             $diaBloco = [$blocos[0] => $dia, $blocos[1] => $turno === 'D' ? escMaisDias($dia, 1) : $dia];
             $estadoUT = [];
             $usado = [];
+            $overlapUT = [];
 
             foreach ([1, 2, 3] as $u) {
                 $nids = $nucUT[$u][$turno] ?? [];
@@ -197,7 +233,13 @@ function escMotorAlocarV4(array $in): array {
                         continue;
                     }
                     if (!isset($ativos[$p['nucleo']])) {
-                        $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'ROTACAO', 'ref_id' => null];
+                        $ind = $indisp[$rep][$dia][$turno] ?? null;
+                        if ($overlapIdx !== null && $ind === null
+                            && escV4IndiceCiclo($nucleos[$p['nucleo']], $ciclo, $est['ancora'], $dia) === $overlapIdx) {
+                            $overlapUT[$u][$rep] = $p;
+                        } else {
+                            $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'ROTACAO', 'ref_id' => null];
+                        }
                         continue;
                     }
                     $ind = $indisp[$rep][$dia][$turno] ?? null;
@@ -393,6 +435,51 @@ function escMotorAlocarV4(array $in): array {
                     }
                 }
             }
+
+            // Overlap: no dia de treinamento o SR fica no posto dele como Overlap (no CSV, código
+            // com "-5"), além de quem cobre a vaga. Depois se decide se vira buffer ou treinamento.
+            foreach ($overlapUT as $u => $reps) {
+                foreach ($reps as $rep => $p) {
+                    $alvo = $postoDe[$rep] ?? null;
+                    if ($alvo === null) {
+                        // Sem equipe: o maior posto de que o núcleo dele é dono.
+                        foreach ($postosUT[$u][$turno] ?? [] as $pid) {
+                            if ((int) $est['postos'][$pid]['nucleo_dono_id'] === (int) $p['nucleo']) {
+                                $alvo = ['pid' => $pid, 'vaga' => 'DONO'];
+                                break;
+                            }
+                        }
+                    }
+                    if ($alvo === null) {
+                        $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'ROTACAO', 'ref_id' => null];
+                        continue;
+                    }
+                    $po = $est['postos'][$alvo['pid']];
+                    foreach ($po['paginas'] as $pg) {
+                        foreach ($blocos as $bloco) {
+                            $diaB = $diaBloco[$bloco];
+                            if (isset($travadasPorCelula[$diaB . '|' . $bloco . '|' . $pg['page_id']])) {
+                                continue;
+                            }
+                            $ind = $indisp[$rep][$dia][$turno] ?? null;
+                            if ($ind && is_array($ind['blocos']) && in_array($bloco, $ind['blocos'], true)) {
+                                continue;
+                            }
+                            $alocacoes[] = [
+                                'dia' => $diaB, 'bloco' => $bloco, 'turno' => $turno,
+                                'page_id' => $pg['page_id'], 'pagina' => $pg['pagina'],
+                                'posto_id' => $alvo['pid'], 'vaga' => $alvo['vaga'],
+                                'rep_code' => $rep,
+                                'papel' => ($po['tipo'] === 'assistente' || $pg['apoio']) ? 'ASSISTENTE' : 'REGULAR',
+                                'origem' => 'OVERLAP', 'travada' => 0,
+                                'motivo' => 'Overlap: dia de treinamento do 5x2 (buffer ou treinamento a decidir)',
+                            ];
+                            $resumoOrigem['OVERLAP'] = ($resumoOrigem['OVERLAP'] ?? 0) + 1;
+                        }
+                    }
+                    $overlaps[] = ['rep_code' => $rep, 'dia' => $dia, 'turno' => $turno, 'posto_id' => $alvo['pid']];
+                }
+            }
         }
     }
 
@@ -446,6 +533,7 @@ function escMotorAlocarV4(array $in): array {
             'vagas_sem_ninguem' => $vagasSemNinguem,
             'vagas_sem_ninguem_por_unidade_turno' => $lacunasUT,
             'paginas_sem_party' => [],
+            'overlaps' => count($overlaps),
         ],
     ];
 }
