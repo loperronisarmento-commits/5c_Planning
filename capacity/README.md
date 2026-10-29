@@ -42,6 +42,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 7 | `5C_Planning_16_postos_semana_01nov.sql` | Grava os postos com `data_calculo` = 28/10, já agrupando primeiro a mesma modelo. É a base fixa que o Planning tool usa na escala de 01/11 a 08/11. Rodar depois do 11 (versão 1.1) e do 13. |
 | 8 | `5C_Planning_17_turma_0211_real.sql` | Corrige a turma de 02/11 em `fc_contratacoes` para os contratados reais: A 4 · C 7 · D 4. O total continua 15. |
 | 9 | `5C_Planning_18_sem_skylar.sql` | Tira a Skylar Mae VIP da estrutura (a modelo saiu em 28/10) e recalcula a base de 28/10. Depois dele, o 13 não confere mais: a referência de 26/10 tinha a Skylar. |
+| 10 | `5C_Planning_19_versoes_e_plano_sugerido.sql` | Versões do capacity com "O que mudou", plano de turmas sugerido em cada versão e comparação com o oficial (visões 13 a 17). Recria o `sp_fc_rodar_dia` com a etapa `versao`. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -175,6 +176,48 @@ A Skylar Mae VIP (U1 · C1) ocupava 4 postos em cada turno: 1 titular e 3 assist
 - **Só a U1 muda:** 13 / 14 / 12 postos e 20 / 21 / 18 titulares. O pico da U1 cai de 2,18 / 1,96 / 1,62 para 1,82 / 1,35 / 1,62.
 - **A U1 · C1 fica pequena:** 5 / 5 / 4 postos, contra 8 / 9 / 8 da U1 · C2. Os reps que estavam na Skylar sobram ali.
 - **O plano de turmas não foi mexido:** continua com 315 contratações. O alvo do quadro caiu cerca de 21, então rever as turmas a partir de 07/12 é decisão do usuário.
+
+## Versões do capacity e plano sugerido (script 19)
+
+Pedido de 28/10: o capacity e as contratações não podem depender de recálculo à mão, e o capacity anterior tem que ficar guardado para comparar.
+
+**Versões.** Cada cálculo grava uma versão nova, e as anteriores ficam guardadas:
+- o que é gravado: o resumo, as unidades × turnos e os postos com as páginas;
+- quem grava: o cálculo diário, ou um recálculo à mão com `CALL sp_fc_recalcular_postos(data, 'motivo')`. Não use `CALL sp_fc_postos` sozinho: ele não grava versão;
+- **"O que mudou" sai sozinho**, da comparação com a versão anterior: páginas que saíram ou entraram, quantas mudaram de postos e a diferença do "precisa".
+
+Uma página desativada no cadastro sai no cálculo do dia seguinte, e a versão registra a saída. No caso da Skylar, o 18 só foi preciso porque ela continua ativa no cadastro.
+
+**Plano sugerido.** Em cada versão, o banco refaz as turmas planejadas do calendário oficial, em ordem, para o quadro chegar ao "precisa" de cada turno:
+- as turmas confirmadas ficam como estão;
+- a conta de turnover é a mesma do `sp_fc_prev_to`;
+- o quadro de partida é o "tem" da versão;
+- desistência no treinamento de 6% e no máximo 20 por turma.
+
+O plano oficial (`fc_contratacoes`) continua manual. A versão fica com alerta quando o total das turmas planejadas difere em 10 ou mais.
+
+| Visão | O que mostra |
+|---|---|
+| `vw_fc_13_capacity_versoes` | Todas as versões, com o "O que mudou", o total das turmas planejadas (oficial e sugerido) e quando a falta fecha |
+| `vw_fc_14_capacity_mudancas` | A última versão contra a anterior, por unidade e turno |
+| `vw_fc_15_capacity_paginas` | Páginas que mudaram de postos na última versão |
+| `vw_fc_16_plano_oficial_vs_sugerido` | Turma a turma, com "REVISAR" quando a diferença é de 3 ou mais |
+| `vw_fc_17_projecao_quadro` | Quadro projetado por semana com os dois planos contra o "precisa" |
+
+**Histórico inicial:**
+
+| Versão | Precisa | Turmas planejadas (oficial / sugerido) | Falta fecha em |
+|---|---|---|---|
+| 26/10 (referência do 13) | 330 | 280 / 247 | 24/05/2027 |
+| 28/10 com a Skylar (reconstruída) | 321 | 280 / 237 | 10/05/2027 |
+| 28/10 sem a Skylar | 300 | 280 / **211** | 12/04/2027 |
+
+**Por que o sugerido fica abaixo do oficial mesmo com 330:** o plano oficial veio de `simulacao/turmas_quadro.py`.
+- Lá, os novatos perdem 12% em 30 dias e mais 11% até 90 dias **além** do turnover de todo o quadro (6,4% ao mês). O novato acaba contado duas vezes.
+- No banco (`sp_fc_prev_to`), os 12% e 23% já são o total do novato.
+- O histórico confirma o banco: das 193 pessoas que entraram de out/2025 a jul/2026, 15,5% saíram em 30 dias e 26,4% em 90.
+- Com a mesma conta do Python, o plano semanal dá 279 com alvo 327, igual ao oficial.
+- Na diferença de 69 de hoje, cerca de 33 vêm da conta dos novatos e 36 do alvo menor.
 
 ## O que não muda
 

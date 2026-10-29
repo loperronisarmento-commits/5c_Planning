@@ -40,6 +40,25 @@ BEGIN
 END $$
 DELIMITER ;
 
+-- Script 19 (versões do capacity e plano sugerido). Para desfazer só o 19, rodar este bloco e o 11 de novo
+-- depois de tirar dele a etapa 'versao' do sp_fc_rodar_dia.
+DROP VIEW IF EXISTS vw_fc_17_projecao_quadro;
+DROP VIEW IF EXISTS vw_fc_16_plano_oficial_vs_sugerido;
+DROP VIEW IF EXISTS vw_fc_15_capacity_paginas;
+DROP VIEW IF EXISTS vw_fc_14_capacity_mudancas;
+DROP VIEW IF EXISTS vw_fc_13_capacity_versoes;
+DROP PROCEDURE IF EXISTS sp_fc_recalcular_postos;
+DROP PROCEDURE IF EXISTS sp_fc_capacity_versao;
+DROP PROCEDURE IF EXISTS sp_fc_versao_fechar;
+DROP PROCEDURE IF EXISTS sp_fc_plano_sugerido;
+DROP PROCEDURE IF EXISTS sp_fc_plano_simular;
+DROP TABLE IF EXISTS fc_wrk_plano;
+DROP TABLE IF EXISTS fc_plano_projecao;
+DROP TABLE IF EXISTS fc_plano_sugerido;
+DROP TABLE IF EXISTS fc_capacity_versao_posto;
+DROP TABLE IF EXISTS fc_capacity_versao_unidade;
+DROP TABLE IF EXISTS fc_capacity_versao;
+
 -- Script 14 (quadro e turmas em cenários)
 DROP VIEW IF EXISTS vw_fc_11_quadro_vagas;
 DROP VIEW IF EXISTS vw_fc_12_turmas_cenarios;

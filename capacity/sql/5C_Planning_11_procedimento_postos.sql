@@ -520,6 +520,9 @@ BEGIN
   CALL sp_fc_impacto_paginas(v_d);
   UPDATE fc_log_execucao SET etapa = 'postos' WHERE id = v_log;
   CALL sp_fc_postos(v_d);
+  -- etapa do script 19 (versões do capacity e plano sugerido); numa instalação nova, rodar o 19 logo depois
+  UPDATE fc_log_execucao SET etapa = 'versao' WHERE id = v_log;
+  CALL sp_fc_capacity_versao(v_d, 'DIARIO', NULL);
 
   UPDATE fc_log_execucao SET etapa = 'fim', fim = NOW(), status = 'OK' WHERE id = v_log;
 END $$
