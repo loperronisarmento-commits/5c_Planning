@@ -607,13 +607,13 @@ SELECT `Versão`, `Data do cálculo`, `Origem`, `Postos`, `Precisa`, `Δ precisa
 FROM vw_fc_13_capacity_versoes;
 
 -- 11.2 Plano sugerido de cada versão contra o espelho em Python (todas 'ok')
-SELECT v.versao AS `Versão`, v.precisa AS `Precisa`, v.contratar_oficial AS `Oficial`, e.of AS `Esp. oficial`,
+SELECT v.versao AS `Versão`, v.precisa AS `Precisa`, v.contratar_oficial AS `Oficial`, e.ofi AS `Esp. oficial`,
        v.contratar_sugerido AS `Sugerido`, e.sg AS `Esp. sugerido`, v.fecha_oficial AS `Fecha oficial`,
        e.fo AS `Esp. fecha oficial`, v.fecha_sugerido AS `Fecha sugerido`, e.fs AS `Esp. fecha sugerido`,
-       IF(v.contratar_oficial = e.of AND v.contratar_sugerido = e.sg AND v.fecha_oficial = e.fo AND v.fecha_sugerido = e.fs,
+       IF(v.contratar_oficial = e.ofi AND v.contratar_sugerido = e.sg AND v.fecha_oficial = e.fo AND v.fecha_sugerido = e.fs,
           'ok', 'DIFERENTE') AS `Confere`
 FROM fc_capacity_versao v
-JOIN (SELECT 321 AS prec, 280 AS of, 239 AS sg, DATE '2027-05-10' AS fo, DATE '2027-05-10' AS fs UNION ALL
+JOIN (SELECT 321 AS prec, 280 AS ofi, 239 AS sg, DATE '2027-05-10' AS fo, DATE '2027-05-10' AS fs UNION ALL
       SELECT 300, 280, 214, DATE '2027-04-12', DATE '2027-04-12' UNION ALL
       SELECT 294, 280, 207, DATE '2027-03-29', DATE '2027-03-29' UNION ALL
       SELECT 291, 280, 202, DATE '2027-03-29', DATE '2027-03-29') e ON e.prec = v.precisa
