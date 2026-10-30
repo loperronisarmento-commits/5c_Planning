@@ -8,7 +8,8 @@
 --   2. fc_plano_troca_turno: a troca C → A entra na simulação na data @data_troca. Se a data não for
 --      27/10, troque abaixo. Quando o cadastro da estrutura (fc_estrutura_rep) mostrar a troca, marque
 --      ativo = 0, senão ela conta duas vezes.
---   3. sp_fc_plano_simular e sp_fc_plano_sugerido com o teto por turno e as trocas (iguais aos do 19 novo).
+--   3. sp_fc_plano_simular e sp_fc_plano_sugerido com o teto por turno e as trocas, e sp_fc_versao_fechar
+--      comparando com a última versão de data igual ou anterior (iguais aos do 19 novo).
 --   4. Refaz o plano sugerido da última versão do capacity e adota como plano oficial: as turmas planejadas
 --      de fc_contratacoes (07/12 a 28/06) passam a ser as do sugerido. As confirmadas de 02/11 e 16/11 ficam.
 -- Pode rodar mais de uma vez: o resultado é o mesmo.
@@ -237,6 +238,70 @@ BEGIN
                               FROM fc_plano_projecao WHERE versao = p_v GROUP BY inicio_semana) z WHERE z.f <= v_fechada)
    WHERE v.versao = p_v;
   UPDATE fc_capacity_versao SET dif_plano = contratar_sugerido - contratar_oficial WHERE versao = p_v;
+END $$
+
+-- ---------------------------------------------------------------------
+-- 3c. O que mudou em relação à versão anterior, plano sugerido e alerta
+-- ---------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS sp_fc_versao_fechar $$
+CREATE PROCEDURE sp_fc_versao_fechar(IN p_v INT)
+BEGIN
+  DECLARE v_prev, v_pa, v_pn, v_mud, v_dif, v_lim, v_of, v_sg INT;
+  DECLARE v_saiu, v_entrou VARCHAR(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  DECLARE v_mot VARCHAR(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+  SET SESSION group_concat_max_len = 4000;
+  -- versão anterior: a última gravada antes desta com data de cálculo igual ou anterior
+  -- (um recálculo de uma data antiga não é comparado com o cálculo de uma data mais nova)
+  SELECT MAX(versao) INTO v_prev FROM fc_capacity_versao
+  WHERE versao < p_v AND data_calculo <= (SELECT data_calculo FROM fc_capacity_versao WHERE versao = p_v);
+
+  IF v_prev IS NULL THEN
+    SET v_mot = 'Primeira versão';
+  ELSE
+    SELECT precisa INTO v_pa FROM fc_capacity_versao WHERE versao = v_prev;
+    SELECT precisa INTO v_pn FROM fc_capacity_versao WHERE versao = p_v;
+    SET v_saiu = NULL, v_entrou = NULL, v_mud = 0;
+
+    -- páginas: só quando as duas versões têm os postos (as reconstruídas têm só as unidades)
+    IF EXISTS (SELECT 1 FROM fc_capacity_versao_posto WHERE versao = v_prev)
+       AND EXISTS (SELECT 1 FROM fc_capacity_versao_posto WHERE versao = p_v) THEN
+    SELECT GROUP_CONCAT(DISTINCT a.pagina ORDER BY a.pagina SEPARATOR ', ') INTO v_saiu
+    FROM fc_capacity_versao_posto a
+    WHERE a.versao = v_prev
+      AND NOT EXISTS (SELECT 1 FROM fc_capacity_versao_posto b WHERE b.versao = p_v AND b.pagina = a.pagina);
+    SELECT GROUP_CONCAT(DISTINCT b.pagina ORDER BY b.pagina SEPARATOR ', ') INTO v_entrou
+    FROM fc_capacity_versao_posto b
+    WHERE b.versao = p_v
+      AND NOT EXISTS (SELECT 1 FROM fc_capacity_versao_posto a WHERE a.versao = v_prev AND a.pagina = b.pagina);
+    SELECT COUNT(DISTINCT a.pagina) INTO v_mud
+    FROM (SELECT pagina, turno, SUM(fracao) AS f FROM fc_capacity_versao_posto WHERE versao = v_prev GROUP BY pagina, turno) a
+    JOIN (SELECT pagina, turno, SUM(fracao) AS f FROM fc_capacity_versao_posto WHERE versao = p_v GROUP BY pagina, turno) b
+      ON b.pagina = a.pagina AND b.turno = a.turno
+    WHERE ROUND(a.f, 2) <> ROUND(b.f, 2);
+    END IF;
+
+    SET v_mot = CONCAT_WS(' · ',
+      IF(v_saiu IS NULL, NULL, CONCAT('Saíram: ', v_saiu)),
+      IF(v_entrou IS NULL, NULL, CONCAT('Entraram: ', v_entrou)),
+      IF(v_mud = 0, NULL, CONCAT(v_mud, IF(v_mud = 1, ' página mudou', ' páginas mudaram'), ' de postos')),
+      IF(v_pn = v_pa, CONCAT('Precisa igual (', v_pn, ')'),
+         CONCAT('Precisa ', v_pa, ' → ', v_pn, ' (', IF(v_pn > v_pa, '+', '−'), ABS(v_pn - v_pa), ')')));
+  END IF;
+
+  UPDATE fc_capacity_versao SET versao_anterior = v_prev, motivo = LEFT(v_mot, 2000) WHERE versao = p_v;
+
+  CALL sp_fc_plano_sugerido(p_v);
+
+  SELECT CAST(COALESCE(MAX(valor), 10) AS SIGNED) INTO v_lim FROM fc_parametros WHERE chave = 'alerta_dif_plano';
+  SELECT dif_plano, contratar_oficial, contratar_sugerido INTO v_dif, v_of, v_sg FROM fc_capacity_versao WHERE versao = p_v;
+  IF ABS(COALESCE(v_dif, 0)) >= v_lim THEN
+    UPDATE fc_capacity_versao
+       SET alerta = 1,
+           motivo = LEFT(CONCAT_WS(' · ', motivo, CONCAT('Revisar plano: turmas planejadas com ', v_of,
+                                   ' no oficial e ', v_sg, ' no sugerido')), 2000)
+     WHERE versao = p_v;
+  END IF;
 END $$
 
 DELIMITER ;

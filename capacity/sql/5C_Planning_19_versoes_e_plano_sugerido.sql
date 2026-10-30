@@ -360,7 +360,10 @@ BEGIN
   DECLARE v_mot VARCHAR(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
   SET SESSION group_concat_max_len = 4000;
-  SELECT MAX(versao) INTO v_prev FROM fc_capacity_versao WHERE versao < p_v;
+  -- versão anterior: a última gravada antes desta com data de cálculo igual ou anterior
+  -- (um recálculo de uma data antiga não é comparado com o cálculo de uma data mais nova)
+  SELECT MAX(versao) INTO v_prev FROM fc_capacity_versao
+  WHERE versao < p_v AND data_calculo <= (SELECT data_calculo FROM fc_capacity_versao WHERE versao = p_v);
 
   IF v_prev IS NULL THEN
     SET v_mot = 'Primeira versão';
