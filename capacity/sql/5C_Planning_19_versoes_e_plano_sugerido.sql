@@ -1,6 +1,6 @@
 -- =====================================================================
 -- 5C | Forecast de WFM — 19. Versões do capacity, plano de turmas sugerido e comparação com o oficial
--- Schema: 5c_planning        28/10/2026        Rodar depois do 18.
+-- Schema: 5c_planning        30/10/2026        Rodar depois do 18.
 --
 -- Pedido de 28/10, depois da saída da Skylar: o capacity e as contratações não podem depender de
 -- recálculo à mão, e o capacity anterior tem que ficar guardado para comparar.
@@ -26,7 +26,8 @@
 --
 -- Visões novas: vw_fc_13_capacity_versoes, vw_fc_14_capacity_mudancas, vw_fc_15_capacity_paginas,
 --               vw_fc_16_plano_oficial_vs_sugerido, vw_fc_17_projecao_quadro.
--- Histórico inicial: 26/10 (referência do 13), 28/10 com a Skylar (refeita a partir do 18) e 28/10 sem a Skylar.
+-- Histórico inicial: 28/10 com e sem a Skylar (reconstruídas, só unidades) e os cálculos diários de 29/10 e 30/10.
+-- A conferência no fim vale para rodar em 30/10 (as taxas de turnover mudam com o cálculo diário).
 -- Pode rodar mais de uma vez: as tabelas e o histórico inicial só são criados na primeira.
 -- No Navicat: "Nova consulta" e executar tudo (o DELIMITER é aceito).
 -- =====================================================================
@@ -333,7 +334,11 @@ BEGIN
   ELSE
     SELECT precisa INTO v_pa FROM fc_capacity_versao WHERE versao = v_prev;
     SELECT precisa INTO v_pn FROM fc_capacity_versao WHERE versao = p_v;
+    SET v_saiu = NULL, v_entrou = NULL, v_mud = 0;
 
+    -- páginas: só quando as duas versões têm os postos (as reconstruídas têm só as unidades)
+    IF EXISTS (SELECT 1 FROM fc_capacity_versao_posto WHERE versao = v_prev)
+       AND EXISTS (SELECT 1 FROM fc_capacity_versao_posto WHERE versao = p_v) THEN
     SELECT GROUP_CONCAT(DISTINCT a.pagina ORDER BY a.pagina SEPARATOR ', ') INTO v_saiu
     FROM fc_capacity_versao_posto a
     WHERE a.versao = v_prev
@@ -347,6 +352,7 @@ BEGIN
     JOIN (SELECT pagina, turno, SUM(fracao) AS f FROM fc_capacity_versao_posto WHERE versao = p_v GROUP BY pagina, turno) b
       ON b.pagina = a.pagina AND b.turno = a.turno
     WHERE ROUND(a.f, 2) <> ROUND(b.f, 2);
+    END IF;
 
     SET v_mot = CONCAT_WS(' · ',
       IF(v_saiu IS NULL, NULL, CONCAT('Saíram: ', v_saiu)),
@@ -455,61 +461,61 @@ BEGIN
 END $$
 
 -- ---------------------------------------------------------------------
--- 9. Histórico inicial (só na primeira vez): 26/10, 28/10 com a Skylar e 28/10 sem a Skylar
+-- 9. Histórico inicial (só na primeira vez)
+--    O cálculo de 28/10 não está mais inteiro nas tabelas de resultado (fc_postos de 28/10 ficou com 37
+--    postos e sem necessidade). Por isso as duas versões de 28/10 entram reconstruídas, só com as unidades:
+--    com a Skylar (base da semana do script 16) e sem a Skylar (resultado do 18, conferido em 28/10).
+--    Depois entram 29/10 e 30/10, dos cálculos diários, com os postos.
 -- ---------------------------------------------------------------------
 DROP PROCEDURE IF EXISTS sp_tmp_19_historico $$
 CREATE PROCEDURE sp_tmp_19_historico()
 BEGIN
-  DECLARE v2 INT;
+  DECLARE v1, v2 INT;
   IF NOT EXISTS (SELECT 1 FROM fc_capacity_versao) THEN
-    -- 26/10: referência do 13 (com a Skylar), ainda nas tabelas de resultado
-    CALL sp_fc_capacity_versao('2026-10-26', 'MANUAL', 'Referência de 26/10 (script 13, com a Skylar)');
-    UPDATE fc_capacity_versao SET gerado_em = '2026-10-28 09:50:25' WHERE data_calculo = '2026-10-26';
-
-    -- 28/10 com a Skylar (base da semana do script 16): o 18 sobrescreveu o cálculo, então ele é refeito com o
-    -- resultado de hoje mais os 4 postos por turno da Skylar (nenhuma outra página mudou de posto).
     INSERT INTO fc_capacity_versao (data_calculo, gerado_em, origem, obs)
-    VALUES ('2026-10-28', '2026-10-28 10:07:25', 'RECONSTRUIDA', 'Base da semana de 01/11 com a Skylar (script 16), refeita a partir do 18');
-    SET v2 = LAST_INSERT_ID();
-
+    VALUES ('2026-10-28', '2026-10-28 10:07:25', 'RECONSTRUIDA', 'Base da semana de 01/11, com a Skylar (script 16)');
+    SET v1 = LAST_INSERT_ID();
     INSERT INTO fc_capacity_versao_unidade (versao, unidade, turno, postos, titulares, faltas_dia, pico_dia,
                                             presentes_dia, buffer, precisa, tem, saldo) VALUES
-     (v2, 1, 'A', 17, 26, 1.62, 2.18, 4.1895, 6, 32, 25,  -7),
-     (v2, 1, 'C', 18, 27, 1.91, 1.96, 4.3263, 7, 34, 20, -14),
-     (v2, 1, 'D', 16, 24, 1.85, 1.62, 3.9262, 6, 30, 21,  -9),
-     (v2, 2, 'A', 18, 27, 1.71, 2.18, 4.2944, 7, 34, 28,  -6),
-     (v2, 2, 'C', 18, 27, 1.91, 2.69, 5.1454, 8, 35, 25, -10),
+     (v1, 1, 'A', 17, 26, 1.62, 2.18, 4.1895, 6, 32, 25,  -7),
+     (v1, 1, 'C', 18, 27, 1.91, 1.96, 4.3263, 7, 34, 20, -14),
+     (v1, 1, 'D', 16, 24, 1.85, 1.62, 3.9262, 6, 30, 21,  -9),
+     (v1, 2, 'A', 18, 27, 1.71, 2.18, 4.2944, 7, 34, 28,  -6),
+     (v1, 2, 'C', 18, 27, 1.91, 2.69, 5.1454, 8, 35, 25, -10),
+     (v1, 2, 'D', 20, 30, 2.31, 1.77, 4.6158, 7, 37, 30,  -7),
+     (v1, 3, 'A', 21, 32, 2.00, 1.56, 3.9251, 6, 38, 23, -15),
+     (v1, 3, 'C', 22, 33, 2.33, 1.75, 4.5654, 7, 40, 24, -16),
+     (v1, 3, 'D', 22, 33, 2.54, 2.22, 5.3794, 8, 41, 24, -17);
+
+    INSERT INTO fc_capacity_versao (data_calculo, gerado_em, origem, obs)
+    VALUES ('2026-10-28', '2026-10-28 20:50:00', 'RECONSTRUIDA', 'Skylar Mae VIP saiu (script 18)');
+    SET v2 = LAST_INSERT_ID();
+    INSERT INTO fc_capacity_versao_unidade (versao, unidade, turno, postos, titulares, faltas_dia, pico_dia,
+                                            presentes_dia, buffer, precisa, tem, saldo) VALUES
+     (v2, 1, 'A', 13, 20, 1.24, 1.82, 3.3724, 6, 26, 25,  -1),
+     (v2, 1, 'C', 14, 21, 1.48, 1.35, 3.1729, 6, 27, 20,  -7),
+     (v2, 1, 'D', 12, 18, 1.39, 1.62, 3.4038, 6, 24, 21,  -3),
+     (v2, 2, 'A', 18, 27, 1.71, 2.18, 4.2944, 6, 33, 28,  -5),
+     (v2, 2, 'C', 18, 27, 1.91, 2.69, 5.1454, 7, 34, 25,  -9),
      (v2, 2, 'D', 20, 30, 2.31, 1.77, 4.6158, 7, 37, 30,  -7),
      (v2, 3, 'A', 21, 32, 2.00, 1.56, 3.9251, 6, 38, 23, -15),
      (v2, 3, 'C', 22, 33, 2.33, 1.75, 4.5654, 7, 40, 24, -16),
      (v2, 3, 'D', 22, 33, 2.54, 2.22, 5.3794, 8, 41, 24, -17);
 
-    INSERT INTO fc_capacity_versao_posto (versao, carteira, turno, posto, pagina, unidade, tipo, carga, capacidade, fans_h, fracao)
-    SELECT v2, pp.carteira, pp.turno, pp.posto + IF(pp.carteira = 'U1C1', 4, 0), pp.pagina, p.unidade, p.tipo,
-           p.carga, p.capacidade, pp.fans_h, pp.fracao
-    FROM fc_postos_pagina pp
-    JOIN fc_postos p ON p.data_calculo = pp.data_calculo AND p.carteira = pp.carteira
-                    AND p.turno = pp.turno AND p.posto = pp.posto
-    WHERE pp.data_calculo = '2026-10-28';
-
-    INSERT INTO fc_capacity_versao_posto (versao, carteira, turno, posto, pagina, unidade, tipo, carga, capacidade, fans_h, fracao)
-    SELECT v2, 'U1C1', s.turno, n.posto, 'Skylar Mae VIP', 1, IF(n.posto = 1, 'titular', 'assistente'),
-           s.carga, 40, s.carga, 1
-    FROM (SELECT 'A' AS turno, 28.7 AS carga UNION ALL SELECT 'C', 31.8 UNION ALL SELECT 'D', 34.9) s
-    CROSS JOIN (SELECT 1 AS posto UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4) n;
-
     UPDATE fc_capacity_versao v
-    JOIN (SELECT SUM(postos) AS postos, SUM(titulares) AS tit, SUM(buffer) AS buf, SUM(precisa) AS prec,
+    JOIN (SELECT versao, SUM(postos) AS postos, SUM(titulares) AS tit, SUM(buffer) AS buf, SUM(precisa) AS prec,
                  SUM(tem) AS tem, SUM(saldo) AS saldo
-          FROM fc_capacity_versao_unidade WHERE versao = v2) u
+          FROM fc_capacity_versao_unidade WHERE versao IN (v1, v2) GROUP BY versao) u ON u.versao = v.versao
        SET v.postos = u.postos, v.titulares = u.tit, v.buffer = u.buf, v.precisa = u.prec, v.tem = u.tem,
-           v.saldo = u.saldo,
-           v.paginas = (SELECT COUNT(DISTINCT pagina) FROM fc_capacity_versao_posto WHERE versao = v2)
-     WHERE v.versao = v2;
+           v.saldo = u.saldo;
+    CALL sp_fc_versao_fechar(v1);
     CALL sp_fc_versao_fechar(v2);
 
-    -- 28/10 sem a Skylar: o resultado atual (script 18)
-    CALL sp_fc_capacity_versao('2026-10-28', 'MANUAL', 'Skylar Mae VIP saiu (script 18)');
+    -- cálculos diários de 29/10 e 30/10 (ainda nas tabelas de resultado)
+    CALL sp_fc_capacity_versao('2026-10-29', 'DIARIO', NULL);
+    UPDATE fc_capacity_versao SET gerado_em = '2026-10-29 06:30:00' WHERE data_calculo = '2026-10-29';
+    CALL sp_fc_capacity_versao('2026-10-30', 'DIARIO', NULL);
+    UPDATE fc_capacity_versao SET gerado_em = '2026-10-30 06:30:00' WHERE data_calculo = '2026-10-30';
   END IF;
 END $$
 
@@ -593,9 +599,9 @@ WHERE p.versao = (SELECT MAX(versao) FROM fc_capacity_versao)
 GROUP BY p.versao, p.inicio_semana
 ORDER BY p.inicio_semana;
 
--- ---------- Conferência ----------
--- 11.1 Versões: esperado 3 linhas (precisa 330, 321 e 300).
---      Na versão de 28/10 sem a Skylar: "Saíram: Skylar Mae VIP · Precisa 321 → 300 (−21)" e alerta de revisão.
+-- ---------- Conferência (rodando em 30/10) ----------
+-- 11.1 Versões: esperado 4 linhas, precisa 321, 300, 294 e 291, todas com alerta "REVISAR PLANO".
+--      28/10 sem a Skylar: "Precisa 321 → 300 (−21)". 30/10: páginas que mudaram de 29 para 30/10 e "Precisa 294 → 291 (−3)".
 SELECT `Versão`, `Data do cálculo`, `Origem`, `Postos`, `Precisa`, `Δ precisa`,
        `Planejadas (oficial)`, `Planejadas (sugerido)`, `Fecha (oficial)`, `Fecha (sugerido)`, `Alerta`, `O que mudou`
 FROM vw_fc_13_capacity_versoes;
@@ -607,22 +613,23 @@ SELECT v.versao AS `Versão`, v.precisa AS `Precisa`, v.contratar_oficial AS `Of
        IF(v.contratar_oficial = e.of AND v.contratar_sugerido = e.sg AND v.fecha_oficial = e.fo AND v.fecha_sugerido = e.fs,
           'ok', 'DIFERENTE') AS `Confere`
 FROM fc_capacity_versao v
-JOIN (SELECT 330 AS prec, 280 AS of, 247 AS sg, DATE '2027-05-24' AS fo, DATE '2027-05-24' AS fs UNION ALL
-      SELECT 321, 280, 237, DATE '2027-05-10', DATE '2027-05-10' UNION ALL
-      SELECT 300, 280, 211, DATE '2027-04-12', DATE '2027-04-12') e ON e.prec = v.precisa
+JOIN (SELECT 321 AS prec, 280 AS of, 239 AS sg, DATE '2027-05-10' AS fo, DATE '2027-05-10' AS fs UNION ALL
+      SELECT 300, 280, 214, DATE '2027-04-12', DATE '2027-04-12' UNION ALL
+      SELECT 294, 280, 207, DATE '2027-03-29', DATE '2027-03-29' UNION ALL
+      SELECT 291, 280, 202, DATE '2027-03-29', DATE '2027-03-29') e ON e.prec = v.precisa
 ORDER BY v.versao;
 
--- 11.3 Turmas da última versão (sem a Skylar). Esperado no sugerido, A/C/D:
---      07/12 5/7/8 · 11/01 4/8/8 · 25/01 5/7/8 · 08/02 4/8/8 · 22/02 5/7/8 · 08/03 4/8/8 · 22/03 4/8/8 ·
---      05/04 3/5/5 · 19/04 2/4/4 · 03/05 2/4/4 · 17/05 2/4/4 · 31/05 1/3/4 · 14/06 2/4/4 · 28/06 2/4/4
+-- 11.3 Turmas da última versão (30/10). Esperado no sugerido, A/C/D:
+--      07/12 5/8/7 · 11/01 4/8/8 · 25/01 5/8/7 · 08/02 4/8/8 · 22/02 5/8/7 · 08/03 4/8/8 · 22/03 4/6/7 ·
+--      05/04 2/4/3 · 19/04 2/3/4 · 03/05 1/4/4 · 17/05 2/4/4 · 31/05 2/4/4 · 14/06 2/3/3 · 28/06 2/4/4
 SELECT * FROM vw_fc_16_plano_oficial_vs_sugerido;
 
--- 11.4 Quadro projetado em 01/03/2027 (esperado: oficial 95,11 / 87,63 / 86,63 · sugerido 89,53 / 89,53 / 90,28)
+-- 11.4 Quadro projetado em 01/03/2027 (esperado: oficial 94,05 / 87,63 / 86,63 · sugerido 88,47 / 91,28 / 88,52)
 SELECT turno AS `Turno`, hc_oficial AS `Oficial`, hc_sugerido AS `Sugerido`
 FROM fc_plano_projecao
 WHERE versao = (SELECT MAX(versao) FROM fc_capacity_versao) AND inicio_semana = '2027-03-01'
 ORDER BY FIELD(turno, 'A', 'C', 'D');
 
--- 11.5 Mudanças da última versão: só a U1 muda; a Skylar aparece com 4 → 0 em cada turno
+-- 11.5 Mudanças da última versão (30/10 contra 29/10), por unidade e por página
 SELECT * FROM vw_fc_14_capacity_mudancas;
 SELECT * FROM vw_fc_15_capacity_paginas;

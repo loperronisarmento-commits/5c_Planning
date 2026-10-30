@@ -204,20 +204,23 @@ O plano oficial (`fc_contratacoes`) continua manual. A versão fica com alerta q
 | `vw_fc_16_plano_oficial_vs_sugerido` | Turma a turma, com "REVISAR" quando a diferença é de 3 ou mais |
 | `vw_fc_17_projecao_quadro` | Quadro projetado por semana com os dois planos contra o "precisa" |
 
-**Histórico inicial:**
+**Histórico inicial (rodando em 30/10):**
+- O cálculo de 28/10 não está mais inteiro no banco: `fc_postos` de 28/10 ficou com 37 postos e sem necessidade.
+- Por isso as duas versões de 28/10 entram reconstruídas, só com as unidades.
 
 | Versão | Precisa | Turmas planejadas (oficial / sugerido) | Falta fecha em |
 |---|---|---|---|
-| 26/10 (referência do 13) | 330 | 280 / 247 | 24/05/2027 |
-| 28/10 com a Skylar (reconstruída) | 321 | 280 / 237 | 10/05/2027 |
-| 28/10 sem a Skylar | 300 | 280 / **211** | 12/04/2027 |
+| 28/10 com a Skylar (reconstruída) | 321 | 280 / 239 | 10/05/2027 |
+| 28/10 sem a Skylar (reconstruída) | 300 | 280 / 214 | 12/04/2027 |
+| 29/10 (diário) | 294 | 280 / 207 | 29/03/2027 |
+| 30/10 (diário) | 291 | 280 / **202** | 29/03/2027 |
 
 **Por que o sugerido fica abaixo do oficial mesmo com 330:** o plano oficial veio de `simulacao/turmas_quadro.py`.
 - Lá, os novatos perdem 12% em 30 dias e mais 11% até 90 dias **além** do turnover de todo o quadro (6,4% ao mês). O novato acaba contado duas vezes.
 - No banco (`sp_fc_prev_to`), os 12% e 23% já são o total do novato.
 - O histórico confirma o banco: das 193 pessoas que entraram de out/2025 a jul/2026, 15,5% saíram em 30 dias e 26,4% em 90.
 - Com a mesma conta do Python, o plano semanal dá 279 com alvo 327, igual ao oficial.
-- Na diferença de 69 de hoje, cerca de 33 vêm da conta dos novatos e 36 do alvo menor.
+- Na diferença de hoje (78), cerca de 33 vêm da conta dos novatos; o resto vem do alvo menor (Skylar e carga das páginas).
 
 ## O que não muda
 

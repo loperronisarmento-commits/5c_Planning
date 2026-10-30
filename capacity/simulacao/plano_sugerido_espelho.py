@@ -1,9 +1,9 @@
-# Espelho do sp_fc_plano_sugerido (script 19), com os dados de 28/10: confere o plano sugerido das 3 versões iniciais.
+# Espelho do sp_fc_plano_sugerido (script 19), com os dados de 30/10: confere o plano sugerido das 4 versões iniciais.
 # Uso: python -I -X utf8 plano_sugerido_espelho.py
 import sys, math
 from datetime import date, timedelta as td
 T='ACD'
-TX={'A':0.0080,'C':0.0179,'D':0.0186}; N14,N513=0.03,0.0122; DES=0.06; TETO=20; FECHA=5  # SUM/SUM no MySQL = DECIMAL com 4 casas
+TX={'A':0.0089,'C':0.0179,'D':0.0186}; N14,N513=0.03,0.0122; DES=0.06; TETO=20; FECHA=5  # SUM/SUM no MySQL = DECIMAL com 4 casas (taxas de 30/10)
 H0={'A':76,'C':69,'D':75}
 OF=[('2026-11-02','2026-11-16',1,(4,7,4)),('2026-11-16','2026-11-30',1,(5,9,6))]+[(t,o,0,q) for t,o,q in [
 ('2026-12-07','2026-12-21',(6,7,7)),('2027-01-11','2027-01-25',(6,7,7)),('2027-01-25','2027-02-08',(6,7,7)),('2027-02-08','2027-02-22',(6,7,7)),
@@ -47,8 +47,8 @@ def fecha(turmas, ini, alvo):
     rows=[]; sim(turmas,ini,date(2027,12,31),rows)
     for ws,h in rows:
         if sum(alvo[t]-h[t] for t in T)<=FECHA: return ws
-for nome,alvo in [('330 de 26/10',{'A':106,'C':112,'D':112}),('321',{'A':104,'C':109,'D':108}),('300',{'A':97,'C':101,'D':102})]:
-    ini,sg=plano(alvo,date(2026,10,26) if nome.startswith("330") else date(2026,10,28))
+for nome,alvo in [('321 (28/10 com a Skylar)',{'A':104,'C':109,'D':108}),('300 (28/10 sem a Skylar)',{'A':97,'C':101,'D':102}),('294 (29/10)',{'A':94,'C':100,'D':100}),('291 (30/10)',{'A':94,'C':100,'D':97})]:
+    ini,sg=plano(alvo,date(2026,10,28))
     tot_of=sum(sum(q) for t,o,f,q in OF if not f); tot_sg=sum(sum(q) for t,o,f,q in sg if not f)
     print('== alvo',nome,'| planejadas oficial',tot_of,'sugerido',tot_sg,'| fecha oficial',fecha(OF,ini,alvo),'sugerido',fecha(sg,ini,alvo))
     print('   ',' '.join('%s:%d/%d/%d'%(t[5:],*q) for t,o,f,q in sg if not f))
