@@ -45,6 +45,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 10 | `5C_Planning_19_versoes_e_plano_sugerido.sql` | Versões do capacity com "O que mudou", plano de turmas sugerido em cada versão e comparação com o oficial (visões 13 a 17). Recria o `sp_fc_rodar_dia` com a etapa `versao`. |
 | 11 | `5C_Planning_20_adotar_plano_sugerido.sql` | Adota o plano sugerido da versão 4 (capacity de 30/10) como plano oficial: as turmas planejadas passam de 280 para 202 pessoas. Tem cópia de segurança e o bloco para desfazer. |
 | 12 | `5C_Planning_21_teto_10_por_turno_e_troca_c_a.sql` | Teto de 10 por turno e 30 por turma, e troca de 5 reps do C para o A na simulação (`fc_plano_troca_turno`). Refaz o plano sugerido da última versão e adota como oficial. |
+| 13 | `5C_Planning_22_plano_sem_troca_c_a.sql` | Desliga a troca C → A do 21: ela já estava no cadastro da estrutura. Refaz o plano sugerido da última versão, com teto de 10 por turno, e adota como oficial. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -207,6 +208,11 @@ O plano oficial (`fc_contratacoes`) continua manual. A versão fica com alerta q
 - O plano sugerido da versão 5 (precisa 293), com essas regras, vira o oficial: 207 pessoas nas turmas planejadas, 242 no total.
 - As primeiras turmas saem cheias nos turnos C e D, 10/10/10 em 07/12, e a falta fecha em 15/03/2027.
 - Enquanto o cadastro da estrutura não mostrar a troca, ela entra na simulação pela `fc_plano_troca_turno`. Quando o cadastro passar a mostrar, marque `ativo = 0`, senão ela conta duas vezes.
+
+**Correção de 30/10 (script 22): a troca já estava no cadastro.**
+- O cadastro da estrutura (A 76 · C 69 · D 75) já mostrava os 5 reps no A, e o 21 tinha somado a troca de novo.
+- O 22 desliga a troca e readota o plano com teto de 10 por turno: 208 pessoas nas turmas planejadas, 243 no total.
+- A falta fecha em 01/03/2027.
 
 | Visão | O que mostra |
 |---|---|
