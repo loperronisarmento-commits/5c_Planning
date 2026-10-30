@@ -28,6 +28,8 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
     - Os pesos ficam em `fc_parametros`: `peso_af_buffer`, `percentil_pico`, `teto_pico_fans_rep`, `janela_buffer_dias`, `janela_pico_dias`, `nucleos_por_turno`, `nucleos_folga_dia`, `buffer_minimo_nucleo` (2) e `fator_volume`.
 - **Tem:** reps reais de cada unidade e turno.
 
+> **Unidades renumeradas em 30/10 (ES_35, do Planning tool):** U1 = Victoria e U3 = Keller. A troca vale no banco para todas as datas e versões. Neste README e nos scripts até o 22, U1 é o Keller e U3 é a Victoria: a Skylar (U1 · C1), por exemplo, hoje é U3 · C1.
+
 ## Scripts (`sql/`, Navicat, nesta ordem)
 
 | # | Script | O que faz |
