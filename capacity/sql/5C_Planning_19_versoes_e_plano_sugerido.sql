@@ -19,7 +19,8 @@
 --    - turnover na mesma conta do sp_fc_prev_to: taxa por turno das últimas janela_to_semanas semanas, e
 --      novatos com novato_sem_1_4 e novato_sem_5_13 no total (o que passa da taxa do turno);
 --    - quadro de partida = "tem" da versão (fc_estrutura_rep); desistência no treinamento = desistencia_trn;
---      no máximo teto_turma por turma (maiores restos entre os turnos).
+--      no máximo teto_turma_turno por turno e teto_turma por turma (maiores restos entre os turnos);
+--    - trocas de turno que o "tem" ainda não mostra (fc_plano_troca_turno) entram na data informada.
 --    A projeção semanal do quadro com o plano oficial e com o sugerido fica em fc_plano_projecao.
 -- 3. O plano oficial continua manual: fc_contratacoes só muda por script. As visões mostram a diferença
 --    turma a turma e a versão fica com alerta quando o total das planejadas passa de alerta_dif_plano.
@@ -38,7 +39,8 @@ USE `5c_planning`;
 -- 1. Parâmetros
 -- ---------------------------------------------------------------------
 INSERT INTO fc_parametros (chave, valor, descricao) VALUES
- ('teto_turma',        20,   'Máximo de pessoas por turma no plano sugerido (capacidade do TRN)'),
+ ('teto_turma',        30,   'Máximo de pessoas por turma no plano sugerido (capacidade do TRN)'),
+ ('teto_turma_turno',  10,   'Máximo de pessoas por turno em cada turma do plano sugerido'),
  ('desistencia_trn',   0.06, 'Parte da turma que desiste no treinamento (o plano sugerido contrata a mais)'),
  ('falta_fechada',     5,    'Falta (precisa − quadro projetado) que conta como quadro fechado'),
  ('alerta_dif_turma',  3,    'Diferença por turma entre o plano oficial e o sugerido que pede revisão'),
@@ -127,6 +129,18 @@ CREATE TABLE IF NOT EXISTS fc_plano_projecao (
   PRIMARY KEY (versao, inicio_semana, turno)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Trocas de turno que o "tem" (fc_estrutura_rep) ainda não mostra: entram na simulação na data informada.
+-- Quando o cadastro da estrutura passar a mostrar a troca, marque ativo = 0 (senão ela conta duas vezes).
+CREATE TABLE IF NOT EXISTS fc_plano_troca_turno (
+  data        DATE         NOT NULL,
+  turno_de    CHAR(1)      NOT NULL,
+  turno_para  CHAR(1)      NOT NULL,
+  qtd         SMALLINT     NOT NULL,
+  ativo       TINYINT      NOT NULL DEFAULT 1,
+  obs         VARCHAR(255) NULL,
+  PRIMARY KEY (data, turno_de, turno_para)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Tabela de trabalho do plano sugerido (uma linha por turma)
 CREATE TABLE IF NOT EXISTS fc_wrk_plano (
   turma      VARCHAR(30) NOT NULL,
@@ -154,9 +168,26 @@ BEGIN
   DECLARE v_ws DATE DEFAULT p_ini;
   DECLARE v_ha, v_hc, v_hd DOUBLE;
   DECLARE v_ea, v_ec, v_ed, v_xa, v_xc, v_xd DOUBLE;
+  DECLARE v_ma, v_mc, v_md DOUBLE;
   SET v_ha = p_h0a, v_hc = p_h0c, v_hd = p_h0d;
 
+  -- trocas de turno anteriores ao início entram no quadro de partida
+  SELECT COALESCE(SUM(IF(turno_para = 'A', qtd, 0) - IF(turno_de = 'A', qtd, 0)), 0),
+         COALESCE(SUM(IF(turno_para = 'C', qtd, 0) - IF(turno_de = 'C', qtd, 0)), 0),
+         COALESCE(SUM(IF(turno_para = 'D', qtd, 0) - IF(turno_de = 'D', qtd, 0)), 0)
+    INTO v_ma, v_mc, v_md
+  FROM fc_plano_troca_turno WHERE ativo = 1 AND data < p_ini;
+  SET v_ha = v_ha + v_ma, v_hc = v_hc + v_mc, v_hd = v_hd + v_md;
+
   WHILE v_ws < p_ate DO
+    -- trocas de turno da semana
+    SELECT COALESCE(SUM(IF(turno_para = 'A', qtd, 0) - IF(turno_de = 'A', qtd, 0)), 0),
+           COALESCE(SUM(IF(turno_para = 'C', qtd, 0) - IF(turno_de = 'C', qtd, 0)), 0),
+           COALESCE(SUM(IF(turno_para = 'D', qtd, 0) - IF(turno_de = 'D', qtd, 0)), 0)
+      INTO v_ma, v_mc, v_md
+    FROM fc_plano_troca_turno WHERE ativo = 1 AND data >= v_ws AND data < v_ws + INTERVAL 7 DAY;
+    SET v_ha = v_ha + v_ma, v_hc = v_hc + v_mc, v_hd = v_hd + v_md;
+
     IF p_versao > 0 THEN
       IF p_sug = 0 THEN
         INSERT INTO fc_plano_projecao (versao, inicio_semana, turno, alvo, hc_oficial)
@@ -198,7 +229,7 @@ CREATE PROCEDURE sp_fc_plano_sugerido(IN p_v INT)
 BEGIN
   DECLARE v_data, v_ini, v_nxt, v_op, v_fim_h DATE;
   DECLARE v_tur VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  DECLARE v_jan, v_hor, v_teto, v_fim INT DEFAULT 0;
+  DECLARE v_jan, v_hor, v_teto, v_tt, v_fim INT DEFAULT 0;
   DECLARE v_ta, v_tc, v_td, v_n14, v_n513, v_des, v_fechada DOUBLE;
   DECLARE v_aa, v_ac, v_ad, v_h0a, v_h0c, v_h0d DOUBLE;
   DECLARE v_ha, v_hc, v_hd, v_na, v_nc, v_nd, v_tot, v_ra, v_rc, v_rd, v_fa, v_fc, v_fd DOUBLE;
@@ -211,12 +242,13 @@ BEGIN
 
   SELECT CAST(COALESCE(MAX(IF(chave = 'janela_to_semanas', valor, NULL)), 12) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'horizonte_semanas', valor, NULL)), 26) AS SIGNED),
-         CAST(COALESCE(MAX(IF(chave = 'teto_turma', valor, NULL)), 20) AS SIGNED),
+         CAST(COALESCE(MAX(IF(chave = 'teto_turma', valor, NULL)), 30) AS SIGNED),
+         CAST(COALESCE(MAX(IF(chave = 'teto_turma_turno', valor, NULL)), 10) AS SIGNED),
          COALESCE(MAX(IF(chave = 'novato_sem_1_4', valor, NULL)), 0.03),
          COALESCE(MAX(IF(chave = 'novato_sem_5_13', valor, NULL)), 0.0122),
          COALESCE(MAX(IF(chave = 'desistencia_trn', valor, NULL)), 0.06),
          COALESCE(MAX(IF(chave = 'falta_fechada', valor, NULL)), 5)
-    INTO v_jan, v_hor, v_teto, v_n14, v_n513, v_des, v_fechada
+    INTO v_jan, v_hor, v_teto, v_tt, v_n14, v_n513, v_des, v_fechada
   FROM fc_parametros;
 
   -- taxa de saída por pessoa-semana de cada turno (igual ao sp_fc_prev_to)
@@ -260,9 +292,10 @@ BEGIN
 
     CALL sp_fc_plano_simular(v_ini, v_nxt, 1, 0, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513,
                              v_ha, v_hc, v_hd);
-    SET v_na = GREATEST(0, (v_aa - v_ha) / (1 - v_des));
-    SET v_nc = GREATEST(0, (v_ac - v_hc) / (1 - v_des));
-    SET v_nd = GREATEST(0, (v_ad - v_hd) / (1 - v_des));
+    -- falta de cada turno, com a desistência no treinamento, até o teto do turno
+    SET v_na = LEAST(GREATEST(0, (v_aa - v_ha) / (1 - v_des)), v_tt);
+    SET v_nc = LEAST(GREATEST(0, (v_ac - v_hc) / (1 - v_des)), v_tt);
+    SET v_nd = LEAST(GREATEST(0, (v_ad - v_hd) / (1 - v_des)), v_tt);
     SET v_tot = v_na + v_nc + v_nd;
 
     IF v_tot > v_teto THEN
@@ -279,7 +312,7 @@ BEGIN
         SET v_rem = v_rem - 1;
       END WHILE;
     ELSE
-      SET v_qa = FLOOR(v_na + 0.5), v_qc = FLOOR(v_nc + 0.5), v_qd = FLOOR(v_nd + 0.5);
+      SET v_qa = LEAST(FLOOR(v_na + 0.5), v_tt), v_qc = LEAST(FLOOR(v_nc + 0.5), v_tt), v_qd = LEAST(FLOOR(v_nd + 0.5), v_tt);
     END IF;
 
     UPDATE fc_wrk_plano SET sg_a = v_qa, sg_c = v_qc, sg_d = v_qd WHERE turma = v_tur;

@@ -1,10 +1,12 @@
-# Espelho do sp_fc_plano_sugerido (script 19), com os dados de 30/10: confere o plano sugerido das 4 versões iniciais.
+# Espelho do sp_fc_plano_sugerido (scripts 19 e 21), com os dados de 30/10.
+# Regras do 21: teto de 10 por turno e 30 por turma; troca de 5 reps do C para o A (data em TROCAS).
 # Uso: python -I -X utf8 plano_sugerido_espelho.py
 import sys, math
 from datetime import date, timedelta as td
 T='ACD'
-TX={'A':0.0089,'C':0.0179,'D':0.0186}; N14,N513=0.03,0.0122; DES=0.06; TETO=20; FECHA=5  # SUM/SUM no MySQL = DECIMAL com 4 casas (taxas de 30/10)
+TX={'A':0.0089,'C':0.0179,'D':0.0186}; N14,N513=0.03,0.0122; DES=0.06; TETO=30; TETO_TURNO=10; FECHA=5  # SUM/SUM no MySQL = DECIMAL com 4 casas (taxas de 30/10)
 H0={'A':76,'C':69,'D':75}
+TROCAS=[(date(2026,10,27),'C','A',5)]   # (data, de, para, qtd)
 OF=[('2026-11-02','2026-11-16',1,(4,7,4)),('2026-11-16','2026-11-30',1,(5,9,6))]+[(t,o,0,q) for t,o,q in [
 ('2026-12-07','2026-12-21',(6,7,7)),('2027-01-11','2027-01-25',(6,7,7)),('2027-01-25','2027-02-08',(6,7,7)),('2027-02-08','2027-02-22',(6,7,7)),
 ('2027-02-22','2027-03-08',(6,8,6)),('2027-03-08','2027-03-22',(5,8,7)),('2027-03-22','2027-04-05',(5,8,7)),('2027-04-05','2027-04-19',(5,8,7)),
@@ -13,7 +15,11 @@ OF=[('2026-11-02','2026-11-16',1,(4,7,4)),('2026-11-16','2026-11-30',1,(5,9,6))]
 D=lambda s: date.fromisoformat(s)
 def sim(turmas, ini, ate, rows=None):
     h=dict(H0); ws=ini
+    for d,de,para,q in TROCAS:
+        if d<ini: h[de]-=q; h[para]+=q
     while ws<ate:
+        for d,de,para,q in TROCAS:
+            if ws<=d<ws+td(7): h[de]-=q; h[para]+=q
         if rows is not None: rows.append((ws,dict(h)))
         e={t:0 for t in T}; x={t:0.0 for t in T}
         for _,op,_,q in turmas:
@@ -35,19 +41,19 @@ def plano(alvo, pdata):
         t,o,f,_=OF[i]
         nxt=(D(OF[plan[k+1]][1]) if k+1<len(plan) else D(o)+td(14))
         h=sim(sg,ini,nxt)
-        need={u:max(0.0,(alvo[u]-h[u])/(1-DES)) for u in T}; tot=sum(need.values())
+        need={u:min(max(0.0,(alvo[u]-h[u])/(1-DES)),TETO_TURNO) for u in T}; tot=sum(need.values())
         if tot>TETO:
             raw={u:TETO*need[u]/tot for u in T}; q={u:math.floor(raw[u]) for u in T}
             for u in sorted(T,key=lambda u:-(raw[u]-q[u]))[:TETO-sum(q.values())]: q[u]+=1
         else:
-            q={u:math.floor(need[u]+0.5) for u in T}
+            q={u:min(math.floor(need[u]+0.5),TETO_TURNO) for u in T}
         sg[i]=(t,o,f,(q['A'],q['C'],q['D']))
     return ini,sg
 def fecha(turmas, ini, alvo):
     rows=[]; sim(turmas,ini,date(2027,12,31),rows)
     for ws,h in rows:
         if sum(alvo[t]-h[t] for t in T)<=FECHA: return ws
-for nome,alvo in [('321 (28/10 com a Skylar)',{'A':104,'C':109,'D':108}),('300 (28/10 sem a Skylar)',{'A':97,'C':101,'D':102}),('294 (29/10)',{'A':94,'C':100,'D':100}),('291 (30/10)',{'A':94,'C':100,'D':97})]:
+for nome,alvo in [('291 (versão 4)',{'A':94,'C':100,'D':97}),('293 (versão 5)',{'A':94,'C':100,'D':99})]:
     ini,sg=plano(alvo,date(2026,10,28))
     tot_of=sum(sum(q) for t,o,f,q in OF if not f); tot_sg=sum(sum(q) for t,o,f,q in sg if not f)
     print('== alvo',nome,'| planejadas oficial',tot_of,'sugerido',tot_sg,'| fecha oficial',fecha(OF,ini,alvo),'sugerido',fecha(sg,ini,alvo))

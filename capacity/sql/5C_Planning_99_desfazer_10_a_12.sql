@@ -53,6 +53,7 @@ DROP PROCEDURE IF EXISTS sp_fc_versao_fechar;
 DROP PROCEDURE IF EXISTS sp_fc_plano_sugerido;
 DROP PROCEDURE IF EXISTS sp_fc_plano_simular;
 DROP TABLE IF EXISTS fc_wrk_plano;
+DROP TABLE IF EXISTS fc_plano_troca_turno;
 DROP TABLE IF EXISTS fc_plano_projecao;
 DROP TABLE IF EXISTS fc_plano_sugerido;
 DROP TABLE IF EXISTS fc_capacity_versao_posto;
