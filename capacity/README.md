@@ -43,6 +43,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 8 | `5C_Planning_17_turma_0211_real.sql` | Corrige a turma de 02/11 em `fc_contratacoes` para os contratados reais: A 4 · C 7 · D 4. O total continua 15. |
 | 9 | `5C_Planning_18_sem_skylar.sql` | Tira a Skylar Mae VIP da estrutura (a modelo saiu em 28/10) e recalcula a base de 28/10. Depois dele, o 13 não confere mais: a referência de 26/10 tinha a Skylar. |
 | 10 | `5C_Planning_19_versoes_e_plano_sugerido.sql` | Versões do capacity com "O que mudou", plano de turmas sugerido em cada versão e comparação com o oficial (visões 13 a 17). Recria o `sp_fc_rodar_dia` com a etapa `versao`. |
+| 11 | `5C_Planning_20_adotar_plano_sugerido.sql` | Adota o plano sugerido da versão 4 (capacity de 30/10) como plano oficial: as turmas planejadas passam de 280 para 202 pessoas. Tem cópia de segurança e o bloco para desfazer. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -195,6 +196,11 @@ Uma página desativada no cadastro sai no cálculo do dia seguinte, e a versão 
 - desistência no treinamento de 6% e no máximo 20 por turma.
 
 O plano oficial (`fc_contratacoes`) continua manual. A versão fica com alerta quando o total das turmas planejadas difere em 10 ou mais.
+
+**Decisão de 30/10: o plano sugerido da versão 4 vira o oficial (script 20).**
+- As 14 turmas planejadas passam de 280 para 202 pessoas, e o total do plano fica em 237.
+- Até 08/03 continuam 20 por turma; de 22/03 em diante, de 8 a 17.
+- A falta fecha na mesma semana que no plano anterior, 29/03/2027.
 
 | Visão | O que mostra |
 |---|---|
