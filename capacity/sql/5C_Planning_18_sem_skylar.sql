@@ -6,7 +6,7 @@
 -- contar com ela. Este script:
 --   1. fecha a vigência da Skylar Mae VIP em fc_pagina_carteira (vigente_ate = 01/11: não entra na
 --      estrutura que começa em 01/11);
---   2. troca a maior página da U1 · C1 para a Lily Lou OFTV;
+--   2. troca a maior página da U3 · C1 para a Lily Lou OFTV;
 --   3. recalcula os postos de 28/10, que são a base fixa da escala de 01/11 a 08/11.
 -- O cálculo diário das 06:30 já sai sem a Skylar. Enquanto ela estiver ativa no cadastro, aparece na
 -- vw_fc_10_paginas_fora_da_estrutura como "Ativa sem carteira": some quando for desativada.
@@ -28,7 +28,7 @@ UPDATE fc_pagina_carteira
  WHERE pagina = 'Skylar Mae VIP' AND vigente_ate IS NULL;
 
 UPDATE fc_carteira SET maior_pagina = 'Lily Lou OFTV'
- WHERE carteira = 'U1C1' AND maior_pagina = 'Skylar Mae VIP';
+ WHERE carteira = 'U3C1' AND maior_pagina = 'Skylar Mae VIP';
 
 COMMIT;
 
@@ -40,18 +40,18 @@ CALL sp_fc_postos('2026-10-28');
 SELECT (SELECT COUNT(*) FROM fc_pagina_carga  WHERE data_calculo = '2026-10-28' AND pagina = 'Skylar Mae VIP') AS `Carga Skylar`,
        (SELECT COUNT(*) FROM fc_postos_pagina WHERE data_calculo = '2026-10-28' AND pagina = 'Skylar Mae VIP') AS `Postos Skylar`;
 
--- 3.2 Por unidade e turno. Só a U1 muda (U1 · C1 perde 4 postos por turno).
+-- 3.2 Por unidade e turno. Só a U3 muda (U3 · C1 perde 4 postos por turno).
 SELECT CONCAT('U', n.unidade, n.turno) AS `Unidade`, n.postos AS `Postos`, e.postos AS `Esp. postos`,
        n.titulares AS `Titulares`, e.tit AS `Esp. titulares`, n.pico_dia AS `Pico`, e.pico AS `Esp. pico`,
        n.buffer AS `Buffer`, e.buf AS `Esp. buffer`, n.precisa AS `Precisa`, n.tem AS `Tem`, n.saldo AS `Saldo`,
        IF(n.postos = e.postos AND n.titulares = e.tit AND n.buffer = e.buf AND ABS(n.pico_dia - e.pico) <= 0.01,
           'ok', 'DIFERENTE') AS `Confere`
 FROM fc_necessidade_estrutura n
-JOIN (SELECT 1 AS u, 'A' AS t, 13 AS postos, 20 AS tit, 1.82 AS pico, 6 AS buf UNION ALL
-      SELECT 1, 'C', 14, 21, 1.35, 6 UNION ALL SELECT 1, 'D', 12, 18, 1.62, 6 UNION ALL
+JOIN (SELECT 3 AS u, 'A' AS t, 13 AS postos, 20 AS tit, 1.82 AS pico, 6 AS buf UNION ALL
+      SELECT 3, 'C', 14, 21, 1.35, 6 UNION ALL SELECT 3, 'D', 12, 18, 1.62, 6 UNION ALL
       SELECT 2, 'A', 18, 27, 2.18, 6 UNION ALL SELECT 2, 'C', 18, 27, 2.69, 7 UNION ALL
-      SELECT 2, 'D', 20, 30, 1.77, 7 UNION ALL SELECT 3, 'A', 21, 32, 1.56, 6 UNION ALL
-      SELECT 3, 'C', 22, 33, 1.75, 7 UNION ALL SELECT 3, 'D', 22, 33, 2.22, 8) e
+      SELECT 2, 'D', 20, 30, 1.77, 7 UNION ALL SELECT 1, 'A', 21, 32, 1.56, 6 UNION ALL
+      SELECT 1, 'C', 22, 33, 1.75, 7 UNION ALL SELECT 1, 'D', 22, 33, 2.22, 8) e
   ON e.u = n.unidade AND e.t = n.turno
 WHERE n.data_calculo = '2026-10-28'
 ORDER BY n.unidade, FIELD(n.turno, 'A', 'C', 'D');
@@ -71,18 +71,18 @@ SELECT (SELECT COUNT(*) FROM fc_postos WHERE data_calculo = '2026-10-28') AS `Po
        SUM(tem) AS `Tem`, SUM(saldo) AS `Saldo`
 FROM fc_necessidade_estrutura WHERE data_calculo = '2026-10-28';
 
--- 3.5 Carteiras da U1: esperado U1 · C1 5/5/4 postos e 8/8/6 titulares; U1 · C2 igual (8/9/8 e 12/14/12)
+-- 3.5 Carteiras da U3: esperado U3 · C1 5/5/4 postos e 8/8/6 titulares; U3 · C2 igual (8/9/8 e 12/14/12)
 SELECT carteira AS `Carteira`, turno AS `Turno`, postos AS `Postos`, titulares AS `Titulares`, tem AS `Tem`
 FROM fc_necessidade_carteira
-WHERE data_calculo = '2026-10-28' AND carteira IN ('U1C1', 'U1C2')
+WHERE data_calculo = '2026-10-28' AND carteira IN ('U3C1', 'U3C2')
 ORDER BY carteira, FIELD(turno, 'A', 'C', 'D');
 
 -- ---------------------------------------------------------------------
--- 4. Desfazer (só se precisar): a Skylar volta para a U1 · C1
+-- 4. Desfazer (só se precisar): a Skylar volta para a U3 · C1
 -- ---------------------------------------------------------------------
 -- START TRANSACTION;
 -- UPDATE fc_pagina_carteira SET vigente_ate = NULL, obs = NULL
 --  WHERE pagina = 'Skylar Mae VIP' AND vigente_desde = '2026-11-01';
--- UPDATE fc_carteira SET maior_pagina = 'Skylar Mae VIP' WHERE carteira = 'U1C1';
+-- UPDATE fc_carteira SET maior_pagina = 'Skylar Mae VIP' WHERE carteira = 'U3C1';
 -- COMMIT;
 -- CALL sp_fc_postos('2026-10-28');

@@ -28,7 +28,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
     - Os pesos ficam em `fc_parametros`: `peso_af_buffer`, `percentil_pico`, `teto_pico_fans_rep`, `janela_buffer_dias`, `janela_pico_dias`, `nucleos_por_turno`, `nucleos_folga_dia`, `buffer_minimo_nucleo` (2) e `fator_volume`.
 - **Tem:** reps reais de cada unidade e turno.
 
-> **Unidades renumeradas em 30/10 (ES_35, do Planning tool):** U1 = Victoria e U3 = Keller. A troca vale no banco para todas as datas e versões. Neste README e nos scripts até o 22, U1 é o Keller e U3 é a Victoria: a Skylar (U1 · C1), por exemplo, hoje é U3 · C1.
+> **Unidades renumeradas em 30/10 (ES_35, do Planning tool):** U1 = Victoria e U3 = Keller, no banco (todas as datas e versões) e nos textos e scripts desta pasta. A Skylar, por exemplo, era da U3 · C1 (Keller).
 
 ## Scripts (`sql/`, Navicat, nesta ordem)
 
@@ -61,7 +61,7 @@ Recalculando 26/10 com os fãs/h que o banco tem hoje para 12–25/10, a referê
 |---|---|---|---|---|---|
 | 177 | 269 | 61 | **330** | 220 | **−110** |
 
-| Turno | Buffers presentes por dia | Buffer do turno | U1 / U2 / U3 |
+| Turno | Buffers presentes por dia | Buffer do turno | U3 / U2 / U1 |
 |---|---|---|---|
 | A | 12,2 | 19 | 6 / 7 / 6 |
 | C | 13,4 | 21 | 6 / 8 / 7 |
@@ -69,15 +69,15 @@ Recalculando 26/10 com os fãs/h que o banco tem hoje para 12–25/10, a referê
 
 | Unidade · turno | Postos | Titulares | Faltas/dia | Pico/dia | Presentes/dia | Buffer | Precisa | Tem | Saldo |
 |---|---|---|---|---|---|---|---|---|---|
-| U1 · A | 17 | 26 | 1,6 | 2,1 | 4,0 | 6 | 32 | 25 | −7 |
-| U1 · C | 18 | 27 | 1,9 | 1,8 | 4,2 | 6 | 33 | 20 | −13 |
-| U1 · D | 17 | 26 | 1,9 | 1,6 | 4,0 | 6 | 32 | 21 | −11 |
+| U1 · A | 21 | 32 | 2,0 | 1,6 | 3,9 | 6 | 38 | 23 | −15 |
+| U1 · C | 23 | 35 | 2,4 | 1,5 | 4,4 | 7 | 42 | 24 | −18 |
+| U1 · D | 22 | 33 | 2,5 | 1,9 | 4,9 | 8 | 41 | 24 | −17 |
 | U2 · A | 19 | 29 | 1,8 | 2,1 | 4,3 | 7 | 36 | 28 | −8 |
 | U2 · C | 19 | 29 | 2,0 | 2,3 | 4,9 | 8 | 37 | 25 | −12 |
 | U2 · D | 21 | 32 | 2,4 | 1,9 | 4,8 | 7 | 39 | 30 | −9 |
-| U3 · A | 21 | 32 | 2,0 | 1,6 | 3,9 | 6 | 38 | 23 | −15 |
-| U3 · C | 23 | 35 | 2,4 | 1,5 | 4,4 | 7 | 42 | 24 | −18 |
-| U3 · D | 22 | 33 | 2,5 | 1,9 | 4,9 | 8 | 41 | 24 | −17 |
+| U3 · A | 17 | 26 | 1,6 | 2,1 | 4,0 | 6 | 32 | 25 | −7 |
+| U3 · C | 18 | 27 | 1,9 | 1,8 | 4,2 | 6 | 33 | 20 | −13 |
+| U3 · D | 17 | 26 | 1,9 | 1,6 | 4,0 | 6 | 32 | 21 | −11 |
 
 Taxa de falta (31/08–25/10), absenteísmo + falha administrativa sem dobra: A 9,1% + 0,2% · C 10,3% + 0,2% · D 10,9% + 0,4%.
 
@@ -85,12 +85,12 @@ Como a conta mudou:
 - 27/10: 162 postos × 1,4 + 15% = 269; × 1,5 + 15% = 286; com o buffer calculado = 318; com o buffer igual nos 3 núcleos = 325; com o buffer contado no total do turno = 315.
 - 28/10, Política de 2 páginas por rep quando as modelos são diferentes: 161 → 175 postos e 244 → 265 titulares. O pico cai um pouco, porque os grupos menores têm mais capacidade.
 - 28/10, falha administrativa sem `AF_DOBRA`: o buffer cai de 70 (já com a regra das 2 páginas; seria 335 no total) para 62.
-- 28/10, agrupar primeiro a mesma modelo: os postos com 2+ páginas da mesma modelo passam de 3 para 28; 175 → 177 postos (U2 · C1 turno D e U3 · C1 turno C), 265 → 269 titulares, buffer 62 → 61. Os 10 pares que continuam separados não cabem juntos (as duas páginas passam de 28 fãs/h ou somam mais de 31,5) ou têm regra própria (Mikayla).
+- 28/10, agrupar primeiro a mesma modelo: os postos com 2+ páginas da mesma modelo passam de 3 para 28; 175 → 177 postos (U2 · C1 turno D e U1 · C1 turno C), 265 → 269 titulares, buffer 62 → 61. Os 10 pares que continuam separados não cabem juntos (as duas páginas passam de 28 fãs/h ou somam mais de 31,5) ou têm regra própria (Mikayla).
 - Resultado: **330**. O plano de turmas adotado (simulado com 327) não muda: com o teto de 20 por turma, o alvo de 330 dá as mesmas 315 contratações e fecha no mesmo fim de junho.
 
-O 13 confere o buffer de cada turno exatamente. Na distribuição entre unidades aceita diferença de 1, porque no turno A a U1 e a U3 ficam quase empatadas.
+O 13 confere o buffer de cada turno exatamente. Na distribuição entre unidades aceita diferença de 1, porque no turno A a U3 e a U1 ficam quase empatadas.
 
-O relatório de 27/10 deu 162 postos com até 3 páginas por rep; a diferença de 1 posto (U1 · C1, turno D) é do `msgdashboard`, atualizado depois.
+O relatório de 27/10 deu 162 postos com até 3 páginas por rep; a diferença de 1 posto (U3 · C1, turno D) é do `msgdashboard`, atualizado depois.
 
 A lógica da procedure foi conferida contra o `posts.py` nas 18 combinações de carteira e turno, com os mesmos fãs/h e o limite antigo (3 páginas): o número de postos é o mesmo em todas. A regra das 2 páginas foi conferida no espelho da procedure (175 postos), e o agrupamento em duas fases também (177 postos). Em empates de arredondamento (carga terminada em ,x5) o MySQL arredonda para cima e o Python para o par. Isso pode trocar qual página pequena entra em qual grupo, mas não muda nenhuma contagem.
 
@@ -155,15 +155,15 @@ As regras são as do plano de 26/10:
 Pontos de atenção:
 - **Os dois cenários ficaram quase iguais no total.** A necessidade (327) passou o quadro de 12 por OS (324) em 3.
 - **A distribuição entre unidades é diferente:**
-  - a U3 precisa de mais que 12 por OS: 39 / 40 / 41 contra 36 por turno;
-  - a U1 precisa de menos (32–34); a U2 fica perto (36–37).
+  - a U1 precisa de mais que 12 por OS: 39 / 40 / 41 contra 36 por turno;
+  - a U3 precisa de menos (32–34); a U2 fica perto (36–37).
 - **O teto de 20 por turma segura o plano:** todas as turmas até junho saem cheias.
   - Com teto de 25, a falta fecha em abr/2027; com 30, no fim de mar/2027.
   - Isso depende de o Treinamento (TRN) conseguir turmas maiores.
 - **Pior momento:** 24/01, com falta de 103 no cenário Capacity, por causa das 5 semanas sem turma entre 07/12 e 11/01.
 - **Vagas por unidade (`vw_fc_11_quadro_vagas`):**
-  - Capacity: U1 32 · U2 26 · U3 49;
-  - 12 por OS: U1 42 · U2 25 · U3 37.
+  - Capacity: U1 49 · U2 26 · U3 32;
+  - 12 por OS: U1 37 · U2 25 · U3 42.
 
 **Decisão de 28/10: o cenário Capacity vira o plano oficial.** O script 15 troca as turmas planejadas a partir de 07/12 em `fc_contratacoes` pelas do cenário. As turmas de 02/11 e 16/11 já confirmadas ficam como estão. No total são 315 pessoas: 35 já confirmadas e 280 em 14 turmas planejadas, até 28/06/2027.
 
@@ -171,15 +171,15 @@ Com o teto de 20 por turma, os dois cenários contratam o mesmo número de pesso
 
 ## Saída da Skylar (28/10)
 
-A Skylar Mae VIP (U1 · C1) ocupava 4 postos em cada turno: 1 titular e 3 assistentes, pela regra `SKYLAR` (limite 40, mínimo 4). A modelo saiu em 28/10. O script 18 fecha a vigência da página em `fc_pagina_carteira` e recalcula a base de 28/10. Nenhuma outra página muda de posto, porque a Skylar nunca dividia posto.
+A Skylar Mae VIP (U3 · C1) ocupava 4 postos em cada turno: 1 titular e 3 assistentes, pela regra `SKYLAR` (limite 40, mínimo 4). A modelo saiu em 28/10. O script 18 fecha a vigência da página em `fc_pagina_carteira` e recalcula a base de 28/10. Nenhuma outra página muda de posto, porque a Skylar nunca dividia posto.
 
 | Base de 28/10 | Postos | Titulares | Buffer (A / C / D) | Precisa | Tem | Saldo |
 |---|---|---|---|---|---|---|
 | Com a Skylar | 172 | 259 | 62 (19 / 22 / 21) | 321 | 220 | −101 |
 | Sem a Skylar | 160 | 241 | 59 (18 / 20 / 21) | **300** | 220 | **−80** |
 
-- **Só a U1 muda:** 13 / 14 / 12 postos e 20 / 21 / 18 titulares. O pico da U1 cai de 2,18 / 1,96 / 1,62 para 1,82 / 1,35 / 1,62.
-- **A U1 · C1 fica pequena:** 5 / 5 / 4 postos, contra 8 / 9 / 8 da U1 · C2. Os reps que estavam na Skylar sobram ali.
+- **Só a U3 muda:** 13 / 14 / 12 postos e 20 / 21 / 18 titulares. O pico da U3 cai de 2,18 / 1,96 / 1,62 para 1,82 / 1,35 / 1,62.
+- **A U3 · C1 fica pequena:** 5 / 5 / 4 postos, contra 8 / 9 / 8 da U3 · C2. Os reps que estavam na Skylar sobram ali.
 - **O plano de turmas não foi mexido:** continua com 315 contratações. O alvo do quadro caiu cerca de 21, então rever as turmas a partir de 07/12 é decisão do usuário.
 
 ## Versões do capacity e plano sugerido (script 19)

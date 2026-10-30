@@ -13,7 +13,7 @@
 --   ficaram sozinhas entre modelos. Com a regra anterior (sem as fases) dava 175 postos e 327.
 --   Taxa de falta (31/08–25/10): A 9,13% + 0,16% · C 10,34% + 0,16% · D 10,89% + 0,36% (absenteísmo + falha adm.)
 --   Antes das decisões de 28/10 (até 3 páginas de modelos diferentes; AF com dobra) dava 161 postos e 315.
---   Na distribuição entre unidades, diferença de 1 é aceitável (no turno A, U1 e U3 ficam quase empatadas);
+--   Na distribuição entre unidades, diferença de 1 é aceitável (no turno A, U3 e U1 ficam quase empatadas);
 --   o total de cada turno tem que bater.
 -- =====================================================================
 SET NAMES utf8mb4;
@@ -79,11 +79,11 @@ SELECT CONCAT('U', n.unidade) AS `Unidade`, n.turno AS `Turno`,
        n.precisa AS `Precisa`, n.tem AS `Tem`, n.saldo AS `Saldo`,
        IF(n.postos = e.postos AND n.titulares = e.tit AND n.tem = e.tem AND ABS(n.buffer - e.buf) <= 1, 'ok', 'DIFERENTE') AS `Confere`
 FROM fc_necessidade_estrutura n
-JOIN (SELECT 1 AS u, 'A' AS t, 17 AS postos, 26 AS tit, 25 AS tem, 1.58 AS faltas, 2.07 AS pico, 6 AS buf
-      UNION ALL SELECT 1, 'C', 18, 27, 20, 1.89, 1.82, 6 UNION ALL SELECT 1, 'D', 17, 26, 21, 1.91, 1.60, 6
+JOIN (SELECT 3 AS u, 'A' AS t, 17 AS postos, 26 AS tit, 25 AS tem, 1.58 AS faltas, 2.07 AS pico, 6 AS buf
+      UNION ALL SELECT 3, 'C', 18, 27, 20, 1.89, 1.82, 6 UNION ALL SELECT 3, 'D', 17, 26, 21, 1.91, 1.60, 6
       UNION ALL SELECT 2, 'A', 19, 29, 28, 1.77, 2.09, 7 UNION ALL SELECT 2, 'C', 19, 29, 25, 2.00, 2.35, 8
-      UNION ALL SELECT 2, 'D', 21, 32, 30, 2.36, 1.86, 7 UNION ALL SELECT 3, 'A', 21, 32, 23, 1.95, 1.57, 6
-      UNION ALL SELECT 3, 'C', 23, 35, 24, 2.42, 1.54, 7 UNION ALL SELECT 3, 'D', 22, 33, 24, 2.48, 1.91, 8) e
+      UNION ALL SELECT 2, 'D', 21, 32, 30, 2.36, 1.86, 7 UNION ALL SELECT 1, 'A', 21, 32, 23, 1.95, 1.57, 6
+      UNION ALL SELECT 1, 'C', 23, 35, 24, 2.42, 1.54, 7 UNION ALL SELECT 1, 'D', 22, 33, 24, 2.48, 1.91, 8) e
   ON e.u = n.unidade AND e.t = n.turno
 WHERE n.data_calculo = '2026-10-26'
 ORDER BY n.unidade, FIELD(n.turno, 'A', 'C', 'D');
@@ -102,12 +102,12 @@ SELECT c.nome AS `Carteira`, n.turno AS `Turno`, n.postos AS `Postos`, e.postos 
        n.titulares AS `Titulares`, n.tem AS `Tem`, IF(n.postos = e.postos, 'ok', 'DIFERENTE') AS `Confere`
 FROM fc_necessidade_carteira n
 JOIN fc_carteira c ON c.carteira = n.carteira
-JOIN (SELECT 'U1C1' AS k, 'A' AS t, 9 AS postos UNION ALL SELECT 'U1C1', 'C', 9 UNION ALL SELECT 'U1C1', 'D', 9
-      UNION ALL SELECT 'U1C2', 'A', 8 UNION ALL SELECT 'U1C2', 'C', 9 UNION ALL SELECT 'U1C2', 'D', 8
+JOIN (SELECT 'U3C1' AS k, 'A' AS t, 9 AS postos UNION ALL SELECT 'U3C1', 'C', 9 UNION ALL SELECT 'U3C1', 'D', 9
+      UNION ALL SELECT 'U3C2', 'A', 8 UNION ALL SELECT 'U3C2', 'C', 9 UNION ALL SELECT 'U3C2', 'D', 8
       UNION ALL SELECT 'U2C1', 'A', 10 UNION ALL SELECT 'U2C1', 'C', 10 UNION ALL SELECT 'U2C1', 'D', 11
       UNION ALL SELECT 'U2C2', 'A', 9 UNION ALL SELECT 'U2C2', 'C', 9 UNION ALL SELECT 'U2C2', 'D', 10
-      UNION ALL SELECT 'U3C1', 'A', 11 UNION ALL SELECT 'U3C1', 'C', 12 UNION ALL SELECT 'U3C1', 'D', 12
-      UNION ALL SELECT 'U3C2', 'A', 10 UNION ALL SELECT 'U3C2', 'C', 11 UNION ALL SELECT 'U3C2', 'D', 10) e
+      UNION ALL SELECT 'U1C1', 'A', 11 UNION ALL SELECT 'U1C1', 'C', 12 UNION ALL SELECT 'U1C1', 'D', 12
+      UNION ALL SELECT 'U1C2', 'A', 10 UNION ALL SELECT 'U1C2', 'C', 11 UNION ALL SELECT 'U1C2', 'D', 10) e
   ON e.k = n.carteira AND e.t = n.turno
 WHERE n.data_calculo = '2026-10-26'
 ORDER BY n.carteira, FIELD(n.turno, 'A', 'C', 'D');
