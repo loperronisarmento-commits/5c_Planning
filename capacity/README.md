@@ -49,6 +49,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 12 | `5C_Planning_21_teto_10_por_turno_e_troca_c_a.sql` | Teto de 10 por turno e 30 por turma, e troca de 5 reps do C para o A na simulação (`fc_plano_troca_turno`). Refaz o plano sugerido da última versão e adota como oficial. |
 | 13 | `5C_Planning_22_plano_sem_troca_c_a.sql` | Desliga a troca C → A do 21: ela já estava no cadastro da estrutura. Refaz o plano sugerido da última versão, com teto de 10 por turno, e adota como oficial. |
 | 14 | `5C_Planning_23_regras_faturamento_mass_sla.sql` | Regras de 31/10: alívio da Mass PPV, regra de faturamento (2 ou 3 páginas por rep), agência do Infloww no agrupamento, horas fora do SLA e faturamento por unidade em cada versão (visões 18 a 20). Recria os procedimentos do 11 (v1.2) e do 19. |
+| 15 | `5C_Planning_24_adotar_plano_versao_16.sql` | Adota o plano sugerido da versão 16 (precisa 315, com as regras do 23) como oficial: as turmas planejadas passam de 208 para 235 pessoas. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -267,6 +268,11 @@ A escolha de quais páginas trocam de unidade é do Planning tool.
 | Com as regras e sem as zOFTV (espelho) | **169** | **255** | 45, dos quais 6 acima da capacidade |
 
 O espelho está em `simulacao/regras_receita_espelho.py`. Com o argumento `antigo`, ele reproduz os 178 postos de antes, carteira a carteira.
+
+**Decisão de 31/10 (script 24): o plano sugerido da versão 16 vira o oficial.**
+- Com a estrutura de 30/10 e as regras do 23, a necessidade é 315.
+- As 14 turmas planejadas passam de 208 para **235** pessoas, e o plano inteiro fica em 270.
+- Com 208, a falta não fechava até o fim da projeção. Com 235, fecha em 15/03/2027.
 
 | Visão | O que mostra |
 |---|---|
