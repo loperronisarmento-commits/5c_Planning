@@ -4,20 +4,40 @@
 // Leituras usadas por mais de uma tela. Tudo SELECT (ver lib/db.php).
 // ===============================================
 
+// Cache em arquivo (pasta temporária do servidor) para leituras lentas e que mudam pouco.
+// ?recarregar=1 na URL ignora o cache.
+function escCache(string $chave, int $segundos, callable $ler): array {
+    $arq = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR . '/') . DIRECTORY_SEPARATOR . '5c_escalas_' . preg_replace('~[^a-z0-9_]~i', '_', $chave) . '.json';
+    if (empty($_GET['recarregar']) && is_file($arq) && filemtime($arq) > time() - $segundos) {
+        $dados = json_decode((string) @file_get_contents($arq), true);
+        if (is_array($dados)) {
+            return $dados;
+        }
+    }
+    $dados = $ler();
+    $tmp = $arq . '.' . getmypid();
+    if (@file_put_contents($tmp, json_encode($dados, JSON_UNESCAPED_UNICODE)) !== false) {
+        @rename($tmp, $arq);
+    }
+    return $dados;
+}
+
 // Estrutura atual (Planner): rep_code => time, party, papel.
-// A view leva ~3 s; guardamos o resultado durante a requisição.
+// A view leva ~3 s: fica 5 minutos em cache.
 function escEstrutura(): array {
     static $mapa = null;
     if ($mapa !== null) {
         return $mapa;
     }
-    $mapa = [];
-    $linhas = escQ("SELECT rep_code, rep_name, team, party, role
-                      FROM `5c_wfm_db_mis`.`vw_rep_estrutura_atual`
-                     WHERE em_estrutura = 1 AND party IS NOT NULL AND party <> ''");
-    foreach ($linhas as $l) {
-        $mapa[strtoupper($l['rep_code'])] = $l;
-    }
+    $mapa = escCache('estrutura', 300, static function (): array {
+        $m = [];
+        foreach (escQ("SELECT rep_code, rep_name, team, party, role
+                         FROM `5c_wfm_db_mis`.`vw_rep_estrutura_atual`
+                        WHERE em_estrutura = 1 AND party IS NOT NULL AND party <> ''") as $l) {
+            $m[strtoupper($l['rep_code'])] = $l;
+        }
+        return $m;
+    });
     return $mapa;
 }
 
@@ -38,20 +58,26 @@ function escTurnosVigentes(): array {
     return $mapa;
 }
 
-// Nome de cada código: estrutura do Planner e, para quem não está nela
-// (Buffers), o headcount.
+// Nome de cada código: cadastro do headcount (nome social quando tem) e, para quem
+// não está nele, o controle de turnos. Não usa a view do Planner (lenta).
 function escNomes(): array {
     static $mapa = null;
     if ($mapa !== null) {
         return $mapa;
     }
-    $mapa = [];
-    foreach (escQ('SELECT UPPER(code) AS code, MAX(nome_controle) AS nome FROM `5c_headcount`.`headcount_turno` GROUP BY UPPER(code)') as $l) {
-        $mapa[$l['code']] = $l['nome'];
-    }
-    foreach (escEstrutura() as $code => $e) {
-        $mapa[$code] = $e['rep_name'];
-    }
+    $mapa = escCache('nomes', 300, static function (): array {
+        $m = [];
+        foreach (escQ('SELECT UPPER(code) AS code, MAX(nome_controle) AS nome FROM `5c_headcount`.`headcount_turno` GROUP BY UPPER(code)') as $l) {
+            $m[$l['code']] = $l['nome'];
+        }
+        foreach (escQ("SELECT UPPER(code) AS code, name, socialName FROM `5c_headcount`.`headcount` WHERE code IS NOT NULL AND code <> ''") as $l) {
+            $nome = trim((string) $l['socialName']) !== '' ? trim((string) $l['socialName']) : trim((string) $l['name']);
+            if ($nome !== '') {
+                $m[$l['code']] = $nome;
+            }
+        }
+        return $m;
+    });
     return $mapa;
 }
 
@@ -105,19 +131,19 @@ function escFormacaoParties(): array {
     foreach ($linhas as &$l) {
         $regras = [];
         if ($l['p'] === 0) {
-            $regras[] = ['sem_primaris', 'Sem Primaris', true, 'Definir o Primaris da party (promover um Secundus ou receber de outra party).'];
+            $regras[] = ['sem_primaris', t('Sem líder'), true, t('Definir o líder da party (promover um titular ou receber de outra party).')];
         }
         if ($l['p'] > 1) {
-            $regras[] = ['dois_primaris', $l['p'] . ' Primaris', false, 'Mover o Primaris extra para uma party sem Primaris.'];
+            $regras[] = ['dois_primaris', t('{n} líderes', ['n' => $l['p']]), false, t('Mover o líder extra para uma party sem líder.')];
         }
         if ($l['s'] > 2) {
-            $regras[] = ['secundus', $l['s'] . ' Secundus (máx. 2)', false, 'Mover ' . ($l['s'] - 2) . ' Secundus para party com falta ou passar a Tertius.'];
+            $regras[] = ['secundus', t('{n} titulares (máx. 2)', ['n' => $l['s']]), false, t('Mover {n} titular(es) para party com falta ou passar ao rodízio.', ['n' => $l['s'] - 2])];
         }
         if ($l['s'] < 2) {
-            $regras[] = ['secundus', 'Faltam ' . (2 - $l['s']) . ' Secundus', false, 'Receber Secundus de uma party com excesso.'];
+            $regras[] = ['secundus', t('Faltam {n} titulares', ['n' => 2 - $l['s']]), false, t('Receber titulares de uma party com excesso.')];
         }
         if ($l['paginas'] === 0) {
-            $regras[] = ['sem_pagina', 'Sem página ativa', true, 'Alocar página no Planner ou desfazer a party.'];
+            $regras[] = ['sem_pagina', t('Sem página ativa'), true, t('Alocar página no Planner ou desfazer a party.')];
         }
         $l['regras'] = $regras;
     }

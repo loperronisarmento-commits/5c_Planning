@@ -1,0 +1,28 @@
+<?php
+// Textos do assets/escalas.js em inglês (o português é a chave). Ver lib/i18n.php.
+return [
+    'Copiado' => 'Copied',
+    'buscar…' => 'search…',
+    'Filtrar {lista}' => 'Filter {lista}',
+    '{n} opção(ões). Enter escolhe a primeira.' => '{n} option(s). Press Enter to pick the first one.',
+    'Escolhido: {opcao}' => 'Selected: {opcao}',
+    'Ordenar por {coluna}' => 'Sort by {coluna}',
+    'Ordenado por {coluna}, crescente' => 'Sorted by {coluna}, ascending',
+    'Ordenado por {coluna}, decrescente' => 'Sorted by {coluna}, descending',
+    'Confirmar' => 'Confirm',
+    'Cancelar' => 'Cancel',
+    'Não feche nem recarregue a página.' => 'Do not close or reload the page.',
+    'Tour guiado' => 'Guided tour',
+    'Tour em andamento: passo {n} de {total}' => 'Tour in progress: step {n} of {total}',
+    'Continuar o tour' => 'Continue the tour',
+    'Sair do tour' => 'Leave the tour',
+    'Na plataforma' => 'On the platform',
+    'No site 5C' => 'On the 5C website',
+    'Passo {n} de {total}' => 'Step {n} of {total}',
+    'Anterior' => 'Previous',
+    'Próximo' => 'Next',
+    'Concluir' => 'Finish',
+    'lista' => 'list',
+    'Você está no sistema real: o tour só mostra as telas, mas o que você clicar nelas muda a escala oficial. Para praticar sem risco, ligue o Modo Treino. ' => 'You are in the real system: the tour only shows the screens, but whatever you click on them changes the official schedule. To practice safely, turn on Training mode. ',
+    'Ligar o Modo Treino' => 'Turn on Training mode',
+];

@@ -1,0 +1,83 @@
+<?php
+// Textos da tela Horas extras (pages/horas.php) em inglês. O português é a chave.
+return [
+    // avisos e erros
+    'Escolha o colaborador na busca (nome ou código).' => 'Pick the employee in the search (name or code).',
+    'Posto não encontrado.' => 'Post not found.',
+    'Interesse de {rep} registrado.' => 'Interest from {rep} recorded.',
+    'Interesse recusado.' => 'Interest declined.',
+    'Pedido não encontrado ou já decidido.' => 'Request not found or already decided.',
+    'A escala desta semana não está em rascunho. Crie um rascunho na Grade para alocar a hora extra.' => 'This week\'s schedule is not a draft. Create a draft in the Grid to allocate the overtime.',
+    '{rep} já está na escala neste turno.' => '{rep} is already on the schedule in this shift.',
+    '{rep} está no turno {turno} de {dia}: com a hora extra seriam 16 h seguidas (Política: no máximo 12 h).' => '{rep} is on shift {turno} on {dia}: with the overtime it would be 16 h in a row (Policy: 12 h at most).',
+    '{rep} passaria de {max} h na semana (Política).' => '{rep} would go over {max} h in the week (Policy).',
+    'Esse posto já não está vazio nesta versão da escala.' => 'This post is no longer empty in this schedule version.',
+    'Página {pagina} não encontrada no cadastro.' => 'Page {pagina} not found in the register.',
+    'Hora extra de {rep} alocada na escala (travada). Confira na Grade.' => 'Overtime for {rep} allocated on the schedule (locked). Check it in the Grid.',
+
+    // texto para pedir hora extra
+    'Hora extra · semana de {dia}' => 'Overtime · week of {dia}',
+    'Quem puder, responda com o dia e o turno.' => 'If you can help, reply with the day and the shift.',
+    '{dia} · turno {turno} ({hora}) · U{unidade} · {pagina}' => '{dia} · shift {turno} ({hora}) · U{unidade} · {pagina}',
+    '{dia} · turno {turno} ({hora}) · U{unidade} · buffer' => '{dia} · shift {turno} ({hora}) · U{unidade} · buffer',
+    '{dia} · turno {turno} ({hora}) · U{unidade} · buffer ({n} vagas)' => '{dia} · shift {turno} ({hora}) · U{unidade} · buffer ({n} slots)',
+
+    // tipos de posto
+    'titular' => 'regular',
+    'double' => 'double',
+    'apoio' => 'support',
+    'assistente' => 'assistant',
+
+    // interesses
+    'quem quer fazer (nome ou código)' => 'who wants it (name or code)',
+    'Registrar' => 'Record',
+    'ninguém ainda' => 'no one yet',
+    'Alocar' => 'Allocate',
+    'Recusar' => 'Decline',
+
+    // cabeçalho e indicadores
+    'O que ficou vazio na escala da semana: postos sem ninguém (da página de maior faturamento para a de menor) e buffers que faltam para a necessidade do Capacity. Registre quem se ofereceu e aloque. A hora extra entra travada no rascunho; buffer vai para a página {pagina} com -2 no CSV.' => 'What was left empty in the week\'s schedule: posts with no one (from the highest-revenue page to the lowest) and buffers missing for the Capacity need. Record who volunteered and allocate. Overtime goes into the draft locked; buffer goes to the page {pagina} with -2 in the CSV.',
+    'Semana' => 'Week',
+    '{ini} a {fim}' => '{ini} to {fim}',
+    'Escala:' => 'Schedule:',
+    'nenhuma gerada' => 'none generated',
+    'abrir na Grade' => 'open in the Grid',
+    'Gere a escala desta semana para ver o que ficou vazio.' => 'Generate this week\'s schedule to see what was left empty.',
+    'Postos sem ninguém' => 'Unstaffed posts',
+    'posto-dias na semana' => 'post-days in the week',
+    'Buffers faltando' => 'Missing buffers',
+    'pessoa-turnos abaixo do que o Capacity pede' => 'person-shifts below what Capacity asks for',
+    'Interessados a decidir' => 'Volunteers to decide',
+    'alocar ou recusar abaixo' => 'allocate or decline below',
+    'escala publicada: crie um rascunho na Grade para alocar' => 'published schedule: create a draft in the Grid to allocate',
+    'Texto para pedir hora extra' => 'Text to ask for overtime',
+    'Copiar' => 'Copy',
+
+    // tabelas
+    'Nenhum posto vazio nesta versão.' => 'No empty posts in this version.',
+    'Dia' => 'Day',
+    'Turno' => 'Shift',
+    'Unidade' => 'Unit',
+    'Página (posto)' => 'Page (post)',
+    'US$/dia no turno' => 'US$/day in the shift',
+    'Interessados' => 'Volunteers',
+    'Quem se ofereceu' => 'Who volunteered',
+    '{tipo} · carga {carga} de {capacidade} fãs/h' => '{tipo} · load {carga} of {capacidade} fans/h',
+    'só um bloco' => 'only one block',
+    'Necessidade de buffers presentes por dia (Capacity, por unidade e turno) menos os buffers de plantão escalados (página {pagina}, -2).' => 'Need for buffers present per day (Capacity, by unit and shift) minus the on-call buffers scheduled (page {pagina}, -2).',
+    'Nenhum buffer faltando nesta versão.' => 'No missing buffers in this version.',
+    'Precisa' => 'Needs',
+    'Escalados' => 'Scheduled',
+    'Faltam' => 'Missing',
+    'As horas extras por bloco de 4 h ainda não foram instaladas no banco (script ES_38). Peça ao admin.' => 'Overtime by 4-hour block is not installed in the database yet (script ES_38). Ask the admin.',
+    'Blocos de 4 h. Quem puder, responda com o dia e o bloco (até 12 h seguidas contando a sua escala).' => '4-hour blocks. If you can help, reply with the day and the block (up to 12 h in a row counting your schedule).',
+    'Escolha o bloco do turno.' => 'Choose the block of the shift.',
+    'O que ficou vazio na escala da semana, por bloco de 4 h: postos sem ninguém (da página de maior faturamento para a de menor) e buffers que faltam para a necessidade do Capacity. Registre quem se ofereceu e aloque: quem faz um turno de 8 h pode pegar um bloco vizinho (até 12 h seguidas). A hora extra entra travada no rascunho; buffer vai para a página {pagina} com -2 no CSV.' => 'What was left empty in the week\'s schedule, by 4-hour block: unstaffed posts (from the highest-revenue page to the lowest) and buffers missing for Capacity\'s need. Record who volunteered and allocate: someone on an 8-hour shift can take a neighbouring block (up to 12 h in a row). Overtime goes into the draft locked; buffer goes to the {pagina} page with -2 in the CSV.',
+    'blocos de 4 h na semana' => '4-hour blocks in the week',
+    'pessoa-blocos abaixo do que o Capacity pede' => 'person-blocks below what Capacity asks for',
+    '{dia} · {bloco} ({hora}) · U{unidade} · buffer' => '{dia} · {bloco} ({hora}) · U{unidade} · buffer',
+    '{dia} · {bloco} ({hora}) · U{unidade} · buffer ({n} vagas)' => '{dia} · {bloco} ({hora}) · U{unidade} · buffer ({n} slots)',
+    '{dia} · {bloco} ({hora}) · U{unidade} · {pagina}' => '{dia} · {bloco} ({hora}) · U{unidade} · {pagina}',
+    '{rep} já está na escala no bloco {bloco} de {dia}.' => '{rep} is already on the schedule in block {bloco} on {dia}.',
+    '{rep}: com a hora extra seriam {h} h seguidas (Política: no máximo {max} h). Ofereça um bloco que não emende tanto.' => '{rep}: with the overtime it would be {h} h in a row (Policy: at most {max} h). Offer a block that does not run on so long.',
+];

@@ -4,16 +4,16 @@
 // Parâmetros do 5C Escalas (formação, geração, mérito, prazos).
 // ===============================================
 
+escExigir('admin');
 if (escPost()) {
-    escExigir('admin');
     $chave = (string) ($_POST['chave'] ?? '');
     $valor = trim((string) ($_POST['valor'] ?? ''));
     $p = escQ1('SELECT * FROM ' . escT('esc_parametro') . ' WHERE chave = ?', [$chave]);
     if (!$p || $p['grupo'] === 'motor') {
-        throw new RuntimeException('Parâmetro não encontrado ou não editável.');
+        throw new RuntimeException(t('Parâmetro não encontrado ou não editável.'));
     }
     if (($p['tipo'] === 'INT' && !preg_match('~^-?\d+$~', $valor)) || ($p['tipo'] === 'DECIMAL' && !is_numeric(str_replace(',', '.', $valor))) || ($p['tipo'] === 'BOOL' && !in_array($valor, ['0', '1'], true))) {
-        throw new RuntimeException('Valor inválido para ' . $chave . ' (' . strtolower($p['tipo']) . ').');
+        throw new RuntimeException(t('Valor inválido para {chave} ({tipo}).', ['chave' => $chave, 'tipo' => strtolower($p['tipo'])]));
     }
     $valor = $p['tipo'] === 'DECIMAL' ? str_replace(',', '.', $valor) : $valor;
     escW('UPDATE ' . escT('esc_parametro') . ' SET valor = ?, atualizado_por = ? WHERE chave = ?', [$valor, escUserId(), $chave]);
@@ -24,14 +24,14 @@ if (escPost()) {
 $lista = escQ('SELECT * FROM ' . escT('esc_parametro') . " WHERE grupo <> 'motor' ORDER BY grupo, chave");
 ?>
 <header class="cabecalho">
-  <span class="eyebrow">Administração</span>
-  <h1>Parâmetros</h1>
-  <p class="muted">Valem a partir do próximo recálculo. Só administrador muda.</p>
+  <span class="eyebrow"><?php echo h(t('Administração')); ?></span>
+  <h1><?php echo h(t('Parâmetros')); ?></h1>
+  <p class="muted"><?php echo h(t('Valem a partir do próximo recálculo. Só administrador muda.')); ?></p>
 </header>
 <section class="panel">
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th>Grupo</th><th>Parâmetro</th><th>Descrição</th><th>Valor</th></tr></thead>
+    <thead><tr><th><?php echo h(t('Grupo')); ?></th><th><?php echo h(t('Parâmetro')); ?></th><th><?php echo h(t('Descrição')); ?></th><th><?php echo h(t('Valor')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($lista as $p): ?>
       <tr>
@@ -40,7 +40,7 @@ $lista = escQ('SELECT * FROM ' . escT('esc_parametro') . " WHERE grupo <> 'motor
         <td class="small"><?php echo h($p['descricao']); ?></td>
         <td>
           <?php if (escPode('admin')): ?>
-          <form method="post" action="<?php echo h(link_tela('parametros')); ?>" class="acoes"><?php echo campoCsrf(); ?><input type="hidden" name="chave" value="<?php echo h($p['chave']); ?>"><input type="text" name="valor" value="<?php echo h($p['valor']); ?>" size="8"><button type="submit" class="botao">Salvar</button></form>
+          <form method="post" action="<?php echo h(link_tela('parametros')); ?>" class="acoes"><?php echo campoCsrf(); ?><input type="hidden" name="chave" value="<?php echo h($p['chave']); ?>"><input type="text" name="valor" value="<?php echo h($p['valor']); ?>" size="8"><button type="submit" class="botao"><?php echo h(t('Salvar')); ?></button></form>
           <?php else: ?><?php echo h($p['valor']); ?><?php endif; ?>
         </td>
       </tr>

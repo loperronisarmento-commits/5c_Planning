@@ -1,0 +1,201 @@
+<?php
+// ===============================================
+// ARQUIVO: 5c_escalas/lib/versao_en.php
+// Changelog em inglês: o mesmo conteúdo de ESC_PATCH_NOTES (lib/versao.php), por
+// versão, na mesma ordem dos itens. Ao publicar uma versão, entra aqui também.
+// ===============================================
+
+const ESC_PATCH_NOTES_EN = [
+    '1.17.0' => ['titulo' => 'Pages goals PDF, unit moves on the posts and optional absenteeism in merit', 'itens' => [
+        'Grid: "Download goals PDF" and "Goals" on each page, in the same style as the schedule PDF (A4 landscape, letterhead, one page per sheet). Each person scheduled that week appears with shifts, blocks and marks, and their attainment on the page (5CReps actual ÷ goal, in each person\'s share by their share of messages, as in merit) in each of the previous 4 weeks and in total. Green is goal met; "—" is no messages on the page that week.',
+        'Unit move: a move recorded in Capacity (e.g. Mikayla U1 → U3 and Nicole U2 → U1 on 11/02, from ES_51) now applies to the posts at the next "Generate". People stay in their unit: the page goes to the destination team and the vacancies there are filled with destination SRs. The daily update no longer undoes moves with a future date. Org chart: warns about moves scheduled after the screen date, with a link to view the date they take effect.',
+        'Merit: new parameter merito_abs_ativo (group "merito"). With 0, absenteeism leaves the score (attendance 1 and no critical cap) and is shown for information only; with 1, as before. The Merit and Rules screens and the simulator show the rule in force. Script ES_53.',
+        'Script ES_52: first people balance of the new structure, with 18 SRs from U2 going to U1 and U3 (about 74% of the need in each unit and shift). Script ES_54: the team that worked Aline Novak over the last 4 weeks becomes the team of Aline and Andressa Urach (Privacy), with 6 SRs moving to U2.',
+    ]],
+    '1.16.1' => ['titulo' => 'Engine fixes before the switch-over, new Sales page, Unit balance with free date and OS split', 'itens' => [
+        'Unit balance: a unit move can be applied on any date from tomorrow, also before 28 days in the unit (e.g. first generation); the confirmation warns and the reason records it.',
+        'Engine fixes before the switch-over: (1) on the transition days (10/31 and 11/01) approved unavailability now applies, also to people on the old schedule; (2) the training day (Overlap) counts as a worked day, and someone already at 5 days in a row gets a bridging day off instead; (3) the old A or C shift of 10/31 counts toward the consecutive days of 11/01; (4) Generate, Recalculate and Recalc With Minimum Changes no longer put back people the new calculation left off (bridging, rotation or unavailability).',
+        'A new page (added on the website less than 28 days ago) enters the schedule queue with the revenue archetype of its tier: the median, per shift, of the pages of the same tier that already have revenue (or its own revenue, if higher). It used to get zero and go to the end of the queue.',
+        'A new page that Sales has just added on the website (up to 7 days, parameter v4_estrutura_nova_dias) joins Capacity and the schedule on its own at the next "Generate" or "Recalculate", even with no schedule or sales yet: in the portfolio of the same model or at the Funnel destination, with the tier archetype volume.',
+        'Unit balance: OS split fixed. By the posts\' 30-day revenue, OS1 gets the biggest pages, OS3 the smallest and OS2 a mix (top half OS1, OS1, OS2; bottom half OS2, OS3, OS3). OS2 covers the OS1 and OS3 posts; on OS2 posts, the big ones are covered by OS1 and the small ones by OS3. The best SRs go to OS1 and OS2 gets those who know both big and small pages (days scheduled in the last 8 weeks).',
+    ]],
+    '1.16.0' => ['titulo' => 'Days off together, Unit balance with OS split and Capacity rules of 10/31', 'itens' => [
+        'Capacity rules of 10/31 (script 23): a page on the "no schedule" list (e.g. zOFTV) stays in the load but gets no post and does not become support in the schedule structure; and the merit SLA no longer counts the hours when a post forced by the revenue rule (2 or 3 pages per rep) went over capacity (fair SLA).',
+        'People › Days off together (script ES_45): link the people who need the same days off (couples). The screen shows each person\'s days off for the next 21 days and, if they do not match, suggests the adjustment from a date — the SR moves to the core with the pair\'s cycle, the OC/OA swaps cycles with a colleague on the shift, the OS swaps cores with another OS. The engine gives both the same Overlap day, and the Generate screen warns when a pair is not off together. Rafael Gauze and João Caial, and Marcos Cid and Rafael Garcia da Costa, are already in.',
+        'Pages › Unit balance: total 30-day revenue of each unit and coordinator (unit × shift), with each one\'s gap against the shift average; revenue per SR is shown next to it for follow-up. Suggests the unit moves that bring everyone close to the average, from the most helpful to the least; pages of the same model move together and only after 28 days in the unit (the screen shows "allowed from"). The planner applies them one by one.',
+        'Unit balance: OS split in each unit and shift by post revenue — OS1 with the biggest pages (40%), OS2 with the middle ones (35%), OS3 with the smallest (25%); OS2 covers OS1, OS3 covers OS2 and OS1 covers OS3. The best SRs (level, then merit) go to OS1. Shows today\'s share × the proposal, the posts and SRs that change, and applies from a date.',
+        'Intake funnel: the score gets the balance factor (20): a unit with revenue below average on the main shift gets priority, to cover the gap the moves do not. Page exits and unit moves now generate the weeks with minimum changes.',
+    ]],
+    '1.15.0' => ['titulo' => 'Recalc With Minimum Changes, pages schedule PDF and transition without double shifts', 'itens' => [
+        'Grid: "Download pages PDF" and "PDF" on each page, in the same style as the leadership schedule PDF — A4 landscape on letterhead, one page per sheet, who is on each block T1 to T6 of the 7 days (name and code, with the # -2 -4 -5 -6 -7 -8 marks), portfolio, week and version. It matches the website, including what was posted before the switch-over; 5C Schedule is left out of the all-pages PDF.',
+        'Generate schedule: two recalculation buttons. "Recalc With Minimum Changes" starts from the published (posted) version and only changes what is needed: new or removed page, who became unavailable or changed shift, double shift. Gaps are covered by the person the new calculation would pick (if free), by a unit on-call buffer or as an extra page for someone with low load in the block; everything else stays the same and shows as "same" when posting. "Recalculate everything" is the previous recalculation (redoes the week with today\'s structure). "Create draft from the published version", in the Grid, now also uses minimum changes.',
+        'Script ES_44: fix with the fewest changes to what was already posted — v23.1 and v19.1 from v23 and v19, with only Maddie (an extra page for the Britt VIP SR) and no double shift on 11/01.',
+        'Transition day: someone who was on two shifts on the same day in the old schedule (e.g. their own shift and assistant on another) stays on only one; an extra shift only as requested overtime. Before, the person came out on 4 blocks in a row (16 h) on Sunday 11/01.',
+    ]],
+    '1.14.1' => ['titulo' => 'Structure update fixes, leadership schedule and org chart PDF', 'itens' => [
+        'Leadership schedule: "Download PDF" button in A4 landscape on 5C letterhead — title with the period and version time, legend, one shift per sheet (name and code on the same line) and the OMs at the end; no buttons or "≠ grid" marks. The file name already has the period. Org chart: "Download PDF" fills the A3 sheet (a quarter used to be blank), shows the structure date and saves with the date in the name.',
+        'Org chart: Marcus V. Silva shows as COO again (the label had gone back to CEO).',
+        'Structure update: the post of a page that only starts after the date Capacity calculates (e.g. Andressa Urach from 11/02) stays as it is instead of closing; that page does not count in the page check either. Script ES_43 reopens the Andressa posts and marks Maddie active in the Capacity page snapshot.',
+        'New posts from the structure update find the website page code regardless of case and spaces (e.g. "Mandi CAT" in Capacity and "Mandi Cat" on the website). Before, the page had no CSV and posting said to only delete. Script ES_42 fills the posts already created.',
+        'A page added automatically to Capacity with a start before the structure start is fixed automatically before the recalculation; a new page always enters at the structure start. A failed update no longer holds the next one for 30 minutes. Script ES_41 cleans what the old zip wrote at 23:52.',
+        'Structure update before generating: a new page enters Capacity from the structure start (11/01), not from today — with today, Capacity left every other page out of the calculation and the schedule ended up with 28 posts. Safety check: if Capacity comes with less than 90% of the schedule\'s pages, posts are not replaced and the message warns. Activity to be added automatically: schedule or sales in the last 14 days (was 28). Script ES_40 rolls back the 10/30 23:30 update.',
+    ]],
+    '1.14.0' => ['titulo' => 'Capacity recalculated before generating and active pages added automatically', 'itens' => [
+        'Capacity recalculated before generating: when you generate or recalculate a week of the new structure, the system recalculates today\'s Capacity and the schedule posts follow it from tomorrow. An unchanged post keeps its team; a changed post closes and its team moves to the new post that got its pages. It runs at most every 30 minutes; the message after generating says how many posts stayed, are new and were closed.',
+        'A page active on the website and with activity (schedule or sales in the last 28 days) that was not in Capacity is added automatically before generating: in the same model\'s portfolio (e.g. Thalia 147t with Thalia 147m, Nicole OFTV with Nicole Doshi) or, for a new model, in the Funnel destination. Until it has its own chat, the volume comes from the archetype of a similar page (same tier and profile). A page Capacity leaves without a post on a shift because of little chat joins the same model\'s post as support: no page is left without a team.',
+        'OFTV without revenue has the generator\'s lowest priority: it is the first post to give up people and the last to receive them.',
+    ]],
+    '1.13.7' => ['titulo' => 'No post without a team: empty slot filled before generating', 'itens' => [
+        'No post is left without a team: before each generation, an owner or cover slot with no one is filled automatically with SRs from the same shift and unit. First from the slot\'s core within the level share, then from another core on the shift, then levels 0–2 above their share (buffer days); if no one has room, the least loaded SR of the core. Whoever already knows the page comes first, then the merit score. The team is still a preference: on a day short of people, the generator may still leave the page empty to cover a more important one. The Generate screen shows how many posts have no team, and the message after generating says how many slots were filled.',
+    ]],
+    '1.13.6' => ['titulo' => 'Absenteeism without administrative failure in merit and Analysis', 'itens' => [
+        'Absenteeism without administrative failure: merit and Analysis (Actual absenteeism) only count real absences. Double scheduling (SR on another page at the same time) and outside the shift count neither as an absence nor as a scheduled block. If the system cannot read the official classification (abs_adh_af), it uses 5C Schedule per time slot, no longer each page\'s "faltou", which counted double scheduling as an absence and gave about twice the rate (e.g. Iago at 22.9% instead of 4.4%). The SRs screen warns when this happens.',
+    ]],
+    '1.13.5' => ['titulo' => 'Page exit: rebuilt post keeps the original period', 'itens' => [
+        'Page exit: the post rebuilt without the page that left now has the same period as the original and only takes the team of that period. Before, the copy of a switch-over model post (10/31 only) stayed open and added to the Capacity post from 11/01: two posts for the same page and shift, people split between them and gaps (e.g. Thalia 147m on C). Script ES_39 fixes the posts already duplicated.',
+    ]],
+    '1.13.4' => ['titulo' => 'Posting: the screen returns to the page card', 'itens' => [
+        'Grid and Page swaps: after "Deleted", "Posted" or "Undo" the screen returns straight to the page card instead of jumping to the top.',
+    ]],
+    '1.13.3' => ['titulo' => 'Posting the switch-over week only from 10/31 21:00', 'itens' => [
+        'Posting the switch-over week (Grid): before 10/31 21:00 the schedule already posted applies. The steps say Delete Range only from 11/01, delete by hand on 10/31 only T6, and Save Schedule CSV with Date Schedule 10/31; the CSV only has the blocks from the switch-over. "On the website" only counts what is after the switch-over.',
+    ]],
+    '1.13.2' => ['titulo' => 'Training: every page of the shift and reallocation of whoever was on the page', 'itens' => [
+        'Training: the list shows every page of the shift (gaps, the smallest of multi-page posts and, last, all the others, like Tiny). Every confirmed page leaves the schedule fill on the class days and hours: if the post only had it, the SR moves to a page with a gap at the same time (or stays as buffer); if the post has other pages, the SR keeps them.',
+    ]],
+    '1.13.1' => ['titulo' => 'Training: same page on different shifts, with a warning', 'itens' => [
+        'Training: the same page can be used by classes on different shifts (e.g. all 3 shifts). The screen marks it with a warning and only confirms with "use anyway"; at the same time (same shift and period) it stays blocked. The automatic suggestion still prefers different pages.',
+    ]],
+    '1.13.0' => ['titulo' => 'SR requests, leadership roster, merit-based page policy, New Hire training and renumbered units', 'itens' => [
+        'SR requests (People › Requests, needs ES_30): the leader records a request to work as an assistant or in a pair, or to change shift, core or unit; Planning approves or declines and applies a one-for-one swap with another SR from a given date (each one moves to the other\'s core and takes their fixed slots). Those who asked for the opposite show up first as partners. Counter in the menu and in Actions needed.',
+        'Leadership schedule and Org chart: each core\'s OS now follows the date (it comes from the person\'s setup), so an OS change set for next week does not show up earlier.',
+        'Leadership roster (People › Leadership roster, no new script): changes the OM, OC and OS (or fills a vacant role) and adds, removes or changes the week of OAs, from a given date. The newcomer leaves their SR core; the person leaving takes the newcomer\'s place (core and fixed slots), becomes an SR in the same core (OS) or is left without a core. "Adjust roster" button in the Org chart.',
+        'Org chart: Operational Assistants now show as assistants to the 3 OMs (beside the Director → OMs line, tied to the OM bar), no longer below the Director.',
+        'Page exits: a page that Capacity already deactivated no longer blocks the apply; only the schedule is adjusted (Capacity is not touched). In a batch, an exit already applied is left out and all problems show at once. If the Capacity recalculation runs into another one running at the same time, the system waits and tries again.',
+        'Intake funnel: each card shows the suggested destinations for the new page, one per unit, ordered by a 0–100 score that weighs the unit and shift Capacity after the page joins, team merit (weighs more for high tiers), the load the core already has and whether the model already has a page in the unit. "Use this destination" fills in the destination and the reason; saving is still up to you.',
+        'Guided tour: outside Training mode, the card warns that the screens are the real ones and links to turn training on.',
+        'Printing on the 5C letterhead on every screen: white background, marsala band on the left, logo at the top, eagle watermark, page number and www.5ccompany.com in the footer. The org chart uses the official crest (phoenix) and still prints as the black roster board.',
+        '5C Company visual identity (brand manual): marsala and gold colors, Open Sans font, 5C logo in the menu (marsala in the light theme, white in the dark one) and a marsala band as on the letterhead. In the dark theme links and focus are gold, for contrast.',
+        'Tutorial: Training mode is at the top and "Start from the beginning" turns training on before the tour. Grid: leadership legend (OA -6, OC -7, OS -8) with its own color.',
+        'Rules (Help): structure, allocation, leadership, requests, pages, merit and page policy, with the Parameters values, to view and print on the letterhead.',
+        'Owners and backups (Pages, needs ES_33): per page and shift, who is owner and backup, attainment of the 5CReps target and the status in the merit-based page policy (3 to 14-day deadline below 85%, depending on attainment; 28-day monitoring up to target; highlight from 110%). Suggested swaps: owner (applied at once, one for one) and unit (preview; Capacity only changes after confirmation). Fixed Privacy priority for Marcos\'s team.',
+        'Employees: editing opens in a window over the list (Esc or × closes it).',
+        'Org chart: "Show pages" mode (draft) shows, under each OS, the pages the core owns and the owner of each; in an open core, each SR shows the pages where they are owner or backup; each OM shows how many pages the unit has.',
+        'Requests: for "work as an assistant" and "work in a pair" the leader says where the person is fixed (core: unit, shift and OS) and, if known, with whom (the owner to assist or the partner); the swap looks for a partner in that place, first whoever already works that person\'s pages. The person needs ES_34.',
+        'Requests › Start: legacy teams together: preview of one-for-one swaps (same unit and shift) that put 2 or 3 people of each legacy team in the same core; only the ticked ones are applied, after confirmation.',
+        'People › Training (ES_36): paste the Training e-mail (and the hire list) and the system reads the classes, flags what does not match, suggests pages to lend (the smallest of a multi-page post, never OFTV, no hurt month, no repeats across shifts), writes the reply and puts trainees on the 5C Schedule page with -4. New Hires stay out of the regular schedule until their available day.',
+        'Help › Merit: explains SR and unit merit with today\'s parameters, the attendance curve, examples, a simulator and, for Planning, the summary by unit. Prints on the letterhead.',
+        'Merit: absenteeism now comes from the same classification as Capacity (absence blocks ÷ scheduled blocks), no longer from 5C Schedule\'s "faltou", which also marked substituted blocks. Above 6% attendance drops fast and, at 15% or more, the score is capped at 80% of the median: the SR never shows as average or above.',
+        'Units renumbered (ES_35): Victoria\'s unit becomes U1, João\'s stays U2 and Keller\'s becomes U3. Only the number changes; cores, posts, people and pages stay the same.',
+        'Fixed: recalculating a week that already had a published version (and applying a page exit, which recalculates the weeks) failed with "Could not finish" and a different code each time. Hand-adjusted cells were not reaching the protection of the published schedule.',
+        'Switch-over transition days (10/31): the engine also reshuffles by revenue (the bigger empty page gets the SR of the smaller one) and doubles up within capacity. Parameter v4_remanejar_transicao (0 turns it off).',
+        'Assistants are SR 0 to 2 only: the engine does not put SR 3 or above in assistant or support posts (not even through the fixed team), and Requests does not accept "work as an assistant" for SR 3 or above. Parameter v4_nivel_max_assistente.',
+        'Grid: week selector at the top (with arrows to the previous and next week), with each week\'s current version and the published one when different.',
+        'Exits: the preview lets you say which page comes in instead (from the Funnel or the 5C website) and when. It joins the same portfolio and cores, whoever lost their fixed slot moves to it, and on the days until the entry whoever is left without a page becomes buffer (-2) if the unit\'s shift is short of people, or leaves the schedule on those days (can be changed person by person). Needs ES_37.',
+        'Tutorial in the order of the week: first what changes the input of the schedule (Employees, Unavailability, Requests, Page exits, Training), then Generate, Grid, Overtime, Leadership, Publish and Post. New step for New Hire training.',
+        'Employees: for SR 3 or above, "can be an assistant" shows unticked and locked (and saves "no"); the engine also honours the box for SR 0 to 2.',
+        'Training: all possible pages are shown, first the ones with a gap in the shift on the class days (better to train than leave them empty). A confirmed gap page stays with the training: the generator schedules no one there on those days and uses the people on other pages. Confirm the training before generating. Needs ES_38.',
+        'Overtime by 4-hour block (T1 to T6): the list, the interest, the allocation and the request text are per block. The check counts the real hours in a row (up to 12 h) and 52 h a week, so someone on an 8-hour shift can take the neighbouring block. Needs ES_38.',
+    ]],
+    '1.12.0' => ['titulo' => 'Org chart in the roster look and Oct 30 leadership', 'itens' => [
+        'Org chart in the 5C roster look: black and gold, CEO and Director at the top, each OM with shifts T6/T1, T2/T3 and T4/T5 (OC highlighted and the 3 OS, with the SRs on click). Full names, same look in both themes and "Print / PDF" on one portrait A3 sheet, as shown on screen.',
+        'Leadership from the Oct 30 roster (needs ES_29): Raphael Estevam is OC of U1 · T2/T3; OS changes in U2 and U3 · T6/T1 and in U3 · T4/T5.',
+    ]],
+    '1.11.0' => ['titulo' => 'UX review · Phase B part 2, Phase C (language) and Phase D (Help center)', 'itens' => [
+        'Grid: when adjusting a cell, warns about days off, approved unavailability, another shift, the same person on another page in the block, more than 12 h in a row (also against the neighbouring week) and more than 52 h a week; only saves with "save anyway". Shifts before the switch-over cannot be edited.',
+        'Leadership schedule: posting is done from the Grid (5C Schedule page). The screen marks "≠ grid" where the plan differs from the rotation and the CSV is now only for checking. OS, OC and OA added by hand on 5C Schedule come out with -8, -7 and -6.',
+        'Buffers and Dashboard: on-call buffer by unit and shift, from the same source as Overtime and Analysis.',
+        'Page exits: "Apply…" first opens a preview (posts that close, rebuilt posts, SRs losing their fixed slot, regenerated weeks). It does not apply in the past or twice for the same page, checks the page is active in Capacity, and the batch validates everything before applying.',
+        'Intake funnel: destination by unit, shift and core (needs ES_27; without it, still by party).',
+        'Language: Portuguese and English on every screen (PT/EN selector in the menu; without a choice, follows the browser). Dates and numbers in the language\'s format; database content and CSV content do not change.',
+        'Help center: Glossary and FAQ with search, Tutorial with a 12-step guided tour (saved progress) and "Actions needed now", split between the platform and the 5C website (also on the Dashboard). DBA documentation for admins only, with PDF and Markdown. Changelog in Portuguese and English.',
+        'Training mode (needs ES_28): a separate copy of the system for practice, with a banner on every screen and "Restart training". It does not write to the real system or to Capacity, downloaded files carry TREINO_ in the name and the real merit is not shown.',
+        'Security and data: Access and Parameters open only for admins; an admin cannot deactivate themself or remove the last admin; a request already decided or cancelled is not decided again; overtime cannot be allocated twice; deleting versions does not delete a version with an applied suggestion or allocated overtime; Employees does not overwrite a future setup; "Name (CODE)" only becomes a code in employee fields.',
+        'Fixes: dark theme with the right colors on focus, links and notices; "Create draft from this one" only from the latest published version; Monday T1 and the end of shift D come from the previous week\'s published version; recalculation does not put the published person back into a locked cell; dates and times always in Brasília time; org chart prints in A3 only on its own page.',
+    ]],
+    '1.10.0' => ['titulo' => 'UX review · Phase B: light and dark theme, phone, messages and confirmations', 'itens' => [
+        'Light, dark or automatic theme (follows the system) at the top of the menu: switches instantly, is saved, and all colors now come from tokens with AA contrast in both themes (including Analysis charts and the org chart).',
+        'Phone (from 360 px): top bar with a Menu button, tables turn into cards with each column name, full-width fields and 44 px touch targets.',
+        'Messages after saving stay at the top of the screen with a close button and no longer go in the URL (they do not come back on reload or when sharing the link).',
+        'Error on save: the screen comes back with the same filters and the form reopens filled in, with the error above it (including the cell adjustment window on the Grid). Unexpected errors show an incident code for the admin to find in the log, and a "Try again" button.',
+        'Confirmations in the system\'s own dialog (title, effect and the verb on the button; red when it cannot be undone) instead of the browser window.',
+        'Grid: the cell adjustment window keeps Tab inside it and, when closed, focus returns to the cell.',
+        'Employees: changing the core first shows "from → to" and how many fixed slots close.',
+        'Schedule models: changing the cycle of a model in use warns how many people change with it; unticking "active" follows the same rule as Deactivate.',
+        'Page swaps: "No replacement" and gaps list day and block, with a link to the cell on the Grid.',
+        'Search in long lists: no longer steals the field name and only picks an option with Enter (it used to change the value while typing).',
+    ]],
+    '1.9.0' => ['titulo' => 'UX review · Phase A: safety, accessibility and new menu', 'itens' => [
+        'Generate schedule: with an existing version, the main button is "Recalculate" (keeps locked adjustments and shows how many). "Generate from scratch" asks for confirmation when adjustments would be lost.',
+        'Dashboard: no longer recalculates by itself when opened. Checking input changes runs only from the "Check for changes" button.',
+        'Grid: publishing first shows a summary (gaps, anomalies, empty posts) and "I am aware" is required when there are anomalies. A superseded version shows a banner linking to the current one.',
+        'Page exits: "Confirm and apply" disappears from an exit already applied (the system also blocks applying again), is separated and red, and shows it is processing. "Undo" was renamed "Back to to-check". Fixed the error that broke batch selection.',
+        'Unavailability: no date comes ticked. Buttons "Approve all", "Approve checked only" and "Decline all"; "Cancel request" is separate and asks for confirmation. The card shows unit, shift, core and role in the new structure.',
+        'Team setup moves to the "Legacy" group: after the Oct 31 21:00 switch-over it is read-only; before it, pending items dated from the switch-over are refused.',
+        'SR balance: score, absenteeism and infractions are shown only to Planning and Admin.',
+        'Page swaps: warns when the CSV changed after being marked as posted. Funnel: probability always in % (0 to 100). Employees: the core is no longer pre-selected.',
+        'Menu reorganized (Schedule, Analysis, Pages, People, Help, Administration only for admin, Legacy), with the same name in the menu, the title and the tab. Version in the footer with a link to the Changelog.',
+        'Accessibility: field borders and secondary text within the WCAG minimum contrast, dark theme on native controls (calendar, checkbox, scrollbar), keyboard table sorting and the sort order announced to screen readers.',
+        'Long actions (generate, recalculate, check, publish, apply exit, recalculate merit) show they are processing, with a bar at the top, and cannot be submitted twice. Changing screens also lights the bar.',
+        'Old roles and structure removed from the new-structure screens (Grid by person, Generate, Dashboard, Swaps).',
+    ]],
+    '1.8.0' => ['titulo' => 'Records in the new structure, printable org chart and performance', 'itens' => [
+        'Shift preference form (Oct 28–29): 11 one-for-one swaps between SRs (ES_25) and 20 PENDING absence requests taken from the comments, to review in Unavailability (ES_26).',
+        'Employees shows the new structure from Nov 1: unit, shift, core, OS, SR level and 5x2 model. Editing moves the person to another core (closes the fixed slots of the old core; the engine covers them). Dates before the switch-over show the old records.',
+        'ES_24 closes on Oct 31 the 15 old (3x1) records left open: 12 leaders, who follow the Leadership schedule, and 3 SRs outside the Nov 1 roster.',
+        'Schedule models: Delete button (model with no history) or Deactivate (with history). The limit column is now called "Anomaly".',
+        'Generate schedule: old versions (superseded or draft) can be deleted, one by one or several at once. The published one and those already posted on the site stay.',
+        'Org chart: COO and Director with name and code, Operational Assistants right below the Director in smaller boxes, and a "Print / PDF" button (A3 landscape, all cores open, light background).',
+        'Performance: names come from the headcount records (with social name) instead of the Planner view, which took ~3 s per screen; the Planner structure is cached for 5 minutes. Queries over 1 s go to the log.',
+        'Screen titles and texts without database table names.',
+        'System version in the menu and this patch notes screen.',
+    ]],
+    '1.7.0' => ['titulo' => 'Posting from the grid and batch exits', 'itens' => [
+        'Schedule grid: below the grid, "Post on the website" with one card per page (CSV to copy, Date Schedule and Date End, "1 · Deleted" and "2 · Posted"). Shows which pages changed since the version already posted.',
+        'Page exits: select several exits to Confirm, Did not exit or Confirm and apply at once. Pages applied together recalculate Capacity and the schedule only once.',
+        'Applying an exit is locked: two quick clicks no longer run two recalculations at the same time (it was the "Duplicate entry" error in Capacity).',
+    ]],
+    '1.6.0' => ['titulo' => '5x2 with up to 5 days in a row and bridge day off', 'itens' => [
+        'In 5x2, working up to 5 days in a row is allowed: the anomaly now counts from the 6th day.',
+        'Bridge day off: whoever already comes from 5 days in a row (schedule posted before the switch-over + plan) is off the next day, in the transition and in the rotation.',
+        'Schedule models: the consecutive-day limit is editable and the cycle accepts up to 28 days.',
+    ]],
+    '1.5.0' => ['titulo' => 'Leadership in the schedule and org chart', 'itens' => [
+        'New role names: Operational Manager (OM), Operational Coordinator (OC), Operational Supervisor (OS) and Operational Assistant (OA).',
+        'Leadership schedule: OC and OS in 5x2 (on the Overlap day all 3 of the shift), OA on a fixed week covering 24/7; OM has no schedule.',
+        'Leadership is in the plan together with the SRs, on the 5C Schedule page, with -8 (OS), -7 (OC) and -6 (OA) in the CSV.',
+        'Roster of Oct 29: the 27 OS in the cores, 4 SRs become OS and 3 OS become SR level 5.',
+        'Interactive org chart of the operation, with each OS\'s SRs.',
+        'All tables sort by any column.',
+    ]],
+    '1.4.0' => ['titulo' => 'Switch-over on Oct 31 21:00 and teams from history', 'itens' => [
+        'Fixed teams of the posts rebuilt from the real history of the last 8 weeks, inside each core, to move people as little as possible.',
+        'Switch-over on Oct 31 at 21:00: shift D of Oct 31 is already in the new structure; Oct 31 and Nov 1 are transition days.',
+    ]],
+    '1.3.0' => ['titulo' => 'Overtime, applied exits and merit', 'itens' => [
+        'Overtime screen; the on-call buffer goes on the 5C Schedule page with -2.',
+        'Skylar Mae VIP exit applied to the U1 posts.',
+        'Page exits applied by the system, with a Capacity snapshot before and after for comparison.',
+        'SR merit (5C George) and infraction records, used to break ties on who covers a post.',
+    ]],
+    '1.2.0' => ['titulo' => 'Capacity posts, Overlap and revenue', 'itens' => [
+        'Posts from Capacity, with pages of the same model together.',
+        'Overlap (training day) with -5 in the CSV, on different days per SR.',
+        'Slots by revenue and over-capacity up to 15%, marked with ⚠ on the grid.',
+        'Transition days for the structure switch-over.',
+    ]],
+    '1.1.0' => ['titulo' => 'New structure: units, cores and posts', 'itens' => [
+        '3 units, 3 shifts and 27 cores; posts with the pages of each portfolio and the fixed team of each slot.',
+        'Rotating 21-day 5x2 model and the new-structure engine.',
+    ]],
+    '1.0.0' => ['titulo' => 'First version', 'itens' => [
+        'Weekly schedule generation (draft, versions and recalculation), grid with locked manual adjustment, publishing and T1–T6 CSV per page.',
+        'Unavailability requests and approval, team setup, employees and schedule models.',
+    ]],
+];
+
+// Mudanças instaladas e ainda não publicadas, em inglês (mesma ordem de ESC_NAO_PUBLICADO).
+const ESC_NAO_PUBLICADO_EN = [
+    'Unit balance shows the structure of the next week to generate (next Monday), with the scheduled moves; the Structure on field shows another day.',
+    'Fix: the Capacity update before generating failed with error 1062 (duplicate slot) when a post closed and the same person had two slots that never took effect; the schedule came out with the previous structure. The repeated one is now deleted.',
+];

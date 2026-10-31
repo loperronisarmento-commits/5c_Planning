@@ -1,0 +1,80 @@
+<?php
+// Tela Configuração dos times (pages/times.php, legado) em inglês. O português é a chave. Ver lib/i18n.php.
+return [
+    // mensagens ao salvar
+    'A estrutura antiga (times e parties) deixou de valer na virada de {quando}. Esta tela agora é só consulta.' => 'The old structure (teams and parties) stopped applying at the {quando} cutover. This screen is now read-only.',
+    'Preencha a ação e a situação.' => 'Fill in the action and the status.',
+    'Ação registrada para {party}.' => 'Action saved for {party}.',
+    'Preencha tipo, código e data.' => 'Fill in type, code and date.',
+    'Data depois da virada ({dia}): a estrutura antiga não vale mais. Mudanças de núcleo ficam em Colaboradores.' => 'Date after the cutover ({dia}): the old structure no longer applies. Core changes are made in Employees.',
+    'Diga a party de destino.' => 'Enter the target party.',
+    'Pendência criada. Aplique no Planner; ela fecha sozinha quando o Planner bater.' => 'Pending item created. Apply it in the Planner; it closes by itself when the Planner matches.',
+    'Pendência cancelada.' => 'Pending item cancelled.',
+
+    // filtros de regra
+    'Todas' => 'All',
+    'Sem líder' => 'No leader',
+    '2+ líderes' => '2+ leaders',
+    'Titulares ≠ 2' => 'Regulars ≠ 2',
+    'Sem página' => 'No page',
+
+    // cabeçalho
+    'Legado · estrutura antiga' => 'Legacy · old structure',
+    'Regra da estrutura antiga: cada party com 1 líder e 2 titulares, e com página ativa; o rodízio atende o time inteiro. Dados do Planner e do cadastro de páginas.' => 'Old structure rule: each party has 1 leader and 2 regulars, and an active page; rotation covers the whole team. Data from the Planner and the page registry.',
+    'Estrutura antiga: deixou de valer na virada de {dia} às {hora}. Esta tela é só consulta; a estrutura nova (unidade, turno e núcleo) fica em {colab} e no {org}.' => 'Old structure: it stopped applying at the cutover on {dia} at {hora}. This screen is read-only; the new structure (unit, shift and core) is in {colab} and in the {org}.',
+    'Estrutura antiga: vale até a virada de {dia} às {hora}. Depois disso esta tela fica só para consulta, e pendências com data a partir de {data} não são aceitas.' => 'Old structure: it applies until the cutover on {dia} at {hora}. After that this screen is read-only, and pending items dated {data} or later are not accepted.',
+
+    // violações
+    'Violações · {n} de {total} parties' => 'Violations · {n} of {total} parties',
+    'Buscar time ou party' => 'Search team or party',
+    'Filtrar por regra' => 'Filter by rule',
+    'Time / Party' => 'Team / Party',
+    'Formação' => 'Lineup',
+    'Regra' => 'Rule',
+    'Ação sugerida' => 'Suggested action',
+    'Ação registrada' => 'Saved action',
+    'nenhuma' => 'none',
+    'bloqueia' => 'blocks',
+    'até {dia}' => 'until {dia}',
+    'Registrar ação' => 'Record action',
+    'O que será feito' => 'What will be done',
+    'Responsável' => 'Owner',
+    'Prazo' => 'Deadline',
+    'Situação' => 'Status',
+    'Justificativa (se justificada)' => 'Justification (if justified)',
+    'Justificada até' => 'Justified until',
+    'Salvar ação' => 'Save action',
+    'Ver formação' => 'See lineup',
+    'Nenhuma party nesse filtro.' => 'No party matches this filter.',
+    '"Bloqueia" = a party fica fora da geração até ser corrigida. Mudanças de formação são feitas no Planner (não há API de escrita).' => '"Blocks" = the party is left out of generation until it is fixed. Lineup changes are made in the Planner (there is no write API).',
+
+    // formação do time
+    'Formação do time' => 'Team lineup',
+    'Time' => 'Team',
+    'sem página ativa' => 'no active page',
+    'Turno pelo headcount vigente. Passe o mouse no nome para ver código e Telegram.' => 'Shift from the current headcount. Hover over a name to see code and Telegram.',
+
+    // pendências no Planner
+    'Pendências no Planner · {n} aberta' => 'Planner pending items · {n} open',
+    'Pendências no Planner · {n} abertas' => 'Planner pending items · {n} open',
+    'O Planner não tem API de escrita. Cada mudança vira uma instrução para aplicar lá; ela fecha sozinha quando a estrutura do Planner bate com o pedido. Passou {n} dias da data sem aparecer: "atrasada". O Planner mudou diferente do pedido: "divergente".' => 'The Planner has no write API. Each change becomes an instruction to apply there; it closes by itself when the Planner structure matches the request. {n} days past the date without showing up: "late". The Planner changed differently from the request: "divergent".',
+    'Mudança' => 'Change',
+    'O que fazer no Planner' => 'What to do in the Planner',
+    'Vale a partir de' => 'Effective from',
+    'conferida {quando}' => 'checked {quando}',
+    'Copiar instrução' => 'Copy instruction',
+    'Nenhuma pendência.' => 'No pending items.',
+    'Nova pendência' => 'New pending item',
+    'Tipo' => 'Type',
+    'Mover de party' => 'Move to another party',
+    'Adicionar ao time' => 'Add to team',
+    'Remover do time' => 'Remove from team',
+    'buscar nome ou código' => 'search name or code',
+    'Time de destino' => 'Target team',
+    '(o mesmo)' => '(same)',
+    'Party de destino' => 'Target party',
+    '(a mesma / não se aplica)' => '(same / not applicable)',
+    'Turno' => 'Shift',
+    'Motivo' => 'Reason',
+    'Criar pendência' => 'Create pending item',
+];

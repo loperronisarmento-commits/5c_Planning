@@ -1,0 +1,99 @@
+/* 5C Escalas — Análise (WFM): gráficos em SVG. Usa os tokens do escalas.css. */
+.analise {
+  --t-a: #fbbf24;      /* turno A, mesmo tom do chip-a */
+  --t-c: #60a5fa;      /* turno C, mesmo tom do chip-c */
+  --t-d: #f0478f;      /* turno D, mesmo tom do chip-d */
+  --neutro: var(--graf-neutro);
+  --neutro-2: #7a7280;
+  --grade: var(--linha);
+  display: flex; flex-direction: column; gap: 18px;
+}
+
+/* KPIs mais compactos nesta tela */
+.analise .kpis { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.analise .kpi { padding: 10px 14px; gap: 2px; }
+.analise .kpi strong { font-size: 19px; }
+
+/* Grade de gráficos: dois por linha em tela larga, um em tela estreita */
+.graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
+.graf-cartao { margin: 0; min-width: 0; background: var(--campo-bg); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.graf-cartao.largo { grid-column: 1 / -1; }
+.graf-cartao figcaption { display: flex; flex-direction: column; gap: 2px; }
+.graf-cartao figcaption strong { font-size: 14px; }
+.graf-rolagem { overflow-x: auto; }
+.graf { display: block; width: 100%; height: auto; min-width: 400px; }
+.largo .graf { min-width: 680px; }
+
+/* Legenda (HTML) */
+.legenda-graf { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--texto-2); }
+.legenda-graf span { display: inline-flex; align-items: center; gap: 6px; }
+.legenda-graf .cor { display: inline-block; width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.legenda-graf .cor.alvo { width: 14px; height: 0; border-radius: 0; border-top: 2px solid var(--texto); }
+
+/* Cores das séries: a mesma classe pinta o SVG (fill) e a legenda (background) */
+.analise .t-a { fill: var(--t-a); background: var(--t-a); }
+.analise .t-c { fill: var(--t-c); background: var(--t-c); }
+.analise .t-d { fill: var(--t-d); background: var(--t-d); }
+.analise .neutro { fill: var(--neutro); background: var(--neutro); }
+.analise .neutro-2 { fill: var(--neutro-2); background: var(--neutro-2); }
+.analise .ok, .analise .pos { fill: var(--g-ok, #4ade80); background: var(--g-ok, #4ade80); }
+.analise .falta { fill: var(--g-falta, #fb923c); background: var(--g-falta, #fb923c); }
+.analise .neg { fill: var(--g-neg, #f87171); background: var(--g-neg, #f87171); }
+
+/* Anatomia do SVG */
+.graf text { font-size: 12px; fill: var(--texto-2); font-family: inherit; }
+.graf .eixo { font-size: 11px; fill: var(--texto-3); }
+.graf .eixo-titulo { font-size: 11px; fill: var(--texto-3); }
+.graf .rot-barra { font-size: 10px; fill: var(--texto-3); }
+.graf .rot-grupo { font-size: 11px; fill: var(--texto-2); }
+.graf .rot-linha { fill: var(--texto); }
+.graf .valor { fill: var(--texto); font-weight: 600; font-size: 11px; }
+.graf text.laranja { fill: var(--laranja); }
+.graf text.vermelho { fill: var(--vermelho); }
+.graf text.verde { fill: var(--verde); }
+.graf .grade { stroke: var(--grade); stroke-width: 1; }
+.graf .grade.zero { stroke: var(--texto-3); }
+.graf .seg { stroke: var(--campo-bg); stroke-width: 1.5; }
+.graf .alvo { stroke: var(--texto); stroke-width: 2; stroke-linecap: round; }
+.graf .hit { fill: transparent; pointer-events: all; }
+.graf .marca:hover .hit { fill: var(--hover); }
+.graf .marca:hover .seg { filter: brightness(1.18); }
+
+/* Mapa de calor: unidade × turno */
+.mapa { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
+.mapa-cab { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; color: var(--texto-2); }
+.mapa-un { justify-content: flex-end; padding-right: 4px; font-weight: 600; color: var(--texto); }
+.celula-mapa { border-radius: 10px; padding: 10px 8px; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; border: 1px solid transparent; cursor: default; }
+.celula-mapa strong { font-size: 20px; }
+.celula-mapa .small { color: var(--texto-2); }
+.analise .m-sem { background: transparent; border: 1px dashed var(--panel-border); color: var(--texto-3); }
+.analise .m-1 { background: var(--mapa-1, rgba(255, 255, 255, 0.04)); }
+.analise .m-2 { background: var(--mapa-2, rgba(255, 255, 255, 0.09)); }
+.analise .m-3 { background: var(--mapa-3, rgba(255, 255, 255, 0.17)); }
+.analise .m-4 { background: rgba(248, 113, 113, 0.30); border-color: rgba(248, 113, 113, 0.5); }
+.analise .m-5 { background: rgba(248, 113, 113, 0.55); border-color: #f87171; }
+.celula-mapa.m-4 strong, .celula-mapa.m-5 strong { color: var(--mapa-forte, #fff); }
+.celula-mapa:hover { outline: 1px solid var(--texto-3); }
+
+/* Funil em cartões */
+.analise .cab-etapa { display: flex; flex-direction: column; gap: 2px; padding: 0 2px 2px; }
+
+/* Tabelas detalhadas recolhidas */
+.ver-tabela > summary { cursor: pointer; }
+.ver-tabela[open] > summary { margin-bottom: 8px; }
+
+/* Dica dos gráficos (criada pelo analise.js) */
+.dica-graf { position: fixed; z-index: 60; max-width: 300px; padding: 8px 10px; border-radius: 8px; background: var(--panel-bg); border: 1px solid var(--borda-campo); color: var(--texto); font-size: 12px; line-height: 1.5; white-space: pre-line; pointer-events: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.dica-graf[hidden] { display: none; }
+
+@media (max-width: 760px) {
+  .graf { min-width: 340px; }
+  .celula-mapa strong { font-size: 17px; }
+}
+@media (forced-colors: active) {
+  .graf .seg { stroke: CanvasText; }
+}
+
+/* Tema claro: barras e mapa de calor com tons que aparecem no fundo branco. */
+:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; }
+@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; } }

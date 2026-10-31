@@ -1,21 +1,28 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/times.php
-// Configuração dos times: violações da regra 1 Primaris + 2 Secundus,
+// Configuração dos times (estrutura antiga, grupo Legado do menu): violações da regra
+// 1 líder + 2 titulares por party,
 // parties sem página e a formação de cada time (código e Telegram).
 // Grava no 5c_escalas: ação de correção de cada violação e as pendências
 // para aplicar no Planner (sem API de escrita). A pendência fecha sozinha
 // quando a estrutura do Planner bate com o pedido.
 // ===============================================
 
+// Depois da virada (31/10 21:00) a estrutura antiga deixa de valer: a tela fica só para consulta.
+$somenteLeitura = !escLegadoAtivo();
+
 if (escPost()) {
+    if ($somenteLeitura) {
+        throw new RuntimeException(t('A estrutura antiga (times e parties) deixou de valer na virada de {quando}. Esta tela agora é só consulta.', ['quando' => escDataHora(escV4Param('v4_virada', '2026-11-01 05:00'))]));
+    }
     $acao = $_POST['acao'] ?? '';
     if ($acao === 'acao_violacao') {
         escExigir('corrigir');
         $regra = strtoupper((string) ($_POST['regra'] ?? ''));
         $situacao = (string) ($_POST['situacao'] ?? 'ABERTA');
         if (!in_array($regra, ['SEM_PRIMARIS', 'DOIS_PRIMARIS', 'SECUNDUS', 'SEM_PAGINA'], true) || !in_array($situacao, ['ABERTA', 'EM_CORRECAO', 'JUSTIFICADA', 'RESOLVIDA'], true) || trim((string) ($_POST['texto'] ?? '')) === '') {
-            throw new RuntimeException('Preencha a ação e a situação.');
+            throw new RuntimeException(t('Preencha a ação e a situação.'));
         }
         $prazo = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_POST['prazo'] ?? '')) ? $_POST['prazo'] : null;
         $ate = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_POST['justificada_ate'] ?? '')) ? $_POST['justificada_ate'] : null;
@@ -25,7 +32,7 @@ if (escPost()) {
             mb_substr(trim((string) ($_POST['justificativa'] ?? '')), 0, 500) ?: null, $ate, escUserId(),
         ]);
         escLog('violacao.acao', 'esc_violacao_acao', escUltimoId(), null, ['party' => $_POST['party'], 'regra' => $regra, 'situacao' => $situacao]);
-        escVoltar('times', ['regra' => $_GET['regra'] ?? 'todas'], 'Ação registrada para ' . $_POST['party'] . '.');
+        escVoltar('times', ['regra' => $_GET['regra'] ?? 'todas'], t('Ação registrada para {party}.', ['party' => $_POST['party']]));
     }
     if ($acao === 'pendencia') {
         escExigir('cadastrar');
@@ -33,7 +40,10 @@ if (escPost()) {
         $rep = strtoupper(trim((string) ($_POST['rep_code'] ?? '')));
         $vale = (string) ($_POST['vale_a_partir'] ?? '');
         if (!in_array($tipo, ['ADICIONAR', 'MOVER', 'REMOVER', 'PASSAR_TERTIUS', 'PROMOVER'], true) || !preg_match('~^[A-Z]\d{6}$~', $rep) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $vale)) {
-            throw new RuntimeException('Preencha tipo, código e data.');
+            throw new RuntimeException(t('Preencha tipo, código e data.'));
+        }
+        if ($vale >= escV4DiaVirada()) {
+            throw new RuntimeException(t('Data depois da virada ({dia}): a estrutura antiga não vale mais. Mudanças de núcleo ficam em Colaboradores.', ['dia' => dataBr(escV4DiaVirada())]));
         }
         $e = escEstrutura()[$rep] ?? null;
         $partyPara = trim((string) ($_POST['party_para'] ?? ''));
@@ -41,7 +51,7 @@ if (escPost()) {
         $papel = trim((string) ($_POST['papel_para'] ?? '')) ?: ($tipo === 'PASSAR_TERTIUS' ? 'Tertius' : null);
         $turno = in_array($_POST['turno_para'] ?? '', ['A', 'C', 'D'], true) ? $_POST['turno_para'] : null;
         if ($tipo !== 'REMOVER' && $partyPara === '' && $tipo !== 'PASSAR_TERTIUS' && $tipo !== 'PROMOVER') {
-            throw new RuntimeException('Diga a party de destino.');
+            throw new RuntimeException(t('Diga a party de destino.'));
         }
         $nome = escNomes()[$rep] ?? $rep;
         $verbo = ['ADICIONAR' => 'incluir', 'MOVER' => 'mover', 'REMOVER' => 'tirar', 'PASSAR_TERTIUS' => 'passar a Tertius', 'PROMOVER' => 'promover'][$tipo];
@@ -52,15 +62,15 @@ if (escPost()) {
             mb_substr(trim((string) ($_POST['motivo'] ?? '')), 0, 255) ?: null, mb_substr($instrucao, 0, 500), escUserId(),
         ]);
         escLog('pendencia.criar', 'esc_estrutura_pendencia', escUltimoId(), null, ['instrucao' => $instrucao]);
-        escVoltar('times', ['aba' => 'pend'], 'Pendência criada. Aplique no Planner; ela fecha sozinha quando o Planner bater.');
+        escVoltar('times', ['aba' => 'pend'], t('Pendência criada. Aplique no Planner; ela fecha sozinha quando o Planner bater.'));
     }
     if ($acao === 'pend_cancelar') {
         escExigir('cadastrar');
         escW('UPDATE ' . escT('esc_estrutura_pendencia') . " SET status = 'CANCELADA', atualizado_por = ? WHERE id = ? AND status <> 'APLICADA'", [escUserId(), (int) ($_POST['id'] ?? 0)]);
         escLog('pendencia.cancelar', 'esc_estrutura_pendencia', (int) ($_POST['id'] ?? 0));
-        escVoltar('times', ['aba' => 'pend'], 'Pendência cancelada.');
+        escVoltar('times', ['aba' => 'pend'], t('Pendência cancelada.'));
     }
-    throw new RuntimeException('Ação desconhecida.');
+    throw new RuntimeException(t('Ação desconhecida.'));
 }
 
 $parties = escFormacaoParties();
@@ -77,7 +87,7 @@ foreach ($parties as $l) {
         $contagem[$r]++;
     }
 }
-$rotulos = ['todas' => 'Todas', 'sem_primaris' => 'Sem Primaris', 'dois_primaris' => '2+ Primaris', 'secundus' => 'Secundus ≠ 2', 'sem_pagina' => 'Sem página'];
+$rotulos = ['todas' => t('Todas'), 'sem_primaris' => t('Sem líder'), 'dois_primaris' => t('2+ líderes'), 'secundus' => t('Titulares ≠ 2'), 'sem_pagina' => t('Sem página')];
 if (!isset($rotulos[$filtro])) {
     $filtro = 'todas';
 }
@@ -160,71 +170,73 @@ $abertasPend = count(array_filter($pendencias, static fn($p) => in_array($p['sta
 $partiesNomes = array_column($parties, 'party');
 ?>
 <header class="cabecalho">
-  <span class="eyebrow">Cadastros</span>
-  <h1>Configuração dos times</h1>
-  <p class="muted">Regra: cada party com 1 Primaris e 2 Secundus, e com página ativa. Tertius atendem o time inteiro. Dados do Planner (estrutura atual) e do cadastro de páginas.</p>
+  <span class="eyebrow"><?php echo h(t('Legado · estrutura antiga')); ?></span>
+  <h1><?php echo h(t('Configuração dos times')); ?></h1>
+  <p class="muted"><?php echo h(t('Regra da estrutura antiga: cada party com 1 líder e 2 titulares, e com página ativa; o rodízio atende o time inteiro. Dados do Planner e do cadastro de páginas.')); ?></p>
 </header>
+<?php $virada = escV4Param('v4_virada', '2026-11-01 05:00'); ?>
+<div class="faixa-legado" role="status"><?php if ($somenteLeitura): ?><?php echo t('Estrutura antiga: deixou de valer na virada de {dia} às {hora}. Esta tela é só consulta; a estrutura nova (unidade, turno e núcleo) fica em {colab} e no {org}.', ['dia' => h(escData($virada)), 'hora' => h(substr($virada, 11, 5)), 'colab' => '<a href="' . h(link_tela('colaboradores')) . '">' . h(t('Colaboradores')) . '</a>', 'org' => '<a href="' . h(link_tela('organograma')) . '">' . h(t('Organograma')) . '</a>']); ?><?php else: ?><?php echo h(t('Estrutura antiga: vale até a virada de {dia} às {hora}. Depois disso esta tela fica só para consulta, e pendências com data a partir de {data} não são aceitas.', ['dia' => escData($virada), 'hora' => substr($virada, 11, 5), 'data' => dataBr(escV4DiaVirada())])); ?><?php endif; ?></div>
 
 <section class="panel">
   <div class="linha-titulo">
-    <h2>Violações · <?php echo (int) $contagem['todas']; ?> de <?php echo count($parties); ?> parties</h2>
+    <h2><?php echo h(t('Violações · {n} de {total} parties', ['n' => (int) $contagem['todas'], 'total' => count($parties)])); ?></h2>
     <form class="busca" method="get" action="<?php echo h(MODULE_URL); ?>/index.php">
       <input type="hidden" name="p" value="times"><input type="hidden" name="regra" value="<?php echo h($filtro); ?>">
-      <input type="search" name="q" value="<?php echo h($busca); ?>" placeholder="Buscar time ou party" aria-label="Buscar time ou party">
+      <input type="search" name="q" value="<?php echo h($busca); ?>" placeholder="<?php echo h(t('Buscar time ou party')); ?>" aria-label="<?php echo h(t('Buscar time ou party')); ?>">
     </form>
   </div>
-  <div class="chips" role="group" aria-label="Filtrar por regra">
+  <div class="chips" role="group" aria-label="<?php echo h(t('Filtrar por regra')); ?>">
     <?php foreach ($rotulos as $k => $rot): ?>
       <a class="chip-filtro <?php echo $filtro === $k ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('times', ['regra' => $k, 'q' => $busca, 'time' => $timeSel])); ?>"><?php echo h($rot); ?> · <?php echo (int) $contagem[$k]; ?></a>
     <?php endforeach; ?>
   </div>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th>Time / Party</th><th>Formação</th><th>Páginas</th><th>Regra</th><th>Ação sugerida</th><th>Ação registrada</th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Time / Party')); ?></th><th><?php echo h(t('Formação')); ?></th><th><?php echo h(t('Páginas')); ?></th><th><?php echo h(t('Regra')); ?></th><th><?php echo h(t('Ação sugerida')); ?></th><th><?php echo h(t('Ação registrada')); ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($lista as $l): ?>
       <tr>
         <td><strong><?php echo h($l['team']); ?></strong><br><span class="muted"><?php echo h($l['party']); ?></span></td>
         <td class="mono"><?php echo (int) $l['p']; ?>P · <?php echo (int) $l['s']; ?>S · <?php echo (int) $l['t']; ?>T</td>
-        <td class="small"><?php echo $l['paginas'] ? h($l['nomes']) : '<span class="muted">nenhuma</span>'; ?></td>
-        <td><?php foreach ($l['regras'] as $r): ?><span class="tag <?php echo $r[2] ? 'vermelho' : 'amarelo'; ?>"><?php echo h($r[1]); ?><?php echo $r[2] ? ' · bloqueia' : ''; ?></span> <?php endforeach; ?></td>
+        <td class="small"><?php echo $l['paginas'] ? h($l['nomes']) : '<span class="muted">' . h(t('nenhuma')) . '</span>'; ?></td>
+        <td><?php foreach ($l['regras'] as $r): ?><span class="tag <?php echo $r[2] ? 'vermelho' : 'amarelo'; ?>"><?php echo h($r[1]); ?><?php echo $r[2] ? ' · ' . h(t('bloqueia')) : ''; ?></span> <?php endforeach; ?></td>
         <td class="small"><?php echo h(implode(' ', array_column($l['regras'], 3))); ?></td>
         <td class="small">
           <?php foreach ($l['regras'] as $r): $ac = $acoes[$l['party'] . '|' . strtoupper($r[0])] ?? null; if ($ac): ?>
-            <span class="tag <?php echo $ac['situacao'] === 'RESOLVIDA' ? 'verde' : ($ac['situacao'] === 'JUSTIFICADA' ? 'amarelo' : ''); ?>"><?php echo h(strtolower(str_replace('_', ' ', $ac['situacao']))); ?></span> <?php echo h($ac['acao']); ?><?php echo $ac['responsavel'] ? ' · ' . h($ac['responsavel']) : ''; ?><?php echo $ac['prazo'] ? ' · até ' . h(dataBr($ac['prazo'])) : ''; ?><br>
+            <span class="tag <?php echo $ac['situacao'] === 'RESOLVIDA' ? 'verde' : ($ac['situacao'] === 'JUSTIFICADA' ? 'amarelo' : ''); ?>"><?php echo h(escRotulo('situacao_violacao', $ac['situacao'])); ?></span> <?php echo h($ac['acao']); ?><?php echo $ac['responsavel'] ? ' · ' . h($ac['responsavel']) : ''; ?><?php echo $ac['prazo'] ? ' · ' . h(t('até {dia}', ['dia' => dataBr($ac['prazo'])])) : ''; ?><br>
           <?php endif; endforeach; ?>
-          <?php if (escPode('corrigir')): ?>
-          <details><summary class="botao">Registrar ação</summary>
+          <?php if (escPode('corrigir') && !$somenteLeitura): ?>
+          <details><summary class="botao"><?php echo h(t('Registrar ação')); ?></summary>
             <form method="post" action="<?php echo h(link_tela('times', ['regra' => $filtro])); ?>" class="form-grade">
               <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="acao_violacao"><input type="hidden" name="time" value="<?php echo h($l['team']); ?>"><input type="hidden" name="party" value="<?php echo h($l['party']); ?>">
-              <label>Regra<select name="regra"><?php foreach ($l['regras'] as $r): ?><option value="<?php echo h(strtoupper($r[0])); ?>"><?php echo h($r[1]); ?></option><?php endforeach; ?></select></label>
-              <label>O que será feito<input type="text" name="texto" required></label>
-              <label>Responsável<input type="text" name="responsavel"></label>
-              <label>Prazo<input type="date" name="prazo"></label>
-              <label>Situação<select name="situacao"><option value="ABERTA">Aberta</option><option value="EM_CORRECAO">Em correção</option><option value="JUSTIFICADA">Justificada</option><option value="RESOLVIDA">Resolvida</option></select></label>
-              <label>Justificativa (se justificada)<input type="text" name="justificativa"></label>
-              <label>Justificada até<input type="date" name="justificada_ate"></label>
-              <button type="submit" class="botao primario">Salvar ação</button>
+              <label><?php echo h(t('Regra')); ?><select name="regra"><?php foreach ($l['regras'] as $r): ?><option value="<?php echo h(strtoupper($r[0])); ?>"><?php echo h($r[1]); ?></option><?php endforeach; ?></select></label>
+              <label><?php echo h(t('O que será feito')); ?><input type="text" name="texto" required></label>
+              <label><?php echo h(t('Responsável')); ?><input type="text" name="responsavel"></label>
+              <label><?php echo h(t('Prazo')); ?><input type="date" name="prazo"></label>
+              <label><?php echo h(t('Situação')); ?><select name="situacao"><option value="ABERTA"><?php echo h(t('Aberta')); ?></option><option value="EM_CORRECAO"><?php echo h(t('Em correção')); ?></option><option value="JUSTIFICADA"><?php echo h(t('Justificada')); ?></option><option value="RESOLVIDA"><?php echo h(t('Resolvida')); ?></option></select></label>
+              <label><?php echo h(t('Justificativa (se justificada)')); ?><input type="text" name="justificativa"></label>
+              <label><?php echo h(t('Justificada até')); ?><input type="date" name="justificada_ate"></label>
+              <button type="submit" class="botao primario"><?php echo h(t('Salvar ação')); ?></button>
             </form>
           </details>
           <?php endif; ?>
         </td>
-        <td><a class="botao" href="<?php echo h(link_tela('times', ['regra' => $filtro, 'q' => $busca, 'time' => $l['team']])); ?>#formacao">Ver formação</a></td>
+        <td><a class="botao" href="<?php echo h(link_tela('times', ['regra' => $filtro, 'q' => $busca, 'time' => $l['team']])); ?>#formacao"><?php echo h(t('Ver formação')); ?></a></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$lista): ?><tr><td colspan="7" class="muted">Nenhuma party nesse filtro.</td></tr><?php endif; ?>
+    <?php if (!$lista): ?><tr><td colspan="7" class="muted"><?php echo h(t('Nenhuma party nesse filtro.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
-  <p class="muted small">"Bloqueia" = a party fica fora da geração até ser corrigida. Mudanças de formação são feitas no Planner (não há API de escrita).</p>
+  <p class="muted small"><?php echo h(t('"Bloqueia" = a party fica fora da geração até ser corrigida. Mudanças de formação são feitas no Planner (não há API de escrita).')); ?></p>
 </section>
 
 <section class="panel" id="formacao">
   <div class="linha-titulo">
-    <h2>Formação do time</h2>
+    <h2><?php echo h(t('Formação do time')); ?></h2>
     <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php">
       <input type="hidden" name="p" value="times"><input type="hidden" name="regra" value="<?php echo h($filtro); ?>"><input type="hidden" name="q" value="<?php echo h($busca); ?>">
-      <select name="time" onchange="this.form.submit()" aria-label="Time">
+      <select name="time" onchange="this.form.submit()" aria-label="<?php echo h(t('Time')); ?>">
         <?php foreach ($times as $t): ?><option <?php echo $t === $timeSel ? 'selected' : ''; ?>><?php echo h($t); ?></option><?php endforeach; ?>
       </select>
     </form>
@@ -233,7 +245,7 @@ $partiesNomes = array_column($parties, 'party');
     <?php foreach ($formacaoTime as $l): ?>
     <div class="cartao-party <?php echo $l['regras'] ? 'com-violacao' : ''; ?>">
       <div class="linha-titulo"><strong><?php echo h($l['party']); ?></strong><span class="mono small"><?php echo (int) $l['p']; ?>P · <?php echo (int) $l['s']; ?>S · <?php echo (int) $l['t']; ?>T</span></div>
-      <span class="muted small"><?php echo $l['paginas'] ? h($l['nomes']) : 'sem página ativa'; ?></span>
+      <span class="muted small"><?php echo $l['paginas'] ? h($l['nomes']) : h(t('sem página ativa')); ?></span>
       <ul class="membros">
         <?php foreach ($porParty[$l['party']] ?? [] as $code => $e):
             $tg = $telegram[$code] ?? '';
@@ -248,48 +260,48 @@ $partiesNomes = array_column($parties, 'party');
     </div>
     <?php endforeach; ?>
   </div>
-  <p class="muted small">Turno pelo headcount vigente. Passe o mouse no nome para ver código e Telegram.</p>
+  <p class="muted small"><?php echo h(t('Turno pelo headcount vigente. Passe o mouse no nome para ver código e Telegram.')); ?></p>
 </section>
 
 <section class="panel" id="pendencias">
-  <h2>Pendências no Planner · <?php echo (int) $abertasPend; ?> abertas</h2>
-  <p class="muted small">O Planner não tem API de escrita. Cada mudança vira uma instrução para aplicar lá; ela fecha sozinha quando a estrutura do Planner bate com o pedido. Passou <?php echo (int) $atraso; ?> dias da data sem aparecer: "atrasada". O Planner mudou diferente do pedido: "divergente".</p>
+  <h2><?php echo h(tn((int) $abertasPend, 'Pendências no Planner · {n} aberta', 'Pendências no Planner · {n} abertas')); ?></h2>
+  <p class="muted small"><?php echo h(t('O Planner não tem API de escrita. Cada mudança vira uma instrução para aplicar lá; ela fecha sozinha quando a estrutura do Planner bate com o pedido. Passou {n} dias da data sem aparecer: "atrasada". O Planner mudou diferente do pedido: "divergente".', ['n' => (int) $atraso])); ?></p>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th>Mudança</th><th>O que fazer no Planner</th><th>Vale a partir de</th><th>Situação</th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Mudança')); ?></th><th><?php echo h(t('O que fazer no Planner')); ?></th><th><?php echo h(t('Vale a partir de')); ?></th><th><?php echo h(t('Situação')); ?></th><th></th></tr></thead>
     <tbody>
     <?php foreach ($pendencias as $pd): ?>
       <tr>
-        <td><strong><?php echo h(strtolower(str_replace('_', ' ', $pd['tipo']))); ?></strong><br><span class="muted small mono"><?php echo h($pd['rep_code']); ?></span></td>
+        <td><strong><?php echo h(escRotulo('tipo_pendencia', $pd['tipo'])); ?></strong><br><span class="muted small mono"><?php echo h($pd['rep_code']); ?></span></td>
         <td class="small" id="pend-<?php echo (int) $pd['id']; ?>"><?php echo h($pd['instrucao']); ?></td>
         <td><?php echo h(dataBr($pd['vale_a_partir'], true)); ?></td>
-        <td><span class="tag <?php echo $pd['status'] === 'APLICADA' ? 'verde' : (in_array($pd['status'], ['ATRASADA', 'DIVERGENTE'], true) ? 'vermelho' : 'amarelo'); ?>"><?php echo h(strtolower($pd['status'])); ?></span><?php echo $pd['divergencia'] ? '<br><span class="muted small">' . h($pd['divergencia']) . '</span>' : ''; ?><?php echo $pd['conferida_em'] ? '<br><span class="muted small">conferida ' . h(date('d/m H:i', strtotime($pd['conferida_em']))) . '</span>' : ''; ?></td>
+        <td><span class="tag <?php echo $pd['status'] === 'APLICADA' ? 'verde' : (in_array($pd['status'], ['ATRASADA', 'DIVERGENTE'], true) ? 'vermelho' : 'amarelo'); ?>"><?php echo h(escRotulo('status_pendencia', $pd['status'])); ?></span><?php echo $pd['divergencia'] ? '<br><span class="muted small">' . h($pd['divergencia']) . '</span>' : ''; ?><?php echo $pd['conferida_em'] ? '<br><span class="muted small">' . h(t('conferida {quando}', ['quando' => escDataHora($pd['conferida_em'])])) . '</span>' : ''; ?></td>
         <td class="nowrap">
-          <button type="button" class="botao" data-copiar="pend-<?php echo (int) $pd['id']; ?>">Copiar instrução</button>
-          <?php if (escPode('cadastrar') && !in_array($pd['status'], ['APLICADA', 'CANCELADA'], true)): ?>
-          <form method="post" action="<?php echo h(link_tela('times')); ?>" style="display:inline"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="pend_cancelar"><input type="hidden" name="id" value="<?php echo (int) $pd['id']; ?>"><button type="submit" class="botao">Cancelar</button></form>
+          <button type="button" class="botao" data-copiar="pend-<?php echo (int) $pd['id']; ?>"><?php echo h(t('Copiar instrução')); ?></button>
+          <?php if (escPode('cadastrar') && !$somenteLeitura && !in_array($pd['status'], ['APLICADA', 'CANCELADA'], true)): ?>
+          <form method="post" action="<?php echo h(link_tela('times')); ?>" style="display:inline"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="pend_cancelar"><input type="hidden" name="id" value="<?php echo (int) $pd['id']; ?>"><button type="submit" class="botao"><?php echo h(t('Cancelar')); ?></button></form>
           <?php endif; ?>
         </td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$pendencias): ?><tr><td colspan="5" class="muted">Nenhuma pendência.</td></tr><?php endif; ?>
+    <?php if (!$pendencias): ?><tr><td colspan="5" class="muted"><?php echo h(t('Nenhuma pendência.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
 
-  <?php if (escPode('cadastrar')): ?>
-  <h3>Nova pendência</h3>
+  <?php if (escPode('cadastrar') && !$somenteLeitura): ?>
+  <h3><?php echo h(t('Nova pendência')); ?></h3>
   <form method="post" action="<?php echo h(link_tela('times')); ?>" class="form-grade">
     <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="pendencia">
-    <label>Tipo<select name="tipo"><option value="MOVER">Mover de party</option><option value="ADICIONAR">Adicionar ao time</option><option value="REMOVER">Remover do time</option><option value="PASSAR_TERTIUS">Passar a Tertius</option><option value="PROMOVER">Promover</option></select></label>
-    <label>Colaborador<input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="buscar nome ou código" required></label>
-    <label>Time de destino<select name="time_para"><option value="">(o mesmo)</option><?php foreach ($times as $t): ?><option><?php echo h($t); ?></option><?php endforeach; ?></select></label>
-    <label>Party de destino<select name="party_para"><option value="">(a mesma / não se aplica)</option><?php foreach ($partiesNomes as $pn): ?><option><?php echo h($pn); ?></option><?php endforeach; ?></select></label>
-    <label>Papel<select name="papel_para"><option value="">(o mesmo)</option><option>Primaris</option><option>Secundus</option><option>Tertius</option></select></label>
-    <label>Turno<select name="turno_para"><option value="">(o mesmo)</option><option>A</option><option>C</option><option>D</option></select></label>
-    <label>Vale a partir de<input type="date" name="vale_a_partir" value="<?php echo h(date('Y-m-d', strtotime('+1 day'))); ?>" required></label>
-    <label>Motivo<input type="text" name="motivo"></label>
-    <div class="acoes"><button type="submit" class="botao primario">Criar pendência</button></div>
+    <label><?php echo h(t('Tipo')); ?><select name="tipo"><option value="MOVER"><?php echo h(t('Mover de party')); ?></option><option value="ADICIONAR"><?php echo h(t('Adicionar ao time')); ?></option><option value="REMOVER"><?php echo h(t('Remover do time')); ?></option><option value="PASSAR_TERTIUS"><?php echo h(t('Passar a rodízio')); ?></option><option value="PROMOVER"><?php echo h(t('Promover')); ?></option></select></label>
+    <label><?php echo h(t('Colaborador')); ?><input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="<?php echo h(t('buscar nome ou código')); ?>" required></label>
+    <label><?php echo h(t('Time de destino')); ?><select name="time_para"><option value=""><?php echo h(t('(o mesmo)')); ?></option><?php foreach ($times as $t): ?><option><?php echo h($t); ?></option><?php endforeach; ?></select></label>
+    <label><?php echo h(t('Party de destino')); ?><select name="party_para"><option value=""><?php echo h(t('(a mesma / não se aplica)')); ?></option><?php foreach ($partiesNomes as $pn): ?><option><?php echo h($pn); ?></option><?php endforeach; ?></select></label>
+    <label><?php echo h(t('Papel')); ?><select name="papel_para"><option value=""><?php echo h(t('(o mesmo)')); ?></option><option>Primaris</option><option>Secundus</option><option>Tertius</option></select></label>
+    <label><?php echo h(t('Turno')); ?><select name="turno_para"><option value=""><?php echo h(t('(o mesmo)')); ?></option><option>A</option><option>C</option><option>D</option></select></label>
+    <label><?php echo h(t('Vale a partir de')); ?><input type="date" name="vale_a_partir" value="<?php echo h(date('Y-m-d', strtotime('+1 day'))); ?>" required></label>
+    <label><?php echo h(t('Motivo')); ?><input type="text" name="motivo"></label>
+    <div class="acoes"><button type="submit" class="botao primario"><?php echo h(t('Criar pendência')); ?></button></div>
   </form>
   <?php endif; ?>
 </section>

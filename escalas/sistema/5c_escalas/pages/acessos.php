@@ -6,15 +6,25 @@
 // login são lidos).
 // ===============================================
 
+escExigir('admin');
 if (escPost()) {
-    escExigir('admin');
+    if (escModoTreino()) {
+        throw new RuntimeException(t('No Modo Treino os acessos não mudam. Saia do treino para mudar acessos.'));
+    }
     $uid = (int) ($_POST['user_id'] ?? 0);
     $perfil = (string) ($_POST['perfil'] ?? 'LEITURA');
     if ($uid <= 0 || !in_array($perfil, ['ADMIN', 'WFM', 'PLANEJAMENTO', 'GESTOR_TIME', 'LEITURA'], true)) {
-        throw new RuntimeException('Escolha o usuário e o perfil.');
+        throw new RuntimeException(t('Escolha o usuário e o perfil.'));
     }
     if ($uid === escUserId() && $perfil !== 'ADMIN') {
-        throw new RuntimeException('Você não pode tirar o seu próprio perfil de administrador.');
+        throw new RuntimeException(t('Você não pode tirar o seu próprio perfil de administrador.'));
+    }
+    if ($uid === escUserId() && empty($_POST['ativo'])) {
+        throw new RuntimeException(t('Você não pode desativar o seu próprio acesso.'));
+    }
+    $outrosAdmins = (int) (escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_acesso') . " WHERE perfil = 'ADMIN' AND ativo = 1 AND user_id <> ?", [$uid])['n'] ?? 0);
+    if ($outrosAdmins === 0 && ($perfil !== 'ADMIN' || empty($_POST['ativo']))) {
+        throw new RuntimeException(t('É preciso ter ao menos um administrador ativo.'));
     }
     $login = escUsuariosPortal()[$uid] ?? '';
     $nome = mb_substr(trim((string) ($_POST['nome'] ?? '')), 0, 120) ?: ($login !== '' ? nomeDoLogin($login) : null);
@@ -26,7 +36,7 @@ if (escPost()) {
         escW('INSERT INTO ' . escT('esc_acesso') . ' (nome, perfil, times, ativo, criado_por, user_id) VALUES (?, ?, ?, ?, ?, ?)', array_merge($dados, [escUserId(), $uid]));
     }
     escLog('acesso.salvar', 'esc_acesso', $uid, $antes, ['nome' => $nome, 'perfil' => $perfil, 'ativo' => $dados[3]]);
-    escVoltar('acessos', [], 'Acesso de ' . ($nome ?: 'user_id ' . $uid) . ' salvo.');
+    escVoltar('acessos', [], t('Acesso de {nome} salvo.', ['nome' => $nome ?: 'user_id ' . $uid]));
 }
 
 $lista = escQ('SELECT * FROM ' . escT('esc_acesso') . ' ORDER BY ativo DESC, perfil, user_id');
@@ -44,27 +54,27 @@ $nomeDe = static function (int $uid, ?string $nome) use ($logins): string {
 $log = escQ('SELECT quando, user_id, user_nome, canal, acao, entidade, entidade_id FROM ' . escT('esc_log') . ' ORDER BY id DESC LIMIT 30');
 ?>
 <header class="cabecalho">
-  <span class="eyebrow">Administração</span>
-  <h1>Acessos</h1>
-  <p class="muted">Admin: tudo. Planejamento: gerar e ajustar a escala. WFM: aprovar pedidos e cadastros. Gestor do time: ver e registrar ação de correção. Leitura: só ver. Você: <strong><?php echo h($nomeDe(escUserId(), $GLOBALS['ESC_USUARIO']['nome'] ?? null)); ?></strong> (user_id <?php echo escUserId(); ?>).</p>
+  <span class="eyebrow"><?php echo h(t('Administração')); ?></span>
+  <h1><?php echo h(t('Acessos')); ?></h1>
+  <p class="muted"><?php echo h(t('Admin: tudo. Planejamento: gerar e ajustar a escala. WFM: aprovar pedidos e cadastros. Gestor do time: ver e registrar ação de correção. Leitura: só ver.')); ?> <?php echo t('Você: <strong>{nome}</strong> (user_id {id}).', ['nome' => h($nomeDe(escUserId(), $GLOBALS['ESC_USUARIO']['nome'] ?? null)), 'id' => escUserId()]); ?></p>
 </header>
 
 <section class="panel">
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th>Usuário do portal</th><th>Nome</th><th>Perfil</th><th>Times</th><th>Ativo</th><?php if (escPode('admin')): ?><th></th><?php endif; ?></tr></thead>
+    <thead><tr><th><?php echo h(t('Usuário do portal')); ?></th><th><?php echo h(t('Nome')); ?></th><th><?php echo h(t('Perfil')); ?></th><th><?php echo h(t('Times')); ?></th><th><?php echo h(t('Ativo')); ?></th><?php if (escPode('admin')): ?><th></th><?php endif; ?></tr></thead>
     <tbody>
     <?php foreach ($lista as $a): $uid = (int) $a['user_id']; ?>
       <tr>
-        <td><?php echo h($logins[$uid] ?? 'não encontrado no portal'); ?><br><span class="muted small">user_id <?php echo $uid; ?></span></td>
+        <td><?php echo h($logins[$uid] ?? t('não encontrado no portal')); ?><br><span class="muted small">user_id <?php echo $uid; ?></span></td>
         <?php if (escPode('admin')): $fid = 'fa' . $uid; ?>
           <td><input type="text" name="nome" form="<?php echo $fid; ?>" value="<?php echo h($nomeDe($uid, $a['nome'])); ?>"></td>
-          <td><select name="perfil" form="<?php echo $fid; ?>"><?php foreach (['ADMIN', 'PLANEJAMENTO', 'WFM', 'GESTOR_TIME', 'LEITURA'] as $pf): ?><option <?php echo $a['perfil'] === $pf ? 'selected' : ''; ?>><?php echo $pf; ?></option><?php endforeach; ?></select></td>
-          <td><input type="text" name="times" form="<?php echo $fid; ?>" value="<?php echo h($a['times']); ?>" placeholder="só para gestor"></td>
+          <td><select name="perfil" form="<?php echo $fid; ?>"><?php foreach (array_unique(array_merge(['ADMIN', 'PLANEJAMENTO', 'LEITURA'], [$a['perfil']])) as $pf): ?><option value="<?php echo h($pf); ?>" <?php echo $a['perfil'] === $pf ? 'selected' : ''; ?>><?php echo h(['ADMIN' => 'ADMIN', 'PLANEJAMENTO' => t('PLANEJAMENTO / WFM'), 'LEITURA' => t('LEITURA'), 'WFM' => t('WFM (= Planejamento)'), 'GESTOR_TIME' => t('GESTOR_TIME (antigo)')][$pf] ?? $pf); ?></option><?php endforeach; ?></select></td>
+          <td><input type="text" name="times" form="<?php echo $fid; ?>" value="<?php echo h($a['times']); ?>" placeholder="<?php echo h(t('só para gestor')); ?>"></td>
           <td><input type="checkbox" name="ativo" form="<?php echo $fid; ?>" value="1" <?php echo (int) $a['ativo'] ? 'checked' : ''; ?>></td>
-          <td><form id="<?php echo $fid; ?>" method="post" action="<?php echo h(link_tela('acessos')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="user_id" value="<?php echo $uid; ?>"><button type="submit" class="botao">Salvar</button></form></td>
+          <td><form id="<?php echo $fid; ?>" method="post" action="<?php echo h(link_tela('acessos')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="user_id" value="<?php echo $uid; ?>"><button type="submit" class="botao"><?php echo h(t('Salvar')); ?></button></form></td>
         <?php else: ?>
-          <td><?php echo h($nomeDe($uid, $a['nome'])); ?></td><td><?php echo h($a['perfil']); ?></td><td><?php echo h($a['times']); ?></td><td><?php echo (int) $a['ativo'] ? 'sim' : 'não'; ?></td>
+          <td><?php echo h($nomeDe($uid, $a['nome'])); ?></td><td><?php echo h(escRotulo('perfil', $a['perfil'])); ?></td><td><?php echo h($a['times']); ?></td><td><?php echo h((int) $a['ativo'] ? t('sim') : t('não')); ?></td>
         <?php endif; ?>
       </tr>
     <?php endforeach; ?>
@@ -72,28 +82,28 @@ $log = escQ('SELECT quando, user_id, user_nome, canal, acao, entidade, entidade_
   </table>
   </div>
   <?php if (escPode('admin')): ?>
-  <h2>Adicionar</h2>
+  <h2><?php echo h(t('Adicionar')); ?></h2>
   <?php if ($semAcesso): ?>
   <form method="post" action="<?php echo h(link_tela('acessos')); ?>" class="form-grade">
     <?php echo campoCsrf(); ?>
-    <label>Usuário do portal<select name="user_id" required><option value="">escolha…</option><?php foreach ($semAcesso as $uid => $login): ?><option value="<?php echo (int) $uid; ?>"><?php echo h($login); ?></option><?php endforeach; ?></select></label>
-    <label>Nome (vazio = pelo login)<input type="text" name="nome"></label>
-    <label>Perfil<select name="perfil"><option>LEITURA</option><option>GESTOR_TIME</option><option>WFM</option><option>PLANEJAMENTO</option><option>ADMIN</option></select></label>
-    <label>Times (gestor)<input type="text" name="times" placeholder="Cavalry, Aeterna"></label>
+    <label><?php echo h(t('Usuário do portal')); ?><select name="user_id" required><option value=""><?php echo h(t('escolha…')); ?></option><?php foreach ($semAcesso as $uid => $login): ?><option value="<?php echo (int) $uid; ?>"><?php echo h($login); ?></option><?php endforeach; ?></select></label>
+    <label><?php echo h(t('Nome (vazio = pelo login)')); ?><input type="text" name="nome"></label>
+    <label><?php echo h(t('Perfil')); ?><select name="perfil"><option value="LEITURA"><?php echo h(t('LEITURA')); ?></option><option value="PLANEJAMENTO"><?php echo h(t('PLANEJAMENTO / WFM')); ?></option><option value="ADMIN">ADMIN</option></select></label>
+    <label><?php echo h(t('Times (gestor)')); ?><input type="text" name="times" placeholder="Cavalry, Aeterna"></label>
     <input type="hidden" name="ativo" value="1">
-    <div class="acoes"><button type="submit" class="botao primario">Adicionar</button></div>
+    <div class="acoes"><button type="submit" class="botao primario"><?php echo h(t('Adicionar')); ?></button></div>
   </form>
   <?php else: ?>
-  <p class="muted small">Todos os usuários aprovados do portal já estão na lista.</p>
+  <p class="muted small"><?php echo h(t('Todos os usuários aprovados do portal já estão na lista.')); ?></p>
   <?php endif; ?>
-  <p class="muted small">A lista mostra os usuários aprovados no MIS Portal. O nome em branco é preenchido a partir do login.</p>
+  <p class="muted small"><?php echo h(t('A lista mostra os usuários aprovados no MIS Portal. O nome em branco é preenchido a partir do login.')); ?></p>
   <?php endif; ?>
 </section>
 
 <section class="panel">
-  <h2>Últimas alterações (log)</h2>
+  <h2><?php echo h(t('Últimas alterações (log)')); ?></h2>
   <ul class="regras small">
-    <?php foreach ($log as $l): ?><li><?php echo h(date('d/m H:i', strtotime($l['quando']))); ?> · <?php echo h($l['user_id'] ? $nomeDe((int) $l['user_id'], $l['user_nome']) : strtolower($l['canal'])); ?> · <?php echo h($l['acao']); ?> · <?php echo h($l['entidade'] . ' ' . $l['entidade_id']); ?></li><?php endforeach; ?>
-    <?php if (!$log): ?><li class="muted">Nada ainda.</li><?php endif; ?>
+    <?php foreach ($log as $l): ?><li><?php echo h(escDataHora($l['quando'])); ?> · <?php echo h($l['user_id'] ? $nomeDe((int) $l['user_id'], $l['user_nome']) : escRotulo('canal', $l['canal'])); ?> · <?php echo h($l['acao']); ?> · <?php echo h($l['entidade'] . ' ' . $l['entidade_id']); ?></li><?php endforeach; ?>
+    <?php if (!$log): ?><li class="muted"><?php echo h(t('Nada ainda.')); ?></li><?php endif; ?>
   </ul>
 </section>

@@ -18,7 +18,15 @@
 
 require_once SHARED_ROOT . 'config/env.php';
 
-const ESC_SCHEMA = '5c_escalas';
+// Modo Treino (cookie esc_treino=1, ligado na Ajuda › Tutorial): o sistema lê e grava no
+// 5c_escalas_treino (ES_28) em vez do 5c_escalas. Ver lib/treino.php.
+const ESC_SCHEMA_REAL = '5c_escalas';
+const ESC_SCHEMA_TREINO = '5c_escalas_treino';
+define('ESC_SCHEMA', ($_COOKIE['esc_treino'] ?? '') === '1' ? ESC_SCHEMA_TREINO : ESC_SCHEMA_REAL);
+
+function escModoTreino(): bool {
+    return ESC_SCHEMA === ESC_SCHEMA_TREINO;
+}
 
 if (!function_exists('checarMysqlSaudavel')) {
     // Mesma pré-checagem dos outros módulos: TCP + leitura com timeout
@@ -138,9 +146,20 @@ function escConferirSomenteLeitura(string $sql): void {
 
 function escQ(string $sql, array $params = []): array {
     escConferirSomenteLeitura($sql);
+    $t0 = microtime(true);
     $stmt = escDb()->prepare($sql);
     $stmt->execute($params);
-    return $stmt->fetchAll();
+    $linhas = $stmt->fetchAll();
+    escMedirConsulta($sql, $t0);
+    return $linhas;
+}
+
+// Consulta que passa de 1 s vai para o log (logs/app.log), para achar o que deixa a tela lenta.
+function escMedirConsulta(string $sql, float $t0): void {
+    $ms = (int) round((microtime(true) - $t0) * 1000);
+    if ($ms >= 1000 && function_exists('appLog')) {
+        appLog('warning', 'Consulta lenta', ['ms' => $ms, 'tela' => (string) ($_GET['p'] ?? ''), 'sql' => substr(preg_replace('~\s+~', ' ', $sql), 0, 300)]);
+    }
 }
 
 function escQ1(string $sql, array $params = []): ?array {

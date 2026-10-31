@@ -653,7 +653,8 @@ function escPlanoRotulo(array $p): string {
  *   $modo = 'RECALCULO' -> subversão da atual (v3.1), mantém travadas e
  *                          grava o De→Para da escala.
  */
-function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoId = null): int {
+// $minimo: "Recalcular com o mínimo de mudanças" (lib/minimo.php), a partir da versão publicada.
+function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoId = null, bool $minimo = false): int {
     @set_time_limit(180);
     $dias = escDiasDaSemana($seg);
     $base = escPlanoAtual($seg);
@@ -678,22 +679,93 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         // Estrutura de 01/11 (motor_v4.php). Na semana da virada só entram os
         // dias a partir dela; antes disso vale a escala já postada.
         $virada = escV4DiaVirada();
-        $transicao = substr(escV4Param('v4_dia_transicao', $virada), 0, 10); // '' = sem transição
+        $turnoVirada = escV4TurnoVirada();
+        $transicoes = escV4DiasTransicao(); // [] = sem transição
         $inicio = max($seg, $virada);
         $indisp = escMotorIndisp($dias);
-        if ($inicio !== $transicao) {
+        $presentes = [];
+        foreach ($transicoes as $dt) {
+            if (in_array($dt, $dias, true)) {
+                $presentes[$dt] = escV4PresentesTransicao($dt);
+            }
+        }
+        if (!in_array($inicio, $transicoes, true) && ($inicio !== $virada || $turnoVirada === 'A')) {
             // Quem fecha o turno D às 05:00 do primeiro dia do plano fica fora do
             // turno A desse dia (seriam 16 h seguidas; acontece na virada).
             foreach (escV4FimTurnoD($inicio) as $code) {
                 $indisp[$code][$inicio]['A'] ??= ['id' => null, 'blocos' => null];
             }
         }
+        // Capacity recalculado e postos atualizados antes de gerar (lib/estrutura.php), para a
+        // escala não sair com a estrutura defasada; depois nenhum posto sem equipe (lib/equipes.php).
+        $GLOBALS['ESC_ESTRUTURA_AUTO'] = $GLOBALS['ESC_ESTRUTURA_AUTO'] ?? escEstruturaAtualizar();
+        $GLOBALS['ESC_EQUIPES_AUTO'] = escEquipesCompletar($inicio, $dias[count($dias) - 1]);
+        $est = escV4Carregar(end($dias));
+        // New Hires (lib/treinamento.php): fora da escala normal até o dia em que ficam
+        // disponíveis, mesmo que alguém já tenha cadastrado a pessoa num núcleo. E quem ficou
+        // sem página depois de uma saída, até a página nova entrar, com decisão "remover" (ES_37).
+        $bloqueios = escTrnBloqueios($dias);
+        foreach (escSaidaSemPaginaBloqueios($dias) as $code => $diasBloq) {
+            $bloqueios[$code] = ($bloqueios[$code] ?? []) + $diasBloq;
+        }
+        foreach ($bloqueios as $code => $diasBloq) {
+            if (count($diasBloq) === count($dias)) {
+                unset($est['pessoas'][$code]);
+                continue;
+            }
+            foreach (array_keys($diasBloq) as $d) {
+                foreach (array_keys(ESC_TURNOS) as $tb) {
+                    $indisp[$code][$d][$tb] ??= ['id' => null, 'blocos' => null];
+                }
+            }
+        }
         $saida = escMotorAlocarV4([
-            'dias' => $dias, 'est' => escV4Carregar(end($dias)), 'indisp' => $indisp,
-            'travadas' => $travadas, 'virada' => $virada, 'transicao' => $transicao,
-            'presentes' => in_array($transicao, $dias, true) ? escV4PresentesTransicao($transicao) : [],
-            'realizado' => escMotorRealizado(escMaisDias($inicio, -14), escMaisDias($inicio, -1)),
+            'dias' => $dias, 'est' => $est, 'indisp' => $indisp,
+            'travadas' => $travadas, 'virada' => $virada, 'turno_virada' => $turnoVirada, 'transicao' => $transicoes,
+            'treino_cobre' => escTrnCobertura($dias),
+            'presentes_por_dia' => $presentes,
+            'ultimo' => escV4UltimoDoPlanoAnterior($seg),
+            // Até o dia da virada inclusive: quem fez o A ou o C antigo de 31/10 conta nos dias seguidos de 01/11.
+            'realizado' => escMotorRealizado(escMaisDias($inicio, -14), max(escMaisDias($inicio, -1), min($virada, escMaisDias($inicio, 6)))),
         ]);
+        // Liderança (OS, OC e OA) no mesmo plano, na página 5C Schedule (-8, -7, -6 no CSV).
+        $lider = escLiderancaAlocacoes($seg, $travadas, $est['overlap_pagina'] ?? null);
+        // Trainees das turmas confirmadas, na mesma página 5C Schedule (-4 no CSV).
+        $lider = array_merge($lider, escTrnAlocacoes($seg, $travadas, $est['overlap_pagina'] ?? null));
+        $saida['alocacoes'] = array_merge($saida['alocacoes'], $lider);
+        foreach ($lider as $a) {
+            $saida['resumo']['por_origem'][$a['origem']] = ($saida['resumo']['por_origem'][$a['origem']] ?? 0) + 1;
+        }
+        // Mínimo de mudanças: parte da versão publicada (a postada) e muda só o necessário.
+        $ref = $minimo ? (escPlanoPublicado($seg) ?? $base) : null;
+        if ($ref) {
+            $refLinhas = escQ('SELECT dia, bloco, turno, page_id, pagina, posto_id, vaga, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ?', [(int) $ref['id']]);
+            $info = [];
+            foreach ($est['postos'] as $p) {
+                foreach ($p['paginas'] as $pg) {
+                    $k = (int) $pg['page_id'] . '|' . $p['turno'];
+                    $info[$k] = ['fans' => ($info[$k]['fans'] ?? 0) + (float) $p['carga'] * (float) $pg['fracao'], 'unidade' => (int) $p['unidade'],
+                        'modelo' => $est['modelo_pagina'][$pg['pagina']] ?? null];
+                }
+            }
+            // Folga do cálculo novo vale também no mínimo (emenda, rotação e indisponibilidade), menos
+            // para quem trabalha no dia no cálculo novo (ex.: Overlap ou outro turno).
+            $folgaNova = [];
+            foreach ($saida['folgas'] ?? [] as $f) {
+                $folgaNova[$f['rep_code'] . '|' . substr((string) $f['dia'], 0, 10)] = true;
+            }
+            foreach ($saida['alocacoes'] as $a) {
+                if ($a['rep_code'] !== null) {
+                    unset($folgaNova[$a['rep_code'] . '|' . ($a['turno'] === 'D' && $a['bloco'] === 'T1' ? escMaisDias(substr((string) $a['dia'], 0, 10), -1) : substr((string) $a['dia'], 0, 10))]);
+                }
+            }
+            [$saida['alocacoes'], $resMin] = escMotorMinimo($refLinhas, $saida['alocacoes'], $est['pessoas'], $indisp, $bloqueios, $info,
+                (float) str_replace(',', '.', escV4Param('v4_minimo_carga_max', '35')), $folgaNova);
+            $resMin['base'] = escPlanoRotulo($ref);
+            $saida['resumo']['minimo'] = $resMin;
+            $saida['resumo']['lacunas'] = count(array_filter($saida['alocacoes'], static fn($a) => $a['rep_code'] === null && $a['origem'] === 'LACUNA'));
+            $GLOBALS['ESC_MINIMO'] = $resMin;
+        }
         $estruturaPlano = 'V4';
     } else {
         $saida = escMotorAlocar([
@@ -704,7 +776,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         $estruturaPlano = 'V3';
     }
 
-    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano) {
+    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo) {
         // Releitura do realizado.
         $linhasEstado = [];
         foreach ($estado as $rep => $e) {
@@ -748,14 +820,22 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                     $removidos[$d['rep_code'] . '|' . $d['dia']] = true;
                 }
             }
-            [$alocacoes, $sugestoesWorkload, $protegidos] = escMotorProtegerPublicado($linhasPub, $alocacoes, $removidos);
+            // Folga de emenda (dias seguidos) e indisponibilidade do cálculo novo também tiram do publicado.
+            foreach ($saida['folgas'] ?? [] as $f) {
+                if (in_array($f['tipo'], ['EMENDA', 'INDISPONIBILIDADE'], true)) {
+                    $removidos[$f['rep_code'] . '|' . substr((string) $f['dia'], 0, 10)] = true;
+                }
+            }
+            if (!$minimo) { // no mínimo de mudanças o publicado já é a base
+                [$alocacoes, $sugestoesWorkload, $protegidos] = escMotorProtegerPublicado($linhasPub, $alocacoes, $removidos, $travadas);
+            }
         }
         if ($base) {
             $anteriores = escQW('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ?', [(int) $base['id']]);
             $diferencas = array_merge(escMotorDeParaEscala($anteriores, $alocacoes), $protegidos);
         }
 
-        $parametros = ['fotos' => $fotoIds, 'ancora' => ESC_ANCORA, 'modo' => $modo];
+        $parametros = ['fotos' => $fotoIds, 'ancora' => ESC_ANCORA, 'modo' => $modo] + ($minimo ? ['minimo' => true] : []);
         escW('INSERT INTO ' . escT('esc_plano') . ' (semana_inicio, semana_fim, time_nome, estrutura, versao, subversao, status, plano_anterior_id, recalculo_id, capacity_calculo, entradas_hash, parametros, resumo, gerado_por) VALUES (?, ?, \'\', ?, ?, ?, \'RASCUNHO\', ?, ?, ?, ?, ?, ?, ?)', [
             $seg, end($dias), $estruturaPlano, $versao, $subversao, $base ? (int) $base['id'] : null, $recalculoId,
             $cap['dc'], escHashEntradas($fotoIds), json_encode($parametros), json_encode($saida['resumo'], JSON_UNESCAPED_UNICODE), $userId,
@@ -768,7 +848,9 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         unset($a);
         escInserirLote('esc_plano_alocacao', ['plano_id', 'dia', 'bloco', 'turno', 'page_id', 'pagina', 'posto_id', 'vaga', 'rep_code', 'papel', 'origem', 'travada', 'motivo'], $alocacoes);
 
-        $folgas = array_map(static fn($f) => $f + ['plano_id' => $planoId], $saida['folgas']);
+        // Folga de emenda (ES_22): sem o tipo novo no banco, grava como folga da rotação.
+        $temEmenda = strpos((string) (escQW("SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_plano_folga' AND COLUMN_NAME = 'tipo'", [ESC_SCHEMA])[0]['t'] ?? ''), 'EMENDA') !== false;
+        $folgas = array_map(static fn($f) => ['tipo' => $f['tipo'] === 'EMENDA' && !$temEmenda ? 'ROTACAO' : $f['tipo']] + $f + ['plano_id' => $planoId], $saida['folgas']);
         escInserirLote('esc_plano_folga', ['plano_id', 'rep_code', 'dia', 'tipo', 'ref_id'], $folgas);
 
         // Sugestões: workload (escala publicada), Buffers sem página e lacunas.
@@ -796,7 +878,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         }
         $lac = [];
         foreach ($alocacoes as $a) {
-            if ($a['rep_code'] === null) {
+            if ($a['rep_code'] === null && $a['origem'] !== 'TREINO') {
                 $lac[$a['dia'] . '|' . $a['turno']][] = $a['pagina'] . ' ' . $a['bloco'];
             }
         }
@@ -852,7 +934,12 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
 // naquele turno. Trocar de página no mesmo turno não é tirar o dia: aí a
 // pessoa só muda de página. Devolve [alocações finais, sugestões de
 // workload, linhas do De→Para com aplicado = 0].
-function escMotorProtegerPublicado(array $publicadas, array $novas, array $removidos = []): array {
+function escMotorProtegerPublicado(array $publicadas, array $novas, array $removidos = [], array $travadas = []): array {
+    // Célula ajustada à mão (travada) vale como está: o publicado não volta para ela.
+    $celTravada = [];
+    foreach ($travadas as $t) {
+        $celTravada[substr((string) $t['dia'], 0, 10) . '|' . $t['bloco'] . '|' . (int) $t['page_id']] = true;
+    }
     $temNa = [];
     foreach ($novas as $n) {
         if ($n['rep_code'] !== null) {
@@ -865,6 +952,9 @@ function escMotorProtegerPublicado(array $publicadas, array $novas, array $remov
     $dif = [];
     foreach ($publicadas as $p) {
         $dia = substr($p['dia'], 0, 10);
+        if (isset($celTravada[$dia . '|' . $p['bloco'] . '|' . (int) $p['page_id']])) {
+            continue;
+        }
         $diaDoTurno = $p['turno'] === 'D' && $p['bloco'] === 'T1' ? escMaisDias($dia, -1) : $dia;
         if (isset($temNa[$p['rep_code'] . '|' . $diaDoTurno])) {
             continue; // continua trabalhando no turno (talvez em outra página)
@@ -978,7 +1068,7 @@ function escMotorVerificar(?int $userId, bool $forcar = false): array {
         }
         $gatilho = escGatilhoDaFonte($diferentes[0]);
         escW('INSERT INTO ' . escT('esc_recalculo_evento') . ' (gatilho, descricao, foto_id, semana_inicio, plano_de_id, status) VALUES (?, ?, ?, ?, ?, \'DETECTADO\')', [
-            $gatilho, 'Mudou: ' . implode(', ', array_map('escNomeFonte', $diferentes)), $ids[$diferentes[0]], substr($p['semana_inicio'], 0, 10), (int) $p['id'],
+            $gatilho, 'Mudou: ' . implode(', ', array_map(static fn($f) => escNomeFonte($f, false), $diferentes)), $ids[$diferentes[0]], substr($p['semana_inicio'], 0, 10), (int) $p['id'],
         ]);
         $eventoId = escUltimoId();
         try {
@@ -997,12 +1087,40 @@ function escGatilhoDaFonte(string $fonte): string {
         'INDISPONIBILIDADE' => 'INDISPONIBILIDADE', 'MODELOS' => 'MODELO', 'TROCAS_PAGINA' => 'TROCA_PAGINA'][$fonte] ?? 'MANUAL';
 }
 
-function escNomeFonte(string $fonte): string {
-    return ['CAPACITY' => 'Capacity', 'ESTRUTURA' => 'estrutura/membros', 'PAGINAS' => 'páginas', 'COLABORADORES' => 'colaboradores',
-        'INDISPONIBILIDADE' => 'indisponibilidade', 'MODELOS' => 'modelos', 'TROCAS_PAGINA' => 'trocas de página'][$fonte] ?? strtolower($fonte);
+// Nome da fonte para a tela (traduzido); $traduzir = false para o que é gravado no banco.
+function escNomeFonte(string $fonte, bool $traduzir = true): string {
+    $nome = ['CAPACITY' => 'Capacity', 'ESTRUTURA' => 'estrutura/membros', 'PAGINAS' => 'páginas', 'COLABORADORES' => 'colaboradores',
+        'INDISPONIBILIDADE' => 'indisponibilidade', 'MODELOS' => 'modelos', 'TROCAS_PAGINA' => 'trocas de página'][$fonte] ?? null;
+    if ($nome === null) {
+        return strtolower($fonte);
+    }
+    if (!$traduzir) {
+        return $nome;
+    }
+    return ['Capacity' => t('Capacity'), 'estrutura/membros' => t('estrutura/membros'), 'páginas' => t('páginas'), 'colaboradores' => t('colaboradores'),
+        'indisponibilidade' => t('indisponibilidade'), 'modelos' => t('modelos'), 'trocas de página' => t('trocas de página')][$nome];
 }
 
 // ---------- CSV do Schedule Ajustment a partir do plano ----------
+
+// Sufixo do código no CSV: "-5" Overlap, "-4" trainee (New Hire), "-2" Buffer, "-8" Operational
+// Supervisor, "-7" Operational Coordinator e "-6" Operational Assistant (na página 5C Schedule,
+// motivos que o site lê); true = assistente ("#").
+function escMarcaCsv(array $a) {
+    if ($a['origem'] === 'OVERLAP') {
+        return '-5';
+    }
+    if ($a['origem'] === 'TREINO') {
+        return ESC_TRN_SUFIXO;
+    }
+    if (isset(ESC_LID_SUFIXO[$a['origem']])) {
+        return ESC_LID_SUFIXO[$a['origem']];
+    }
+    if ($a['origem'] === 'BUFFER' && $a['pagina'] === escV4Param('v4_overlap_pagina', '5C Schedule')) {
+        return '-2';
+    }
+    return $a['papel'] === 'ASSISTENTE';
+}
 
 // $celulas[slot 'Y-m-dTHH:00:00'] = [rep => assistente(bool) ou o sufixo do código, ex. '-5']
 function escCsvT1T6(array $celulas, string $seg, string $desdeSlot = ''): string {
@@ -1028,4 +1146,64 @@ function escCsvT1T6(array $celulas, string $seg, string $desdeSlot = ''): string
 
 function escHoraDoBloco(string $bloco): string {
     return array_search($bloco, ESC_BLOCOS, true) ?: '00';
+}
+
+// Conflitos de quem vai entrar numa célula da grade (ajuste manual). Devolve textos de alerta.
+function escGradeConflitos(int $planoId, int $pageId, string $dia, string $turno, array $celulas, array $pessoas): array {
+    $alertas = [];
+    $in = escIn($pessoas);
+    // Folga programada no plano.
+    foreach (escQ('SELECT UPPER(rep_code) AS r, tipo FROM ' . escT('esc_plano_folga') . ' WHERE plano_id = ? AND dia = ? AND UPPER(rep_code) IN (' . $in . ')', array_merge([$planoId, $dia], $pessoas)) as $f) {
+        $alertas[] = t('{rep} está de folga neste dia ({tipo})', ['rep' => $f['r'], 'tipo' => mb_strtolower(escRotulo('tipo_folga', (string) $f['tipo']))]);
+    }
+    // Indisponibilidade aprovada.
+    $indisp = escMotorIndisp([$dia]);
+    foreach ($pessoas as $r) {
+        if (array_key_exists($turno, $indisp[$r][$dia] ?? [])) {
+            $alertas[] = t('{rep} tem indisponibilidade aprovada neste turno', ['rep' => $r]);
+        }
+    }
+    // Turno do cadastro.
+    foreach (escQ('SELECT UPPER(rep_code) AS r, turno FROM ' . escT('esc_colaborador_config') . ' WHERE UPPER(rep_code) IN (' . $in . ') AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', array_merge($pessoas, [$dia, $dia])) as $c) {
+        if ($c['turno'] && $c['turno'] !== $turno) {
+            $alertas[] = t('{rep} é do turno {turno}', ['rep' => $c['r'], 'turno' => $c['turno']]);
+        }
+    }
+    // Já está em outra página no mesmo bloco.
+    $params = [$planoId, $pageId, $celulas[0][0], $celulas[0][1], $celulas[1][0], $celulas[1][1]];
+    foreach (escQ('SELECT UPPER(rep_code) AS r, GROUP_CONCAT(DISTINCT pagina ORDER BY pagina SEPARATOR \', \') AS paginas FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id <> ? AND ((dia = ? AND bloco = ?) OR (dia = ? AND bloco = ?)) AND UPPER(rep_code) IN (' . $in . ') GROUP BY UPPER(rep_code)', array_merge($params, $pessoas)) as $o) {
+        $alertas[] = t('{rep} já está em {paginas} neste turno', ['rep' => $o['r'], 'paginas' => $o['paginas']]);
+    }
+    // 12 h seguidas e 52 h na semana (turnos de 8 h; o T1 conta no dia do turno D).
+    $vizinhos = ['A' => [[escMaisDias($dia, -1), 'D'], [$dia, 'C']], 'C' => [[$dia, 'A'], [$dia, 'D']], 'D' => [[$dia, 'C'], [escMaisDias($dia, 1), 'A']]][$turno] ?? [];
+    $horasMax = (int) escV4Param('v4_horas_semana_max', '52');
+    $ja = [];
+    foreach (escQ("SELECT UPPER(rep_code) AS r, turno, IF(bloco = 'T1', DATE_SUB(dia, INTERVAL 1 DAY), dia) AS dt FROM " . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND UPPER(rep_code) IN (' . $in . ') AND NOT (page_id = ? AND turno = ? AND IF(bloco = \'T1\', DATE_SUB(dia, INTERVAL 1 DAY), dia) = ?) GROUP BY UPPER(rep_code), turno, dt', array_merge([$planoId], $pessoas, [$pageId, $turno, $dia])) as $l) {
+        $ja[$l['r']][substr((string) $l['dt'], 0, 10) . '|' . $l['turno']] = true;
+    }
+    // Vizinho em outra semana: lê a versão publicada (ou a atual) daquela semana.
+    $plano = escQ1('SELECT semana_inicio, semana_fim FROM ' . escT('esc_plano') . ' WHERE id = ?', [$planoId]);
+    foreach ($vizinhos as [$d2, $t2]) {
+        if ($plano && ($d2 < substr((string) $plano['semana_inicio'], 0, 10) || $d2 > substr((string) $plano['semana_fim'], 0, 10))) {
+            $segV = segundaDaSemana($d2);
+            $outro = escPlanoPublicado($segV) ?? escPlanoAtual($segV);
+            if ($outro) {
+                foreach (escQ("SELECT DISTINCT UPPER(rep_code) AS r FROM " . escT('esc_plano_alocacao') . " WHERE plano_id = ? AND turno = ? AND IF(bloco = 'T1', DATE_SUB(dia, INTERVAL 1 DAY), dia) = ? AND UPPER(rep_code) IN (" . $in . ')', array_merge([(int) $outro['id'], $t2, $d2], $pessoas)) as $o) {
+                    $ja[$o['r']][$d2 . '|' . $t2] = true;
+                }
+            }
+        }
+    }
+    foreach ($pessoas as $r) {
+        foreach ($vizinhos as [$d2, $t2]) {
+            if (isset($ja[$r][$d2 . '|' . $t2])) {
+                $alertas[] = t('{rep} está no turno {turno} de {dia}: seriam 16 h seguidas (máximo 12 h)', ['rep' => $r, 'turno' => $t2, 'dia' => dataBr($d2)]);
+            }
+        }
+        $turnosSemana = count($ja[$r] ?? []) + (isset($ja[$r][$dia . '|' . $turno]) ? 0 : 1);
+        if ($turnosSemana * 8 > $horasMax) {
+            $alertas[] = t('{rep} passaria de {max} h na semana ({horas} h)', ['rep' => $r, 'max' => $horasMax, 'horas' => $turnosSemana * 8]);
+        }
+    }
+    return array_values(array_unique($alertas));
 }

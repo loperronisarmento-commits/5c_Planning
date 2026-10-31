@@ -1,0 +1,60 @@
+<?php
+// Tela Modelos de escala (pages/modelos.php) em inglês. O português é a chave. Ver lib/i18n.php.
+return [
+    // mensagens ao salvar e excluir
+    'Modelo não encontrado.' => 'Model not found.',
+    '"{nome}" ainda tem {n} pessoa(s) sem data de fim. Passe essas pessoas para outro modelo em Colaboradores antes de excluir.' => '"{nome}" still has {n} person(s) with no end date. Move them to another model in Employees before deleting.',
+    'Modelo "{nome}" excluído.' => 'Model "{nome}" deleted.',
+    'Modelo "{nome}" desativado: tem histórico de {n} configuração(ões), em uso até {dia}. Não aparece mais para escolher; as semanas antigas continuam usando o ciclo.' => 'Model "{nome}" deactivated: it has a history of {n} setup(s), in use until {dia}. It no longer shows up as an option; past weeks keep using its cycle.',
+    'Modelo "{nome}" desativado: tem histórico de {n} configuração(ões). Não aparece mais para escolher; as semanas antigas continuam usando o ciclo.' => 'Model "{nome}" deactivated: it has a history of {n} setup(s). It no longer shows up as an option; past weeks keep using its cycle.',
+    'Nome e tipo são obrigatórios.' => 'Name and type are required.',
+    'O ciclo precisa ter de 2 a 28 dias, com trabalho (1) e folga (0). Ex.: 1110.' => 'The cycle must have 2 to 28 days, with work (1) and day off (0). E.g.: 1110.',
+    'Não dá para desativar: {n} pessoa(s) ainda usam este modelo sem data de fim. Passe essas pessoas para outro modelo em Colaboradores antes.' => 'Cannot deactivate: {n} person(s) still use this model with no end date. Move them to another model in Employees first.',
+    'Modelo "{nome}" salvo. Anomalia a partir de {n} dias seguidos.' => 'Model "{nome}" saved. Anomaly from {n} days in a row.',
+
+    // lista
+    'Cada modelo é um ciclo de dias de trabalho (1) e folga (0). Um modelo novo (6x1, 4x3, 12x36…) é só um cadastro: a geração lê o ciclo.' => 'Each model is a cycle of work days (1) and days off (0). A new model (6x1, 4x3, 12x36…) is just a new entry: generation reads the cycle.',
+    'Modelo' => 'Model',
+    'Tipo' => 'Type',
+    'Anomalia' => 'Anomaly',
+    'Horas/dia' => 'Hours/day',
+    'inativo' => 'inactive',
+    'dia admin a cada {n}' => 'admin day every {n}',
+    '{n} trilha' => '{n} track',
+    '{n} trilhas' => '{n} tracks',
+    'até {dia}' => 'until {dia}',
+    'a partir de {n} seguidos' => 'from {n} in a row',
+    'Editar' => 'Edit',
+    'Excluir o modelo "{nome}"?' => 'Delete the model "{nome}"?',
+    'Desativar o modelo "{nome}"?' => 'Deactivate the model "{nome}"?',
+    'Ele tem histórico: some das escolhas, e as semanas antigas continuam usando o ciclo.' => 'It has history: it leaves the options, and past weeks keep using its cycle.',
+    'Excluir' => 'Delete',
+    'Desativar' => 'Deactivate',
+    'Passe essas pessoas para outro modelo antes' => 'Move these people to another model first',
+    'em uso' => 'in use',
+    'Novo modelo' => 'New model',
+
+    // formulário
+    'Editar {nome}' => 'Edit {nome}',
+    'Nome' => 'Name',
+    'Tipo de ciclo' => 'Cycle type',
+    'Contínuo (folga avança pelo calendário)' => 'Continuous (day off moves along the calendar)',
+    'Semana fixa (seg a dom)' => 'Fixed week (Mon to Sun)',
+    'Ciclo (1 = trabalho, 0 = folga)' => 'Cycle (1 = work, 0 = day off)',
+    'Máximo de dias seguidos (anomalia acima disso)' => 'Max days in a row (anomaly above this)',
+    'Horas por dia' => 'Hours per day',
+    'Trilhas defasadas' => 'Staggered tracks',
+    'Dia admin a cada (0 = não)' => 'Admin day every (0 = none)',
+    'turno D conta no dia de início' => 'shift D counts on its start day',
+    'ativo' => 'active',
+    'Em uso por {n} pessoa sem data de fim: para desativar, passe essa pessoa para outro modelo antes.' => 'In use by {n} person with no end date: to deactivate, move them to another model first.',
+    'Em uso por {n} pessoas sem data de fim: para desativar, passe essas pessoas para outro modelo antes.' => 'In use by {n} people with no end date: to deactivate, move them to another model first.',
+    'Salvar modelo' => 'Save model',
+    'Exemplos: 3x1 = 1110 · 6x1 = 1111110 · 5x2 semana fixa = 1111100 · 12x36 (dia sim, dia não) = 10.' => 'Examples: 3x1 = 1110 · 6x1 = 1111110 · 5x2 fixed week = 1111100 · 12x36 (every other day) = 10.',
+
+    // confirmação de mudança de ciclo
+    'Mudar o ciclo de um modelo em uso?' => 'Change the cycle of a model in use?',
+    'Afeta {n} pessoa(s): todas passam a seguir o ciclo novo no próximo recálculo. Para mudar só algumas, crie um modelo novo e troque essas pessoas em Colaboradores.' => 'Affects {n} person(s): all of them follow the new cycle at the next recalculation. To change only some, create a new model and move those people in Employees.',
+    'Mudar o ciclo' => 'Change cycle',
+    'O modelo "5x2 rotativo 21 dias" é o da estrutura nova e não pode mudar de nome (o motor e a liderança procuram por ele).' => 'The "5x2 rotativo 21 dias" model is the new structure\'s model and cannot be renamed (the engine and leadership look it up by name).',
+];

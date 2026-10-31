@@ -12,7 +12,7 @@ O Planning tool incorpora três módulos que existem hoje: **Escala de Buffers**
 | Era (v3, até 31/10) | Passa a ser (v4, a partir de 02/11) |
 |---|---|
 | Team → Party → membros, do Planner | Unidade → carteira (C1/C2) → postos → reps |
-| Cargos antigos | SR de nível 0 a 5 pelo % de hoje; liderança OUM, OM, OS |
+| Cargos antigos | SR de nível 0 a 5 pelo % de hoje; liderança OM, OC, OS |
 | Necessidade por página e bloco de 4 h (`fc_escala_pagina`) | Postos por página e turno (posts.py), × 1,5 (rotação de 21 dias) + 15% de buffer |
 | Escala 3x1, 3x1 + admin do cargo antigo mais alto | 5x2 rotativo em ciclo de 21 dias (5x2, 5x2, 4x3), por núcleo (OS + SRs) |
 | Ordem: party dona → time → cargo de rodízio → buffer | Equipe fixa da vaga (dono ou cobertura de outro núcleo) → buffer do núcleo |
@@ -33,9 +33,9 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 ## 1. Estrutura de 01/11
 
 - **Hierarquia:**
-  - CEO → Director → 3 OUM, um por unidade;
-  - cada OUM tem 3 OM, um por turno;
-  - cada OM tem 3 OS, no mesmo turno.
+  - CEO → Director → 3 OM, um por unidade;
+  - cada OM tem 3 OC, um por turno;
+  - cada OC tem 3 OS, no mesmo turno.
   - Ordem no organograma: D (T6/T1), C (T4/T5), A (T2/T3).
 - **Núcleos:** cada núcleo tem um **OS** (Operational Supervisor) e os **SRs** (Sales Representatives, nível 0 a 5) dele (1.1 a 1.n). Cada unidade tem 9 núcleos: OS 1 a 3 no turno A, 4 a 6 no C e 7 a 9 no D.
 - **No Planner (D13):**
@@ -43,7 +43,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
   | Estrutura nova | Planner |
   |---|---|
   | Unidade | Guild (sem uso hoje) |
-  | OM e quem está abaixo dele (unidade × turno) | Team |
+  | OC e quem está abaixo dele (unidade × turno) | Team |
   | OS e a equipe dele (o núcleo) | Party |
   | SRs | Membros da party |
 
@@ -108,7 +108,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 
 ## 2. O que o Planning tool faz
 
-1. **Estrutura das unidades.** Unidades, carteiras com as páginas, liderança (OUM, OM, OS), núcleos, postos e quem ocupa cada posto.
+1. **Estrutura das unidades.** Unidades, carteiras com as páginas, liderança (OM, OC, OS), núcleos, postos e quem ocupa cada posto.
    - **Fonte: o Planner** (decisão D1). O sistema lê a estrutura do `historicplanner`, que reflete o que o Planejamento ajusta nos times do site da 5C.
    - **Mudar algo pelo sistema gera um resumo** para o funcionário do Planejamento aplicar no site. O resumo diz:
      - quem muda de núcleo, de posto ou de turno;
@@ -121,7 +121,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
    - **O que vai para o resumo do Planner:**
      - página → Guild;
      - pessoa → Party (núcleo), e com isso o Team e o turno;
-     - OM e OS.
+     - OC e OS.
    - **O que fica só no sistema:**
      - página → carteira;
      - posto e a equipe fixa de cada vaga.
@@ -179,7 +179,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 5. **Escala da liderança.**
    - O OS segue a folga do próprio núcleo, então todo dia há 2 OS em serviço por unidade e turno.
    - Que carteira cada OS acompanha no dia é a decisão **D6**.
-   - A escala dos OM e dos OUM também entra (decisão **D6b**).
+   - A escala dos OC e dos OM também entra (decisão **D6b**).
    - A liderança não ocupa posto no chat. Ela aparece na grade e nas telas de equipe, mas não no CSV das páginas.
 6. **Recálculo durante a semana.** É disparado por:
    - mudança de postos (Capacity);
@@ -245,7 +245,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 | Acesso do colaborador | 17 Login no site (fase 2) |
 | Monitoramento | 12 Anomalias · 13 Auditoria de acesso |
 | Administração | 14 Acessos por tela (perfis por unidade, turno e carteira: decisão **D12**) |
-| Ajuda | 15 Glossário, com os termos novos: unidade, carteira, núcleo, OS, SRs, posto, vaga, cobertura, buffer, apoio, OUM, OM, nível, P1/P2/P3 |
+| Ajuda | 15 Glossário, com os termos novos: unidade, carteira, núcleo, OS, SRs, posto, vaga, cobertura, buffer, apoio, OM, OC, nível, P1/P2/P3 |
 
 **Mudanças por tela:**
 - **01 Painel:** indicadores por unidade e turno (postos, precisa, tem, saldo), núcleos em serviço no dia, pendências do Planner e o prazo de quinta 18:00.
@@ -264,7 +264,7 @@ O rascunho clicável (https://claude.ai/artifact/BJDKQYLPz119juqs4hcBP8, fonte e
 - **20 Rotação e liderança (nova):** a planilha de 21 dias dentro do sistema.
   - Os 3 núcleos de cada turno, com a semana P1, P2 ou P3 de cada um e a checagem de 2 ativos por dia.
   - Os OS seguem a folga do núcleo.
-  - A cobertura dos OM e OUM.
+  - A cobertura dos OC e OM.
 
 ## 4. Integrações
 
@@ -313,8 +313,8 @@ As 22 tabelas da v3 continuam (scripts `escalas/sql/ES_01` a `ES_03`, já instal
 
 | Tabela | O que guarda |
 |---|---|
-| `esc_unidade` | U1–U3 ↔ Guild do Planner, OUM, vigência |
-| `esc_lideranca` | OUM, OM por turno, OS de cada núcleo, vigência |
+| `esc_unidade` | U1–U3 ↔ Guild do Planner, OM, vigência |
+| `esc_lideranca` | OM, OC por turno, OS de cada núcleo, vigência |
 | `esc_nucleo` | Unidade, turno, número (1 a 3), OS e a trilha da rotação (P1, P3 ou P2 na semana 1), vigência |
 | `esc_posto` | Foto dos postos do Capacity (`5c_planning.fc_postos` e `fc_postos_pagina`) usada em cada plano, com o núcleo dono e o núcleo que cobre a folga |
 | `esc_vaga_equipe` | Quem está fixo em cada vaga (dono e cobertura de cada posto): uma pessoa de nível 3 a 5, ou a equipe de 2 ou 3 pessoas de nível 0 a 2 com a fatia de cada uma. Com vigência. É a base da medida de estabilidade (equipes mantidas de uma semana para a outra) |
@@ -368,12 +368,19 @@ Iguais à v3:
 - **D3 · Folgas:** rotativas, no ciclo de 21 dias (5x2, 5x2 e 4x3; a semana de 4x3 inclui sábado e domingo), com P1, P2 e P3 defasados em 1 semana entre os 3 núcleos do turno. Planilha de 27/10.
 - **D11 · Virada:** a escala nova sai por este sistema. A virada é em **01/11 às 05:00** (do T2 em diante, `ES_09`). Até lá vale a escala atual. Em 28/10 a escala antiga foi postada até 01/11 T6; o `ES_08` deixa a virada no turno A de 02/11, sem transição, se for preciso.
 - **D13 · Planner:**
-  - Guild = unidade; Team = OM e quem está abaixo; Party = OS e o núcleo dele; membros = SRs.
+  - Guild = unidade; Team = OC e quem está abaixo; Party = OS e o núcleo dele; membros = SRs.
   - A página fica com a Guild.
   - Postos e equipes ficam só no 5C Escalas, com histórico. Carteiras ficam no `5c_planning` (ver abaixo).
-- **D14 · Âncora:** a semana de 02/11 é a semana 1. O domingo 01/11 é de transição: as páginas são cobertas por quem já está escalado nesse dia, no turno em que está, só SRs (quem vai virar OS, OM ou OUM fica de fora). Depois valem todas as regras.
+- **D14 · Âncora:** a semana de 02/11 é a semana 1. O domingo 01/11 é de transição: as páginas são cobertas por quem já está escalado nesse dia, no turno em que está, só SRs (quem vai virar OS, OC ou OM fica de fora). Depois valem todas as regras.
 - **D15 · Backup:** deve dar a menor troca possível de pessoas atuando numa página. Ficou equipe fixa por vaga, com as 7 regras do montador da seção 2, item 3, testadas no modelo de 27/10.
-- **D16 · Nomes (28/10):** Operational Unit Manager (OUM), Operational Manager (OM), Operational Supervisor (OS) e Sales Representative (SR, nível 0 a 5). Os nomes antigos de cargo saem da ferramenta.
+- **D16 · Nomes (28/10, revisto em 29/10):** Operational Manager (OM, antes OUM), Operational Coordinator (OC, antes OM), Operational Supervisor (OS), Operational Assistant (OA) e Sales Representative (SR, nível 0 a 5). Os nomes antigos de cargo saem da ferramenta.
+- **D17 · Escala da liderança (29/10):** separada da dos SRs, tela Escala da liderança (`ES_19`).
+  - OM (3, um por unidade): não segue escala.
+  - OC (9, um por unidade e turno) e OS (27, um por núcleo): 5x2 no ciclo de 21 dias dos SRs. O OS segue o núcleo; os 3 OC de cada turno usam os deslocamentos 0, 14 e 7.
+  - OC e OS ficam num turno só (A = T2/T3, C = T4/T5, D = T6/T1).
+  - OA (cargo novo, os Commercial Agents): 1 por turno, todo dia (24/7), numa semana fixa. Marcelo só A (`..AAAAA`), Ian A ou C (`AACCC..`), Daniel C ou D (`CDD..CC`), Diego só D (`D..DDDD`) e Giovanni, supervisor, cobre 1 turno (`.C.....`). Quem faz dois turnos sempre muda para o mais tarde (11 h de descanso). Com cada um num turno só seriam 6 OAs.
+  - Sem o dia de treinamento separado: o 15º dia de trabalho cai na mesma posição do ciclo para todos (`v4_lideranca_overlap_posicao` = 5, o sábado). Nesse dia os 3 do grupo estão no turno; nos outros, 2 de 3.
+  - Postagem: no mesmo plano e no mesmo CSV dos SRs, na página 5C Schedule, com `-8` (OS), `-7` (OC) e `-6` (OA) no código (`ES_20`).
 - **Buffers:** cada núcleo (equipe do supervisor) tem o próprio grupo de buffers, que segue a folga do núcleo.
   - Os níveis 0 a 2 alternam entre atuar em uma ou mais páginas e a função de buffer.
   - Todos fazem turnos regulares; o nível define quantos (2 mais, 1 médio, 0 menos).
@@ -383,13 +390,12 @@ Iguais à v3:
 **Abertas, na ordem em que travam o trabalho:**
 
 1. **D10 · Fatia regular por nível.** Valores dos níveis 0, 1 e 2. Proposta inicial, como parâmetro editável: nível 2 = 80%, nível 1 = 60%, nível 0 = 40% dos dias de trabalho em página (o resto é buffer). No modelo de 27/10, os nível 1 estavam em 47–63%.
-2. **OM e OUM:** mantêm o nome? A escala deles segue a mesma rotação de 21 dias?
-3. **D6b · Folga do OM:** quem cobre o OM na folga dele?
-4. **D5 · Postos na semana:** os mesmos todos os dias (posts.py, maior bloco do turno) ou por dia da semana?
-5. **D8 · Páginas por rep:** o posts.py agrupa até 3 de modelos diferentes; a Política (5.3.1) permite 2 quando são diferentes. Qual vale?
-6. **D9 · Apoio no CSV:** quem faz apoio na página grande entra como assistente (`#`) ou como regular?
-7. **D7 · Página que muda de carteira:** quem está fixo no posto vai junto ou fica na carteira?
-8. **D12 · Acesso por perfil:** o OUM vê a própria unidade, o OM o próprio turno e o OS o próprio núcleo? Algum deles aprova indisponibilidade, ou só o WFM?
+2. **D6b · Folga do OC:** na folga, os outros 2 OC do turno cobrem a unidade dele? (A escala de OC e OS foi resolvida em D17.)
+3. **D5 · Postos na semana:** os mesmos todos os dias (posts.py, maior bloco do turno) ou por dia da semana?
+4. **D8 · Páginas por rep:** o posts.py agrupa até 3 de modelos diferentes; a Política (5.3.1) permite 2 quando são diferentes. Qual vale?
+5. **D9 · Apoio no CSV:** quem faz apoio na página grande entra como assistente (`#`) ou como regular?
+6. **D7 · Página que muda de carteira:** quem está fixo no posto vai junto ou fica na carteira?
+7. **D12 · Acesso por perfil:** o OM vê a própria unidade, o OC o próprio turno e o OS o próprio núcleo? Algum deles aprova indisponibilidade, ou só o WFM?
 
 **Resolvidas pelas respostas acima:**
 - **D4:** a cobertura fica dentro da unidade e do turno. A cobertura pode estar na outra carteira; entre unidades, só buffer.
@@ -414,12 +420,26 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
 | Script | O que faz |
 |---|---|
 | `ES_04_estrutura_unidades.sql` | Só adiciona:<br>- tabelas `esc_unidade`, `esc_lideranca`, `esc_nucleo`, `esc_posto`, `esc_posto_pagina` e `esc_vaga_equipe`;<br>- colunas novas em colaboradores, plano e alocação;<br>- o modelo "5x2 rotativo 21 dias";<br>- os parâmetros `v4_*` (fatia por nível 80/60/40%, âncora 02/11, virada 01/11 05:00);<br>- a view `vw_esc_estrutura_rep` para o Capacity.<br>Pode rodar de novo. |
-| `ES_05_carga_estrutura_27out.sql` | Gerado por `gerador/gerar_es05.py` a partir do modelo de 27/10:<br>- 3 unidades, 3 OUM e 9 OM;<br>- 27 núcleos;<br>- 245 pessoas: 219 SRs e 26 OS com código;<br>- 162 postos com as páginas;<br>- a **proposta** de equipe de cada vaga (status PROPOSTA).<br>Fecha a configuração antiga dessas pessoas em 31/10. Termina com consultas de conferência. Pode rodar de novo. |
+| `ES_05_carga_estrutura_27out.sql` | Gerado por `gerador/gerar_es05.py` a partir do modelo de 27/10:<br>- 3 unidades, 3 OM e 9 OC;<br>- 27 núcleos;<br>- 245 pessoas: 219 SRs e 26 OS com código;<br>- 162 postos com as páginas;<br>- a **proposta** de equipe de cada vaga (status PROPOSTA).<br>Fecha a configuração antiga dessas pessoas em 31/10. Termina com consultas de conferência. Pode rodar de novo. |
 | `ES_06_ajuste_pessoas_01nov.sql` | Fecha a configuração da v3 dos 12 desligados.<br>Põe nos núcleos os 20 reps ativos que estavam fora do modelo de 27/10:<br>- turno = o que mais trabalharam em 14 dias;<br>- nível pelo cargo de hoje;<br>- núcleo = o mais curto do turno.<br>Entram sem equipe fixa. |
-| `ES_09_transicao_01nov.sql` | Virada em 01/11 05:00 com 01/11 de transição (substitui o ES_08). Termina com quantos escalados de 01/11 entram: em 28/10, 145 SRs; 10 futuros OS e 7 futuros OM/OUM ficam de fora. |
+| `ES_09_transicao_01nov.sql` | Virada em 01/11 05:00 com 01/11 de transição (substitui o ES_08). Termina com quantos escalados de 01/11 entram: em 28/10, 145 SRs; 10 futuros OS e 7 futuros OC/OM ficam de fora. |
 | `ES_10_postos_capacity_28out.sql` | Gerado por `gerador/gerar_es10.py`. Troca os postos pelos do Capacity (`fc_postos` de 28/10, com as páginas da mesma modelo juntas pela regra nova do Capacity) e remonta a proposta de equipe de cada vaga, mantendo cada SR nas páginas que já fazia no turno. Os postos e equipes de antes ficam só com o dia 31/10. |
 | `ES_11_overlap_treinamento.sql` | Origem OVERLAP e o parâmetro `v4_overlap_posicao_ciclo` = 1: no dia de treinamento (15º dia do 5x2, a folga isolada da semana 1) o SR entra como Overlap no posto dele, com `-5` no CSV. |
 | `ES_12_faturamento_overlap_over.sql` | Origem SOBRECARGA e os parâmetros `v4_receita_dias` (28), `v4_over_capacity_max` (0,15) e `v4_overlap_pagina` (5C Schedule): vagas por faturamento, Overlap na página 5C Schedule e acúmulo até 15% acima da capacidade, sinalizado. |
+| `ES_13_overlap_defasado.sql` | Overlap em dias diferentes por SR: folgas 5, 6, 7, 16 e 17 do ciclo, no máximo 5 dias seguidos. |
+| `ES_14_horas_extras.sql` | Tabela `esc_hora_extra` da tela Horas extras. O buffer de plantão passa a sair na página 5C Schedule com `-2`. |
+| `ES_15_saida_skylar.sql` | Saída da Skylar: fecha os 12 postos da "Skylar Mae VIP" (U1C1, 4 por turno) a partir de 01/11 e põe 3 SRs liberados como donos dos postos da U1 sem dono. |
+| `ES_16_merito_infracoes_saidas.sql` | Mérito dos SRs (5C George: Desempenho × SLA × (1 − absenteísmo) ÷ (1 + pena)), tabela de infrações `esc_sr_infraction` com pena que cai pela metade a cada `merito_infracao_meia_vida_dias`, fotos do Capacity antes × depois (`esc_capacity_versao*`) e registro das saídas aplicadas (`esc_saida_pagina`). |
+| `ES_17_equipes_por_historico.sql` | Gerado por `sql/gerador/gerar_es17.py`. Refaz as equipes fixas dos postos vigentes pelo histórico real do 5C Schedule (dias em cada página nas últimas 8 semanas), dentro do próprio núcleo, para mexer o mínimo nas pessoas na virada. Postos, núcleo dono e cobertura não mudam (com `--dono`, o núcleo dono e o de cobertura também são escolhidos pelo histórico). Linha igual fica; as que saem ficam só com 31/10. |
+| `ES_18_virada_31out_21h.sql` | Virada em 31/10 às 21:00: o turno D de 31/10 (T6 + T1 de 01/11) já é da estrutura nova; `v4_dia_transicao` = 31/10 e 01/11 (aceita lista). A estrutura (postos, núcleos, equipes) continua com vigência de 01/11; o turno D da virada usa a do dia seguinte. |
+| `ES_19_lideranca_escala.sql` | Nomes novos: OUM → OM (Operational Manager), OM → OC (Operational Coordinator), e o cargo OA (Operational Assistant, sem unidade) com os 5 da semana fixa. Colunas `deslocamento` (OC: 0, 14 e 7 pela unidade) e `padrao_semana` (OA) em `esc_lideranca` e o parâmetro `v4_lideranca_overlap_posicao` = 5. Pode rodar de novo: a troca de nomes só acontece enquanto houver `OUM`. |
+| `ES_20_lideranca_no_plano.sql` | Origens `LIDER_OS`, `LIDER_OC` e `LIDER_OA` em `esc_plano_alocacao`: a liderança entra no plano junto com os SRs, na página 5C Schedule, com `-8`, `-7` e `-6` no CSV. |
+| `ES_21_quadro_lideranca_29out.sql` | Liderança pelo quadro de 29/10: os 27 OS nos núcleos; Isabela de Albuquerque, Julia Xavier Broggio, Matheus Trevisan e Isabel da Silva Marinho (A177909, nome social) deixam de ser SR e viram OS (as vagas fixas delas fecham em 31/10); Thiago de Meneses, José Otávio e Carolina Broggio saem de OS e ficam como SR nível 5 no mesmo núcleo (confirmado em 29/10); OC da U3: Henrique Dubles no D e Pedro Ribeiro no C. |
+| `ES_22_5x2_ate_5_seguidos.sql` | Limite de anomalia do modelo "5x2 rotativo 21 dias" passa de 4 para 5 dias seguidos (no 5x2 vale trabalhar até 5). Tipo de folga `EMENDA`: quem já vem de 5 dias seguidos (escala postada + plano) folga no dia, na transição e na rotação. A tela Modelos de escala passa a aceitar o limite digitado (nunca abaixo da maior sequência do ciclo) e ciclos de até 28 dias. |
+| `ES_23_postagem_da_grade.sql` | Tabela `esc_plano_postagem`: controle de "Apaguei" e "Postei" por versão e página na Grade da escala (cartão com o CSV de cada página para copiar, como na troca de páginas). Guarda o CSV postado; a versão seguinte mostra as páginas que mudaram e as que podem ficar como estão. |
+| `ES_24_fecha_cadastro_3x1.sql` | Fecha em 31/10 as 15 configurações antigas (3x1 / "Primaris 3x1 + admin") que ficaram abertas: 12 da liderança (seguem `esc_lideranca`) e 3 SRs fora do quadro de 01/11 (G475628, L062246, L037393). |
+| `ES_25_trocas_preferencia_turno.sql` | Gerado pela proposta do formulário de preferência de turno (28–29/10, `Proposta_turnos_formulario.xlsx`): 11 trocas 1 por 1 entre SRs (núcleo, unidade e turno na configuração de 01/11; cada um assume as vagas fixas do par). |
+| `ES_26_pedidos_ausencia_formulario.sql` | Pedidos de ausência PENDENTE tirados das observações do formulário: folga fixa num dia da semana vira pedido recorrente até 31/12; datas pontuais viram pedido com data. Rodar depois do ES_25 (o turno é o novo). |
 | `ES_08_virada_02nov.sql` | Passa a virada para 02/11 01:00 e deixa sem dia de transição (`v4_dia_transicao` vazio): a escala antiga vai até 01/11 T6. |
 | `ES_07_conferencia_v4.sql` | Só leitura: conferência do plano da semana de 02/11 depois de gerar. |
 | `ES_98_desfazer_v4.sql` | Desfaz o ES_05 e o ES_04 sem apagar o schema. |
@@ -463,7 +483,7 @@ Em `escalas/sql/`, rodar no Navicat nesta ordem:
 O prazo é curto: a escala de **01/11 (a partir do T2) a 08/11** precisa sair do sistema até **quinta, 29/10, às 18:00** (Política 6.1). Ordem proposta, só com o que essa escala precisa:
 
 1. **28/10:**
-   - responder os buffers em núcleo e OM/OUM (itens 1 e 2 das abertas);
+   - responder os buffers em núcleo e OC/OM (itens 1 e 2 das abertas);
    - script `ES_04_estrutura_unidades.sql` (só aditivo) com o modelo "5x2 rotativo 21 dias";
    - `ES_05_carga_estrutura_27out.sql` com unidades, núcleos, postos e a proposta de equipes por vaga.
 2. **28–29/10:**

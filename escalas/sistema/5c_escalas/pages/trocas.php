@@ -260,7 +260,7 @@ if (escPost()) {
     $seg = (string) ($_POST['semana'] ?? '');
     $passo = (string) ($_POST['passo'] ?? '');
     if (!isset($pacote[$pid]) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $seg) || !in_array($passo, ['apagado', 'postado', 'desfazer'], true)) {
-        throw new RuntimeException('Página ou semana fora do pacote.');
+        throw new RuntimeException(t('Página ou semana fora do pacote.'));
     }
     $it = $pacote[$pid];
     $csv = escCsvSemana($it, $seg, $corte);
@@ -278,11 +278,13 @@ if (escPost()) {
         escW('UPDATE ' . escT('esc_troca_postagem') . ' SET apagado_em = NULL, apagado_por = NULL, postado_em = NULL, postado_por = NULL WHERE corte = ? AND page_id = ? AND semana = ?', [$ts, $pid, $seg]);
     }
     escLog('troca.' . $passo, 'esc_troca_postagem', $ts . ':' . $pid . ':' . $seg);
-    escVoltar('trocas', ['corte' => $ts], $it['mov']['pagina'] . ': ' . ($passo === 'desfazer' ? 'marcação desfeita.' : 'marcado como ' . $passo . '.'));
+    $varsPasso = ['pagina' => $it['mov']['pagina']];
+    escVoltar('trocas', ['corte' => $ts], $passo === 'desfazer' ? t('{pagina}: marcação desfeita.', $varsPasso)
+        : ($passo === 'apagado' ? t('{pagina}: marcado como apagado.', $varsPasso) : t('{pagina}: marcado como postado.', $varsPasso)), false, 'troca-' . $pid . '-' . str_replace('-', '', $seg));
 }
 $postagens = [];
 if ($ts !== '') {
-    foreach (escQ('SELECT page_id, semana, apagado_em, postado_em, conferido_em FROM ' . escT('esc_troca_postagem') . ' WHERE corte = ?', [$ts]) as $pp) {
+    foreach (escQ('SELECT page_id, semana, apagado_em, postado_em, conferido_em, csv_hash FROM ' . escT('esc_troca_postagem') . ' WHERE corte = ?', [$ts]) as $pp) {
         $postagens[(int) $pp['page_id'] . '|' . substr($pp['semana'], 0, 10)] = $pp;
     }
 }
@@ -293,7 +295,7 @@ if (($_GET['baixar'] ?? '') === 'csv') {
     $seg = (string) ($_GET['semana'] ?? '');
     if (!isset($pacote[$pid]) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $seg)) {
         http_response_code(404);
-        echo 'Página ou semana fora do pacote.';
+        echo t('Página ou semana fora do pacote.');
         return;
     }
     $nomeArquivo = preg_replace('~[^A-Za-z0-9_-]+~', '_', $pacote[$pid]['mov']['pagina']) . '_' . $seg . '.csv';
@@ -319,81 +321,107 @@ if ($corte && $horaCorte !== '01') {
 }
 $totalMudou = array_sum(array_column($pacote, 'mudou'));
 $totalLacunas = array_sum(array_map(static fn($i) => count($i['lacunas']), $pacote));
+// Blocos que pedem decisão (sem substituto / lacuna): dia, bloco e link para a célula na Grade
+// da versão atual da semana.
+$planosSemana = [];
+$listaBlocos = static function (int $pid, array $slots) use (&$planosSemana): string {
+    if (!$slots) {
+        return '';
+    }
+    $itens = [];
+    foreach ($slots as $slot) {
+        $diaSlot = substr((string) $slot, 0, 10);
+        $bloco = blocoDaHora(substr((string) $slot, 11, 2));
+        $turno = turnoDoBloco($bloco);
+        $diaTurno = $bloco === 'T1' ? escMaisDias($diaSlot, -1) : $diaSlot;
+        $seg = segundaDaSemana($diaTurno);
+        if (!array_key_exists($seg, $planosSemana)) {
+            $planosSemana[$seg] = escPlanoAtual($seg);
+        }
+        $rot = dataBr($diaSlot, true) . ' ' . $bloco;
+        $pl = $planosSemana[$seg];
+        $itens[] = '<li>' . ($pl ? '<a href="' . h(link_tela('grade', ['plano' => (int) $pl['id'], 'turno' => $turno, 'pg' => $pid, 'dia' => $diaTurno])) . '">' . h($rot) . '</a>' : h($rot)) . '</li>';
+    }
+    return '<details class="blocos-pendentes"><summary class="small">' . h(t('ver blocos')) . '</summary><ul class="regras small">' . implode('', $itens) . '</ul></details>';
+};
 $totalSemSubstituto = array_sum(array_map(static fn($i) => count($i['semSubstituto']), $pacote));
 $nomePessoa = static function (string $code) use (&$estrutura, &$nomes): string {
     return $estrutura[$code]['rep_name'] ?? ($nomes[$code] ?? $code);
 };
 ?>
 <header class="cabecalho">
-  <span class="eyebrow">Páginas</span>
-  <h1>Trocas de página</h1>
-  <p class="muted">Lê as trocas de party do Planner e refaz a escala já postada: quem é da party nova e já está escalado no mesmo bloco assume a página. Depois monta o que apagar e o CSV para postar no Schedule Ajustment.</p>
+  <span class="eyebrow"><?php echo h(t('Páginas')); ?></span>
+  <h1><?php echo h(t('Trocas de página')); ?></h1>
+  <p class="muted"><?php echo h(t('Lê as trocas de party do Planner e refaz a escala já postada: quem é da party nova e já está escalado no mesmo bloco assume a página. Depois monta o que apagar e o CSV para postar no Schedule Ajustment.')); ?></p>
 </header>
 
 <form class="filtros" method="get" action="<?php echo h(MODULE_URL); ?>/index.php">
   <input type="hidden" name="p" value="trocas">
-  <label>Lote de trocas (horário marcado no Planner)
+  <label><?php echo h(t('Lote de trocas (horário marcado no Planner)')); ?>
     <select name="corte" onchange="this.form.submit()">
-      <?php foreach ($cortes as $c): ?>
+      <?php foreach ($cortes as $c): $varsCorte = ['dia' => dataBr($c['ts'], true), 'hora' => substr($c['ts'], 11, 5), 'n' => $c['n'], 'pendentes' => $c['pendentes']]; ?>
         <option value="<?php echo h($c['ts']); ?>" <?php echo $c['ts'] === $ts ? 'selected' : ''; ?>>
-          <?php echo h(dataBr($c['ts'], true) . ' ' . substr($c['ts'], 11, 5) . ' · ' . $c['n'] . ' página(s)' . ((int) $c['pendentes'] > 0 ? ' · ' . $c['pendentes'] . ' a aplicar' : ' · já aplicada')); ?>
+          <?php echo h((int) $c['pendentes'] > 0 ? t('{dia} {hora} · {n} página(s) · {pendentes} a aplicar', $varsCorte) : t('{dia} {hora} · {n} página(s) · já aplicada', $varsCorte)); ?>
         </option>
       <?php endforeach; ?>
     </select>
   </label>
-  <noscript><button type="submit">Ver</button></noscript>
+  <noscript><button type="submit"><?php echo h(t('Ver')); ?></button></noscript>
 </form>
 
 <?php if (!$cortes): ?>
-  <section class="panel"><p class="muted">Nenhuma troca de página no Planner nos últimos 14 dias nem prevista.</p></section>
+  <section class="panel"><p class="muted"><?php echo h(t('Nenhuma troca de página no Planner nos últimos 14 dias nem prevista.')); ?></p></section>
 <?php return; endif; ?>
 
 <section class="kpis">
-  <div class="kpi"><span class="muted">Páginas no lote</span><strong><?php echo count($movs); ?></strong><span class="muted small">corte no bloco <?php echo h(blocoDaHora($horaCorte)); ?> de <?php echo h(dataBr($diaCorte, true)); ?> (<?php echo h($horaCorte); ?>:00)</span></div>
-  <div class="kpi"><span class="muted">Blocos que mudam</span><strong><?php echo (int) $totalMudou; ?></strong><span class="muted small">na escala postada até <?php echo h(dataBr(max(array_column($pacote, 'ultimo') ?: [$corte]), true)); ?></span></div>
-  <div class="kpi"><span class="muted">Sem substituto</span><strong class="<?php echo $totalSemSubstituto ? 'laranja' : ''; ?>"><?php echo (int) $totalSemSubstituto; ?></strong><span class="muted small">blocos em que a party nova não tem titular escalado: quem está continua</span></div>
-  <div class="kpi"><span class="muted">Situação no Planner</span><strong><?php echo array_sum(array_column($movs, 'aplicada')) === count($movs) ? 'Aplicada' : 'A aplicar'; ?></strong><span class="muted small"><?php echo $totalMudou === 0 ? 'escala postada já está com as parties novas' : 'escala postada ainda com as parties antigas'; ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Páginas no lote')); ?></span><strong><?php echo count($movs); ?></strong><span class="muted small"><?php echo h(t('corte no bloco {bloco} de {dia} ({hora}:00)', ['bloco' => blocoDaHora($horaCorte), 'dia' => dataBr($diaCorte, true), 'hora' => $horaCorte])); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Blocos que mudam')); ?></span><strong><?php echo (int) $totalMudou; ?></strong><span class="muted small"><?php echo h(t('na escala postada até {dia}', ['dia' => dataBr(max(array_column($pacote, 'ultimo') ?: [$corte]), true)])); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Sem substituto')); ?></span><strong class="<?php echo $totalSemSubstituto ? 'laranja' : ''; ?>"><?php echo (int) $totalSemSubstituto; ?></strong><span class="muted small"><?php echo h(t('blocos em que a party nova não tem titular escalado: quem está continua')); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Situação no Planner')); ?></span><strong><?php echo h(array_sum(array_column($movs, 'aplicada')) === count($movs) ? t('Aplicada') : t('A aplicar')); ?></strong><span class="muted small"><?php echo h($totalMudou === 0 ? t('escala postada já está com as parties novas') : t('escala postada ainda com as parties antigas')); ?></span></div>
 </section>
 
 <section class="panel">
-  <h2>1 · O que muda</h2>
+  <h2><?php echo h(t('1 · O que muda')); ?></h2>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th>Página</th><th>De</th><th>Para</th><th class="num">Blocos postados</th><th class="num">Mudam</th><th class="num">Sem substituto</th><th>Sai</th><th>Entra</th></tr></thead>
+    <thead><tr><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('De')); ?></th><th><?php echo h(t('Para')); ?></th><th class="num"><?php echo h(t('Blocos postados')); ?></th><th class="num"><?php echo h(t('Mudam')); ?></th><th class="num"><?php echo h(t('Sem substituto')); ?></th><th><?php echo h(t('Sai')); ?></th><th><?php echo h(t('Entra')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($pacote as $pid => $it): $m = $it['mov']; ?>
       <tr>
         <td><strong><?php echo h($m['pagina']); ?></strong></td>
         <td><?php echo h($m['de_party'] ?: '—'); ?></td>
-        <td><?php echo h($m['para_party']); ?><?php echo $m['de_time'] && $m['de_time'] !== $m['para_time'] ? ' <span class="tag">muda de time</span>' : ''; ?></td>
+        <td><?php echo h($m['para_party']); ?><?php echo $m['de_time'] && $m['de_time'] !== $m['para_time'] ? ' <span class="tag">' . h(t('muda de time')) . '</span>' : ''; ?></td>
         <td class="num"><?php echo (int) $it['blocos']; ?></td>
         <td class="num"><?php echo (int) $it['mudou']; ?></td>
-        <td class="num <?php echo $it['semSubstituto'] ? 'laranja' : ''; ?>"><?php echo count($it['semSubstituto']); ?></td>
-        <td class="small"><?php foreach ($it['sai'] as $code => $sl): ?><span class="pessoa" title="<?php echo h($code . ' · ' . ($estrutura[$code]['party'] ?? 'sem party') . ' · ' . count($sl) . ' bloco(s)'); ?>"><?php echo h($nomePessoa($code)); ?> <span class="muted">(<?php echo count($sl); ?>)</span></span><?php endforeach; ?><?php echo !$it['sai'] ? '<span class="muted">—</span>' : ''; ?></td>
-        <td class="small"><?php foreach ($it['entra'] as $code => $sl): ?><span class="pessoa" title="<?php echo h($code . ' · ' . ($estrutura[$code]['role'] ?? '') . ' · ' . count($sl) . ' bloco(s)'); ?>"><?php echo h($nomePessoa($code)); ?> <span class="muted">(<?php echo count($sl); ?>)</span></span><?php endforeach; ?><?php echo !$it['entra'] ? '<span class="muted">—</span>' : ''; ?></td>
+        <td class="num <?php echo $it['semSubstituto'] ? 'laranja' : ''; ?>"><?php echo count($it['semSubstituto']); ?><?php echo $listaBlocos($pid, $it['semSubstituto']); ?></td>
+        <td class="small"><?php foreach ($it['sai'] as $code => $sl): ?><span class="pessoa" title="<?php echo h(t('{codigo} · {party} · {n} bloco(s)', ['codigo' => $code, 'party' => $estrutura[$code]['party'] ?? t('sem party'), 'n' => count($sl)])); ?>"><?php echo h($nomePessoa($code)); ?> <span class="muted">(<?php echo count($sl); ?>)</span></span><?php endforeach; ?><?php echo !$it['sai'] ? '<span class="muted">—</span>' : ''; ?></td>
+        <td class="small"><?php foreach ($it['entra'] as $code => $sl): ?><span class="pessoa" title="<?php echo h(t('{codigo} · {papel} · {n} bloco(s)', ['codigo' => $code, 'papel' => $estrutura[$code]['role'] ?? '', 'n' => count($sl)])); ?>"><?php echo h($nomePessoa($code)); ?> <span class="muted">(<?php echo count($sl); ?>)</span></span><?php endforeach; ?><?php echo !$it['entra'] ? '<span class="muted">—</span>' : ''; ?></td>
       </tr>
     <?php endforeach; ?>
     </tbody>
   </table>
   </div>
   <ul class="muted small regras">
-    <li><strong>Titular</strong> (Primaris, Secundus) segue a party: entra na página nova nos blocos em que já está escalado em alguma página da própria party.</li>
-    <li>Quem é do <strong>time novo</strong> (outra party do time cobrindo, ou Tertius do time) fica; <strong>Buffer</strong> fica sempre (não tem time).</li>
-    <li>Quem é de outro time só sai se a party nova tiver titular escalado no mesmo bloco. Se não tiver, continua e o bloco aparece em "sem substituto" para alguém decidir.</li>
-    <li>Se o lote já foi aplicado e a escala refeita, nada muda aqui: serve para conferir.</li>
+    <li><strong><?php echo h(t('Titular')); ?></strong> <?php echo h(t('(líder e titulares da party) segue a party: entra na página nova nos blocos em que já está escalado em alguma página da própria party.')); ?></li>
+    <li><?php echo t('Quem é do {timeNovo} (outra party do time cobrindo, ou SR de rodízio do time) fica; {buffer} fica sempre (não tem time).', ['timeNovo' => '<strong>' . h(t('time novo')) . '</strong>', 'buffer' => '<strong>' . h(t('Buffer')) . '</strong>']); ?></li>
+    <li><?php echo h(t('Quem é de outro time só sai se a party nova tiver titular escalado no mesmo bloco. Se não tiver, continua e o bloco aparece em "sem substituto" para alguém decidir.')); ?></li>
+    <li><?php echo h(t('Se o lote já foi aplicado e a escala refeita, nada muda aqui: serve para conferir.')); ?></li>
   </ul>
 </section>
 
 <section class="panel">
-  <h2>2 · Postar no site da 5C (Schedule Ajustment)</h2>
-  <p class="muted small">Faça em todas as páginas antes de postar qualquer uma. Delete Range apaga só a página do Model.</p>
+  <h2><?php echo h(t('2 · Postar no site da 5C (Schedule Ajustment)')); ?></h2>
+  <p class="muted small"><?php echo h(t('Faça em todas as páginas antes de postar qualquer uma. Delete Range apaga só a página do Model.')); ?></p>
   <ol class="roteiro">
     <?php if ($blocosManuais): ?>
-    <li><strong>Delete Range</strong> de <?php echo h(dataBr(date('Y-m-d', strtotime($diaCorte . ' +1 day')))); ?> até o último dia postado de cada página, e apague <strong>à mão</strong> em <?php echo h(dataBr($diaCorte, true)); ?> os blocos <?php echo h(implode(', ', $blocosManuais)); ?>.</li>
+    <li><?php echo t('{acao} de {ini} até o último dia postado de cada página, e apague {aMao} em {dia} os blocos {blocos}.', [
+        'acao' => '<strong>Delete Range</strong>', 'ini' => h(dataBr(date('Y-m-d', strtotime($diaCorte . ' +1 day')))), 'aMao' => '<strong>' . h(t('à mão')) . '</strong>',
+        'dia' => h(dataBr($diaCorte, true)), 'blocos' => h(implode(', ', $blocosManuais)),
+    ]); ?></li>
     <?php else: ?>
-    <li><strong>Delete Range</strong> de <?php echo h(dataBr($diaCorte)); ?> até o último dia postado de cada página.</li>
+    <li><?php echo t('{acao} de {ini} até o último dia postado de cada página.', ['acao' => '<strong>Delete Range</strong>', 'ini' => h(dataBr($diaCorte))]); ?></li>
     <?php endif; ?>
-    <li><strong>Save Schedule CSV</strong> com Date Schedule <?php echo h(dataBr($diaCorte)); ?>. No dia <?php echo h(dataBr($diaCorte)); ?> só vão os blocos a partir do corte; o resto fica em branco (o intervalo precisa começar nesse dia).</li>
+    <li><?php echo t('{acao} com Date Schedule {dia}. No dia {dia} só vão os blocos a partir do corte; o resto fica em branco (o intervalo precisa começar nesse dia).', ['acao' => '<strong>Save Schedule CSV</strong>', 'dia' => h(dataBr($diaCorte))]); ?></li>
   </ol>
 
   <?php foreach ($pacote as $pid => $it): $m = $it['mov']; ?>
@@ -403,32 +431,33 @@ $nomePessoa = static function (string $code) use (&$estrutura, &$nomes): string 
         $csv = escCsvSemana($it, $seg, $corte);
         $idPre = 'csv-' . $pid . '-' . $seg;
     ?>
-    <div class="cartao-csv">
+    <div class="cartao-csv" id="troca-<?php echo (int) $pid; ?>-<?php echo h(str_replace('-', '', $seg)); ?>">
       <div class="linha-titulo">
         <div><strong><?php echo h($m['pagina']); ?></strong> <span class="muted small">→ <?php echo h($m['para_party']); ?></span></div>
         <span class="muted small">Model <strong><?php echo h($m['pagina']); ?></strong> · Date Schedule <strong><?php echo h(date('d/m/Y', strtotime($ini))); ?></strong> · Date End <strong><?php echo h(date('d/m/Y', strtotime($fim))); ?></strong></span>
       </div>
       <pre id="<?php echo h($idPre); ?>" class="csv"><?php echo h($csv); ?></pre>
       <div class="acoes">
-        <button type="button" class="botao primario" data-copiar="<?php echo h($idPre); ?>">Copiar CSV</button>
-        <a class="botao" href="<?php echo h(link_tela('trocas', ['corte' => $ts, 'baixar' => 'csv', 'pagina' => $pid, 'semana' => $seg])); ?>">Baixar .csv</a>
-        <?php if ($it['lacunas']): ?><span class="tag laranja"><?php echo count($it['lacunas']); ?> lacuna(s)</span><?php endif; ?>
+        <button type="button" class="botao primario" data-copiar="<?php echo h($idPre); ?>"><?php echo h(t('Copiar CSV')); ?></button>
+        <a class="botao" href="<?php echo h(link_tela('trocas', ['corte' => $ts, 'baixar' => 'csv', 'pagina' => $pid, 'semana' => $seg])); ?>"><?php echo h(t('Baixar .csv')); ?></a>
+        <?php if ($it['lacunas']): ?><span class="tag laranja"><?php echo h(tn(count($it['lacunas']), '{n} lacuna', '{n} lacunas')); ?></span><?php echo $listaBlocos($pid, $it['lacunas']); ?><?php endif; ?>
         <?php $pp = $postagens[$pid . '|' . $seg] ?? null; ?>
-        <span class="tag <?php echo $pp && $pp['postado_em'] ? 'verde' : ($pp && $pp['apagado_em'] ? 'amarelo' : 'laranja'); ?>"><?php echo $pp && $pp['postado_em'] ? 'postado ' . h(date('d/m H:i', strtotime($pp['postado_em']))) : ($pp && $pp['apagado_em'] ? 'intervalo apagado' : 'a fazer'); ?></span>
+        <?php $mudou = $pp && $pp['postado_em'] && $pp['csv_hash'] && !hash_equals((string) $pp['csv_hash'], hash('sha256', $csv)); ?>
+        <span class="tag <?php echo $mudou ? 'vermelho' : ($pp && $pp['postado_em'] ? 'verde' : ($pp && $pp['apagado_em'] ? 'amarelo' : 'laranja')); ?>"><?php echo h($mudou ? t('mudou depois de postado: postar de novo') : ($pp && $pp['postado_em'] ? t('postado {quando}', ['quando' => escDataHora($pp['postado_em'])]) : ($pp && $pp['apagado_em'] ? t('intervalo apagado') : t('a fazer')))); ?></span>
         <?php if (escPode('decidir')): ?>
         <form method="post" action="<?php echo h(link_tela('trocas', ['corte' => $ts])); ?>" class="acoes">
           <?php echo campoCsrf(); ?><input type="hidden" name="pagina" value="<?php echo (int) $pid; ?>"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
-          <?php if (!$pp || !$pp['apagado_em']): ?><button type="submit" name="passo" value="apagado" class="botao">1 · Apaguei</button><?php endif; ?>
-          <?php if (!$pp || !$pp['postado_em']): ?><button type="submit" name="passo" value="postado" class="botao">2 · Postei</button><?php endif; ?>
-          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao">Desfazer</button><?php endif; ?>
+          <?php if (!$pp || !$pp['apagado_em']): ?><button type="submit" name="passo" value="apagado" class="botao"><?php echo h(t('1 · Apaguei')); ?></button><?php endif; ?>
+          <?php if (!$pp || !$pp['postado_em'] || $mudou): ?><button type="submit" name="passo" value="postado" class="botao"><?php echo h($mudou ? t('2 · Postei de novo') : t('2 · Postei')); ?></button><?php endif; ?>
+          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao"><?php echo h(t('Desfazer')); ?></button><?php endif; ?>
         </form>
         <?php endif; ?>
       </div>
     </div>
     <?php endforeach; ?>
     <?php if (!$it['blocos']): ?>
-      <p class="muted small"><?php echo h($m['pagina']); ?>: sem escala postada a partir do corte.</p>
+      <p class="muted small"><?php echo h(t('{pagina}: sem escala postada a partir do corte.', ['pagina' => $m['pagina']])); ?></p>
     <?php endif; ?>
   <?php endforeach; ?>
-  <p class="muted small">Linhas T1 a T6, colunas de segunda a domingo. "#" = assistente. O "$" (turno secundário) o site calcula sozinho no input.</p>
+  <p class="muted small"><?php echo h(t('Linhas T1 a T6, colunas de segunda a domingo. "#" = assistente. O "$" (turno secundário) o site calcula sozinho no input.')); ?></p>
 </section>

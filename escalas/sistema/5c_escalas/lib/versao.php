@@ -1,0 +1,206 @@
+<?php
+// ===============================================
+// ARQUIVO: 5c_escalas/lib/versao.php
+// Versão do sistema e patch notes. A cada atualização entra um item novo no
+// topo de ESC_PATCH_NOTES; a versão do sistema é sempre a do primeiro item
+// (aparece no rodapé e força o navegador a baixar CSS/JS novos).
+// Versão: maior.menor.correção — menor para tela ou regra nova, correção para ajuste.
+// ===============================================
+
+const ESC_PATCH_NOTES = [
+    ['versao' => '1.17.0', 'data' => '2026-10-31', 'titulo' => 'PDF de metas das páginas, troca de unidade nos postos e absenteísmo opcional no mérito', 'sql' => ['ES_52', 'ES_53', 'ES_54'], 'itens' => [
+        'Grade: "Baixar PDF das metas" e "Metas" em cada página, no mesmo modelo do PDF da escala (A4 paisagem, papel timbrado, uma página por folha). Cada pessoa escalada na semana aparece com turnos, blocos e marcas, e o atingimento dela na página (5CReps realizado ÷ meta, na parte de cada um pela fatia das mensagens, como no mérito) em cada uma das 4 semanas anteriores e no total. Verde é meta batida; "—" é sem mensagens na página na semana.',
+        'Troca de unidade: a troca gravada no Capacity (ex.: Mikayla U1 → U3 e Nicole U2 → U1 em 02/11, do ES_51) passa a valer nos postos no próximo "Gerar". As pessoas ficam na unidade delas: a página vai para o time do destino e as vagas lá são completadas com SRs do destino. A atualização diária não desfaz mais as trocas com data futura. Organograma: avisa das trocas marcadas para depois da data da tela, com o link para ver a data em que valem.',
+        'Mérito: novo parâmetro merito_abs_ativo (grupo "merito"). Com 0, o absenteísmo sai da nota (presença 1 e sem o teto do crítico) e fica só como informação; com 1, como antes. As telas Mérito e Regras e o simulador mostram a regra que vale. Script ES_53.',
+        'Script ES_52: primeiro equilíbrio de pessoas da estrutura nova, com 18 SRs da U2 indo para a U1 e a U3 (cerca de 74% da necessidade em cada unidade e turno). Script ES_54: a equipe que fez a Aline Novak nas últimas 4 semanas passa a ser a equipe da Aline e da Andressa Urach (Privacy), com 6 SRs indo para a U2.',
+    ]],
+    ['versao' => '1.16.1', 'data' => '2026-10-31', 'titulo' => 'Correções do motor antes da virada, página nova do Comercial, Equilíbrio com data livre e divisão dos OS', 'sql' => ['ES_46', 'ES_47', 'ES_48', 'ES_49', 'ES_50', 'ES_51'], 'itens' => [
+        'Equilíbrio das unidades: a troca de unidade pode ser aplicada em qualquer data a partir de amanhã, também antes dos 28 dias na unidade (ex.: primeira geração); a confirmação avisa e o motivo registra.',
+        'Correções do motor antes da virada: (1) na transição (31/10 e 01/11) a indisponibilidade aprovada passa a valer, também para quem estava na escala antiga; (2) o dia de treinamento (Overlap) conta como dia trabalhado, e quem já vem de 5 dias seguidos ganha folga de emenda no lugar dele; (3) o A ou C antigo de 31/10 entra na conta dos dias seguidos de 01/11; (4) Gerar, Recalcular e Recalcular com o mínimo de mudanças não devolvem à escala quem o cálculo novo deixou de folga (emenda, rotação ou indisponibilidade).',
+        'Página nova (cadastrada no site há menos de 28 dias) entra na fila da escala com o faturamento do arquétipo do tier dela: a mediana, por turno, das páginas do mesmo tier que já faturam (ou o faturamento dela, se for maior). Antes ficava com zero e ia para o fim da fila.',
+        'Página nova que o Comercial acabou de cadastrar no site (até 7 dias, parâmetro v4_estrutura_nova_dias) entra sozinha no Capacity e na escala no próximo "Gerar" ou "Recalcular", mesmo sem escala ou venda ainda: na carteira da mesma modelo ou no destino do Funil, com o volume do arquétipo do tier.',
+        'Equilíbrio das unidades: divisão dos OS corrigida. Pelo faturamento de 30 dias dos postos, o OS1 fica com as maiores páginas, o OS3 com as menores e o OS2 com um misto (metade de cima OS1, OS1, OS2; metade de baixo OS2, OS3, OS3). O OS2 cobre os postos do OS1 e do OS3; nos postos do OS2, os grandes ficam com o OS1 e os pequenos com o OS3. Os melhores SRs vão para o OS1 e, no OS2, quem conhece páginas grandes e pequenas (dias escalado nas últimas 8 semanas).',
+    ]],
+    ['versao' => '1.16.0', 'data' => '2026-10-31', 'titulo' => 'Folga juntos, Equilíbrio das unidades com divisão dos OS e regras de 31/10 do Capacity', 'sql' => ['ES_45'], 'itens' => [
+        'Regras de 31/10 do Capacity (script 23): página da lista "sem escala" (ex.: zOFTV) fica na carga mas não ganha posto nem vira apoio na estrutura da escala; e o SLA do mérito deixa de contar as horas em que o posto forçado pela regra de faturamento (2 ou 3 páginas por rep) passou da capacidade (SLA justo).',
+        'Pessoas › Folga juntos (script ES_45): associe as pessoas que precisam folgar nos mesmos dias (casais). A tela mostra as folgas dos próximos 21 dias de cada uma e, se não coincidirem, propõe o ajuste a partir de uma data — o SR muda para o núcleo de mesmo ciclo do par, o OC/OA troca o ciclo com um colega do turno, o OS troca de núcleo com outro OS. O motor dá aos dois o mesmo dia de Overlap, e a tela Gerar avisa quando algum par não folga junto. Já entram Rafael Gauze e João Caial, e Marcos Cid e Rafael Garcia da Costa.',
+        'Páginas › Equilíbrio das unidades: faturamento total de 30 dias de cada unidade e coordenador (unidade × turno), com o desvio de cada um contra a média do turno; o faturamento por SR aparece ao lado, para acompanhar. Sugere as trocas de unidade que deixam todos perto da média, da que mais ajuda para a que menos; as páginas da mesma modelo trocam juntas e só depois de 28 dias na unidade (a tela mostra "pode a partir de"). O planejador aplica uma a uma.',
+        'Equilíbrio das unidades: divisão dos OS em cada unidade e turno pelo faturamento dos postos — OS1 com as maiores páginas (40%), OS2 com as do meio (35%), OS3 com as menores (25%); o OS2 cobre o OS1, o OS3 cobre o OS2 e o OS1 cobre o OS3. Os melhores SRs (nível, depois mérito) vão para o OS1. Mostra a parte de hoje × a proposta, os postos e os SRs que mudam, e aplica a partir de uma data.',
+        'Funil de entrada: a nota ganha o fator equilíbrio (20): unidade com faturamento abaixo da média no turno principal tem prioridade, para cobrir o gap que as trocas não cobrem. Saída de página e troca de unidade passam a gerar as semanas com o mínimo de mudanças.',
+    ]],
+    ['versao' => '1.15.0', 'data' => '2026-10-31', 'titulo' => 'Recalcular com o mínimo de mudanças, PDF da escala das páginas e transição sem turno dobrado', 'sql' => ['ES_44'], 'itens' => [
+        'Grade: "Baixar PDF das páginas" e "PDF" em cada página, no mesmo modelo do PDF da escala da liderança — A4 paisagem com o papel timbrado, uma página por folha, quem está em cada bloco T1 a T6 dos 7 dias (nome e código, com as marcas # -2 -4 -5 -6 -7 -8), carteira, semana e versão. Sai como no site, inclusive o que já estava postado antes da virada; a 5C Schedule fica de fora do PDF de todas.',
+        'Gerar escala: dois botões de recálculo. "Recalcular com o mínimo de mudanças" parte da versão publicada (a postada) e muda só o necessário: página nova ou que saiu, quem ficou indisponível ou mudou de turno, turno dobrado. Quem falta é coberto pela pessoa que o cálculo novo indicaria (se estiver livre), por um buffer de plantão da unidade ou como página a mais de quem tem pouca carga no bloco; o resto fica igual e, na postagem, aparece como "igual". "Recalcular tudo" é o recálculo de antes (refaz a semana com a estrutura de hoje). "Criar rascunho a partir da versão publicada", na Grade, também passa a usar o mínimo de mudanças.',
+        'Script ES_44: correção com o mínimo de mudança no que já foi postado — v23.1 e v19.1 a partir da v23 e da v19, só com a Maddie (página a mais do SR da Britt VIP) e sem turno dobrado em 01/11.',
+        'Dia de transição: quem estava em dois turnos no mesmo dia na escala antiga (ex.: o turno dele e assistente em outro) fica só num turno; turno a mais só como hora extra pedida. Antes a pessoa saía em 4 blocos seguidos (16 h) no domingo 01/11.',
+    ]],
+    ['versao' => '1.14.1', 'data' => '2026-10-31', 'titulo' => 'Correções da atualização de estrutura, PDF da escala da liderança e do organograma', 'sql' => ['ES_40', 'ES_41', 'ES_42', 'ES_43'], 'itens' => [
+        'Escala da liderança: botão "Baixar PDF" em A4 paisagem com o papel timbrado da 5C — título com o período e a hora da versão, legenda, um turno por folha (nome e código na mesma linha) e os OMs no fim; sem botões nem as marcas "≠ grade". O nome do arquivo já sai com o período. Organograma: "Baixar PDF" preenche a folha A3 (antes sobrava 1/4 em branco), mostra a data da estrutura e salva com a data no nome.',
+        'Organograma: o Marcus V. Silva volta a aparecer como COO (o rótulo tinha voltado para CEO).',
+        'Atualização de estrutura: o posto de uma página que só começa depois da data que o Capacity calcula (ex.: Andressa Urach a partir de 02/11) fica como está, em vez de fechar; essa página também não conta na trava de páginas. Script ES_43 reabre os postos da Andressa e marca a Maddie ativa na foto de páginas do Capacity.',
+        'Postos novos da atualização de estrutura acham o código da página no site sem diferenciar maiúsculas e espaços (ex.: "Mandi CAT" no Capacity e "Mandi Cat" no site). Antes a página ficava sem CSV e a postagem mandava só apagar. Script ES_42 completa os postos já criados.',
+        'Página que entrou sozinha no Capacity com vigência antes do início da estrutura é corrigida sozinha antes do recálculo; a página nova sempre entra no início da estrutura. Atualização que deu erro não segura mais a próxima por 30 minutos. Script ES_41 limpa o que o zip antigo gravou às 23:52.',
+        'Atualização de estrutura antes de gerar: a página nova entra no Capacity a partir do início da estrutura (01/11), e não de hoje — com hoje, o Capacity tirava do cálculo todas as outras páginas e a escala ficava com 28 postos. Trava: se o Capacity vier com menos de 90% das páginas da escala, os postos não são trocados e a mensagem avisa. Movimento para entrar sozinha: escala ou venda nos últimos 14 dias (eram 28). Script ES_40 desfaz a atualização de 30/10 23:30.',
+    ]],
+    ['versao' => '1.14.0', 'data' => '2026-10-30', 'titulo' => 'Capacity recalculado antes de gerar e páginas ativas incluídas sozinhas', 'sql' => [], 'itens' => [
+        'Capacity recalculado antes de gerar: ao gerar ou recalcular uma semana da estrutura nova, o sistema recalcula o Capacity de hoje e os postos da escala passam a seguir os dele a partir de amanhã. Posto igual continua com a equipe; posto que mudou fecha e a equipe vai para o posto novo que ficou com as páginas dela. Roda no máximo a cada 30 minutos; a mensagem depois de gerar diz quantos postos ficaram iguais, novos e fechados.',
+        'Página ativa no site e com movimento (escala ou venda nos últimos 28 dias) que não estava no Capacity entra sozinha antes de gerar: na carteira da mesma modelo (ex.: Thalia 147t junto da Thalia 147m, Nicole OFTV junto da Nicole Doshi) ou, se a modelo é nova, no destino do Funil. Enquanto não tem chat próprio, o volume vem do arquétipo de uma página parecida (mesmo tier e perfil). Página que o Capacity deixa sem posto num turno por pouco chat entra como apoio no posto da mesma modelo: nenhuma página fica sem equipe.',
+        'OFTV sem faturamento tem a menor prioridade do gerador: é o primeiro posto a ceder gente e o último a receber.',
+    ]],
+    ['versao' => '1.13.7', 'data' => '2026-10-30', 'titulo' => 'Nenhum posto sem equipe: vaga vazia completada antes de gerar', 'sql' => [], 'itens' => [
+        'Nenhum posto fica sem equipe: antes de cada geração, a vaga de dono ou de cobertura sem ninguém é completada sozinha, com SRs do mesmo turno e unidade. Primeiro do núcleo da vaga dentro da fatia do nível, depois de outro núcleo do turno, depois níveis 0–2 acima da fatia (dias de buffer); sem folga em ninguém, entra o menos carregado do núcleo. Vem primeiro quem já conhece a página, depois a nota de mérito. A equipe continua sendo preferência: num dia sem gente, o gerador ainda pode deixar a página vazia para cobrir uma mais importante. A tela Gerar mostra quantos postos estão sem equipe, e a mensagem depois de gerar diz quantas vagas foram completadas.',
+    ]],
+    ['versao' => '1.13.6', 'data' => '2026-10-30', 'titulo' => 'Absenteísmo sem a falha administrativa no mérito e na Análise', 'sql' => [], 'itens' => [
+        'Absenteísmo sem falha administrativa: o mérito e a Análise (Absenteísmo realizado) contam só a falta de verdade. A escala dobrada (SR em outra página no mesmo horário) e a fora do horário não contam nem como falta nem como bloco escalado. Se o sistema não conseguir ler a classificação oficial (abs_adh_af), usa o 5C Schedule por horário, e não mais o "faltou" de cada página, que contava a dobra como falta e dava cerca do dobro (ex.: Iago com 22,9% em vez de 4,4%). A tela de SRs avisa quando isso acontece.',
+    ]],
+    ['versao' => '1.13.5', 'data' => '2026-10-30', 'titulo' => 'Saída de página: posto refeito com a vigência do original', 'sql' => ['ES_39'], 'itens' => [
+        'Saída de página: o posto refeito sem a página que saiu agora vale no mesmo período do original, e leva só a equipe desse período. Antes, a cópia de um posto do modelo da virada (só 31/10) ficava aberta e somava com o posto do Capacity a partir de 01/11: duas vagas para a mesma página e turno, gente dividida entre elas e lacuna (ex.: Thalia 147m no C). Script ES_39 corrige os postos já duplicados.',
+    ]],
+    ['versao' => '1.13.4', 'data' => '2026-10-30', 'titulo' => 'Postagem: a tela volta no cartão da página', 'sql' => [], 'itens' => [
+        'Grade e Trocas de página: depois de "Apaguei", "Postei" ou "Desfazer" a tela volta direto no cartão da página, em vez de subir para o topo.',
+    ]],
+    ['versao' => '1.13.3', 'data' => '2026-10-30', 'titulo' => 'Postagem da semana da virada só a partir de 31/10 21:00', 'sql' => [], 'itens' => [
+        'Postagem da semana da virada (Grade): antes de 31/10 21:00 vale a escala já postada. O roteiro manda Delete Range só de 01/11, apagar à mão em 31/10 só o T6, e Save Schedule CSV com Date Schedule 31/10; o CSV traz só os blocos a partir da virada. "No site" conta só o que está depois da virada.',
+    ]],
+    ['versao' => '1.13.2', 'data' => '2026-10-30', 'titulo' => 'Treinamento: todas as páginas do turno e realocação de quem estava na página', 'sql' => [], 'itens' => [
+        'Treinamento: a lista traz todas as páginas do turno (lacuna, a menor de posto com várias e, por fim, todas as outras, como a Tiny). Toda página confirmada sai do preenchimento da escala nos dias e no horário da turma: se o posto só tinha ela, o SR vai para uma página com lacuna no mesmo horário (ou fica de buffer); se o posto tem outras páginas, o SR fica com elas.',
+    ]],
+    ['versao' => '1.13.1', 'data' => '2026-10-30', 'titulo' => 'Treinamento: mesma página em turnos diferentes, com aviso', 'sql' => [], 'itens' => [
+        'Treinamento: dá para usar a mesma página em turmas de turnos diferentes (ex.: os 3 turnos). A tela marca com aviso e só confirma com "usar mesmo assim"; na mesma hora (mesmo turno e período) continua bloqueado. A sugestão automática continua preferindo páginas diferentes.',
+    ]],
+    ['versao' => '1.13.0', 'data' => '2026-10-30', 'titulo' => 'Solicitações, roster da liderança, política de páginas por mérito, treinamento de New Hires e unidades renumeradas', 'sql' => ['ES_30', 'ES_31', 'ES_32', 'ES_33', 'ES_34', 'ES_35', 'ES_36', 'ES_37', 'ES_38'], 'itens' => [
+        'Solicitações do SR (Pessoas › Solicitações, precisa do ES_30): o líder registra o pedido de trabalhar como assistente ou em dupla, ou mudar de turno, núcleo ou unidade; o Planejamento aprova ou recusa e aplica a troca 1 por 1 com outro SR a partir de uma data (cada um vai para o núcleo do outro e assume as vagas fixas dele). Quem pediu o contrário aparece primeiro como par. Contador no menu e nas Ações necessárias.',
+        'Escala da liderança e Organograma: o OS de cada núcleo agora segue a data (vem da configuração da pessoa), então uma troca de OS marcada para a semana que vem não aparece antes.',
+        'Roster da liderança (Pessoas › Roster da liderança, sem script novo): troca o OM, o OC e o OS (ou preenche o cargo vago) e inclui, tira ou muda a semana dos OA, a partir de uma data. Quem entra sai do núcleo de SR; quem sai fica com o lugar de quem entrou (núcleo e vagas fixas), vira SR no mesmo núcleo (OS) ou fica sem núcleo. Botão "Ajustar roster" no Organograma.',
+        'Organograma: os Operational Assistants aparecem como assistentes dos 3 OMs (ao lado da linha Director → OMs, ligados à barra dos OMs), e não mais abaixo do Director.',
+        'Saídas de página: página que o Capacity já desativou não trava mais a aplicação; só a escala é ajustada (o Capacity não é tocado). No lote, saída já aplicada fica de fora e os problemas aparecem todos de uma vez. Se o recálculo do Capacity bater em outro rodando ao mesmo tempo, o sistema espera e tenta de novo.',
+        'Funil de entrada: cada card mostra os destinos indicados para a página nova, um por unidade e na ordem de uma nota de 0 a 100 que pesa o Capacity da unidade e do turno depois de entrar a página, o mérito da equipe (pesa mais em tier alto), a carga que o núcleo já tem e se a modelo já tem página na unidade. "Usar este destino" preenche o destino e o motivo; salvar continua com você.',
+        'Tour guiado: fora do Modo Treino, o cartão avisa que as telas são as reais e tem o link para ligar o treino.',
+        'Impressão no papel timbrado da 5C em todas as telas: fundo branco, faixa marsala à esquerda, logo no topo, águia em marca-d\'água, número da página e www.5ccompany.com no rodapé. O organograma usa o brasão oficial (fênix) e continua impresso como o quadro preto do roster.',
+        'Identidade visual da 5C Company (manual da marca): cores marsala e ouro, fonte Open Sans, logo da 5C no menu (marsala no tema claro, branco no escuro) e faixa marsala como no papel timbrado. No tema escuro os links e o foco ficam em ouro, para ter contraste.',
+        'Tutorial: o Modo Treino fica no topo e "Começar do início" liga o treino antes do tour. Grade: legenda da liderança (OA -6, OC -7, OS -8) com cor própria.',
+        'Regras (Ajuda): estrutura, alocação, liderança, pedidos, páginas, mérito e política de páginas, com os valores dos Parâmetros, para ver e imprimir no papel timbrado.',
+        'Owners e backups (Páginas, precisa do ES_33): por página e turno, quem é owner e backup, o atingimento da meta 5CReps e a situação na política de páginas por mérito (prazo de 3 a 14 dias abaixo de 85%, conforme o atingimento; acompanhamento de 28 dias até a meta; destaque a partir de 110%). Trocas sugeridas: de owner (aplica na hora, 1 por 1) e de unidade (prévia; o Capacity só muda depois da confirmação). Prioridade fixa da Privacy para o time do Marcos.',
+        'Colaboradores: editar abre numa janela por cima da lista (Esc ou × fecha).',
+        'Organograma: modo "Ver páginas" (rascunho) mostra, embaixo de cada OS, as páginas de que o núcleo é dono e o owner de cada uma; no núcleo aberto, cada SR mostra as páginas em que é owner ou backup; cada OM mostra quantas páginas a unidade tem.',
+        'Solicitações: em "trabalhar como assistente" e "trabalhar em dupla" o líder diz onde a pessoa fica fixa (núcleo: unidade, turno e OS) e, se souber, com quem (o titular que vai assistir ou o par); a troca busca o par nesse lugar, primeiro quem já trabalha nas páginas dessa pessoa. A pessoa precisa do ES_34.',
+        'Solicitações › Início: times legados juntos: prévia de trocas 1 por 1 (mesma unidade e turno) que juntam 2 ou 3 pessoas de cada time legado no mesmo núcleo; só aplica as marcadas, depois da confirmação.',
+        'Pessoas › Treinamento (ES_36): cole o e-mail do Treinamento (e a lista de contratados) e o sistema lê as turmas, avisa o que não bate, recomenda as páginas para emprestar (a menor de posto com 2 ou mais páginas, nunca OFTV, sem mês prejudicado, sem repetir entre turnos), gera a resposta e põe os trainees na página 5C Schedule com -4. New Hire fica fora da escala normal até o dia disponível.',
+        'Ajuda › Mérito: explica o mérito do SR e da unidade com os parâmetros de hoje, a curva da presença, exemplos, um simulador e, para o Planejamento, o resumo por unidade. Imprime no papel timbrado.',
+        'Mérito: o absenteísmo vem da mesma classificação do Capacity (blocos de falta ÷ blocos escalados), não mais do "faltou" do 5C Schedule, que também marcava bloco substituído. Acima de 6% a presença cai rápido e, com 15% ou mais, a nota fica no máximo em 80% da mediana: o SR nunca aparece na média nem acima.',
+        'Unidades renumeradas (ES_35): a unidade da Victoria passa a ser a U1, a do João continua U2 e a do Keller passa a ser a U3. Só muda o número; núcleos, postos, pessoas e páginas ficam iguais.',
+        'Corrigido: recalcular uma semana que já tinha versão publicada (e aplicar saída de página, que recalcula as semanas) dava "Não deu para concluir" com um código diferente a cada vez. As células ajustadas à mão não chegavam à proteção da escala publicada.',
+        'Dias de transição da virada (31/10): o motor também remaneja por faturamento (a página maior vazia recebe o SR da menor) e acumula dentro da capacidade. Parâmetro v4_remanejar_transicao (0 desliga).',
+        'Assistente só para SR 0 a 2: o motor não põe SR 3 ou mais em posto de assistente ou de apoio (nem pela equipe fixa), e Solicitações não aceita "trabalhar como assistente" para SR 3 ou mais. Parâmetro v4_nivel_max_assistente.',
+        'Grade: seletor de semana no topo (com setas para a anterior e a próxima), com a versão atual de cada semana e a publicada, quando for outra.',
+        'Saídas: na prévia dá para dizer qual página entra no lugar (do Funil ou do site da 5C) e quando. Ela entra na mesma carteira e nos mesmos núcleos, quem perdeu a vaga fixa passa para ela, e nos dias até a entrada quem fica sem página vira buffer (-2) se falta gente no turno da unidade, ou sai da escala nesses dias (dá para trocar pessoa a pessoa). Precisa do ES_37.',
+        'Tutorial na ordem da semana: primeiro o que muda a entrada da escala (Colaboradores, Indisponibilidade, Solicitações, Saídas de página, Treinamento), depois Gerar, Grade, Horas extras, Liderança, Publicar e Postar. Passo novo do Treinamento de New Hires.',
+        'Colaboradores: com SR 3 ou mais, "pode ser assistente" aparece desmarcado e bloqueado (e grava "não"); o motor também respeita a caixa para SR 0 a 2.',
+        'Treinamento: aparecem todas as páginas possíveis, primeiro as que têm lacuna no turno nos dias da turma (melhor treinar do que deixar vazia). Página de lacuna confirmada fica com o treinamento: o gerador não escala ninguém nela nesses dias e usa as pessoas em outras páginas. Confirme o treinamento antes de gerar. Precisa do ES_38.',
+        'Horas extras por bloco de 4 h (T1 a T6): a lista, o interesse, a alocação e o texto do pedido são por bloco. A trava conta as horas seguidas de verdade (até 12 h) e 52 h na semana, então quem faz um turno de 8 h pode pegar o bloco vizinho. Precisa do ES_38.',
+    ]],
+    ['versao' => '1.12.0', 'data' => '2026-10-30', 'titulo' => 'Organograma no visual do roster e liderança de 30/10', 'sql' => ['ES_29'], 'itens' => [
+        'Organograma no visual do roster da 5C: preto e dourado, CEO e Director no topo, cada OM com os turnos T6/T1, T2/T3 e T4/T5 (OC em destaque e os 3 OS, com os SRs ao clicar). Nomes inteiros, mesmo visual nos dois temas e "Imprimir / PDF" em uma folha A3 em pé, como está na tela.',
+        'Liderança pelo roster de 30/10 (precisa do ES_29): Raphael Estevam é OC da U1 · T2/T3; trocas de OS na U2 e U3 · T6/T1 e na U3 · T4/T5.',
+    ]],
+    ['versao' => '1.11.0', 'data' => '2026-10-30', 'titulo' => 'Revisão de UX · Fase B parte 2, Fase C (idioma) e Fase D (Central de Ajuda)', 'sql' => ['ES_27', 'ES_28'], 'itens' => [
+        'Grade: ao ajustar uma célula, avisa folga, indisponibilidade aprovada, outro turno, a mesma pessoa em outra página no bloco, mais de 12 h seguidas (também contra a semana vizinha) e mais de 52 h na semana; só grava com "salvar mesmo assim". Turno de antes da virada não é editável.',
+        'Escala da liderança: o que vale para postar é a Grade (página 5C Schedule). A tela marca "≠ grade" onde o plano difere do rodízio e o CSV virou só conferência. OS, OC e OA incluídos à mão na 5C Schedule saem com -8, -7 e -6.',
+        'Buffers e Painel: buffer de plantão por unidade e turno, com a mesma fonte de Horas extras e Análise.',
+        'Saídas de página: "Aplicar…" abre antes uma prévia (postos que fecham, refeitos, SRs que perdem a vaga fixa, semanas geradas de novo). Não aplica no passado nem duas vezes a mesma página, confere se a página está ativa no Capacity, e o lote valida tudo antes de aplicar.',
+        'Funil de entrada: destino por unidade, turno e núcleo (precisa do ES_27; sem ele continua por party).',
+        'Idioma: português e inglês em todas as telas (seletor PT/EN no menu; sem escolha, segue o navegador). Datas e números no formato do idioma; o que vem do banco e o conteúdo dos CSVs não mudam.',
+        'Central de Ajuda: Glossário e FAQ com busca, Tutorial com tour guiado de 12 passos (progresso salvo) e "Ações necessárias agora", separadas entre a plataforma e o site da 5C (também no Painel). Documentação do DBA só para admin, com PDF e Markdown. Changelog em português e inglês.',
+        'Modo Treino (precisa do ES_28): cópia separada do sistema para praticar, com faixa em todas as telas e "Recomeçar o treino". Não grava no sistema real nem no Capacity, os arquivos baixados levam TREINO_ no nome e o mérito real não aparece.',
+        'Segurança e dados: Acessos e Parâmetros só abrem para admin; o admin não se desativa nem tira o último admin; pedido já decidido ou cancelado não é decidido de novo; hora extra não é alocada duas vezes; excluir versões não apaga versão com sugestão aplicada ou hora extra alocada; Colaboradores não sobrescreve configuração futura; "Nome (CÓDIGO)" só vira código nos campos de colaborador.',
+        'Correções: tema escuro com as cores certas em foco, links e avisos; "Criar rascunho a partir desta" só da versão publicada mais recente; o T1 de segunda e o fim do turno D vêm da versão publicada da semana anterior; recálculo não devolve o publicado a uma célula travada; datas e horas sempre no horário de Brasília; impressão do organograma em A3 só nele.',
+    ]],
+    ['versao' => '1.10.0', 'data' => '2026-10-30', 'titulo' => 'Revisão de UX · Fase B: tema claro e escuro, celular, mensagens e confirmações', 'sql' => [], 'itens' => [
+        'Tema claro, escuro ou automático (segue o sistema), no topo do menu: troca na hora, fica salvo e todas as cores passaram a vir de tokens com contraste AA nos dois temas (inclusive gráficos da Análise e organograma).',
+        'Celular (a partir de 360 px): barra no topo com o botão Menu, tabelas viram cartões com o nome de cada coluna, campos em largura total e alvos de toque de 44 px.',
+        'Mensagens depois de salvar ficam fixas no topo da tela, com botão de fechar, e não vão mais na URL (não voltam ao recarregar nem ao compartilhar o link).',
+        'Erro ao salvar: a tela volta com os mesmos filtros e o formulário reabre preenchido, com o erro em cima dele (inclusive a janela de ajuste da célula na Grade). Erro inesperado mostra um código de ocorrência para o admin achar no log e o botão "Tentar de novo".',
+        'Confirmações num diálogo próprio do sistema (título, efeito e o verbo no botão; vermelho quando não dá para desfazer), no lugar da janela do navegador.',
+        'Grade: a janela de ajuste da célula prende o Tab dentro dela e, ao fechar, o foco volta para a célula.',
+        'Colaboradores: trocar de núcleo mostra antes "de → para" e quantas vagas fixas fecham.',
+        'Modelos de escala: mudar o ciclo de um modelo em uso avisa quantas pessoas mudam junto; desmarcar "ativo" segue a mesma regra do Desativar.',
+        'Trocas de página: "Sem substituto" e lacunas listam dia e bloco, com link para a célula na Grade.',
+        'Busca nas listas longas: não rouba mais o nome do campo e só escolhe a opção com Enter (antes trocava o valor enquanto digitava).',
+    ]],
+    ['versao' => '1.9.0', 'data' => '2026-10-30', 'titulo' => 'Revisão de UX · Fase A: segurança, acessibilidade e menu novo', 'sql' => [], 'itens' => [
+        'Gerar escala: com versão existente, o botão principal é "Recalcular" (mantém os ajustes travados e mostra quantos são). "Gerar do zero" pede confirmação quando há ajustes que seriam perdidos.',
+        'Painel: não recalcula mais sozinho ao abrir. A verificação de mudanças nas entradas roda só pelo botão "Verificar mudanças".',
+        'Grade: publicar mostra antes o resumo (lacunas, anomalias, postos sem ninguém) e o "estou ciente" é obrigatório quando há anomalia. Versão substituída mostra a faixa com link para a versão atual.',
+        'Saídas de página: "Confirmar e aplicar" some da saída já aplicada (o sistema também bloqueia aplicar de novo), fica separado e em vermelho, e mostra que está processando. "Desfazer" passou a se chamar "Voltar para a conferir". Corrigido o erro que travava a seleção em lote.',
+        'Indisponibilidade: nenhuma data vem marcada. Botões "Aprovar todas", "Aprovar só as marcadas" e "Recusar todas"; "Cancelar pedido" separado e com confirmação. O cartão mostra unidade, turno, núcleo e função da estrutura nova.',
+        'Configuração dos times vai para o grupo "Legado": depois da virada de 31/10 21:00 fica só para consulta; antes dela, não aceita pendência com data a partir da virada.',
+        'Equilíbrio dos SRs: nota, absenteísmo e infrações aparecem só para Planejamento e Admin.',
+        'Trocas de página: avisa quando o CSV mudou depois de marcado como postado. Funil: probabilidade sempre em % (0 a 100). Colaboradores: o núcleo não vem mais escolhido sozinho.',
+        'Menu reorganizado (Escala, Análise, Páginas, Pessoas, Ajuda, Administração só para admin, Legado), com o mesmo nome no menu, no título e na aba. Versão no rodapé com link para o Changelog.',
+        'Acessibilidade: contraste das bordas dos campos e do texto secundário dentro do mínimo da WCAG, tema escuro nos controles nativos (calendário, checkbox, rolagem), ordenação das tabelas pelo teclado e aviso da ordem para leitor de tela.',
+        'Ações demoradas (gerar, recalcular, verificar, publicar, aplicar saída, recalcular mérito) mostram que estão processando, com barra no topo, e não deixam enviar duas vezes. A troca de tela também acende a barra.',
+        'Cargos e estrutura antigos fora das telas da estrutura nova (Grade por pessoa, Gerar, Painel, Trocas).',
+    ]],
+    ['versao' => '1.8.0', 'data' => '2026-10-29', 'titulo' => 'Cadastros na estrutura nova, organograma para imprimir e desempenho', 'sql' => ['ES_24', 'ES_25', 'ES_26'], 'itens' => [
+        'Formulário de preferência de turno (28–29/10): 11 trocas 1 por 1 entre SRs (ES_25) e 20 pedidos de ausência PENDENTE tirados das observações, para avaliar em Indisponibilidade (ES_26).',
+        'Colaboradores mostra a estrutura nova a partir de 01/11: unidade, turno, núcleo, OS, nível de SR e modelo 5x2. Editar troca a pessoa de núcleo (fecha as vagas fixas do núcleo antigo; o motor cobre). Datas antes da virada mostram o cadastro antigo.',
+        'ES_24 fecha em 31/10 as 15 configurações antigas (3x1) que ficaram abertas: 12 da liderança, que segue a Escala da liderança, e 3 SRs fora do quadro de 01/11.',
+        'Modelos de escala: botão Excluir (modelo sem histórico) ou Desativar (com histórico). A coluna do limite passa a se chamar "Anomalia".',
+        'Gerar escala: dá para excluir versões antigas (substituídas ou rascunho), uma a uma ou várias de uma vez. A publicada e as já postadas no site não saem.',
+        'Organograma: COO e Director com nome e código, Operational Assistants logo abaixo do Director em caixas menores, e botão "Imprimir / PDF" (A3 paisagem, todos os núcleos abertos, fundo claro).',
+        'Desempenho: os nomes vêm do cadastro do headcount (com nome social) em vez da view do Planner, que levava ~3 s por tela; a estrutura do Planner fica 5 minutos em cache. Consultas acima de 1 s vão para o log.',
+        'Títulos e textos das telas sem nomes de tabelas do banco.',
+        'Versão do sistema no menu e esta tela de patch notes.',
+    ]],
+    ['versao' => '1.7.0', 'data' => '2026-10-29', 'titulo' => 'Postagem pela grade e saídas em lote', 'sql' => ['ES_23'], 'itens' => [
+        'Grade da escala: abaixo da grade, "Postar no site" com um cartão por página (CSV para copiar, Date Schedule e Date End, "1 · Apaguei" e "2 · Postei"). Mostra quais páginas mudaram desde a versão já postada.',
+        'Saídas de página: seleção de várias saídas para Confirmar, Não saiu ou Confirmar e aplicar de uma vez. As páginas aplicadas juntas recalculam o Capacity e a escala uma vez só.',
+        'Aplicar saída tem trava: dois cliques seguidos não rodam dois recálculos ao mesmo tempo (era o erro "Duplicate entry" no Capacity).',
+    ]],
+    ['versao' => '1.6.0', 'data' => '2026-10-29', 'titulo' => '5x2 com até 5 dias seguidos e folga de emenda', 'sql' => ['ES_22'], 'itens' => [
+        'No 5x2 vale trabalhar até 5 dias seguidos: a anomalia passa a contar a partir do 6º.',
+        'Folga de emenda: quem já vem de 5 dias seguidos (escala postada antes da virada + plano) folga no dia seguinte, na transição e na rotação.',
+        'Modelos de escala: o limite de dias seguidos é editável e o ciclo aceita até 28 dias.',
+    ]],
+    ['versao' => '1.5.0', 'data' => '2026-10-29', 'titulo' => 'Liderança na escala e organograma', 'sql' => ['ES_19', 'ES_20', 'ES_21'], 'itens' => [
+        'Nomes novos dos cargos: Operational Manager (OM), Operational Coordinator (OC), Operational Supervisor (OS) e Operational Assistant (OA).',
+        'Escala da liderança: OC e OS em 5x2 (no dia de Overlap os 3 do turno), OA em semana fixa cobrindo 24/7; OM não segue escala.',
+        'A liderança entra no plano junto com os SRs, na página 5C Schedule, com -8 (OS), -7 (OC) e -6 (OA) no CSV.',
+        'Quadro de 29/10: os 27 OS nos núcleos, 4 SRs viram OS e 3 OS passam a SR nível 5.',
+        'Organograma interativo da operação, com os SRs de cada OS.',
+        'Todas as tabelas ordenam por qualquer coluna.',
+    ]],
+    ['versao' => '1.4.0', 'data' => '2026-10-29', 'titulo' => 'Virada em 31/10 21:00 e equipes pelo histórico', 'sql' => ['ES_17', 'ES_18'], 'itens' => [
+        'Equipes fixas dos postos refeitas pelo histórico real das últimas 8 semanas, dentro do próprio núcleo, para mexer o mínimo nas pessoas.',
+        'Virada em 31/10 às 21:00: o turno D de 31/10 já é da estrutura nova; 31/10 e 01/11 são dias de transição.',
+    ]],
+    ['versao' => '1.3.0', 'data' => '2026-10-28', 'titulo' => 'Horas extras, saídas aplicadas e mérito', 'sql' => ['ES_14', 'ES_15', 'ES_16'], 'itens' => [
+        'Tela Horas extras; o buffer de plantão sai na página 5C Schedule com -2.',
+        'Saída da Skylar Mae VIP aplicada nos postos da U1.',
+        'Saídas de página aplicadas pelo sistema, com foto do Capacity antes e depois para comparar.',
+        'Mérito dos SRs (5C George) e cadastro de infrações, usados no desempate de quem cobre um posto.',
+    ]],
+    ['versao' => '1.2.0', 'data' => '2026-10-28', 'titulo' => 'Postos do Capacity, Overlap e faturamento', 'sql' => ['ES_07', 'ES_08', 'ES_09', 'ES_10', 'ES_11', 'ES_12', 'ES_13'], 'itens' => [
+        'Postos vindos do Capacity, com as páginas da mesma modelo juntas.',
+        'Overlap (dia de treinamento) com -5 no CSV, em dias diferentes por SR.',
+        'Vagas por faturamento e acúmulo até 15% acima da capacidade, marcado com ⚠ na grade.',
+        'Dias de transição para a virada da estrutura.',
+    ]],
+    ['versao' => '1.1.0', 'data' => '2026-10-27', 'titulo' => 'Estrutura nova: unidades, núcleos e postos', 'sql' => ['ES_04', 'ES_05', 'ES_06'], 'itens' => [
+        '3 unidades, 3 turnos e 27 núcleos; postos com as páginas de cada carteira e a equipe fixa de cada vaga.',
+        'Modelo 5x2 rotativo de 21 dias e o motor da estrutura nova.',
+    ]],
+    ['versao' => '1.0.0', 'data' => '2026-10-21', 'titulo' => 'Primeira versão', 'sql' => ['ES_01', 'ES_02', 'ES_03'], 'itens' => [
+        'Geração da escala da semana (rascunho, versões e recálculo), grade com ajuste manual travado, publicação e CSV T1–T6 por página.',
+        'Pedidos de indisponibilidade e aprovação, configuração dos times, colaboradores e modelos de escala.',
+    ]],
+];
+
+define('ESC_VERSAO', ESC_PATCH_NOTES[0]['versao']);
+
+// Mudanças já instaladas e ainda não publicadas como versão oficial. Ao publicar, viram um
+// item novo no topo de ESC_PATCH_NOTES (com a versão) e a lista volta a ficar vazia.
+const ESC_NAO_PUBLICADO = [
+    'Equilíbrio das unidades mostra a estrutura da próxima semana a gerar (segunda que vem), já com as trocas agendadas; o campo Estrutura de mostra outro dia.',
+    'Correção: a atualização do Capacity antes de gerar falhava com erro 1062 (vaga duplicada) quando um posto fechava e a mesma pessoa tinha duas vagas que nunca chegaram a valer; a escala saía com a estrutura anterior. Agora a repetida é apagada.',
+];

@@ -11,26 +11,26 @@ $sessao = escQ1('SELECT @@session.transaction_read_only AS so_leitura, @@session
     ?? ['so_leitura' => null, 'limite_ms' => 0, 'versao' => '?'];
 
 $fontes = [
-    'Planner · trocas de página' => '`5c_historic_planner`.`historic_page_planner`',
-    'Planner · estrutura atual' => '`5c_wfm_db_mis`.`vw_rep_estrutura_atual`',
-    'Escala postada' => '`5c_schedule`.`scheduleday`',
-    'Headcount · turnos' => '`5c_headcount`.`headcount_turno`',
-    'Bot · páginas' => '`5c_bot`.`vw_pagina`',
-    'Bot · reps (Telegram)' => '`5c_bot`.`vw_rep`',
-    'Capacity · buffers' => '`5c_planning`.`fc_buffer_diario`',
-    'Capacity · necessidade' => '`5c_planning`.`fc_escala_pagina`',
-    'Capacity · eventos de página' => '`5c_planning`.`fc_pagina_eventos`',
-    'Capacity · impacto' => '`5c_planning`.`fc_impacto_paginas`',
-    'Capacity · fãs por hora' => '`5c_planning`.`fc_fans_pagina_hora`',
-    'Intraday · tier' => '`5c_wfm_db_mis`.`tab_intraday_base`',
-    'CRM · cards' => '`5c_crm`.`pipeline_cards`',
-    'CRM · clientes' => '`5c_crm`.`clients`',
-    'CRM · contratos' => '`5c_crm`.`contracts`',
-    'Schedule Anomalies · acessos (primeira carga)' => ESC_TABELA_ACESSO,
-    'MIS Portal · usuários (id e login)' => '`5c_wfm_mis_web`.`mis_login`',
-    '5C Escalas · acessos' => escT('esc_acesso'),
-    '5C Escalas · colaboradores' => escT('esc_colaborador_config'),
-    '5C Escalas · planos' => escT('esc_plano'),
+    t('Planner · trocas de página') => '`5c_historic_planner`.`historic_page_planner`',
+    t('Planner · estrutura atual') => '`5c_wfm_db_mis`.`vw_rep_estrutura_atual`',
+    t('Escala postada') => '`5c_schedule`.`scheduleday`',
+    t('Headcount · turnos') => '`5c_headcount`.`headcount_turno`',
+    t('Bot · páginas') => '`5c_bot`.`vw_pagina`',
+    t('Bot · reps (Telegram)') => '`5c_bot`.`vw_rep`',
+    t('Capacity · buffers') => '`5c_planning`.`fc_buffer_diario`',
+    t('Capacity · necessidade') => '`5c_planning`.`fc_escala_pagina`',
+    t('Capacity · eventos de página') => '`5c_planning`.`fc_pagina_eventos`',
+    t('Capacity · impacto') => '`5c_planning`.`fc_impacto_paginas`',
+    t('Capacity · fãs por hora') => '`5c_planning`.`fc_fans_pagina_hora`',
+    t('Intraday · tier') => '`5c_wfm_db_mis`.`tab_intraday_base`',
+    t('CRM · cards') => '`5c_crm`.`pipeline_cards`',
+    t('CRM · clientes') => '`5c_crm`.`clients`',
+    t('CRM · contratos') => '`5c_crm`.`contracts`',
+    t('Schedule Anomalies · acessos (primeira carga)') => ESC_TABELA_ACESSO,
+    t('MIS Portal · usuários (id e login)') => '`5c_wfm_mis_web`.`mis_login`',
+    t('5C Escalas · acessos') => escT('esc_acesso'),
+    t('5C Escalas · colaboradores') => escT('esc_colaborador_config'),
+    t('5C Escalas · planos') => escT('esc_plano'),
 ];
 
 // Gravação no 5c_escalas: grava uma linha de teste e desfaz (rollback).
@@ -44,7 +44,7 @@ try {
     if (isset($pdoW) && $pdoW->inTransaction()) {
         $pdoW->rollBack();
     }
-    $gravacao = $e instanceof PDOException ? 'erro ' . ($e->errorInfo[1] ?? $e->getCode()) : $e->getMessage();
+    $gravacao = $e instanceof PDOException ? t('erro {codigo}', ['codigo' => $e->errorInfo[1] ?? $e->getCode()]) : $e->getMessage();
 }
 // A conexão de gravação recusa qualquer outro schema.
 $travaOutros = false;
@@ -60,7 +60,7 @@ foreach ($fontes as $nome => $tabela) {
         escQ("SELECT 1 FROM {$tabela} LIMIT 1");
         $resultado[] = [$nome, $tabela, true, '', (int) round((microtime(true) - $t0) * 1000)];
     } catch (Throwable $e) {
-        $msg = $e instanceof PDOException ? ('erro ' . ($e->errorInfo[1] ?? $e->getCode())) : $e->getMessage();
+        $msg = $e instanceof PDOException ? t('erro {codigo}', ['codigo' => $e->errorInfo[1] ?? $e->getCode()]) : $e->getMessage();
         $resultado[] = [$nome, $tabela, false, $msg, (int) round((microtime(true) - $t0) * 1000)];
     }
 }
@@ -74,36 +74,36 @@ try {
 }
 ?>
 <header class="cabecalho">
-  <span class="eyebrow">Administração</span>
-  <h1>Diagnóstico</h1>
-  <p class="muted">Use depois de instalar: confere se o usuário do banco do portal lê tudo o que o 5C Escalas precisa, se a conexão de leitura está em READ ONLY e se a gravação funciona só no 5c_escalas.</p>
+  <span class="eyebrow"><?php echo h(t('Administração')); ?></span>
+  <h1><?php echo h(t('Diagnóstico')); ?></h1>
+  <p class="muted"><?php echo h(t('Use depois de instalar: confere se o usuário do banco do portal lê tudo o que o 5C Escalas precisa, se a conexão de leitura está em READ ONLY e se a gravação funciona só no 5c_escalas.')); ?></p>
 </header>
 
 <section class="kpis">
-  <div class="kpi"><span class="muted">Conexão de leitura</span><strong class="<?php echo (int) $sessao['so_leitura'] === 1 ? 'verde' : 'vermelho'; ?>"><?php echo (int) $sessao['so_leitura'] === 1 ? 'READ ONLY' : 'GRAVÁVEL'; ?></strong><span class="muted small">transaction_read_only = <?php echo (int) $sessao['so_leitura']; ?></span></div>
-  <div class="kpi"><span class="muted">Filtro de SQL</span><strong class="<?php echo $travaFiltro ? 'verde' : 'vermelho'; ?>"><?php echo $travaFiltro ? 'Ativo' : 'Falhou'; ?></strong><span class="muted small">só SELECT/WITH passam</span></div>
-  <div class="kpi"><span class="muted">Gravação no 5c_escalas</span><strong class="<?php echo $gravacao === 'OK' ? 'verde' : 'vermelho'; ?>"><?php echo h($gravacao === 'OK' ? 'OK' : 'Falhou'); ?></strong><span class="muted small"><?php echo $gravacao === 'OK' ? 'teste gravado e desfeito' : h($gravacao) . ' · rode o ES_03 (GRANT)'; ?></span></div>
-  <div class="kpi"><span class="muted">Trava dos outros schemas</span><strong class="<?php echo $travaOutros ? 'verde' : 'vermelho'; ?>"><?php echo $travaOutros ? 'Ativa' : 'Falhou'; ?></strong><span class="muted small">só grava em 5c_escalas</span></div>
-  <div class="kpi"><span class="muted">Seu acesso</span><strong><?php echo h(strtolower($GLOBALS['ESC_USUARIO']['perfil'] ?? '')); ?></strong><span class="muted small">user_id <?php echo escUserId(); ?></span></div>
-  <div class="kpi"><span class="muted">Limite por consulta</span><strong><?php echo num(((int) $sessao['limite_ms']) / 1000, 0); ?> s</strong><span class="muted small">max_execution_time</span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Conexão de leitura')); ?></span><strong class="<?php echo (int) $sessao['so_leitura'] === 1 ? 'verde' : 'vermelho'; ?>"><?php echo (int) $sessao['so_leitura'] === 1 ? 'READ ONLY' : h(t('GRAVÁVEL')); ?></strong><span class="muted small">transaction_read_only = <?php echo (int) $sessao['so_leitura']; ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Filtro de SQL')); ?></span><strong class="<?php echo $travaFiltro ? 'verde' : 'vermelho'; ?>"><?php echo h($travaFiltro ? t('Ativo') : t('Falhou')); ?></strong><span class="muted small"><?php echo h(t('só SELECT/WITH passam')); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Gravação no 5c_escalas')); ?></span><strong class="<?php echo $gravacao === 'OK' ? 'verde' : 'vermelho'; ?>"><?php echo h($gravacao === 'OK' ? 'OK' : t('Falhou')); ?></strong><span class="muted small"><?php echo h($gravacao === 'OK' ? t('teste gravado e desfeito') : t('{erro} · rode o ES_03 (GRANT)', ['erro' => $gravacao])); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Trava dos outros schemas')); ?></span><strong class="<?php echo $travaOutros ? 'verde' : 'vermelho'; ?>"><?php echo h($travaOutros ? t('Ativa') : t('Falhou')); ?></strong><span class="muted small"><?php echo h(t('só grava em 5c_escalas')); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Seu acesso')); ?></span><strong><?php echo h(escRotulo('perfil', $GLOBALS['ESC_USUARIO']['perfil'] ?? '')); ?></strong><span class="muted small">user_id <?php echo escUserId(); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Limite por consulta')); ?></span><strong><?php echo num(((int) $sessao['limite_ms']) / 1000, 0); ?> s</strong><span class="muted small">max_execution_time</span></div>
   <?php $end = escDbEndereco(); ?>
-  <div class="kpi"><span class="muted">Endereço do banco</span><strong><?php echo h($end['host'] . ':' . $end['porta']); ?></strong><span class="muted small"><?php echo $end['variavel'] === 'ESC_DB_HOST' ? 'ESC_DB_HOST, só deste módulo' : 'DB_HOST do portal'; ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Endereço do banco')); ?></span><strong><?php echo h($end['host'] . ':' . $end['porta']); ?></strong><span class="muted small"><?php echo h($end['variavel'] === 'ESC_DB_HOST' ? t('ESC_DB_HOST, só deste módulo') : t('DB_HOST do portal')); ?></span></div>
   <div class="kpi"><span class="muted">PHP · MySQL</span><strong><?php echo h(PHP_VERSION); ?></strong><span class="muted small">MySQL <?php echo h($sessao['versao']); ?></span></div>
 </section>
 
 <section class="panel">
-  <h2>Leitura das tabelas</h2>
+  <h2><?php echo h(t('Leitura das tabelas')); ?></h2>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th>Fonte</th><th>Tabela</th><th>Leitura</th><th class="num">Tempo</th></tr></thead>
+    <thead><tr><th><?php echo h(t('Fonte')); ?></th><th><?php echo h(t('Tabela')); ?></th><th><?php echo h(t('Leitura do banco')); ?></th><th class="num"><?php echo h(t('Tempo')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($resultado as [$nome, $tabela, $ok, $msg, $ms]): ?>
       <tr><td><?php echo h($nome); ?></td><td class="mono small"><?php echo h($tabela); ?></td>
-        <td><span class="tag <?php echo $ok ? 'verde' : 'vermelho'; ?>"><?php echo $ok ? 'OK' : 'sem acesso · ' . h($msg); ?></span></td>
+        <td><span class="tag <?php echo $ok ? 'verde' : 'vermelho'; ?>"><?php echo $ok ? 'OK' : h(t('sem acesso · {erro}', ['erro' => $msg])); ?></span></td>
         <td class="num"><?php echo (int) $ms; ?> ms</td></tr>
     <?php endforeach; ?>
     </tbody>
   </table>
   </div>
-  <p class="muted small">"sem acesso · erro 1142" = o usuário do banco do portal não tem SELECT nessa tabela. Peça o GRANT de leitura (só SELECT) para esse schema.</p>
+  <p class="muted small"><?php echo h(t('"sem acesso · erro 1142" = o usuário do banco do portal não tem SELECT nessa tabela. Peça o GRANT de leitura (só SELECT) para esse schema.')); ?></p>
 </section>
