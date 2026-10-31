@@ -48,6 +48,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 11 | `5C_Planning_20_adotar_plano_sugerido.sql` | Adota o plano sugerido da versão 4 (capacity de 30/10) como plano oficial: as turmas planejadas passam de 280 para 202 pessoas. Tem cópia de segurança e o bloco para desfazer. |
 | 12 | `5C_Planning_21_teto_10_por_turno_e_troca_c_a.sql` | Teto de 10 por turno e 30 por turma, e troca de 5 reps do C para o A na simulação (`fc_plano_troca_turno`). Refaz o plano sugerido da última versão e adota como oficial. |
 | 13 | `5C_Planning_22_plano_sem_troca_c_a.sql` | Desliga a troca C → A do 21: ela já estava no cadastro da estrutura. Refaz o plano sugerido da última versão, com teto de 10 por turno, e adota como oficial. |
+| 14 | `5C_Planning_23_regras_faturamento_mass_sla.sql` | Regras de 31/10: alívio da Mass PPV, regra de faturamento (2 ou 3 páginas por rep), agência do Infloww no agrupamento, horas fora do SLA e faturamento por unidade em cada versão (visões 18 a 20). Recria os procedimentos do 11 (v1.2) e do 19. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
@@ -215,6 +216,57 @@ O plano oficial (`fc_contratacoes`) continua manual. A versão fica com alerta q
 - O cadastro da estrutura (A 76 · C 69 · D 75) já mostrava os 5 reps no A, e o 21 tinha somado a troca de novo.
 - O 22 desliga a troca e readota o plano com teto de 10 por turno: 208 pessoas nas turmas planejadas, 243 no total.
 - A falta fecha em 01/03/2027.
+
+## Regras de 31/10 (script 23)
+
+**1. Mass PPV (.21 e .22) com os supervisores.** Medi quanto a Mass pesa para os reps hoje:
+- os reps montaram 1.310 Mass no Infloww em setembro, uma a cada 11 turnos de rep;
+- só 0,2% dos fãs por hora recebem apenas PPV .21/.22 no chat;
+- as respostas à Mass continuam com o rep.
+
+O alívio fica em torno de **0,5%**, no parâmetro `alivio_mass_ppv`. Ele aumenta o limite de 35 e o de 28 fãs/h na mesma proporção. Se a Mass tomar mais tempo do que os dados mostram, é só aumentar esse número.
+
+**2. Agência do Infloww.** Nos postos de 2 ou 3 páginas, a ordem de preferência é:
+- a mesma modelo;
+- a mesma agência do Infloww (5C Company, Fatbear ou Verge);
+- o grupo que fica mais justo.
+
+A agência de cada página fica em `fc_pagina_infloww`, preenchida pelo nome no Infloww. As páginas que não aparecem lá ficam com origem `SEM` e podem ser completadas à mão, com origem `MANUAL`.
+
+**3. Regra de faturamento.** Vale o faturamento bruto do mês fechado anterior, tirado da `agg_statements_classification` (sem as vendas estornadas):
+- abaixo de 16k (`receita_triple`), a página trabalha **3 por rep**;
+- abaixo de 32k (`receita_double`), **2 por rep**;
+- vale mesmo que a carga passe da capacidade.
+
+Ficam fora as páginas com regra própria (SLA80, exclusiva, assistente fixo) e as sem venda no mês. Nesses grupos podem ficar 3 modelos diferentes. As vagas dos grupos de 3 são completadas com páginas de 16k a 32k; as que ficam sem par voltam para o agrupamento normal, com o limite de carga. Esses postos ficam com `forcado = 1`, e a carga acima da capacidade não vira buffer.
+
+**4. SLA justo.** Todo dia, `sp_fc_sla_horas` grava em `fc_sla_hora_excluida`:
+- só nos postos da regra de faturamento;
+- uma linha por dia, hora e página, nas horas em que os fãs das páginas somados passaram da capacidade do posto.
+
+A conta de SLA do rep não deve contar essas horas. A visão `vw_fc_18_sla_horas_excluidas` mostra o mesmo por posto.
+
+**5. Páginas sem escala.** A tabela `fc_pagina_sem_escala` recebe o nome exato da página ou um padrão com `%`. A página continua na carga e no faturamento, mas não ocupa posto. Ela já começa com `zOFTV%`, porque nenhuma zOFTV tem escala. Para incluir outra:
+
+```sql
+INSERT INTO fc_pagina_sem_escala (padrao, motivo) VALUES ('Nome da página', 'motivo');
+```
+
+O efeito aparece no próximo cálculo.
+
+**6. Faturamento por unidade em cada versão** (pedido repassado pela Simulations):
+- cada versão grava o faturamento de 30 dias por carteira em `fc_capacity_versao_faturamento`;
+- a visão é a `vw_fc_19_faturamento_unidades`;
+- a versão fica com alerta quando a diferença entre a maior e a menor unidade passa de 30% da média.
+
+A escolha de quais páginas trocam de unidade é do Planning tool.
+
+| Base de 31/10 | Postos | Titulares | Postos da regra de faturamento |
+|---|---|---|---|
+| Antes das regras | 178 | 271 | — |
+| Com as regras e sem as zOFTV (espelho) | **169** | **255** | 45, dos quais 6 acima da capacidade |
+
+O espelho está em `simulacao/regras_receita_espelho.py`. Com o argumento `antigo`, ele reproduz os 178 postos de antes, carteira a carteira.
 
 | Visão | O que mostra |
 |---|---|

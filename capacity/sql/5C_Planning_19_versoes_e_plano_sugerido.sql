@@ -356,6 +356,8 @@ DROP PROCEDURE IF EXISTS sp_fc_versao_fechar $$
 CREATE PROCEDURE sp_fc_versao_fechar(IN p_v INT)
 BEGIN
   DECLARE v_prev, v_pa, v_pn, v_mud, v_dif, v_lim, v_of, v_sg INT;
+  DECLARE v_fmax, v_fmin, v_fmed, v_flim DECIMAL(14,4);
+  DECLARE v_ftxt VARCHAR(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_saiu, v_entrou VARCHAR(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
   DECLARE v_mot VARCHAR(2000) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -411,6 +413,26 @@ BEGIN
                                    ' no oficial e ', v_sg, ' no sugerido')), 2000)
      WHERE versao = p_v;
   END IF;
+
+  -- faturamento de 30 dias por unidade: diferença entre a maior e a menor sobre a média (script 23)
+  IF EXISTS (SELECT 1 FROM fc_capacity_versao_faturamento WHERE versao = p_v) THEN
+    SELECT MAX(t), MIN(t), AVG(t),
+           GROUP_CONCAT(CONCAT('U', unidade, ' ', FORMAT(t / 1000000, 2, 'pt_BR'), ' M') ORDER BY unidade SEPARATOR ' · ')
+      INTO v_fmax, v_fmin, v_fmed, v_ftxt
+    FROM (SELECT unidade, SUM(bruto_30d) AS t FROM fc_capacity_versao_faturamento WHERE versao = p_v GROUP BY unidade) u;
+    SELECT COALESCE(MAX(valor), 0.30) INTO v_flim FROM fc_parametros WHERE chave = 'alerta_fat_unidades';
+    UPDATE fc_capacity_versao
+       SET fat_max_unidade = v_fmax, fat_min_unidade = v_fmin,
+           fat_dif_pct = IF(v_fmed > 0, (v_fmax - v_fmin) / v_fmed, NULL),
+           alerta_fat = IF(v_fmed > 0 AND (v_fmax - v_fmin) / v_fmed >= v_flim, 1, 0)
+     WHERE versao = p_v;
+    IF v_fmed > 0 AND (v_fmax - v_fmin) / v_fmed >= v_flim THEN
+      UPDATE fc_capacity_versao
+         SET motivo = LEFT(CONCAT_WS(' · ', motivo, CONCAT('Faturamento 30 dias desequilibrado: ', v_ftxt,
+                                     ' (diferença ', ROUND(100 * (v_fmax - v_fmin) / v_fmed), '% da média)')), 2000)
+       WHERE versao = p_v;
+    END IF;
+  END IF;
 END $$
 
 -- ---------------------------------------------------------------------
@@ -437,12 +459,21 @@ main: BEGIN
   SELECT v, unidade, turno, postos, titulares, faltas_dia, pico_dia, presentes_dia, buffer, precisa, tem, saldo
   FROM fc_necessidade_estrutura WHERE data_calculo = p_data;
 
-  INSERT INTO fc_capacity_versao_posto (versao, carteira, turno, posto, pagina, unidade, tipo, carga, capacidade, fans_h, fracao)
-  SELECT v, pp.carteira, pp.turno, pp.posto, pp.pagina, p.unidade, p.tipo, p.carga, p.capacidade, pp.fans_h, pp.fracao
+  INSERT INTO fc_capacity_versao_posto (versao, carteira, turno, posto, pagina, unidade, tipo, carga, capacidade, fans_h, fracao, forcado)
+  SELECT v, pp.carteira, pp.turno, pp.posto, pp.pagina, p.unidade, p.tipo, p.carga, p.capacidade, pp.fans_h, pp.fracao, p.forcado
   FROM fc_postos_pagina pp
   JOIN fc_postos p ON p.data_calculo = pp.data_calculo AND p.carteira = pp.carteira
                   AND p.turno = pp.turno AND p.posto = pp.posto
   WHERE pp.data_calculo = p_data;
+
+  -- faturamento dos 30 dias antes da data, por carteira (páginas da estrutura na data; script 23)
+  INSERT INTO fc_capacity_versao_faturamento (versao, carteira, unidade, bruto_30d, vendas_30d, paginas)
+  SELECT v, c.carteira, c.unidade, COALESCE(SUM(f.bruto), 0), COALESCE(SUM(f.vendas), 0), COUNT(*)
+  FROM (SELECT DISTINCT pagina, carteira FROM fc_pagina_carga WHERE data_calculo = p_data) pg
+  JOIN fc_carteira c ON c.carteira = pg.carteira
+  LEFT JOIN (SELECT pagina, SUM(bruto) AS bruto, SUM(vendas) AS vendas FROM fc_pagina_venda_dia
+             WHERE dia >= p_data - INTERVAL 30 DAY AND dia < p_data GROUP BY pagina) f ON f.pagina = pg.pagina
+  GROUP BY c.carteira, c.unidade;
 
   CALL sp_fc_versao_fechar(v);
 END $$

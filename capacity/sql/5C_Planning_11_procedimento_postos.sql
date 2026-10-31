@@ -1,6 +1,8 @@
 -- =====================================================================
 -- 5C | Forecast de WFM — 11. Postos por página e necessidade da estrutura em unidades
--- Schema: 5c_planning        Versão 1.1 — 28/10/2026 (agrupa primeiro as páginas da mesma modelo)
+-- Schema: 5c_planning        Versão 1.2 — 31/10/2026 (regra de faturamento, agência do Infloww, alívio da Mass)
+--                             Versão 1.1 — 28/10/2026 (agrupa primeiro as páginas da mesma modelo)
+-- A versão 1.2 usa tabelas e procedimentos dos scripts 19 e 23: numa instalação nova, rode o 19 e o 23 logo depois.
 --
 -- sp_fc_postos(p_data): mesma regra do posts.py de 27/10, por carteira e turno.
 --   Carga da página no turno = maior média de bloco de 4 h dos 2 blocos do turno,
@@ -55,7 +57,7 @@ DELIMITER $$
 DROP PROCEDURE IF EXISTS sp_fc_postos_carteira $$
 CREATE PROCEDURE sp_fc_postos_carteira(IN p_data DATE, IN p_cart VARCHAR(8), IN p_un TINYINT, IN p_tur CHAR(1))
 BEGIN
-  DECLARE v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2 DECIMAL(10,4);
+  DECLARE v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2, v_alivio DECIMAL(10,4);
   DECLARE v_kmin, v_afmin, v_maxp, v_maxd INT;
   DECLARE v_fim INT DEFAULT 0;
   DECLARE v_pag VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -64,9 +66,10 @@ BEGIN
   DECLARE v_F, v_O, v_cap DECIMAL(10,4);
   DECLARE v_k, v_i INT;
   DECLARE v_n INT DEFAULT 0;
-  DECLARE v_excl TINYINT;
+  DECLARE v_excl, v_cls TINYINT;
+  DECLARE v_ag INT;
   DECLARE c_pag CURSOR FOR
-    SELECT pagina, modelo, regra, GREATEST(fans_h, 1)
+    SELECT pagina, modelo, regra, GREATEST(fans_h, 1), COALESCE(classe_receita, 0), agencia
     FROM fc_pagina_carga
     WHERE data_calculo = p_data AND carteira = p_cart AND turno = p_tur AND ocupa_posto = 1
     ORDER BY ordem, pagina;
@@ -79,21 +82,26 @@ BEGIN
          COALESCE(MAX(IF(chave = 'teto_apoio', valor, NULL)), 40),
          COALESCE(MAX(IF(chave = 'desconto_mesma_modelo', valor, NULL)), 0.10),
          COALESCE(MAX(IF(chave = 'desconto_modelo_diferente', valor, NULL)), 0.20),
+         COALESCE(MAX(IF(chave = 'alivio_mass_ppv', valor, NULL)), 0),
          CAST(COALESCE(MAX(IF(chave = 'skylar_minimo', valor, NULL)), 4) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'assistente_fixo_minimo', valor, NULL)), 2) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'max_paginas_rep', valor, NULL)), 3) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'max_paginas_rep_modelos_diferentes', valor, NULL)), 2) AS SIGNED)
-    INTO v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2, v_kmin, v_afmin, v_maxp, v_maxd
+    INTO v_lp, v_comp, v_lk, v_ls, v_teto, v_s1, v_s2, v_alivio, v_kmin, v_afmin, v_maxp, v_maxd
   FROM fc_parametros;
+  -- a Mass PPV (.21/.22) passa para os supervisores: o rep atende um pouco mais de fãs por hora
+  SET v_lp = v_lp * (1 + v_alivio), v_comp = v_comp * (1 + v_alivio);
 
   TRUNCATE TABLE fc_wrk_pc_item;
   TRUNCATE TABLE fc_wrk_pc_bin;
   TRUNCATE TABLE fc_wrk_pc_bin_item;
+  TRUNCATE TABLE fc_wrk_pc_forc;
 
-  -- 1. Páginas com posto próprio; as pequenas (e os excedentes) vão para fc_wrk_pc_item
+  -- 1. Páginas com posto próprio; as pequenas (e os excedentes) vão para fc_wrk_pc_item;
+  --    as da regra de faturamento vão para fc_wrk_pc_forc
   OPEN c_pag;
   pags: LOOP
-    FETCH c_pag INTO v_pag, v_mod, v_regra, v_F;
+    FETCH c_pag INTO v_pag, v_mod, v_regra, v_F, v_cls, v_ag;
     IF v_fim = 1 THEN LEAVE pags; END IF;
 
     SET v_k = 0;
@@ -111,21 +119,25 @@ BEGIN
       WHILE v_i <= v_k DO
         SET v_n = v_n + 1;
         INSERT INTO fc_postos (data_calculo, carteira, turno, posto, unidade, tipo, pagina_principal, n_paginas,
-                               carga, capacidade, no_teto, exclusiva, excedente)
+                               carga, capacidade, no_teto, exclusiva, excedente, forcado)
         VALUES (p_data, p_cart, p_tur, v_n, p_un, IF(v_i = 1, 'titular', 'assistente'), v_pag, 1,
-                ROUND(v_F / v_k, 1), v_cap, 0, v_excl, NULL);
+                ROUND(v_F / v_k, 1), v_cap, 0, v_excl, NULL, 0);
         INSERT INTO fc_postos_pagina (data_calculo, carteira, turno, posto, pagina, fans_h, apoio, fracao)
         VALUES (p_data, p_cart, p_tur, v_n, v_pag, ROUND(v_F / v_k, 1), 0, 1);
         SET v_i = v_i + 1;
       END WHILE;
+
+    ELSEIF v_cls > 0 THEN
+      -- faturamento do mês anterior abaixo de 32k (2 por rep) ou de 16k (3 por rep), mesmo acima da capacidade
+      INSERT INTO fc_wrk_pc_forc (pagina, modelo, agencia, f, classe) VALUES (v_pag, v_mod, v_ag, ROUND(v_F, 1), v_cls);
 
     ELSEIF v_F > v_teto THEN
       -- titular fica com 35; o excedente vira apoio ou assistente(s)
       SET v_O = v_F - v_lp;
       SET v_n = v_n + 1;
       INSERT INTO fc_postos (data_calculo, carteira, turno, posto, unidade, tipo, pagina_principal, n_paginas,
-                             carga, capacidade, no_teto, exclusiva, excedente)
-      VALUES (p_data, p_cart, p_tur, v_n, p_un, 'titular', v_pag, 1, v_lp, v_lp, 0, 0, ROUND(v_O, 1));
+                             carga, capacidade, no_teto, exclusiva, excedente, forcado)
+      VALUES (p_data, p_cart, p_tur, v_n, p_un, 'titular', v_pag, 1, v_lp, v_lp, 0, 0, ROUND(v_O, 1), 0);
       INSERT INTO fc_postos_pagina (data_calculo, carteira, turno, posto, pagina, fans_h, apoio, fracao)
       VALUES (p_data, p_cart, p_tur, v_n, v_pag, v_lp, 0, 1);
       IF v_O > v_comp THEN
@@ -133,57 +145,156 @@ BEGIN
         WHILE v_i <= v_k DO
           SET v_n = v_n + 1;
           INSERT INTO fc_postos (data_calculo, carteira, turno, posto, unidade, tipo, pagina_principal, n_paginas,
-                                 carga, capacidade, no_teto, exclusiva, excedente)
-          VALUES (p_data, p_cart, p_tur, v_n, p_un, 'assistente', v_pag, 1, ROUND(v_O / v_k, 1), v_lp, 0, 0, NULL);
+                                 carga, capacidade, no_teto, exclusiva, excedente, forcado)
+          VALUES (p_data, p_cart, p_tur, v_n, p_un, 'assistente', v_pag, 1, ROUND(v_O / v_k, 1), v_lp, 0, 0, NULL, 0);
           INSERT INTO fc_postos_pagina (data_calculo, carteira, turno, posto, pagina, fans_h, apoio, fracao)
           VALUES (p_data, p_cart, p_tur, v_n, v_pag, ROUND(v_O / v_k, 1), 0, 1);
           SET v_i = v_i + 1;
         END WHILE;
       ELSE
-        INSERT INTO fc_wrk_pc_item (pagina, modelo, f, apoio) VALUES (v_pag, v_mod, ROUND(v_O, 1), 1);
+        INSERT INTO fc_wrk_pc_item (pagina, modelo, agencia, f, apoio) VALUES (v_pag, v_mod, v_ag, ROUND(v_O, 1), 1);
       END IF;
 
     ELSEIF v_F > v_comp OR v_regra = 'EXCLUSIVA' THEN
       -- rep próprio (no teto entre 35 e 40)
       SET v_n = v_n + 1;
       INSERT INTO fc_postos (data_calculo, carteira, turno, posto, unidade, tipo, pagina_principal, n_paginas,
-                             carga, capacidade, no_teto, exclusiva, excedente)
+                             carga, capacidade, no_teto, exclusiva, excedente, forcado)
       VALUES (p_data, p_cart, p_tur, v_n, p_un, 'titular', v_pag, 1, ROUND(v_F, 1), v_lp,
-              v_F > v_lp, v_regra = 'EXCLUSIVA', NULL);
+              v_F > v_lp, v_regra = 'EXCLUSIVA', NULL, 0);
       INSERT INTO fc_postos_pagina (data_calculo, carteira, turno, posto, pagina, fans_h, apoio, fracao)
       VALUES (p_data, p_cart, p_tur, v_n, v_pag, ROUND(v_F, 1), 0, 1);
 
     ELSE
-      INSERT INTO fc_wrk_pc_item (pagina, modelo, f, apoio) VALUES (v_pag, v_mod, ROUND(v_F, 1), 0);
+      INSERT INTO fc_wrk_pc_item (pagina, modelo, agencia, f, apoio) VALUES (v_pag, v_mod, v_ag, ROUND(v_F, 1), 0);
     END IF;
   END LOOP;
   CLOSE c_pag;
 
-  -- 2. Agrupamento das páginas pequenas, em duas fases (decisão de 28/10):
-  --    2a. primeiro só páginas da mesma modelo (até max_paginas_rep, capacidade 35 × (1 − 10% × (n − 1)));
-  --    2b. as que ficaram sozinhas são combinadas entre modelos (até max_paginas_rep_modelos_diferentes).
+  -- 2. Regra de faturamento (decisão de 31/10): abaixo de 16k, grupos de 3; de 16k a 32k, grupos de 2.
+  --    Os grupos são montados antes e não recebem páginas de fora da regra. Em cada grupo, primeiro a mesma
+  --    modelo, depois a mesma agência do Infloww, depois o grupo mais leve (a carga fica dividida por igual).
+  --    As vagas dos grupos de 3 são completadas com páginas de 16k a 32k (as mais leves). As que ficam sem par
+  --    voltam para o agrupamento normal (com o limite de carga).
+  BEGIN
+    DECLARE v_fim3 INT DEFAULT 0;
+    DECLARE v_nb, v_bin, v_q, v_id INT;
+    DECLARE v_fp VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    DECLARE v_fm VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    DECLARE v_fa INT;
+    DECLARE v_ff DECIMAL(6,1);
+    DECLARE c_f3 CURSOR FOR SELECT id, pagina, modelo, agencia, f FROM fc_wrk_pc_forc WHERE classe = 3 ORDER BY f DESC, pagina;
+    DECLARE c_f2 CURSOR FOR SELECT id, pagina, modelo, agencia, f FROM fc_wrk_pc_forc WHERE classe = 2 AND usado = 0 ORDER BY f DESC, pagina;
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fim3 = 1;
+
+    SET v_nb = 0;
+    -- 2.1 grupos de 3
+    SELECT CEIL(COUNT(*) / 3) INTO v_q FROM fc_wrk_pc_forc WHERE classe = 3;
+    WHILE v_q > 0 DO
+      SET v_nb = v_nb + 1, v_q = v_q - 1;
+      INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira, forcado, classe) VALUES (v_nb, 0, 0, 0, NULL, '', 1, 3);
+    END WHILE;
+    OPEN c_f3;
+    f3: LOOP
+      FETCH c_f3 INTO v_id, v_fp, v_fm, v_fa, v_ff;
+      IF v_fim3 = 1 THEN LEAVE f3; END IF;
+      SELECT b.bin INTO v_bin FROM fc_wrk_pc_bin b
+      WHERE b.forcado = 1 AND b.classe = 3 AND b.n < 3
+      ORDER BY EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.modelo = v_fm) DESC,
+               (v_fa IS NOT NULL AND EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.agencia = v_fa)) DESC,
+               b.soma, b.bin
+      LIMIT 1;
+      INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio)
+      SELECT v_bin, n + 1, v_fp, v_fm, v_fa, v_ff, 0 FROM fc_wrk_pc_bin WHERE bin = v_bin;
+      UPDATE fc_wrk_pc_bin SET primeira = IF(n = 0, v_fp, primeira), modelo_unico = IF(n = 0, v_fm, IF(modelo_unico = v_fm, v_fm, NULL)),
+                               n = n + 1, soma = soma + v_ff WHERE bin = v_bin;
+      UPDATE fc_wrk_pc_forc SET usado = 1 WHERE id = v_id;
+    END LOOP;
+    CLOSE c_f3;
+    SET v_fim3 = 0;
+
+    -- 2.2 vagas dos grupos de 3 com as páginas de 16k a 32k mais leves
+    vagas: WHILE EXISTS (SELECT 1 FROM fc_wrk_pc_bin WHERE forcado = 1 AND classe = 3 AND n < 3)
+             AND EXISTS (SELECT 1 FROM fc_wrk_pc_forc WHERE classe = 2 AND usado = 0) DO
+      SELECT bin INTO v_bin FROM fc_wrk_pc_bin WHERE forcado = 1 AND classe = 3 AND n < 3 ORDER BY soma, bin LIMIT 1;
+      SELECT g.id, g.pagina, g.modelo, g.agencia, g.f INTO v_id, v_fp, v_fm, v_fa, v_ff
+      FROM fc_wrk_pc_forc g
+      WHERE g.classe = 2 AND g.usado = 0
+      ORDER BY EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = v_bin AND x.modelo = g.modelo) DESC,
+               (g.agencia IS NOT NULL AND EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = v_bin AND x.agencia = g.agencia)) DESC,
+               g.f, g.pagina
+      LIMIT 1;
+      INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio)
+      SELECT v_bin, n + 1, v_fp, v_fm, v_fa, v_ff, 0 FROM fc_wrk_pc_bin WHERE bin = v_bin;
+      UPDATE fc_wrk_pc_bin SET modelo_unico = IF(modelo_unico = v_fm, v_fm, NULL), n = n + 1, soma = soma + v_ff WHERE bin = v_bin;
+      UPDATE fc_wrk_pc_forc SET usado = 1 WHERE id = v_id;
+    END WHILE vagas;
+
+    -- 2.3 grupos de 2 com as páginas de 16k a 32k que sobraram
+    SELECT CEIL(COUNT(*) / 2) INTO v_q FROM fc_wrk_pc_forc WHERE classe = 2 AND usado = 0;
+    WHILE v_q > 0 DO
+      SET v_nb = v_nb + 1, v_q = v_q - 1;
+      INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira, forcado, classe) VALUES (v_nb, 0, 0, 0, NULL, '', 1, 2);
+    END WHILE;
+    OPEN c_f2;
+    f2: LOOP
+      FETCH c_f2 INTO v_id, v_fp, v_fm, v_fa, v_ff;
+      IF v_fim3 = 1 THEN LEAVE f2; END IF;
+      SELECT b.bin INTO v_bin FROM fc_wrk_pc_bin b
+      WHERE b.forcado = 1 AND b.classe = 2 AND b.n < 2
+      ORDER BY EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.modelo = v_fm) DESC,
+               (v_fa IS NOT NULL AND EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.agencia = v_fa)) DESC,
+               b.soma, b.bin
+      LIMIT 1;
+      INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio)
+      SELECT v_bin, n + 1, v_fp, v_fm, v_fa, v_ff, 0 FROM fc_wrk_pc_bin WHERE bin = v_bin;
+      UPDATE fc_wrk_pc_bin SET primeira = IF(n = 0, v_fp, primeira), modelo_unico = IF(n = 0, v_fm, IF(modelo_unico = v_fm, v_fm, NULL)),
+                               n = n + 1, soma = soma + v_ff WHERE bin = v_bin;
+      UPDATE fc_wrk_pc_forc SET usado = 1 WHERE id = v_id;
+    END LOOP;
+    CLOSE c_f2;
+    SET v_fim3 = 0;
+
+    -- 2.4 as que ficaram sozinhas voltam para o agrupamento normal; grupos vazios saem
+    INSERT INTO fc_wrk_pc_item (pagina, modelo, agencia, f, apoio)
+    SELECT i.pagina, i.modelo, i.agencia, i.f, 0
+    FROM fc_wrk_pc_bin b JOIN fc_wrk_pc_bin_item i ON i.bin = b.bin
+    WHERE b.forcado = 1 AND b.n = 1
+    ORDER BY b.bin;
+    DELETE i FROM fc_wrk_pc_bin_item i JOIN fc_wrk_pc_bin b ON b.bin = i.bin WHERE b.forcado = 1 AND b.n = 1;
+    DELETE FROM fc_wrk_pc_bin WHERE forcado = 1 AND n <= 1;
+  END;
+
+  -- 3. Agrupamento das outras páginas pequenas, em duas fases (decisão de 28/10):
+  --    3a. primeiro só páginas da mesma modelo (até max_paginas_rep, capacidade 35 × (1 − 10% × (n − 1)));
+  --    3b. as que ficaram sozinhas são combinadas entre modelos (até max_paginas_rep_modelos_diferentes),
+  --        preferindo a mesma modelo e depois a mesma agência do Infloww (decisão de 31/10).
   --    Em cada fase: da maior para a menor; o grupo que cabe e fica mais justo.
   BEGIN
     DECLARE v_fim2 INT DEFAULT 0;
     DECLARE v_id, v_bin INT;
-    DECLARE v_nb INT DEFAULT 0;
+    DECLARE v_nb INT;
     DECLARE v_ip VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     DECLARE v_im VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    DECLARE v_iag INT;
     DECLARE v_if DECIMAL(6,1);
     DECLARE v_ia TINYINT;
-    DECLARE c_it CURSOR FOR SELECT id, pagina, modelo, f, apoio FROM fc_wrk_pc_item ORDER BY f DESC, id;
+    DECLARE c_it CURSOR FOR SELECT id, pagina, modelo, agencia, f, apoio FROM fc_wrk_pc_item ORDER BY f DESC, id;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fim2 = 1;
 
-    -- 2a. Mesma modelo
+    SELECT COALESCE(MAX(bin), 0) INTO v_nb FROM fc_wrk_pc_bin;
+
+    -- 3a. Mesma modelo
     OPEN c_it;
     its: LOOP
-      FETCH c_it INTO v_id, v_ip, v_im, v_if, v_ia;
+      FETCH c_it INTO v_id, v_ip, v_im, v_iag, v_if, v_ia;
       IF v_fim2 = 1 THEN LEAVE its; END IF;
 
       SET v_bin = NULL;
       SELECT b.bin INTO v_bin
       FROM fc_wrk_pc_bin b
-      WHERE b.modelo_unico = v_im
+      WHERE b.forcado = 0
+        AND b.modelo_unico = v_im
         AND b.n < v_maxp
         AND NOT (v_ia = 1 AND b.apoio = 1)
         AND b.soma + v_if <= v_lp * (1 - v_s1 * b.n)
@@ -193,24 +304,24 @@ BEGIN
 
       IF v_bin IS NULL THEN
         SET v_nb = v_nb + 1;
-        INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira) VALUES (v_nb, 1, v_if, v_ia, v_im, v_ip);
-        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, f, apoio) VALUES (v_nb, 1, v_ip, v_im, v_if, v_ia);
+        INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira, forcado, classe) VALUES (v_nb, 1, v_if, v_ia, v_im, v_ip, 0, 0);
+        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio) VALUES (v_nb, 1, v_ip, v_im, v_iag, v_if, v_ia);
       ELSE
-        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, f, apoio)
-        SELECT v_bin, n + 1, v_ip, v_im, v_if, v_ia FROM fc_wrk_pc_bin WHERE bin = v_bin;
+        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio)
+        SELECT v_bin, n + 1, v_ip, v_im, v_iag, v_if, v_ia FROM fc_wrk_pc_bin WHERE bin = v_bin;
         UPDATE fc_wrk_pc_bin SET n = n + 1, soma = soma + v_if, apoio = GREATEST(apoio, v_ia) WHERE bin = v_bin;
       END IF;
     END LOOP;
     CLOSE c_it;
 
-    -- as páginas que ficaram sozinhas saem dos grupos e vão para a fase 2b
+    -- as páginas que ficaram sozinhas saem dos grupos e vão para a fase 3b
     TRUNCATE TABLE fc_wrk_pc_solo;
-    INSERT INTO fc_wrk_pc_solo (ordem, pagina, modelo, f, apoio)
-    SELECT b.bin, i.pagina, i.modelo, i.f, i.apoio
+    INSERT INTO fc_wrk_pc_solo (ordem, pagina, modelo, agencia, f, apoio)
+    SELECT b.bin, i.pagina, i.modelo, i.agencia, i.f, i.apoio
     FROM fc_wrk_pc_bin b JOIN fc_wrk_pc_bin_item i ON i.bin = b.bin
-    WHERE b.n = 1;
-    DELETE i FROM fc_wrk_pc_bin_item i JOIN fc_wrk_pc_bin b ON b.bin = i.bin WHERE b.n = 1;
-    DELETE FROM fc_wrk_pc_bin WHERE n = 1;
+    WHERE b.forcado = 0 AND b.n = 1;
+    DELETE i FROM fc_wrk_pc_bin_item i JOIN fc_wrk_pc_bin b ON b.bin = i.bin WHERE b.forcado = 0 AND b.n = 1;
+    DELETE FROM fc_wrk_pc_bin WHERE forcado = 0 AND n = 1;
   END;
 
   BEGIN
@@ -219,18 +330,19 @@ BEGIN
     DECLARE v_nb, v_nb1 INT;
     DECLARE v_ip VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     DECLARE v_im VARCHAR(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    DECLARE v_iag INT;
     DECLARE v_if DECIMAL(6,1);
     DECLARE v_ia TINYINT;
-    DECLARE c_so CURSOR FOR SELECT pagina, modelo, f, apoio FROM fc_wrk_pc_solo ORDER BY f DESC, ordem;
+    DECLARE c_so CURSOR FOR SELECT pagina, modelo, agencia, f, apoio FROM fc_wrk_pc_solo ORDER BY f DESC, ordem;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET v_fim2 = 1;
 
     SELECT COALESCE(MAX(bin), 0) INTO v_nb FROM fc_wrk_pc_bin;
     SET v_nb = GREATEST(v_nb, (SELECT COALESCE(MAX(ordem), 0) FROM fc_wrk_pc_solo)), v_nb1 = v_nb;
 
-    -- 2b. Modelos diferentes: só entre os grupos novos desta fase
+    -- 3b. Modelos diferentes: só entre os grupos novos desta fase
     OPEN c_so;
     sos: LOOP
-      FETCH c_so INTO v_ip, v_im, v_if, v_ia;
+      FETCH c_so INTO v_ip, v_im, v_iag, v_if, v_ia;
       IF v_fim2 = 1 THEN LEAVE sos; END IF;
 
       SET v_bin = NULL;
@@ -241,6 +353,7 @@ BEGIN
         AND NOT (v_ia = 1 AND b.apoio = 1)
         AND b.soma + v_if <= v_lp * (1 - IF(b.modelo_unico = v_im, v_s1, v_s2) * b.n)
       ORDER BY EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.modelo = v_im) DESC,
+               (v_iag IS NOT NULL AND EXISTS (SELECT 1 FROM fc_wrk_pc_bin_item x WHERE x.bin = b.bin AND x.agencia = v_iag)) DESC,
                v_lp * (1 - IF(b.modelo_unico = v_im, v_s1, v_s2) * b.n) - (b.soma + v_if),
                b.bin
       LIMIT 1;
@@ -248,11 +361,11 @@ BEGIN
 
       IF v_bin IS NULL THEN
         SET v_nb = v_nb + 1;
-        INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira) VALUES (v_nb, 1, v_if, v_ia, v_im, v_ip);
-        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, f, apoio) VALUES (v_nb, 1, v_ip, v_im, v_if, v_ia);
+        INSERT INTO fc_wrk_pc_bin (bin, n, soma, apoio, modelo_unico, primeira, forcado, classe) VALUES (v_nb, 1, v_if, v_ia, v_im, v_ip, 0, 0);
+        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio) VALUES (v_nb, 1, v_ip, v_im, v_iag, v_if, v_ia);
       ELSE
-        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, f, apoio)
-        SELECT v_bin, n + 1, v_ip, v_im, v_if, v_ia FROM fc_wrk_pc_bin WHERE bin = v_bin;
+        INSERT INTO fc_wrk_pc_bin_item (bin, seq, pagina, modelo, agencia, f, apoio)
+        SELECT v_bin, n + 1, v_ip, v_im, v_iag, v_if, v_ia FROM fc_wrk_pc_bin WHERE bin = v_bin;
         UPDATE fc_wrk_pc_bin
            SET n = n + 1, soma = soma + v_if, apoio = GREATEST(apoio, v_ia),
                modelo_unico = IF(modelo_unico = v_im, v_im, NULL)
@@ -262,13 +375,13 @@ BEGIN
     CLOSE c_so;
   END;
 
-  -- 3. Cada grupo vira um posto (numerados em sequência depois dos postos próprios)
+  -- 4. Cada grupo vira um posto (numerados em sequência depois dos postos próprios)
   INSERT INTO fc_postos (data_calculo, carteira, turno, posto, unidade, tipo, pagina_principal, n_paginas,
-                         carga, capacidade, no_teto, exclusiva, excedente)
+                         carga, capacidade, no_teto, exclusiva, excedente, forcado)
   SELECT p_data, p_cart, p_tur, v_n + r.rn, p_un,
          CASE WHEN b.apoio = 1 THEN IF(b.n = 1, 'assistente', 'apoio') ELSE IF(b.n = 1, 'titular', 'double') END,
          b.primeira, b.n, b.soma,
-         ROUND(v_lp * (1 - IF(b.modelo_unico IS NOT NULL, v_s1, v_s2) * (b.n - 1)), 1), 0, 0, NULL
+         ROUND(v_lp * (1 - IF(b.modelo_unico IS NOT NULL, v_s1, v_s2) * (b.n - 1)), 1), 0, 0, NULL, b.forcado
   FROM fc_wrk_pc_bin b
   JOIN (SELECT bin, ROW_NUMBER() OVER (ORDER BY bin) AS rn FROM fc_wrk_pc_bin) r ON r.bin = b.bin;
 
@@ -286,7 +399,8 @@ DROP PROCEDURE IF EXISTS sp_fc_postos $$
 CREATE PROCEDURE sp_fc_postos(IN p_data DATE)
 BEGIN
   DECLARE v_jan, v_jb, v_jp, v_nuc, v_nfolga, v_bmin INT;
-  DECLARE v_def, v_min, v_fator, v_paf, v_pp, v_tp, v_lp, v_vol DECIMAL(10,4);
+  DECLARE v_def, v_min, v_fator, v_paf, v_pp, v_tp, v_lp, v_vol, v_alivio, v_r3, v_r2 DECIMAL(12,4);
+  DECLARE v_mes DATE;
   DECLARE v_ref, v_ref_rep, v_foto DATE;
   DECLARE v_fim INT DEFAULT 0;
   DECLARE v_cart VARCHAR(8) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -307,9 +421,18 @@ BEGIN
          CAST(COALESCE(MAX(IF(chave = 'nucleos_por_turno', valor, NULL)), 3) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'nucleos_folga_dia', valor, NULL)), 1) AS SIGNED),
          CAST(COALESCE(MAX(IF(chave = 'buffer_minimo_nucleo', valor, NULL)), 2) AS SIGNED),
-         COALESCE(MAX(IF(chave = 'fator_volume', valor, NULL)), 1)
-    INTO v_jan, v_jb, v_jp, v_def, v_min, v_fator, v_paf, v_pp, v_tp, v_lp, v_nuc, v_nfolga, v_bmin, v_vol
+         COALESCE(MAX(IF(chave = 'fator_volume', valor, NULL)), 1),
+         COALESCE(MAX(IF(chave = 'alivio_mass_ppv', valor, NULL)), 0),
+         COALESCE(MAX(IF(chave = 'receita_triple', valor, NULL)), 16000),
+         COALESCE(MAX(IF(chave = 'receita_double', valor, NULL)), 32000)
+    INTO v_jan, v_jb, v_jp, v_def, v_min, v_fator, v_paf, v_pp, v_tp, v_lp, v_nuc, v_nfolga, v_bmin, v_vol,
+         v_alivio, v_r3, v_r2
   FROM fc_parametros;
+  SET v_lp = v_lp * (1 + v_alivio);
+
+  -- faturamento por página e dia (agg_statements_classification), para a regra de faturamento e a versão
+  CALL sp_fc_vendas_atualizar(p_data);
+  SET v_mes = p_data - INTERVAL (DAYOFMONTH(p_data) - 1) DAY;   -- 1º dia do mês da data; vale o mês anterior
 
   -- estrutura vigente na data (antes do início, a primeira cadastrada)
   SELECT GREATEST(p_data, COALESCE(MIN(vigente_desde), p_data)) INTO v_ref FROM fc_pagina_carteira;
@@ -355,6 +478,22 @@ BEGIN
   CROSS JOIN (SELECT 'A' AS turno UNION ALL SELECT 'C' UNION ALL SELECT 'D') t;
 
   UPDATE fc_pagina_carga SET ocupa_posto = (fans_h >= v_min) WHERE data_calculo = p_data;
+  -- páginas sem escala (fc_pagina_sem_escala, nome exato ou com %): ficam na carga, mas não ocupam posto
+  UPDATE fc_pagina_carga pc SET pc.ocupa_posto = 0
+   WHERE pc.data_calculo = p_data
+     AND EXISTS (SELECT 1 FROM fc_pagina_sem_escala x WHERE pc.pagina LIKE x.padrao);
+
+  -- regra de faturamento (31/10): faturamento bruto do mês fechado anterior; só páginas PADRAO com venda no mês
+  --   abaixo de receita_triple → classe 3 (3 por rep) · abaixo de receita_double → classe 2 (2 por rep)
+  UPDATE fc_pagina_carga pc
+  LEFT JOIN (SELECT pagina, SUM(bruto) AS b FROM fc_pagina_venda_dia
+             WHERE dia >= v_mes - INTERVAL 1 MONTH AND dia < v_mes GROUP BY pagina) f ON f.pagina = pc.pagina
+  LEFT JOIN fc_pagina_infloww i ON i.pagina = pc.pagina
+     SET pc.fat_mes = f.b,
+         pc.agencia = i.agency_id,
+         pc.classe_receita = CASE WHEN pc.regra <> 'PADRAO' OR f.b IS NULL THEN 0
+                                  WHEN f.b < v_r3 THEN 3 WHEN f.b < v_r2 THEN 2 ELSE 0 END
+   WHERE pc.data_calculo = p_data;
 
   -- 2. Postos por carteira e turno
   OPEN c_cart;
@@ -407,7 +546,9 @@ BEGIN
         JOIN fc_carteira c ON c.carteira = pc.carteira
         JOIN fc_fans_pagina_hora h ON h.pagina = pc.pagina AND h.turno = pc.turno
              AND h.dia_turno >= p_data - INTERVAL v_jp DAY AND h.dia_turno < p_data
-        LEFT JOIN (SELECT pp.pagina, pp.turno, SUM(p.capacidade * pp.fans_h / NULLIF(p.carga, 0)) AS cap
+        -- nos postos da regra de faturamento a carga acima da capacidade é aceita (não vira buffer)
+        LEFT JOIN (SELECT pp.pagina, pp.turno,
+                          SUM(IF(p.forcado = 1, GREATEST(p.capacidade, p.carga), p.capacidade) * pp.fans_h / NULLIF(p.carga, 0)) AS cap
                    FROM fc_postos_pagina pp
                    JOIN fc_postos p ON p.data_calculo = pp.data_calculo AND p.carteira = pp.carteira
                                    AND p.turno = pp.turno AND p.posto = pp.posto
@@ -523,6 +664,10 @@ BEGIN
   -- etapa do script 19 (versões do capacity e plano sugerido); numa instalação nova, rodar o 19 logo depois
   UPDATE fc_log_execucao SET etapa = 'versao' WHERE id = v_log;
   CALL sp_fc_capacity_versao(v_d, 'DIARIO', NULL);
+  -- etapa do script 23: horas fora do SLA nos postos da regra de faturamento (fãs de ontem e anteontem)
+  UPDATE fc_log_execucao SET etapa = 'sla' WHERE id = v_log;
+  CALL sp_fc_sla_horas(v_d - INTERVAL 2 DAY, NULL);
+  CALL sp_fc_sla_horas(v_d - INTERVAL 1 DAY, NULL);
 
   UPDATE fc_log_execucao SET etapa = 'fim', fim = NOW(), status = 'OK' WHERE id = v_log;
 END $$

@@ -40,6 +40,19 @@ BEGIN
 END $$
 DELIMITER ;
 
+-- Script 23 (regras de 31/10: faturamento, agência do Infloww, SLA, faturamento por versão)
+DROP VIEW IF EXISTS vw_fc_20_paginas_faturamento;
+DROP VIEW IF EXISTS vw_fc_19_faturamento_unidades;
+DROP VIEW IF EXISTS vw_fc_18_sla_horas_excluidas;
+DROP PROCEDURE IF EXISTS sp_fc_sla_horas;
+DROP PROCEDURE IF EXISTS sp_fc_vendas_atualizar;
+DROP TABLE IF EXISTS fc_sla_hora_excluida;
+DROP TABLE IF EXISTS fc_capacity_versao_faturamento;
+DROP TABLE IF EXISTS fc_pagina_venda_dia;
+DROP TABLE IF EXISTS fc_pagina_infloww;
+DROP TABLE IF EXISTS fc_pagina_sem_escala;
+DROP TABLE IF EXISTS fc_wrk_pc_forc;
+
 -- Script 19 (versões do capacity e plano sugerido). Para desfazer só o 19, rodar este bloco e o 11 de novo
 -- depois de tirar dele a etapa 'versao' do sp_fc_rodar_dia.
 DROP VIEW IF EXISTS vw_fc_17_projecao_quadro;
