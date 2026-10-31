@@ -126,6 +126,8 @@ CREATE TABLE IF NOT EXISTS fc_plano_projecao (
   alvo           SMALLINT     NOT NULL,
   hc_oficial     DECIMAL(7,2) NULL,
   hc_sugerido    DECIMAL(7,2) NULL,
+  rende_oficial  DECIMAL(7,2) NULL COMMENT 'quadro que rende: novatos na rampa contam rampa_novato_rend (script 26)',
+  rende_sugerido DECIMAL(7,2) NULL,
   PRIMARY KEY (versao, inicio_semana, turno)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -162,13 +164,14 @@ DROP PROCEDURE IF EXISTS sp_fc_plano_simular $$
 CREATE PROCEDURE sp_fc_plano_simular(IN p_ini DATE, IN p_ate DATE, IN p_sug TINYINT, IN p_versao INT,
                                      IN p_h0a DOUBLE, IN p_h0c DOUBLE, IN p_h0d DOUBLE,
                                      IN p_ta DOUBLE, IN p_tc DOUBLE, IN p_td DOUBLE,
-                                     IN p_n14 DOUBLE, IN p_n513 DOUBLE,
+                                     IN p_n14 DOUBLE, IN p_n513 DOUBLE, IN p_rdias INT, IN p_rend DOUBLE,
                                      OUT o_a DOUBLE, OUT o_c DOUBLE, OUT o_d DOUBLE)
 BEGIN
   DECLARE v_ws DATE DEFAULT p_ini;
   DECLARE v_ha, v_hc, v_hd DOUBLE;
   DECLARE v_ea, v_ec, v_ed, v_xa, v_xc, v_xd DOUBLE;
   DECLARE v_ma, v_mc, v_md DOUBLE;
+  DECLARE v_ra, v_rc, v_rd DOUBLE;
   SET v_ha = p_h0a, v_hc = p_h0c, v_hd = p_h0d;
 
   -- trocas de turno anteriores ao início entram no quadro de partida
@@ -188,13 +191,22 @@ BEGIN
     FROM fc_plano_troca_turno WHERE ativo = 1 AND data >= v_ws AND data < v_ws + INTERVAL 7 DAY;
     SET v_ha = v_ha + v_ma, v_hc = v_hc + v_mc, v_hd = v_hd + v_md;
 
+    -- rampa do novato (script 26): turmas com 7 a p_rdias dias de operação rendem p_rend de um rep
+    SELECT COALESCE(SUM(IF(opera < v_ws AND DATEDIFF(v_ws, opera) <= p_rdias, IF(p_sug = 1, sg_a, of_a) * (1 - p_rend), 0)), 0),
+           COALESCE(SUM(IF(opera < v_ws AND DATEDIFF(v_ws, opera) <= p_rdias, IF(p_sug = 1, sg_c, of_c) * (1 - p_rend), 0)), 0),
+           COALESCE(SUM(IF(opera < v_ws AND DATEDIFF(v_ws, opera) <= p_rdias, IF(p_sug = 1, sg_d, of_d) * (1 - p_rend), 0)), 0)
+      INTO v_ra, v_rc, v_rd
+    FROM fc_wrk_plano;
+
     IF p_versao > 0 THEN
       IF p_sug = 0 THEN
-        INSERT INTO fc_plano_projecao (versao, inicio_semana, turno, alvo, hc_oficial)
-        VALUES (p_versao, v_ws, 'A', 0, v_ha), (p_versao, v_ws, 'C', 0, v_hc), (p_versao, v_ws, 'D', 0, v_hd);
+        INSERT INTO fc_plano_projecao (versao, inicio_semana, turno, alvo, hc_oficial, rende_oficial)
+        VALUES (p_versao, v_ws, 'A', 0, v_ha, v_ha - v_ra), (p_versao, v_ws, 'C', 0, v_hc, v_hc - v_rc),
+               (p_versao, v_ws, 'D', 0, v_hd, v_hd - v_rd);
       ELSE
         UPDATE fc_plano_projecao
-           SET hc_sugerido = CASE turno WHEN 'A' THEN v_ha WHEN 'C' THEN v_hc ELSE v_hd END
+           SET hc_sugerido = CASE turno WHEN 'A' THEN v_ha WHEN 'C' THEN v_hc ELSE v_hd END,
+               rende_sugerido = CASE turno WHEN 'A' THEN v_ha - v_ra WHEN 'C' THEN v_hc - v_rc ELSE v_hd - v_rd END
          WHERE versao = p_versao AND inicio_semana = v_ws;
       END IF;
     END IF;
@@ -218,7 +230,13 @@ BEGIN
     SET v_ws = v_ws + INTERVAL 7 DAY;
   END WHILE;
 
-  SET o_a = v_ha, o_c = v_hc, o_d = v_hd;
+  -- devolve o quadro que rende na data final (quadro menos a rampa das turmas recentes)
+  SELECT COALESCE(SUM(IF(opera < p_ate AND DATEDIFF(p_ate, opera) <= p_rdias, IF(p_sug = 1, sg_a, of_a) * (1 - p_rend), 0)), 0),
+         COALESCE(SUM(IF(opera < p_ate AND DATEDIFF(p_ate, opera) <= p_rdias, IF(p_sug = 1, sg_c, of_c) * (1 - p_rend), 0)), 0),
+         COALESCE(SUM(IF(opera < p_ate AND DATEDIFF(p_ate, opera) <= p_rdias, IF(p_sug = 1, sg_d, of_d) * (1 - p_rend), 0)), 0)
+    INTO v_ra, v_rc, v_rd
+  FROM fc_wrk_plano;
+  SET o_a = v_ha - v_ra, o_c = v_hc - v_rc, o_d = v_hd - v_rd;
 END $$
 
 -- ---------------------------------------------------------------------
@@ -229,7 +247,8 @@ CREATE PROCEDURE sp_fc_plano_sugerido(IN p_v INT)
 BEGIN
   DECLARE v_data, v_ini, v_nxt, v_op, v_fim_h DATE;
   DECLARE v_tur VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-  DECLARE v_jan, v_hor, v_teto, v_tt, v_fim INT DEFAULT 0;
+  DECLARE v_jan, v_hor, v_teto, v_tt, v_rdias, v_fim INT DEFAULT 0;
+  DECLARE v_rend DOUBLE;
   DECLARE v_ta, v_tc, v_td, v_n14, v_n513, v_des, v_fechada DOUBLE;
   DECLARE v_aa, v_ac, v_ad, v_h0a, v_h0c, v_h0d DOUBLE;
   DECLARE v_ha, v_hc, v_hd, v_na, v_nc, v_nd, v_tot, v_ra, v_rc, v_rd, v_fa, v_fc, v_fd DOUBLE;
@@ -247,8 +266,10 @@ BEGIN
          COALESCE(MAX(IF(chave = 'novato_sem_1_4', valor, NULL)), 0.03),
          COALESCE(MAX(IF(chave = 'novato_sem_5_13', valor, NULL)), 0.0122),
          COALESCE(MAX(IF(chave = 'desistencia_trn', valor, NULL)), 0.06),
-         COALESCE(MAX(IF(chave = 'falta_fechada', valor, NULL)), 5)
-    INTO v_jan, v_hor, v_teto, v_tt, v_n14, v_n513, v_des, v_fechada
+         COALESCE(MAX(IF(chave = 'falta_fechada', valor, NULL)), 5),
+         CAST(COALESCE(MAX(IF(chave = 'rampa_novato_dias', valor, NULL)), 0) AS SIGNED),
+         COALESCE(MAX(IF(chave = 'rampa_novato_rend', valor, NULL)), 1)
+    INTO v_jan, v_hor, v_teto, v_tt, v_n14, v_n513, v_des, v_fechada, v_rdias, v_rend
   FROM fc_parametros;
 
   -- taxa de saída por pessoa-semana de cada turno (igual ao sp_fc_prev_to)
@@ -291,7 +312,7 @@ BEGIN
     FROM fc_wrk_plano
     WHERE planejada = 1 AND (opera > v_op OR (opera = v_op AND turma > v_tur));
 
-    CALL sp_fc_plano_simular(v_ini, v_nxt, 1, 0, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513,
+    CALL sp_fc_plano_simular(v_ini, v_nxt, 1, 0, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513, v_rdias, v_rend,
                              v_ha, v_hc, v_hd);
     -- falta de cada turno, com a desistência no treinamento, até o teto do turno
     SET v_na = LEAST(GREATEST(0, (v_aa - v_ha) / (1 - v_des)), v_tt);
@@ -332,9 +353,9 @@ BEGIN
   SELECT GREATEST(COALESCE(MAX(opera), v_ini) + INTERVAL 91 DAY, v_ini + INTERVAL (v_hor * 7) DAY)
     INTO v_fim_h FROM fc_wrk_plano;
   DELETE FROM fc_plano_projecao WHERE versao = p_v;
-  CALL sp_fc_plano_simular(v_ini, v_fim_h, 0, p_v, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513,
+  CALL sp_fc_plano_simular(v_ini, v_fim_h, 0, p_v, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513, v_rdias, v_rend,
                            v_ha, v_hc, v_hd);
-  CALL sp_fc_plano_simular(v_ini, v_fim_h, 1, p_v, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513,
+  CALL sp_fc_plano_simular(v_ini, v_fim_h, 1, p_v, v_h0a, v_h0c, v_h0d, v_ta, v_tc, v_td, v_n14, v_n513, v_rdias, v_rend,
                            v_ha, v_hc, v_hd);
   UPDATE fc_plano_projecao SET alvo = CASE turno WHEN 'A' THEN v_aa WHEN 'C' THEN v_ac ELSE v_ad END
    WHERE versao = p_v;
@@ -342,9 +363,9 @@ BEGIN
   UPDATE fc_capacity_versao v
      SET v.contratar_oficial  = (SELECT COALESCE(SUM(of_a + of_c + of_d), 0) FROM fc_wrk_plano WHERE planejada = 1),
          v.contratar_sugerido = (SELECT COALESCE(SUM(sg_a + sg_c + sg_d), 0) FROM fc_wrk_plano WHERE planejada = 1),
-         v.fecha_oficial  = (SELECT MIN(z.inicio_semana) FROM (SELECT inicio_semana, SUM(alvo - hc_oficial) AS f
+         v.fecha_oficial  = (SELECT MIN(z.inicio_semana) FROM (SELECT inicio_semana, SUM(alvo - COALESCE(rende_oficial, hc_oficial)) AS f
                               FROM fc_plano_projecao WHERE versao = p_v GROUP BY inicio_semana) z WHERE z.f <= v_fechada),
-         v.fecha_sugerido = (SELECT MIN(z.inicio_semana) FROM (SELECT inicio_semana, SUM(alvo - hc_sugerido) AS f
+         v.fecha_sugerido = (SELECT MIN(z.inicio_semana) FROM (SELECT inicio_semana, SUM(alvo - COALESCE(rende_sugerido, hc_sugerido)) AS f
                               FROM fc_plano_projecao WHERE versao = p_v GROUP BY inicio_semana) z WHERE z.f <= v_fechada)
    WHERE v.versao = p_v;
   UPDATE fc_capacity_versao SET dif_plano = contratar_sugerido - contratar_oficial WHERE versao = p_v;
@@ -658,11 +679,14 @@ ORDER BY s.data_inicio_operacao, s.turma;
 -- (17) Projeção semanal do quadro da última versão: plano oficial e sugerido contra o "precisa"
 CREATE OR REPLACE VIEW vw_fc_17_projecao_quadro AS
 SELECT p.inicio_semana AS `Semana`, SUM(p.alvo) AS `Precisa`,
-       ROUND(SUM(p.hc_oficial), 1) AS `Quadro (oficial)`, ROUND(SUM(p.alvo - p.hc_oficial), 1) AS `Falta (oficial)`,
-       ROUND(SUM(p.hc_sugerido), 1) AS `Quadro (sugerido)`, ROUND(SUM(p.alvo - p.hc_sugerido), 1) AS `Falta (sugerido)`,
-       ROUND(SUM(IF(p.turno = 'A', p.alvo - p.hc_oficial, 0)), 1) AS `Falta A (oficial)`,
-       ROUND(SUM(IF(p.turno = 'C', p.alvo - p.hc_oficial, 0)), 1) AS `Falta C (oficial)`,
-       ROUND(SUM(IF(p.turno = 'D', p.alvo - p.hc_oficial, 0)), 1) AS `Falta D (oficial)`,
+       -- a falta usa o quadro que rende (com a rampa do novato, script 26)
+       ROUND(SUM(p.hc_oficial), 1) AS `Quadro (oficial)`, ROUND(SUM(COALESCE(p.rende_oficial, p.hc_oficial)), 1) AS `Rende (oficial)`,
+       ROUND(SUM(p.alvo - COALESCE(p.rende_oficial, p.hc_oficial)), 1) AS `Falta (oficial)`,
+       ROUND(SUM(p.hc_sugerido), 1) AS `Quadro (sugerido)`,
+       ROUND(SUM(p.alvo - COALESCE(p.rende_sugerido, p.hc_sugerido)), 1) AS `Falta (sugerido)`,
+       ROUND(SUM(IF(p.turno = 'A', p.alvo - COALESCE(p.rende_oficial, p.hc_oficial), 0)), 1) AS `Falta A (oficial)`,
+       ROUND(SUM(IF(p.turno = 'C', p.alvo - COALESCE(p.rende_oficial, p.hc_oficial), 0)), 1) AS `Falta C (oficial)`,
+       ROUND(SUM(IF(p.turno = 'D', p.alvo - COALESCE(p.rende_oficial, p.hc_oficial), 0)), 1) AS `Falta D (oficial)`,
        p.versao AS `Versão`
 FROM fc_plano_projecao p
 WHERE p.versao = (SELECT MAX(versao) FROM fc_capacity_versao)

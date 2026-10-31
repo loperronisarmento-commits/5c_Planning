@@ -51,6 +51,7 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
 | 14 | `5C_Planning_23_regras_faturamento_mass_sla.sql` | Regras de 31/10: alívio da Mass PPV, regra de faturamento (2 ou 3 páginas por rep), agência do Infloww no agrupamento, horas fora do SLA e faturamento por unidade em cada versão (visões 18 a 20). Recria os procedimentos do 11 (v1.2) e do 19. |
 | 15 | `5C_Planning_24_adotar_plano_versao_16.sql` | Adota o plano sugerido da versão 16 (precisa 315, com as regras do 23) como oficial: as turmas planejadas passam de 208 para 235 pessoas. |
 | 16 | `5C_Planning_25_turma_0802_fixa.sql` | Turma de 08/02/2027 com 10/10/10 (A de 4 para 10), marcada como fixa (`fc_contratacoes.fixa`): o plano sugerido não refaz turma fixa. Plano: 241 planejadas, 276 no total. |
+| 17 | `5C_Planning_26_rampa_novato.sql` | Rampa do novato no plano de turmas: nos primeiros 30 dias de operação o novato rende 50% (`rampa_novato_dias`, `rampa_novato_rend`). A falta e a data em que ela fecha usam o quadro que rende. Refaz o sugerido; não muda o oficial. |
 
 Para desfazer do 10 ao 14: `5C_Planning_99_desfazer_10_a_12.sql`. Ele também devolve o `sp_fc_rodar_dia` de 19/10.
 
