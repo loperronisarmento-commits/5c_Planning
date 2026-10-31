@@ -268,13 +268,14 @@ BEGIN
     INTO v_aa, v_ac, v_ad, v_h0a, v_h0c, v_h0d
   FROM fc_capacity_versao_unidade WHERE versao = p_v;
 
-  -- turmas do plano oficial: as planejadas que começam a partir da data são recalculadas
+  -- turmas do plano oficial: as planejadas que começam a partir da data são recalculadas (menos as fixas)
   TRUNCATE TABLE fc_wrk_plano;
   INSERT INTO fc_wrk_plano (turma, ini_trn, opera, planejada, of_a, of_c, of_d, sg_a, sg_c, sg_d)
   SELECT z.turma, z.ini_trn, z.opera, z.planejada, z.qa, z.qc, z.qd,
          IF(z.planejada = 1, 0, z.qa), IF(z.planejada = 1, 0, z.qc), IF(z.planejada = 1, 0, z.qd)
   FROM (SELECT turma, MIN(data_inicio_trn) AS ini_trn, MIN(data_inicio_operacao) AS opera,
-               IF(MIN(status = 'PLANEJADA') = 1 AND MIN(data_inicio_trn) >= v_data, 1, 0) AS planejada,
+               -- fixa = 1 (script 25): turma planejada com quantidade decidida à mão, que o sugerido não refaz
+               IF(MIN(status = 'PLANEJADA') = 1 AND MIN(data_inicio_trn) >= v_data AND MAX(fixa) = 0, 1, 0) AS planejada,
                SUM(IF(turno = 'A', qtd, 0)) AS qa, SUM(IF(turno = 'C', qtd, 0)) AS qc, SUM(IF(turno = 'D', qtd, 0)) AS qd
         FROM fc_contratacoes
         WHERE status <> 'CANCELADA'
@@ -638,7 +639,9 @@ ORDER BY ABS(SUM(z.agora) - SUM(z.antes)) DESC, z.pagina, z.turno;
 -- (16) Plano oficial contra o sugerido da última versão, turma a turma
 CREATE OR REPLACE VIEW vw_fc_16_plano_oficial_vs_sugerido AS
 SELECT s.turma AS `Turma`, s.data_inicio_operacao AS `Opera em`,
-       IF(MAX(s.planejada) = 1, 'Planejada', 'Confirmada') AS `Situação`,
+       CASE WHEN MAX(s.planejada) = 1 THEN 'Planejada'
+            WHEN EXISTS (SELECT 1 FROM fc_contratacoes c WHERE c.turma = s.turma AND c.fixa = 1) THEN 'Fixa'
+            ELSE 'Confirmada' END AS `Situação`,
        SUM(IF(s.turno = 'A', s.qtd_oficial, 0)) AS `A oficial`, SUM(IF(s.turno = 'C', s.qtd_oficial, 0)) AS `C oficial`,
        SUM(IF(s.turno = 'D', s.qtd_oficial, 0)) AS `D oficial`, SUM(s.qtd_oficial) AS `Total oficial`,
        SUM(IF(s.turno = 'A', s.qtd_sugerida, 0)) AS `A sugerido`, SUM(IF(s.turno = 'C', s.qtd_sugerida, 0)) AS `C sugerido`,
