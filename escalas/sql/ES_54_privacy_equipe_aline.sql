@@ -13,8 +13,9 @@
 --   T6/T1 (D)   T321412 (núcleo 2)                 J857800 (U1 → núcleo 1), H126549 (U3 → núcleo 3)
 --
 -- Fora da lista: I351554 virou OS na U3 e E009869 não está na estrutura nova. M137535
--- também fez o turno D, mas fica no C (o turno dele na estrutura nova); N176385 fez D na
--- Aline e está no A na estrutura nova, então entra pelo A.
+-- (Marcos) fez C e D na Aline: fica na equipe do C até 08/11 e passa para a do D a partir
+-- de 09/11, quando vai para a U2 D núcleo 2 (Folga juntos, ES_46 e ES_50). N176385 fez D
+-- na Aline e está no A na estrutura nova, então entra pelo A.
 --
 -- Nos postos das duas páginas em cada turno (Aline: 672 A, 677 C, 684 D; Andressa: 434 A,
 -- 435 C, 436 D), a equipe entra como dono e como cobertura, com a fatia dividida por igual;
@@ -132,6 +133,23 @@ UPDATE esc_vaga_equipe e
    SET e.fatia = ROUND(1 / (SELECT COUNT(*) FROM tmp_es54_time2 y WHERE y.turno = x.turno), 3)
  WHERE e.vigente_desde <= q.desde AND (e.vigente_ate IS NULL OR e.vigente_ate >= q.desde);
 
+-- 5. Marcos (M137535): no C até 08/11; no D a partir de 09/11 (cadastro do ES_46/ES_50).
+UPDATE esc_vaga_equipe e
+  JOIN tmp_es54_postos q ON q.posto_id = e.posto_id AND q.turno = 'C'
+   SET e.vigente_ate = '2026-11-08'
+ WHERE UPPER(e.rep_code) = 'M137535' AND e.vigente_desde <= '2026-11-08' AND (e.vigente_ate IS NULL OR e.vigente_ate > '2026-11-08')
+   AND EXISTS (SELECT 1 FROM esc_colaborador_config c WHERE UPPER(c.rep_code) = 'M137535' AND c.turno = 'D' AND c.unidade = 2 AND c.vigente_desde = '2026-11-09');
+
+INSERT INTO esc_vaga_equipe (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem)
+SELECT q.posto_id, g.vaga, 'M137535', 0.25, 1, 'CONFIRMADA',
+       'Privacy (ES_54): equipe da Aline e da Andressa no D a partir de 09/11 (Folga juntos)', '2026-11-09', NULL, 'TELA'
+  FROM tmp_es54_postos q
+  JOIN (SELECT 'DONO' AS vaga UNION ALL SELECT 'COBERTURA') g
+ WHERE q.turno = 'D'
+   AND EXISTS (SELECT 1 FROM esc_colaborador_config c WHERE UPPER(c.rep_code) = 'M137535' AND c.turno = 'D' AND c.unidade = 2 AND c.vigente_desde = '2026-11-09')
+   AND NOT EXISTS (SELECT 1 FROM esc_vaga_equipe e WHERE e.posto_id = q.posto_id AND e.vaga = g.vaga COLLATE utf8mb4_unicode_ci
+                     AND UPPER(e.rep_code) = 'M137535' AND e.vigente_desde <= '2026-11-09' AND (e.vigente_ate IS NULL OR e.vigente_ate >= '2026-11-09'));
+
 COMMIT;
 
 -- Conferência 1: os 10, com o cadastro de 02/11 (todos na U2, no turno da lista)
@@ -142,7 +160,8 @@ SELECT x.rep_code, x.turno, c.unidade, n.numero AS nucleo, c.nivel, c.vigente_de
   LEFT JOIN esc_nucleo n ON n.id = c.nucleo_id
  ORDER BY FIELD(x.turno, 'A', 'C', 'D'), x.rep_code;
 
--- Conferência 2: equipe dos postos da Privacy em 03/11 (esperado: A 4, C 3, D 3 em cada vaga)
+-- Conferência 2: equipe dos postos da Privacy em 03/11 (esperado: A 4, C 3, D 3 em cada vaga;
+-- em 09/11, troque a data: C 2 e D 4, com o Marcos no D)
 SELECT q.posto_id, q.turno, (SELECT GROUP_CONCAT(pp.pagina SEPARATOR ' + ') FROM esc_posto_pagina pp WHERE pp.posto_id = q.posto_id) AS paginas, e.vaga,
        GROUP_CONCAT(CONCAT(UPPER(e.rep_code), ' ', e.fatia) ORDER BY e.rep_code SEPARATOR ', ') AS equipe
   FROM tmp_es54_postos q
