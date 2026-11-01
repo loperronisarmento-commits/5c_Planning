@@ -776,7 +776,8 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         $estruturaPlano = 'V3';
     }
 
-    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo) {
+    $est = $est ?? []; // estrutura v4 (pessoas e postos), para proteger só quem continua nela
+    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo, $est) {
         // Releitura do realizado.
         $linhasEstado = [];
         foreach ($estado as $rep => $e) {
@@ -827,6 +828,21 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                 }
             }
             if (!$minimo) { // no mínimo de mudanças o publicado já é a base
+                if (isset($est['pessoas'], $est['postos'])) {
+                    // Estrutura v4: só fica protegido quem continua na estrutura, na unidade e no turno de
+                    // um posto da página. Quem saiu da empresa, mudou de unidade ou de turno, ou a página
+                    // que mudou de unidade, não volta (antes voltavam e dobravam a célula com o novo).
+                    $ondePag = [];
+                    foreach ($est['postos'] as $po) {
+                        foreach ($po['paginas'] as $pg) {
+                            $ondePag[(int) $pg['page_id'] . '|' . $po['unidade'] . '|' . $po['turno']] = true;
+                        }
+                    }
+                    $linhasPub = array_values(array_filter($linhasPub, static function ($l) use ($est, $ondePag) {
+                        $p = $est['pessoas'][strtoupper((string) $l['rep_code'])] ?? null;
+                        return $p !== null && $p['turno'] === $l['turno'] && isset($ondePag[(int) $l['page_id'] . '|' . $p['unidade'] . '|' . $l['turno']]);
+                    }));
+                }
                 [$alocacoes, $sugestoesWorkload, $protegidos] = escMotorProtegerPublicado($linhasPub, $alocacoes, $removidos, $travadas);
             }
         }

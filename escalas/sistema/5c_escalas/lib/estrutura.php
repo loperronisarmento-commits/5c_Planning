@@ -543,11 +543,15 @@ function escEstruturaDividirOS(array &$novos, array $mantidos, array $esc, array
 
 // Trocas de unidade aplicadas (esc_politica_troca) que valem em $desde ou depois e cujos postos
 // ainda estão fora do destino: a troca entrou só no Capacity (ex.: ES_51) ou a sincronização
-// a desfez antes desta versão.
+// a desfez antes desta versão. Só a troca mais recente de cada página vale: uma troca antiga
+// desfeita por outra depois (ex.: ES_51 levou a Mikayla para a U3; a ES_61 trouxe de volta)
+// não pode ser reaplicada.
 function escEstruturaTrocasPendentes(string $desde): array {
     return escQ("SELECT t.pagina, CAST(t.para_ref AS UNSIGNED) AS para, DATE(t.vale_desde) AS desde
                    FROM " . escT('esc_politica_troca') . " t
                   WHERE t.tipo = 'UNIDADE' AND t.status = 'APLICADA' AND t.vale_desde >= ?
+                    AND t.id = (SELECT MAX(t2.id) FROM " . escT('esc_politica_troca') . " t2
+                                 WHERE t2.tipo = 'UNIDADE' AND t2.status = 'APLICADA' AND t2.pagina = t.pagina)
                     AND EXISTS (SELECT 1 FROM " . escT('esc_posto') . ' p JOIN ' . escT('esc_posto_pagina') . ' pp ON pp.posto_id = p.id
                                  WHERE pp.pagina = t.pagina AND p.unidade <> CAST(t.para_ref AS UNSIGNED)
                                    AND p.vigente_desde <= t.vale_desde AND (p.vigente_ate IS NULL OR p.vigente_ate >= t.vale_desde))

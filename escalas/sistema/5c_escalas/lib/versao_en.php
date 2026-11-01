@@ -6,6 +6,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.4' => ['titulo' => 'Fix for 1.18.3', 'itens' => [
+        'The 1.18.3 rule (only protect from the published schedule people still in the structure) did not take effect: saving the plan did not receive the structure. Now it does.',
+    ]],
+    '1.18.3' => ['titulo' => 'Fix: published schedule protected people who left or changed structure', 'itens' => [
+        'When generating a new version, someone in the published schedule who would lose the shift is only kept if they are still in the structure, in the unit and shift of a post of the page. People who left the company, changed unit or shift, or worked a page that changed unit used to come back too, and the cell ended up with two regulars (e.g. Willian Rocha on Midwest Emma).',
+    ]],
+    '1.18.2' => ['titulo' => 'Fix: old unit move reapplied on Generate', 'itens' => [
+        'On Generate, the pending unit move is now only the most recent one for each page. An old move already undone by a later one (ES_51: Mikayla to U3 and Nicole to U1) used to be applied again and sent the page to the wrong unit. The four old moves were discarded (ES_71).',
+    ]],
     '1.18.1' => ['titulo' => 'Manager adjustments: fixed page team and assistant-only SR', 'itens' => [
         'Fixed page team: whoever is in the page priority list (esc_pagina_prioridade, the same one as Privacy) and is in the unit and shift gets the page before the best SR by sales per hour; whoever was in the post and whoever knows the page best go first. Molly Stewart now runs with the team that already knows the page: Társila, Letícia, Esley, Leonardo and Bruno move to U2 from 11/02, in the same shift, along with Marina and Danilo (ES_66).',
         'Pages of big models (US$ 100k or more in 30 days): posts go first to whoever has worked the page and hit at least 70% of its 5CReps goal in the last 30 days (parameter v4_melhores_meta_min); among them, whoever sells most per hour on the page. With nobody like that in the shift, sales per hour apply as in 1.18.0. Cynthia used to get the top overall sellers, even ones who had never worked the page.',

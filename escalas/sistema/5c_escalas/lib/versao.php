@@ -8,6 +8,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.4', 'data' => '2026-11-01', 'titulo' => 'Correção da 1.18.3', 'sql' => [], 'itens' => [
+        'A regra da 1.18.3 (só proteger da escala publicada quem continua na estrutura) não chegava a valer: a gravação do plano não recebia a estrutura. Agora recebe.',
+    ]],
+    ['versao' => '1.18.3', 'data' => '2026-11-01', 'titulo' => 'Correção: escala publicada protegia quem saiu ou mudou de estrutura', 'sql' => [], 'itens' => [
+        'Ao gerar uma versão nova, quem estava na escala publicada e ficaria sem turno só é mantido se continua na estrutura, na unidade e no turno de um posto da página. Antes voltavam também quem saiu da empresa, quem mudou de unidade ou de turno e quem fazia uma página que mudou de unidade, e a célula ficava com dois regulares (ex.: Willian Rocha na Midwest Emma).',
+    ]],
+    ['versao' => '1.18.2', 'data' => '2026-11-01', 'titulo' => 'Correção: troca de unidade antiga reaplicada no Gerar', 'sql' => ['ES_71'], 'itens' => [
+        'No Gerar, a troca de unidade pendente agora é só a mais recente de cada página. Antes, uma troca antiga já desfeita por outra (ES_51: Mikayla para a U3 e Nicole para a U1) voltava a ser aplicada e levava a página para a unidade errada. As quatro trocas antigas ficaram descartadas (ES_71).',
+    ]],
     ['versao' => '1.18.1', 'data' => '2026-11-01', 'titulo' => 'Ajustes dos managers: equipe fixa da página e SR só assistente', 'sql' => ['ES_65', 'ES_66', 'ES_67', 'ES_68', 'ES_69', 'ES_70'], 'itens' => [
         'Equipe fixa da página: quem está na prioridade da página (esc_pagina_prioridade, a mesma da Privacy) e está na unidade e no turno fica com ela antes do melhor SR por venda/hora; primeiro quem estava no posto e quem mais conhece a página. A Molly Stewart passa a rodar com o time que já conhece a página: Társila, Letícia, Esley, Leonardo e Bruno vão para a U2 a partir de 02/11, no mesmo turno, junto da Marina e do Danilo (ES_66).',
         'Páginas das modelos grandes (US$ 100 mil ou mais em 30 dias): os postos vão primeiro para quem já fez a página e bateu pelo menos 70% da meta 5CReps nela nos últimos 30 dias (parâmetro v4_melhores_meta_min); entre eles, quem mais vende por hora na página. Sem ninguém assim no turno, vale a venda por hora como na 1.18.0. Antes a Cynthia ficava com quem mais vende no geral, mesmo sem nunca ter feito a página.',
