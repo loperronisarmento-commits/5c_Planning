@@ -131,8 +131,13 @@ function escSqlSemTexto(string $sql): string {
     return preg_replace('~/\*.*?\*/|--[^\n]*~s', ' ', $s);
 }
 
-function escConferirSomenteLeitura(string $sql): void {
+// $travaLinhas: na conexão de gravação (escQW, dentro de escTx) vale terminar com FOR UPDATE,
+// que só reserva as linhas lidas até o fim da transação.
+function escConferirSomenteLeitura(string $sql, bool $travaLinhas = false): void {
     $semTexto = escSqlSemTexto($sql);
+    if ($travaLinhas) {
+        $semTexto = preg_replace('~\bFOR\s+UPDATE\s*$~i', ' ', $semTexto);
+    }
     if (!preg_match('~^\s*\(?\s*(SELECT|WITH)\b~i', $semTexto)) {
         throw new RuntimeException('Bloqueado: nesta conexão só consultas SELECT/WITH.');
     }
@@ -216,7 +221,7 @@ function escUltimoId(): int {
 // Lê do 5c_escalas pela conexão de gravação (para ver o que acabou de ser
 // gravado dentro da mesma transação).
 function escQW(string $sql, array $params = []): array {
-    escConferirSomenteLeitura($sql);
+    escConferirSomenteLeitura($sql, true);
     preg_match_all('~`([^`]+)`\s*\.\s*`~', $sql, $m);
     foreach ($m[1] as $schema) {
         if ($schema !== ESC_SCHEMA) {

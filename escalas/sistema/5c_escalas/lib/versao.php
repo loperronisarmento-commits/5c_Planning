@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.17.1', 'data' => '2026-10-31', 'titulo' => 'Correção: troca de turno, núcleo ou cargo bloqueada', 'sql' => ['ES_55', 'ES_56'], 'itens' => [
+        'Colaboradores, Roster da liderança, Solicitações e troca de owner: salvar dava "Bloqueado: palavra de escrita na consulta (UPDATE)". A leitura que reserva as linhas da pessoa dentro da gravação (SELECT ... FOR UPDATE) era tomada por escrita; agora ela passa na conexão de gravação. A conexão só de leitura continua bloqueando qualquer escrita.',
+        'Scripts ES_55 (vagas fixas que ficaram abertas depois de uma mudança de unidade ou turno) e ES_56 (reforço da equipe da Privacy no turno C a partir de 09/11).',
+    ]],
     ['versao' => '1.17.0', 'data' => '2026-10-31', 'titulo' => 'PDF de metas das páginas, troca de unidade nos postos e absenteísmo opcional no mérito', 'sql' => ['ES_52', 'ES_53', 'ES_54'], 'itens' => [
         'Grade: "Baixar PDF das metas" e "Metas" em cada página, no mesmo modelo do PDF da escala (A4 paisagem, papel timbrado, uma página por folha). Cada pessoa escalada na semana aparece com turnos, blocos e marcas, e o atingimento dela na página (5CReps realizado ÷ meta, na parte de cada um pela fatia das mensagens, como no mérito) em cada uma das 4 semanas anteriores e no total. Verde é meta batida; "—" é sem mensagens na página na semana.',
         'Troca de unidade: a troca gravada no Capacity (ex.: Mikayla U1 → U3 e Nicole U2 → U1 em 02/11, do ES_51) passa a valer nos postos no próximo "Gerar". As pessoas ficam na unidade delas: a página vai para o time do destino e as vagas lá são completadas com SRs do destino. A atualização diária não desfaz mais as trocas com data futura. Organograma: avisa das trocas marcadas para depois da data da tela, com o link para ver a data em que valem.',

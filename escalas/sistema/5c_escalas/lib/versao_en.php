@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.17.1' => ['titulo' => 'Fix: shift, core or role change blocked', 'itens' => [
+        'Employees, Leadership roster, Requests and owner change: saving gave "Blocked: write word in the query (UPDATE)". The read that locks the person\'s rows inside the write (SELECT ... FOR UPDATE) was taken as a write; it now passes on the write connection. The read-only connection still blocks any write.',
+        'Scripts ES_55 (fixed vacancies left open after a unit or shift change) and ES_56 (reinforcement of the Privacy team on shift C from 11/09).',
+    ]],
     '1.17.0' => ['titulo' => 'Pages goals PDF, unit moves on the posts and optional absenteeism in merit', 'itens' => [
         'Grid: "Download goals PDF" and "Goals" on each page, in the same style as the schedule PDF (A4 landscape, letterhead, one page per sheet). Each person scheduled that week appears with shifts, blocks and marks, and their attainment on the page (5CReps actual ÷ goal, in each person\'s share by their share of messages, as in merit) in each of the previous 4 weeks and in total. Green is goal met; "—" is no messages on the page that week.',
         'Unit move: a move recorded in Capacity (e.g. Mikayla U1 → U3 and Nicole U2 → U1 on 11/02, from ES_51) now applies to the posts at the next "Generate". People stay in their unit: the page goes to the destination team and the vacancies there are filled with destination SRs. The daily update no longer undoes moves with a future date. Org chart: warns about moves scheduled after the screen date, with a link to view the date they take effect.',

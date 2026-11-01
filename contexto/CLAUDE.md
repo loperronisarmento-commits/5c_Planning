@@ -174,7 +174,7 @@ Módulo PHP do MIS Portal (`/escalas`) que gera, revisa e publica a escala seman
   - põe os melhores SRs nos tiers SS, A e B;
   - remaneja por faturamento;
   - trata transição, buffers, Overlap e emenda.
-- **Versão.** A **1.17.0** está montada e commitada (`f7aa749`), com o zip pronto; a 1.14.1 era a
+- **Versão.** A **1.17.1** está montada e commitada, com o zip pronto (a 1.17.0 subiu em 31/10 e a 1.17.1 corrige o bloqueio do `FOR UPDATE` ao trocar turno); a 1.14.1 era a
   última confirmada no ar. O rodapé do sistema mostra a versão no ar. Ao fim de toda mudança vale o
   gatilho de publicação: checagem de UX e a pergunta se publica como versão oficial e atualiza
   Ajuda e Changelog. Uma versão só por vez: se duas sessões mexem no módulo, juntar na mesma.
