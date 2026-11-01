@@ -82,6 +82,7 @@ return [
     'Para ver o cadastro antigo, escolha uma data antes de {dia}.' => 'To see the old setup, pick a date before {dia}.',
     'Trilha e dias seguidos aparecem depois da primeira geração (releitura do realizado).' => 'Track and days in a row show up after the first generation (re-reading actual work).',
     'A partir de {dia} vale a estrutura nova: escolha uma data a partir dela para editar unidade, turno e núcleo.' => 'From {dia} the new structure applies: pick a date from then on to edit unit, shift and core.',
-    '{rep} já tem configuração a partir de {dia}. Edite a partir dessa data ou escolha uma data depois dela.' => '{rep} already has a setup from {dia}. Edit from that date or pick a date after it.',
+    'A configuração que estava marcada para depois foi cancelada: {lista}.' => 'The setup that was scheduled for later was cancelled: {lista}.',
+    'Já tem configuração marcada para depois: {lista}. Salvar a partir de uma data antes dela cancela essa configuração; vale a que você salvar agora.' => 'There is already a setup scheduled for later: {lista}. Saving from an earlier date cancels it; the one you save now applies.',
     '(SR {n} ou mais não trabalha como assistente)' => '(SR {n} or above do not work as assistants)',
 ];
