@@ -175,10 +175,8 @@ function escSolTrocar(string $a, string $b, string $desde, string $motivo): arra
     $tab = escT('esc_colaborador_config');
     $cfg = [];
     foreach ([$a, $b] as $r) {
-        $futura = escQW('SELECT vigente_desde FROM ' . $tab . ' WHERE rep_code = ? AND vigente_desde > ? LIMIT 1', [$r, $desde]);
-        if ($futura) {
-            throw new RuntimeException(t('{rep} já tem configuração a partir de {dia}. Faça a troca a partir dessa data ou depois dela.', ['rep' => $r, 'dia' => dataBr(substr((string) $futura[0]['vigente_desde'], 0, 10))]));
-        }
+        // Configuração marcada para depois: é cancelada e vale a troca (lib/equipes.php).
+        escConfigCancelarFuturas($r, $desde);
         $linha = escQW('SELECT * FROM ' . $tab . ' WHERE rep_code = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?) ORDER BY vigente_desde DESC LIMIT 1 FOR UPDATE', [$r, $desde, $desde]);
         if (!$linha || $linha[0]['funcao'] !== 'EQUITE' || !$linha[0]['nucleo_id']) {
             throw new RuntimeException(t('{rep} não está como SR num núcleo em {dia}.', ['rep' => $r, 'dia' => dataBr($desde)]));

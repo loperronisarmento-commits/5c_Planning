@@ -24,13 +24,11 @@ function escRosterCargo(string $rep, string $dia): ?string {
     return $n ? 'OS U' . $n[0]['unidade'] . ' · ' . (ESC_SOL_TURNO_BLOCOS[$n[0]['turno']] ?? $n[0]['turno']) . ' · ' . t('núcleo {n}', ['n' => $n[0]['numero']]) : null;
 }
 
-// Configuração que vale em $desde (trava a linha). Configuração começando depois de $desde bloqueia.
+// Configuração que vale em $desde (trava a linha). Configuração começando depois de $desde é
+// cancelada: vale a mudança de agora (escConfigCancelarFuturas, lib/equipes.php).
 function escRosterConfig(string $rep, string $desde): ?array {
     $tab = escT('esc_colaborador_config');
-    $futura = escQW('SELECT vigente_desde FROM ' . $tab . ' WHERE UPPER(rep_code) = ? AND vigente_desde > ? LIMIT 1', [strtoupper($rep), $desde]);
-    if ($futura) {
-        throw new RuntimeException(t('{rep} já tem configuração a partir de {dia}. Use essa data ou uma depois dela.', ['rep' => strtoupper($rep), 'dia' => dataBr(substr((string) $futura[0]['vigente_desde'], 0, 10))]));
-    }
+    escConfigCancelarFuturas($rep, $desde);
     $c = escQW('SELECT * FROM ' . $tab . ' WHERE UPPER(rep_code) = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?) ORDER BY vigente_desde DESC LIMIT 1 FOR UPDATE', [strtoupper($rep), $desde, $desde]);
     return $c[0] ?? null;
 }

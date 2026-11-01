@@ -72,19 +72,9 @@ if (escPost()) {
     $vagasFechadas = 0;
     $canceladas = [];
     escTx(function () use ($rep, $novo, $desde, $nucleo, &$vagasFechadas, &$canceladas) {
-        // Configuração marcada para depois da data (ex.: remanejamento a partir de 09/11): a
-        // mudança de agora vale daí em diante, então a futura é cancelada (nunca chegou a valer),
-        // e as vagas fixas que começariam junto com ela (ou depois) vão para a data neutra.
+        // Configuração marcada para depois da data: é cancelada e vale a de agora (lib/equipes.php).
         $neutra = escMaisDias(escV4DiaVirada(), -2);
-        foreach (escQW('SELECT * FROM ' . escT('esc_colaborador_config') . ' WHERE rep_code = ? AND vigente_desde > ? ORDER BY vigente_desde FOR UPDATE', [$rep, $desde]) as $f) {
-            $canceladas[] = $f;
-            escW('DELETE FROM ' . escT('esc_colaborador_config') . ' WHERE id = ?', [(int) $f['id']]);
-        }
-        if ($canceladas) {
-            foreach (escQW('SELECT id FROM ' . escT('esc_vaga_equipe') . ' WHERE rep_code = ? AND vigente_desde >= ?', [$rep, substr((string) $canceladas[0]['vigente_desde'], 0, 10)]) as $v) {
-                escVagaNeutra((int) $v['id'], $neutra);
-            }
-        }
+        $canceladas = escConfigCancelarFuturas($rep, $desde);
         // A configuração que vale NA data informada (não a mais nova).
         $atual = escQW('SELECT * FROM ' . escT('esc_colaborador_config') . ' WHERE rep_code = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?) ORDER BY vigente_desde DESC LIMIT 1', [$rep, $desde, $desde]);
         $atual = $atual[0] ?? null;
@@ -100,8 +90,7 @@ if (escPost()) {
             $novo['pode_assistente'] = 0;
         }
         if ($atual && substr($atual['vigente_desde'], 0, 10) === $desde) {
-            // Com a futura cancelada, esta passa a valer sem fim (antes fechava na véspera dela).
-            escW('UPDATE ' . escT('esc_colaborador_config') . ' SET modelo_id = ?, tipo = ?, turno = ?, trilha = ?, folgas_fixas = ?, pode_assistente = ?, unidade = ?, nucleo_id = ?, nivel = ?, funcao = ?, observacao = ?, origem = \'TELA\', atualizado_por = ?' . ($canceladas ? ', vigente_ate = NULL' : '') . ' WHERE id = ?',
+            escW('UPDATE ' . escT('esc_colaborador_config') . ' SET modelo_id = ?, tipo = ?, turno = ?, trilha = ?, folgas_fixas = ?, pode_assistente = ?, unidade = ?, nucleo_id = ?, nivel = ?, funcao = ?, observacao = ?, origem = \'TELA\', atualizado_por = ? WHERE id = ?',
                 [$novo['modelo_id'], $novo['tipo'], $novo['turno'], $novo['trilha'], $novo['folgas_fixas'], $novo['pode_assistente'], $est['unidade'], $est['nucleo_id'], $est['nivel'], $est['funcao'], $novo['observacao'], escUserId(), (int) $atual['id']]);
         } else {
             if ($atual) {
@@ -126,12 +115,8 @@ if (escPost()) {
         }
         escLog('colaborador.salvar', 'esc_colaborador_config', $rep, $atual, $novo + ['vigente_desde' => $desde, 'vagas_fechadas' => $vagasFechadas, 'canceladas' => $canceladas]);
     });
-    $nucleosTxt = static function (array $c): string {
-        $n = $c['nucleo_id'] ? escQ1('SELECT unidade, numero FROM ' . escT('esc_nucleo') . ' WHERE id = ?', [(int) $c['nucleo_id']]) : null;
-        return dataBr(substr((string) $c['vigente_desde'], 0, 10)) . ($n ? ' (U' . (int) $n['unidade'] . ' · ' . $c['turno'] . ' · ' . t('núcleo {n}', ['n' => (int) $n['numero']]) . ')' : ' (' . $c['turno'] . ')');
-    };
     escVoltar('colaboradores', ['q' => $rep, 'dia' => $desde], t('Configuração de {rep} salva a partir de {dia}.', ['rep' => $rep, 'dia' => dataBr($desde)])
-        . ($canceladas ? ' ' . t('A configuração que estava marcada para depois foi cancelada: {lista}.', ['lista' => implode(', ', array_map($nucleosTxt, $canceladas))]) : '')
+        . escConfigCanceladasAviso()
         . ($vagasFechadas ? ' ' . tn($vagasFechadas, '{n} vaga fixa no núcleo antigo fechada; o motor cobre.', '{n} vagas fixas no núcleo antigo fechadas; o motor cobre.') : '') . ' ' . t('O próximo recálculo usa a nova configuração.'));
 }
 

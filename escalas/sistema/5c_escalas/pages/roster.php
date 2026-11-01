@@ -118,7 +118,7 @@ if (escPost()) {
             escLog('roster.trocar', $tipo === 'OS' ? 'esc_nucleo' : 'esc_lideranca', (string) $ref, ['rep' => $sai], ['rep' => $novo, 'desde' => $desde, 'destino' => $destino, 'nivel' => $nivel]);
             return t('{nome} é {cargo} a partir de {dia}.', ['nome' => nomeCurto($nomeNovo), 'cargo' => $cargoTxt, 'dia' => dataBr($desde)]) . ' ' . $resto;
         });
-        escVoltar('roster', [], $msg . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
+        escVoltar('roster', [], $msg . escConfigCanceladasAviso() . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
     }
     if ($acao === 'incluir_oa') {
         $desde = $lerDesde();
@@ -134,7 +134,7 @@ if (escPost()) {
             escW('INSERT INTO ' . escT('esc_lideranca') . " (nivel, unidade, turno, rep_code, nome, padrao_semana, vigente_desde, origem, criado_por) VALUES ('OA', NULL, NULL, ?, ?, ?, ?, 'TELA', ?)", [$novo, $nomeNovo, $semana, $desde, escUserId()]);
             escLog('roster.incluir_oa', 'esc_lideranca', escUltimoId(), null, ['rep' => $novo, 'semana' => $semana, 'desde' => $desde]);
         });
-        escVoltar('roster', [], t('{nome} é OA a partir de {dia}.', ['nome' => nomeCurto($nomeNovo), 'dia' => dataBr($desde)]) . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
+        escVoltar('roster', [], t('{nome} é OA a partir de {dia}.', ['nome' => nomeCurto($nomeNovo), 'dia' => dataBr($desde)]) . escConfigCanceladasAviso() . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
     }
     if ($acao === 'semana_oa') {
         $desde = $lerDesde();
@@ -151,7 +151,7 @@ if (escPost()) {
             }
             escLog('roster.semana_oa', 'esc_lideranca', $id, ['semana' => $l['padrao_semana']], ['semana' => $semana, 'desde' => $desde]);
         });
-        escVoltar('roster', [], t('Semana do OA salva a partir de {dia}.', ['dia' => dataBr($desde)]) . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
+        escVoltar('roster', [], t('Semana do OA salva a partir de {dia}.', ['dia' => dataBr($desde)]) . escConfigCanceladasAviso() . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
     }
     if ($acao === 'tirar_oa') {
         $desde = $lerDesde();
@@ -175,7 +175,7 @@ if (escPost()) {
             escLog('roster.tirar_oa', 'esc_lideranca', $id, ['rep' => $rep], ['desde' => $desde, 'volta_nucleo_id' => $volta ?: null]);
             return t('{nome} deixa de ser OA a partir de {dia}.', ['nome' => $nome, 'dia' => dataBr($desde)]) . ' ' . $resto;
         });
-        escVoltar('roster', [], $msg . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
+        escVoltar('roster', [], $msg . escConfigCanceladasAviso() . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
     }
     throw new RuntimeException(t('Ação desconhecida.'));
 }

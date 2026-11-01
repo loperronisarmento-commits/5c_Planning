@@ -168,7 +168,7 @@ if (escPost()) {
         $nomes = escNomes();
         escVoltar('solicitacoes', ['status' => 'APLICADO'], t('Troca aplicada a partir de {dia}: {a} e {b} trocaram de lugar e de vagas fixas ({n} vagas). Recalcule as semanas a partir dessa data.', [
             'dia' => dataBr($desde), 'a' => nomeCurto($nomes[$rep] ?? $rep), 'b' => nomeCurto($nomes[$par] ?? $par), 'n' => array_sum(array_map('count', $resumo['vagas'])),
-        ]));
+        ]) . escConfigCanceladasAviso());
     }
     if ($acao === 'cancelar') {
         $id = (int) ($_POST['id'] ?? 0);
@@ -209,7 +209,7 @@ if (escPost()) {
             }
         });
         escLog('solicitacao.legado', 'esc_colaborador_config', null, null, ['desde' => $desde, 'pares' => $pares]);
-        escVoltar('solicitacoes', [], t('{n} trocas aplicadas a partir de {dia}: os times legados ficaram juntos. Recalcule as semanas a partir dessa data.', ['n' => count($pares), 'dia' => dataBr($desde)]));
+        escVoltar('solicitacoes', [], t('{n} trocas aplicadas a partir de {dia}: os times legados ficaram juntos. Recalcule as semanas a partir dessa data.', ['n' => count($pares), 'dia' => dataBr($desde)]) . escConfigCanceladasAviso());
     }
     throw new RuntimeException(t('Ação desconhecida.'));
 }

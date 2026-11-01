@@ -32,6 +32,44 @@ function escVagaNeutra(int $id, string $neutra): void {
     escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_desde = ?, vigente_ate = ? WHERE id = ?', [$neutra, $neutra, $id]);
 }
 
+// Configuração marcada para depois de $desde (ex.: remanejamento a partir de 09/11): a mudança
+// de agora vale daí em diante, então a futura é cancelada (nunca chegou a valer), a que vale em
+// $desde volta a valer sem fim e as vagas fixas que começariam junto com a futura (ou depois)
+// vão para a data neutra. Usada por Colaboradores, Roster e Solicitações; rodar dentro de escTx.
+// As canceladas ficam em $GLOBALS['ESC_CONFIG_CANCELADAS'] para a mensagem (escConfigCanceladasAviso).
+function escConfigCancelarFuturas(string $rep, string $desde): array {
+    $rep = strtoupper($rep);
+    $tab = escT('esc_colaborador_config');
+    $futuras = escQW('SELECT * FROM ' . $tab . ' WHERE UPPER(rep_code) = ? AND vigente_desde > ? ORDER BY vigente_desde FOR UPDATE', [$rep, $desde]);
+    if (!$futuras) {
+        return [];
+    }
+    unset($GLOBALS['ESC_OS_DO_DIA']);
+    foreach ($futuras as $f) {
+        escW('DELETE FROM ' . $tab . ' WHERE id = ?', [(int) $f['id']]);
+    }
+    escW('UPDATE ' . $tab . ' SET vigente_ate = NULL, atualizado_por = ? WHERE UPPER(rep_code) = ? AND vigente_desde <= ? AND vigente_ate >= ?', [escUserId(), $rep, $desde, $desde]);
+    $neutra = escMaisDias(escV4DiaVirada(), -2);
+    foreach (escQW('SELECT id FROM ' . escT('esc_vaga_equipe') . ' WHERE UPPER(rep_code) = ? AND vigente_desde >= ?', [$rep, substr((string) $futuras[0]['vigente_desde'], 0, 10)]) as $v) {
+        escVagaNeutra((int) $v['id'], $neutra);
+    }
+    foreach ($futuras as $f) {
+        $GLOBALS['ESC_CONFIG_CANCELADAS'][] = $f;
+    }
+    return $futuras;
+}
+
+// " A configuração que estava marcada para depois foi cancelada: 09/11 (U1 · D · núcleo 2)." ou ''.
+function escConfigCanceladasAviso(): string {
+    $lista = [];
+    foreach ($GLOBALS['ESC_CONFIG_CANCELADAS'] ?? [] as $c) {
+        $n = $c['nucleo_id'] ? escQ1('SELECT unidade, numero FROM ' . escT('esc_nucleo') . ' WHERE id = ?', [(int) $c['nucleo_id']]) : null;
+        $lista[] = strtoupper((string) $c['rep_code']) . ' ' . dataBr(substr((string) $c['vigente_desde'], 0, 10))
+            . ($n ? ' (U' . (int) $n['unidade'] . ' · ' . $c['turno'] . ' · ' . t('núcleo {n}', ['n' => (int) $n['numero']]) . ')' : ' (' . $c['turno'] . ')');
+    }
+    return $lista ? ' ' . t('A configuração que estava marcada para depois foi cancelada: {lista}.', ['lista' => implode(', ', $lista)]) : '';
+}
+
 // Fatia do nível: 0 = 0,4; 1 = 0,6; 2 = 0,8; 3 a 5 = 1 (ou a fatia regular do cadastro).
 function escEquipeFatiaNivel(?float $regular, int $nivel): float {
     if ($regular !== null && $regular > 0) {

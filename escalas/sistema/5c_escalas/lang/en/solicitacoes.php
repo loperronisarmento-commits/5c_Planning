@@ -102,7 +102,6 @@ return [
     'ir para o núcleo {nucleo}' => 'move to core {nucleo}',
     'mudar de núcleo' => 'change core',
     'outro pedido' => 'other request',
-    '{rep} já tem configuração a partir de {dia}. Faça a troca a partir dessa data ou depois dela.' => '{rep} already has a setup from {dia}. Apply the swap from that date or later.',
     '{rep} não está como SR num núcleo em {dia}.' => '{rep} is not an SR in a core on {dia}.',
     'assistente de {pessoa}' => 'assistant to {pessoa}',
     'em dupla com {pessoa}' => 'paired with {pessoa}',

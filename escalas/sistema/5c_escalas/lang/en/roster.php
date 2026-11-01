@@ -64,7 +64,6 @@ return [
     '{nome} deixa de ser OA a partir de {dia}.' => '{nome} is no longer an OA from {dia}.',
     // lib/roster.php
     'Cargo não encontrado. Recarregue a tela.' => 'Role not found. Reload the screen.',
-    '{rep} já tem configuração a partir de {dia}. Use essa data ou uma depois dela.' => '{rep} already has a setup from {dia}. Use that date or a later one.',
     '{rep} não tinha lugar de SR num núcleo para passar. Escolha outra opção para quem sai.' => '{rep} had no SR place in a core to hand over. Choose another option for the person leaving.',
     '{nome} fica com o núcleo e {n} vaga fixa de quem entrou.' => '{nome} takes the core and {n} fixed slot of the newcomer.',
     '{nome} fica com o núcleo e as {n} vagas fixas de quem entrou.' => '{nome} takes the core and the {n} fixed slots of the newcomer.',
