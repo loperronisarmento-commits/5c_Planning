@@ -135,7 +135,7 @@ $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
     $gerais = [];
     foreach ($doCiclo as $t) {
         foreach ($t['alertas'] as $a) {
-            if (!str_starts_with($a, $t['codigo'] . ':')) {
+            if (strncmp($a, $t['codigo'] . ':', strlen($t['codigo'] . ':')) !== 0) {
                 $gerais[$a] = true;
             }
         }
@@ -164,7 +164,7 @@ $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
   <p class="muted small"><?php echo h(t('As mesmas páginas valem o ciclo inteiro. Amarelo = sugestão ainda não confirmada; ⚠ = a página deixou de atender a regra (confira antes da próxima semana).')); ?></p>
 
   <?php foreach ($doCiclo as $id => $t): [$stRot, $stCls] = $rotStatus[$t['status']]; $s = $sug[$id] ?? ['candidatas' => [], 'escolha' => []];
-      $t['alertas'] = array_values(array_filter($t['alertas'], static fn($a) => str_starts_with($a, $t['codigo'] . ':'))); ?>
+      $t['alertas'] = array_values(array_filter($t['alertas'], static fn($a) => strncmp($a, $t['codigo'] . ':', strlen($t['codigo'] . ':')) === 0)); ?>
   <article class="treino-turma" id="turma-<?php echo $id; ?>">
     <header class="treino-turma-cab">
       <h3><?php echo h($t['codigo']); ?> <?php echo chipTurno($t['turno']); ?> <span class="tag <?php echo $stCls; ?>"><?php echo h($stRot); ?></span></h3>

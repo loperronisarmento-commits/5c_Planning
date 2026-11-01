@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.17.2', 'data' => '2026-10-31', 'titulo' => 'Revisão: troca de unidade numa transação só e compatibilidade com PHP 7.4', 'sql' => [], 'itens' => [
+        'Troca de unidade (antes de gerar e na tela Equilíbrio): a saída dos postos da origem e a entrada no destino agora gravam juntas. Antes eram duas gravações separadas e, com erro no meio, a página podia ficar sem posto nas duas unidades.',
+        'Compatibilidade com PHP 7.4 (o mínimo do README): a troca de unidade antes de gerar e a tela Treinamento usavam uma função que só existe no PHP 8 (str_starts_with), o que dava erro fatal num servidor 7.4.',
+    ]],
     ['versao' => '1.17.1', 'data' => '2026-10-31', 'titulo' => 'Correção: troca de turno, núcleo ou cargo bloqueada', 'sql' => ['ES_55', 'ES_56'], 'itens' => [
         'Colaboradores, Roster da liderança, Solicitações e troca de owner: salvar dava "Bloqueado: palavra de escrita na consulta (UPDATE)". A leitura que reserva as linhas da pessoa dentro da gravação (SELECT ... FOR UPDATE) era tomada por escrita; agora ela passa na conexão de gravação. A conexão só de leitura continua bloqueando qualquer escrita.',
         'Scripts ES_55 (vagas fixas que ficaram abertas depois de uma mudança de unidade ou turno) e ES_56 (reforço da equipe da Privacy no turno C a partir de 09/11).',

@@ -410,8 +410,11 @@ function escPolAplicarUnidade(array $pg, int $destino, string $desde, string $mo
             escCapacityGravar($comVersao ? 'recalcular_versao' : 'recalcular', $comVersao ? [$dc, $obs] : [$dc]);
             $res['capacity'][] = $dc;
         }
-        // 2. Escala: sai da origem (mesma regra da saída de página) e entra no destino.
-        escPolUnidadeEscala($pg, $plano, $destino, $desde, $res);
+        // 2. Escala: sai da origem (mesma regra da saída de página) e entra no destino, na mesma
+        //    transação: com erro no meio, a página não fica sem posto nas duas unidades.
+        escTx(static function () use ($pg, $plano, $destino, $desde, &$res) {
+            escPolUnidadeEscala($pg, $plano, $destino, $desde, $res);
+        });
         // 3. Escala de novo a partir da data.
         foreach (escQ("SELECT DISTINCT semana_inicio AS s FROM " . escT('esc_plano') . " WHERE estrutura = 'V4' AND status IN ('RASCUNHO','PUBLICADO') AND semana_fim >= ? ORDER BY semana_inicio", [$desde]) as $r) {
             $seg = substr((string) $r['s'], 0, 10);

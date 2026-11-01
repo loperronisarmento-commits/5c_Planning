@@ -446,7 +446,7 @@ function escEstruturaTrocasUnidade(string $desde): array {
                 }
                 $plano = escPolPlanoDestino($pg, $para, $d);
                 $cart = escQ1('SELECT carteira FROM `5c_planning`.`fc_pagina_carteira` WHERE pagina = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate > ?)', [$pagina, $d, $d]);
-                if ($cart && str_starts_with((string) $cart['carteira'], 'U' . $para)) {
+                if ($cart && strncmp((string) $cart['carteira'], 'U' . $para, strlen('U' . $para)) === 0) {
                     $plano['carteira'] = $cart['carteira'];
                 }
                 $itens[$pagina] = [$pg, $plano, $para];
@@ -454,14 +454,18 @@ function escEstruturaTrocasUnidade(string $desde): array {
             if (!$itens) {
                 continue;
             }
-            $r = ['postos_fechados' => [], 'postos_refeitos' => [], 'vagas_passadas' => [], 'livres' => [], 'postos_novos' => []];
-            escSaidaEscala(array_keys($itens), $d, $r);
-            foreach ($itens as $pagina => [$pg, $plano, $para]) {
-                $antes = count($r['postos_novos']);
-                escPolUnidadeEscala($pg, $plano, $para, $d, $r, false);
-                $feitas[] = ['pagina' => $pagina, 'de' => $pg['unidade'], 'para' => $para, 'desde' => $d, 'carteira' => $plano['carteira'], 'postos_novos' => array_slice($r['postos_novos'], $antes)];
-            }
-            escLog('politica.unidade_escala', 'esc_politica_troca', implode(', ', array_keys($itens)), null, ['desde' => $d, 'trocas' => array_slice($feitas, -count($itens))] + array_diff_key($r, ['postos_novos' => 1]));
+            // Saída da origem e entrada no destino juntas: com erro no meio, nada fica gravado
+            // (a página não fica sem posto nas duas unidades), como na saída de página.
+            escTx(static function () use ($itens, $d, &$feitas) {
+                $r = ['postos_fechados' => [], 'postos_refeitos' => [], 'vagas_passadas' => [], 'livres' => [], 'postos_novos' => []];
+                escSaidaEscala(array_keys($itens), $d, $r);
+                foreach ($itens as $pagina => [$pg, $plano, $para]) {
+                    $antes = count($r['postos_novos']);
+                    escPolUnidadeEscala($pg, $plano, $para, $d, $r, false);
+                    $feitas[] = ['pagina' => $pagina, 'de' => $pg['unidade'], 'para' => $para, 'desde' => $d, 'carteira' => $plano['carteira'], 'postos_novos' => array_slice($r['postos_novos'], $antes)];
+                }
+                escLog('politica.unidade_escala', 'esc_politica_troca', implode(', ', array_keys($itens)), null, ['desde' => $d, 'trocas' => array_slice($feitas, -count($itens))] + array_diff_key($r, ['postos_novos' => 1]));
+            });
         }
     } finally {
         escDbW()->query("SELECT RELEASE_LOCK('5c_escalas.saida_pagina')")->fetchColumn();

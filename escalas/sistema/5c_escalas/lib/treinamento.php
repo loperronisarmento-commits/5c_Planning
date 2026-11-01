@@ -805,7 +805,7 @@ function escTrnResposta(array $turmas, bool $en = false): string {
     $obs = [];
     foreach ($turmas as $t) {
         foreach ($t['alertas'] as $a) {
-            if (str_starts_with($a, $t['codigo'] . ':')) {
+            if (strncmp($a, $t['codigo'] . ':', strlen($t['codigo'] . ':')) === 0) {
                 $obs[$a] = true;
             }
         }

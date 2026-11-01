@@ -233,8 +233,12 @@ function escQW(string $sql, array $params = []): array {
     return $stmt->fetchAll();
 }
 
+// Transação. Chamada dentro de outra, só roda $fn: quem abriu a de fora faz o commit ou o rollback.
 function escTx(callable $fn) {
     $pdo = escDbW();
+    if ($pdo->inTransaction()) {
+        return $fn();
+    }
     $pdo->beginTransaction();
     try {
         $r = $fn();

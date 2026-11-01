@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.17.2' => ['titulo' => 'Review: unit move in a single transaction and PHP 7.4 compatibility', 'itens' => [
+        'Unit move (before generating and on the Unit balance screen): leaving the origin posts and entering the destination now save together. They used to be two separate writes and, with an error in between, the page could end up with no post in either unit.',
+        'PHP 7.4 compatibility (the README minimum): the unit move before generating and the Training screen used a function that only exists in PHP 8 (str_starts_with), which was a fatal error on a 7.4 server.',
+    ]],
     '1.17.1' => ['titulo' => 'Fix: shift, core or role change blocked', 'itens' => [
         'Employees, Leadership roster, Requests and owner change: saving gave "Blocked: write word in the query (UPDATE)". The read that locks the person\'s rows inside the write (SELECT ... FOR UPDATE) was taken as a write; it now passes on the write connection. The read-only connection still blocks any write.',
         'Scripts ES_55 (fixed vacancies left open after a unit or shift change) and ES_56 (reinforcement of the Privacy team on shift C from 11/09).',
