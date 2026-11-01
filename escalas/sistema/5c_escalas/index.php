@@ -78,6 +78,7 @@ $telas = [
     'saidas'       => ['Saídas de página', 'pages/saidas.php'],
     'funil'        => ['Funil de entrada', 'pages/funil.php'],
     'equilibrio'   => ['Equilíbrio das unidades', 'pages/equilibrio.php'],
+    'paginas'      => ['Configuração das páginas', 'pages/paginas.php'],
     'owners'       => ['Owners e backups', 'pages/owners.php'],
     'organograma'  => ['Organograma', 'pages/organograma.php'],
     'times'        => ['Configuração dos times', 'pages/times.php'],
@@ -235,7 +236,7 @@ try {
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
     'Análise' => ['analise', 'tertius', 'sugestoes', 'buffers'],
-    'Páginas' => ['owners', 'trocas', 'saidas', 'funil', 'equilibrio'],
+    'Páginas' => ['owners', 'trocas', 'saidas', 'funil', 'equilibrio', 'paginas'],
     'Pessoas' => ['organograma', 'roster', 'colaboradores', 'aprovar', 'solicitacoes', 'treinamento', 'casais', 'modelos'],
     'Ajuda' => array_merge(['tutorial', 'regras', 'merito', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
 ];

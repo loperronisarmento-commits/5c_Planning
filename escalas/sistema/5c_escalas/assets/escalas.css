@@ -939,6 +939,14 @@ label > .busca-select { order: 2; }
 .pag-pdf-pessoa .mono { font-size: 10px; color: var(--texto-2); }
 .pag-pdf-marca { font-size: 10px; font-weight: 700; color: var(--accent); }
 .pag-pdf-vazio { color: var(--texto-3); }
+/* Venda por hora do SR (US$/h, 30 dias) ao lado do código, com a faixa contra a mediana; sigla da
+   unidade no título; folha de resumo da unidade (lista das páginas na ordem de faturamento). */
+.pag-pdf-venda { font-size: 10px; font-weight: 700; margin-left: 4px; padding: 0 4px; border-radius: 4px; background: #f1ecee; color: #4a3b42; }
+.pag-pdf-venda-acima { background: #dcefe2; color: #1d6b3a; }
+.pag-pdf-venda-abaixo { background: #fbe3d4; color: #9a3d0c; }
+.pag-pdf-unidade { font-size: 13px; font-weight: 700; color: #fff; background: #650637; border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
+.pag-pdf-capa .pag-pdf-tabela { table-layout: auto; }
+.pag-pdf-indice th, .pag-pdf-indice td { padding: 4px 6px; font-size: 10.5px; }
 .grade-baixar { white-space: nowrap; }
 /* PDF de metas (Grade › Baixar PDF das metas): a mesma folha, com uma linha por pessoa escalada. */
 .pag-pdf-metas .pag-pdf-membro { width: 30%; }
@@ -956,6 +964,7 @@ label > .busca-select { order: 2; }
   .pag-pdf-folha h1 { font-size: 20px; color: #650637; }
   .pag-pdf-tabela { font-size: 11.5px; }
   .pag-pdf-tabela th, .pag-pdf-tabela td { padding: 9px 6px; border-color: #e6dce1; }
+  .pag-pdf-indice th, .pag-pdf-indice td { padding: 3px 6px; font-size: 10px; }
   .pag-pdf-pessoa { margin-bottom: 4px; }
   .pag-pdf-sub { margin-bottom: 4mm; }
   .pag-pdf-tabela thead th { background: #f8f3f5 !important; }

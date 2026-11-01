@@ -189,6 +189,9 @@ foreach ($alocCsv as $a) {
     $porPagina[(int) $a['page_id']]['nome'] = $a['pagina'];
     // Overlap (dia de treinamento) sai com "-5", o motivo que o CSV do site lê; assistente com "#".
     $porPagina[(int) $a['page_id']]['cel'][$slot][$a['rep_code']] = escMarcaCsv($a);
+    if ($a['origem'] === 'SOBRECARGA') {
+        $porPagina[(int) $a['page_id']]['acima'][$slot][$a['rep_code']] = true; // só para o PDF (⚠)
+    }
 }
 $arquivoDe = static fn(string $nome) => (escModoTreino() ? 'TREINO_' : '') . preg_replace('~[^A-Za-z0-9_-]+~', '_', $nome) . '_' . $seg . '.csv';
 if (isset($_GET['baixar'])) {
@@ -339,18 +342,83 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     $soPid = (int) ($_GET['pagina'] ?? 0);
     $overlapPdf = escV4Param('v4_overlap_pagina', '5C Schedule');
     $folhas = array_filter($porPagina, static fn($pg, $pid) => $soPid ? $pid === $soPid : $pg['nome'] !== $overlapPdf, ARRAY_FILTER_USE_BOTH);
-    uasort($folhas, static fn($a, $b) => strnatcasecmp($a['nome'], $b['nome']));
+    // Ordem das folhas: da modelo que mais fatura para a que menos (30 dias, fechado + pendente),
+    // e dentro da modelo a página que mais fatura (a mesma fila do motor).
+    $recPdf = escV4ReceitaPaginas(array_column($folhas, 'nome'), (int) escV4Param('v4_receita_dias', '30'));
+    $modeloPdf = [];
+    if ($folhas) {
+        foreach (escQ('SELECT pagina, modelo FROM `5c_planning`.`fc_pagina_carteira` WHERE vigente_ate IS NULL AND pagina IN (' . escIn(array_column($folhas, 'nome')) . ')', array_column($folhas, 'nome')) as $l) {
+            $modeloPdf[$l['pagina']] = $l['modelo'];
+        }
+    }
+    $recModeloPdf = [];
+    foreach ($folhas as $pg) {
+        $m = $modeloPdf[$pg['nome']] ?? $pg['nome'];
+        $recModeloPdf[$m] = ($recModeloPdf[$m] ?? 0) + (float) ($recPdf[$pg['nome']]['total'] ?? 0);
+    }
+    $ordemPdf = static fn($pg) => [-round($recModeloPdf[$modeloPdf[$pg['nome']] ?? $pg['nome']] ?? 0), -round((float) ($recPdf[$pg['nome']]['total'] ?? 0)), $pg['nome']];
+    uasort($folhas, static fn($a, $b) => $ordemPdf($a) <=> $ordemPdf($b));
+    $usdPdf = static fn(float $v): string => 'US$ ' . number_format($v, 0, ',', '.');
+    // Venda por hora de cada SR nos últimos v4_receita_dias (US$ vendido ÷ horas no chat, cap_rep_hora):
+    // o número que o motor usa para pôr os melhores SRs nas páginas grandes. Faixa contra a mediana.
+    $diasPdf = max(1, (int) escV4Param('v4_receita_dias', '30'));
+    $codDePdf = [];
+    foreach (escQ('SELECT UPPER(rep_code) AS rep, code_infloww FROM `5c_wfm_db_mis`.`vw_rep_estrutura_atual` WHERE code_infloww IS NOT NULL') as $l) {
+        $codDePdf[(string) $l['code_infloww']] = $l['rep'];
+    }
+    $vendaPdf = [];
+    foreach (escQ("SELECT SUBSTRING_INDEX(rep, ' ', 1) AS cod, SUM(valor_comprado) / COUNT(*) AS usd_h FROM `5c_capacity`.`cap_rep_hora` WHERE dia >= DATE_SUB(CURDATE(), INTERVAL {$diasPdf} DAY) GROUP BY cod") as $l) {
+        if (isset($codDePdf[$l['cod']])) {
+            $vendaPdf[$codDePdf[$l['cod']]] = (float) $l['usd_h'];
+        }
+    }
+    $vMed = array_values($vendaPdf);
+    sort($vMed);
+    $medPdf = $vMed ? $vMed[intdiv(count($vMed), 2)] : null;
+    $vendaTxt = static function (string $rep) use ($vendaPdf, $medPdf): string {
+        if (!isset($vendaPdf[$rep])) {
+            return '';
+        }
+        $n = $vendaPdf[$rep];
+        $faixa = $medPdf ? ($n >= 1.15 * $medPdf ? 'acima' : ($n < 0.85 * $medPdf ? 'abaixo' : 'media')) : 'media';
+        return ' <span class="pag-pdf-venda pag-pdf-venda-' . $faixa . '">US$ ' . h(number_format($n, 0, ',', '.')) . '/h</span>';
+    };
     $cartPdf = [];
     foreach (escQ('SELECT DISTINCT pp.page_id, p.carteira FROM ' . escT('esc_posto_pagina') . ' pp JOIN ' . escT('esc_posto') . ' p ON p.id = pp.posto_id
                     WHERE p.vigente_desde <= ? AND (p.vigente_ate IS NULL OR p.vigente_ate >= ?) ORDER BY p.carteira', [escMaisDias($seg, 6), escMaisDias($seg, 6)]) as $l) {
         $cartPdf[(int) $l['page_id']][$l['carteira']] = true;
     }
+    // Blocos por unidade (U1, U2, U3): dentro de cada uma, a ordem de faturamento. A posição
+    // geral é a da fila de toda a operação.
+    $posGeral = array_flip(array_keys($folhas));
+    $unidadePdf = static function (int $pid) use ($cartPdf): int {
+        $c = array_key_first($cartPdf[$pid] ?? []);
+        return $c !== null && preg_match('~^U(\d)~', (string) $c, $m) ? (int) $m[1] : 9;
+    };
+    $chaves = array_keys($folhas);
+    usort($chaves, static fn($a, $b) => [$unidadePdf($a), $posGeral[$a]] <=> [$unidadePdf($b), $posGeral[$b]]);
+    $folhas = array_replace(array_flip($chaves), $folhas);
+    $porUnidadePdf = [];
+    foreach (array_keys($folhas) as $pid) {
+        $porUnidadePdf[$unidadePdf($pid)][] = $pid;
+    }
+    // Um arquivo por unidade (?unidade=1, 2 ou 3), para cada liderança ver só a sua. O arquivo com
+    // todas as unidades é só de Planejamento; a folha de uma página (?pagina=) continua livre.
+    $soUnidade = (int) ($_GET['unidade'] ?? 0);
+    if (!$soPid && !$soUnidade) {
+        escExigir('planejar');
+    }
+    if ($soUnidade) {
+        $folhas = array_intersect_key($folhas, array_flip($porUnidadePdf[$soUnidade] ?? []));
+        $porUnidadePdf = array_intersect_key($porUnidadePdf, [$soUnidade => 1]);
+    }
     $blocosPdf = ['01' => ['T1', '01:00–05:00'], '05' => ['T2', '05:00–09:00'], '09' => ['T3', '09:00–13:00'], '13' => ['T4', '13:00–17:00'], '17' => ['T5', '17:00–21:00'], '21' => ['T6', '21:00–01:00']];
     $dePdf = date('d/m/Y', strtotime($seg));
     $atePdf = date('d/m/Y', strtotime(escMaisDias($seg, 6)));
     $versaoPdf = escPlanoRotulo($plano) . ' · ' . ($plano['status'] === 'PUBLICADO' ? t('publicada') : t('rascunho'));
-    $arquivoPdf = count($folhas) === 1 ? t('Escala {pagina} {de} a {ate}', ['pagina' => reset($folhas)['nome'], 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
-        : t('Escala das páginas {de} a {ate}', ['de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))]);
+    $arquivoPdf = $soPid && count($folhas) === 1 ? t('Escala {pagina} {de} a {ate}', ['pagina' => reset($folhas)['nome'], 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
+        : ($soUnidade ? t('Escala U{u} {de} a {ate}', ['u' => $soUnidade, 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
+        : t('Escala das páginas {de} a {ate}', ['de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))]));
     ?>
 <div class="pag-pdf">
   <div class="acoes nao-imprimir">
@@ -358,11 +426,27 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <button type="button" class="botao primario" id="pag-pdf-baixar"><?php echo h(t('Baixar PDF')); ?></button>
     <span class="muted small"><?php echo h(tn(count($folhas), '{n} página, uma por folha (A4 paisagem). Na impressão, escolha "Salvar como PDF".', '{n} páginas, uma por folha (A4 paisagem). Na impressão, escolha "Salvar como PDF".')); ?></span>
   </div>
-  <?php foreach ($folhas as $pid => $pg): ?>
+  <?php $uAtual = null; foreach ($folhas as $pid => $pg): $u = $unidadePdf($pid); ?>
+  <?php if ($u !== $uAtual): $uAtual = $u; $listaU = $porUnidadePdf[$u]; $somaU = 0.0; $modelosU = []; foreach ($listaU as $x) { $somaU += (float) ($recPdf[$folhas[$x]['nome']]['total'] ?? 0); $modelosU[$modeloPdf[$folhas[$x]['nome']] ?? $folhas[$x]['nome']] = true; } ?>
+  <section class="pag-pdf-folha pag-pdf-capa">
+    <h1><?php echo h($u === 9 ? t('Sem unidade') : t('Unidade {u}', ['u' => $u])); ?></h1>
+    <p class="pag-pdf-sub"><?php echo h(t('Semana de {de} a {ate} · {n} páginas de {m} modelos · faturamento {d} dias {usd} · as folhas seguem esta ordem (da modelo que mais fatura para a que menos)', ['de' => $dePdf, 'ate' => $atePdf, 'n' => count($listaU), 'm' => count($modelosU), 'd' => $diasPdf, 'usd' => $usdPdf($somaU)])); ?></p>
+    <table class="pag-pdf-tabela pag-pdf-indice">
+      <thead><tr><th class="pag-pdf-num">#</th><th class="pag-pdf-num"><?php echo h(t('Fila geral')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="pag-pdf-num"><?php echo h(t('Página {d}d', ['d' => $diasPdf])); ?></th><th class="pag-pdf-num"><?php echo h(t('Modelo {d}d', ['d' => $diasPdf])); ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($listaU as $i => $x): $nx = $folhas[$x]['nome']; $mx = $modeloPdf[$nx] ?? $nx; ?>
+        <tr><td class="pag-pdf-num"><?php echo $i + 1; ?></td><td class="pag-pdf-num"><?php echo $posGeral[$x] + 1; ?></td><td><strong><?php echo h($nx); ?></strong></td><td><?php echo h(implode(' · ', array_keys($cartPdf[$x] ?? [])) ?: '—'); ?></td><td><?php echo h($mx); ?></td><td class="pag-pdf-num"><?php echo h($usdPdf((float) ($recPdf[$nx]['total'] ?? 0))); ?></td><td class="pag-pdf-num"><?php echo h($usdPdf((float) ($recModeloPdf[$mx] ?? 0))); ?></td></tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+  </section>
+  <?php endif; ?>
   <section class="pag-pdf-folha">
-    <h1><?php echo h($pg['nome']); ?></h1>
+    <h1><?php echo h($pg['nome']); ?> <span class="pag-pdf-unidade">U<?php echo $u; ?></span></h1>
     <p class="pag-pdf-sub"><?php echo h(t('Schedule · semana de {de} a {ate} · {carteira} · versão {versao} · gerado em {gerado}', ['de' => $dePdf, 'ate' => $atePdf,
         'carteira' => implode(' · ', array_keys($cartPdf[$pid] ?? [])) ?: '—', 'versao' => $versaoPdf, 'gerado' => date('d/m/Y H:i')])); ?></p>
+    <p class="pag-pdf-sub"><?php $mPdf = $modeloPdf[$pg['nome']] ?? $pg['nome']; echo h(t('Faturamento {d} dias: {pag} · modelo {modelo}: {mod} · {pu}ª da U{u} · {pg}ª da fila geral', ['d' => $diasPdf, 'pag' => $usdPdf((float) ($recPdf[$pg['nome']]['total'] ?? 0)), 'modelo' => $mPdf,
+        'mod' => $usdPdf((float) ($recModeloPdf[$mPdf] ?? 0)), 'pu' => array_search($pid, $porUnidadePdf[$u], true) + 1, 'u' => $u, 'pg' => $posGeral[$pid] + 1])); ?></p>
     <table class="pag-pdf-tabela">
       <thead><tr><th class="pag-pdf-bloco"><?php echo h(t('Bloco')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
       <tbody>
@@ -372,7 +456,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
           <?php foreach ($dias as $d): $quem = $pg['cel'][$d . 'T' . $hora . ':00:00'] ?? []; ?>
           <td><?php if (!$quem): ?><span class="pag-pdf-vazio">—</span><?php endif; ?>
             <?php foreach ($quem as $rep => $marca): ?>
-            <div class="pag-pdf-pessoa"><strong><?php echo h(nomeCurto($nomesPdf[$rep] ?? $rep)); ?></strong> <span class="mono"><?php echo h($rep); ?></span><?php echo is_string($marca) ? ' <span class="pag-pdf-marca">' . h($marca) . '</span>' : ($marca ? ' <span class="pag-pdf-marca">#</span>' : ''); ?></div>
+            <div class="pag-pdf-pessoa"><strong><?php echo h(nomeCurto($nomesPdf[$rep] ?? $rep)); ?></strong> <span class="mono"><?php echo h($rep); ?></span><?php echo $vendaTxt((string) $rep); ?><?php echo is_string($marca) ? ' <span class="pag-pdf-marca">' . h($marca) . '</span>' : ($marca ? ' <span class="pag-pdf-marca">#</span>' : ''); ?><?php echo !empty($pg['acima'][$d . 'T' . $hora . ':00:00'][$rep]) ? ' <span class="pag-pdf-marca">⚠</span>' : ''; ?></div>
             <?php endforeach; ?>
           </td>
           <?php endforeach; ?>
@@ -380,7 +464,8 @@ if (($_GET['ver'] ?? '') === 'pdf') {
       <?php endforeach; ?>
       </tbody>
     </table>
-    <p class="pag-pdf-legenda"><?php echo h(t('# assistente · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS. Turno A = T2 e T3 · C = T4 e T5 · D = T6 e o T1 do dia seguinte.')); ?></p>
+    <p class="pag-pdf-legenda"><?php echo h(t('# assistente (o primeiro da página no bloco entra sem #; os demais, que ajudam no capacity, com #) · ⚠ cobrindo acima da capacidade (até 30%, só páginas da mesma agência; cede quando houver gente) · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS. Turno A = T2 e T3 · C = T4 e T5 · D = T6 e o T1 do dia seguinte.') . ' ' . t('Ao lado do código: venda por hora do SR nos últimos {d} dias (US$ vendido ÷ horas no chat), o número que o motor usa para pôr os melhores SRs nas páginas grandes; verde = 115% da mediana ou mais, laranja = menos de 85%, sem cor = na média.', ['d' => $diasPdf])
+        . ($medPdf ? ' ' . t('Mediana: US$ {v}/h.', ['v' => number_format($medPdf, 0, ',', '.')]) : '')); ?></p>
   </section>
   <?php endforeach; ?>
   <?php if (!$folhas): ?><p class="muted"><?php echo h(t('Página sem alocação neste plano.')); ?></p><?php endif; ?>
@@ -543,7 +628,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <div class="kpi"><span class="muted"><?php echo h(t('Anomalias programadas')); ?></span><strong class="<?php echo !empty($resumo['anomalias']) ? 'vermelho' : ''; ?>"><?php echo (int) ($resumo['anomalias'] ?? 0); ?></strong><span class="muted small"><?php echo h(t('dias seguidos acima do modelo')); ?></span></div>
   <?php if (($resumo['estrutura'] ?? '') === 'V4'): ?>
   <div class="kpi"><span class="muted"><?php echo h(t('Buffers de plantão')); ?></span><strong><?php echo (int) ($resumo['buffers_ociosos'] ?? 0); ?></strong><span class="muted small"><?php echo h(t('pessoa-turnos sem posto (cobrem faltas)')); ?></span></div>
-  <div class="kpi"><span class="muted"><?php echo h(t('Acima da capacidade')); ?></span><strong class="<?php echo !empty($resumo['sobrecargas']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['sobrecargas'] ?? 0); ?></strong><span class="muted small"><?php echo h(t('posto-dias acumulados por um SR até {pct}% acima (⚠ na grade)', ['pct' => (int) round((float) escV4Param('v4_over_capacity_max', '0.15') * 100)])); ?></span></div>
+  <div class="kpi"><span class="muted"><?php echo h(t('Acima da capacidade')); ?></span><strong class="<?php echo !empty($resumo['sobrecargas']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['sobrecargas'] ?? 0); ?></strong><span class="muted small"><?php echo h(t('página-dias cobertos por um SR até {pct}% acima, mesma agência (⚠ na grade)', ['pct' => (int) round((float) escV4Param('v4_over_capacity_max', '0.30') * 100)])); ?></span></div>
   <div class="kpi"><span class="muted"><?php echo h(t('Postos sem ninguém')); ?></span><strong class="<?php echo !empty($resumo['vagas_sem_ninguem']) ? 'laranja' : ''; ?>"><?php echo (int) ($resumo['vagas_sem_ninguem'] ?? 0); ?></strong><span class="muted small"><?php echo h(t('de {n} posto-dias', ['n' => (int) ($resumo['vagas_dia'] ?? 0)])); ?><?php
     $porUT = [];
     foreach ($resumo['vagas_sem_ninguem_por_unidade_turno'] ?? [] as $ut => $n) {
@@ -578,7 +663,9 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
 
   <div class="acoes">
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'])); ?>"><?php echo h(t('Baixar CSVs (.zip)')); ?></a>
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'imprimir' => 1])); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias.')); ?>"><?php echo h(t('Baixar PDF das páginas')); ?></a>
+    <?php foreach ([1, 2, 3] as $uPdf): ?>
+    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'unidade' => $uPdf, 'imprimir' => 1])); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Só as páginas da U{u}, em ordem de faturamento: uma folha de resumo e uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias e a venda por hora de cada SR.', ['u' => $uPdf])); ?>"><?php echo h(t('PDF U{u}', ['u' => $uPdf])); ?></a>
+    <?php endforeach; ?>
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'imprimir' => 1])); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Uma folha por página (A4 paisagem, papel timbrado), com cada pessoa escalada na semana e o atingimento da meta dela na página nas 4 semanas anteriores.')); ?>"><?php echo h(t('Baixar PDF das metas')); ?></a>
     <?php if (escPode('planejar') && $ehRascunho): ?>
     <?php

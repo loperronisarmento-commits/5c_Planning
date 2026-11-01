@@ -164,16 +164,8 @@ if ($plano) {
     // Faturamento da página no turno (US$/dia, últimos dias do statement): ordem da lista.
     $pags = array_values(array_unique(array_column($postosVazios, 'pagina_principal')));
     if ($pags) {
-        $n = max(1, (int) escV4Param('v4_receita_dias', '28'));
-        foreach (escQ("SELECT CREATOR_NAME AS pagina,
-                              SUM(CASE WHEN Turno IN ('T2','T3') THEN US_AMOUNT ELSE 0 END) AS a,
-                              SUM(CASE WHEN Turno IN ('T4','T5') THEN US_AMOUNT ELSE 0 END) AS c,
-                              SUM(CASE WHEN Turno IN ('T6','T1') THEN US_AMOUNT ELSE 0 END) AS d
-                         FROM `5c_wfm_db_mis`.`tab_statement_interval`
-                        WHERE Date >= DATE_SUB(CURDATE(), INTERVAL {$n} DAY) AND Date < CURDATE() AND STATUS = 'complete'
-                          AND CREATOR_NAME IN (" . escIn($pags) . ') GROUP BY CREATOR_NAME', $pags) as $r) {
-            $receita[$r['pagina']] = ['A' => (float) $r['a'] / $n, 'C' => (float) $r['c'] / $n, 'D' => (float) $r['d'] / $n];
-        }
+        $n = max(1, (int) escV4Param('v4_receita_dias', '30'));
+        $receita = escV4ReceitaPaginas($pags, $n);
     }
     usort($postosVazios, static fn($a, $b) => [$a['dia'], -($receita[$a['pagina_principal']][$a['turno']] ?? 0), $a['pagina_principal'], ESC_HE_BLOCO_IDX[$a['bloco']] + ($a['bloco'] === 'T1' ? 6 : 0)]
         <=> [$b['dia'], -($receita[$b['pagina_principal']][$b['turno']] ?? 0), $b['pagina_principal'], ESC_HE_BLOCO_IDX[$b['bloco']] + ($b['bloco'] === 'T1' ? 6 : 0)]);

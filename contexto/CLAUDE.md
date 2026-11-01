@@ -174,10 +174,52 @@ Módulo PHP do MIS Portal (`/escalas`) que gera, revisa e publica a escala seman
   - põe os melhores SRs nos tiers SS, A e B;
   - remaneja por faturamento;
   - trata transição, buffers, Overlap e emenda.
-- **Versão.** A **1.17.2** está montada e commitada, com o zip pronto. A 1.17.0 subiu em 31/10; a
-  1.17.1 corrige o bloqueio do `FOR UPDATE` ao trocar turno; a 1.17.2 veio da revisão completa
-  (troca de unidade numa transação só, `escTx` aceita ser chamada dentro de outra, sem
-  `str_starts_with` do PHP 8). O rodapé do sistema mostra a versão no ar. Ao fim de toda mudança vale o
+- **Versão.** A **1.18.0** (01/11) está commitada na `main`, com o zip pronto; ainda não subiu (no ar: 1.17.1). Deploy por SSH: `deploy/deploy.ps1` (porta 2222, chave `~/.ssh/5c_deploy`).
+  A 1.17.0 subiu em 31/10; a 1.17.1 corrige o bloqueio do `FOR UPDATE` ao trocar turno; a 1.17.2
+  veio da revisão completa (troca de unidade numa transação só, `escTx` aceita ser chamada dentro de
+  outra, sem `str_starts_with` do PHP 8).
+- **Regras de prioridade de 01/11 (1.18.0), decididas pelo usuário.**
+  - Prioridade máxima é faturamento, nunca volume. A fila do motor vai da **modelo** que mais
+    fatura para a que menos fatura: as páginas da mesma modelo (`fc_pagina_carteira.modelo`) somam
+    e entram juntas (falhar na Free ou na secundária põe a parceria em risco).
+  - Faturamento: últimos 30 dias, `complete` + `pending`. Página com menos de 30 dias de venda é
+    emulada (média dos dias que tem); sem venda, meio da faixa do tier (`5c_crm.tiers`).
+    Funções `escV4ReceitaPaginas` e `escV4Desconsiderada` em `lib/motor_v4.php`.
+  - OFTV (e código terminado em "t") é desconsiderada: sem SLA, carga zero, fim da fila. Exceção:
+    OFTV com US$ 8 mil ou mais em 30 dias é posto normal (`v4_trivial_receita_min`). A tela
+    Páginas › Configuração das páginas (`esc_pagina_config`, ES_57) força Sempre normal ou
+    Desconsiderar; não usar só o nome "OFTV" como sinal.
+  - Capacity (script 27): a regra de postos de 3 e de 2 páginas usa o faturamento de 30 dias da
+    modelo (opção 1 do usuário), não mais o mês fechado de cada página. A página desconsiderada não
+    ocupa posto nem entra no pico; vira apoio no posto da mesma modelo.
+  - Sobrecarga para fechar lacuna (ES_59, `v4_over_capacity_max` = 0.30): no passo 7 do motor, cada
+    página que sobrou vai para um SR já alocado no turno que faz página da **mesma agência**
+    (`5c_pages.pages.client`; vazio ou "Independent" vale a agência da mesma modelo), até 30% acima
+    da capacidade. Ele entra **cobrindo** (não é dono, não entra no `ultimo` da semana seguinte) e
+    cede quando houver gente; acima de 100% é SOBRECARGA (⚠).
+  - Regular e assistente (decisão de 01/11): em cada página e bloco, o primeiro SR é o REGULAR (sem #
+    no CSV) e os demais, que ajudam no capacity, ASSISTENTE (#). O papel **não** indica dono nem
+    cobertura; o motor define no fim (`_ordem` em `escMotorAlocarV4`).
+  - Distribuição das páginas desde 02/11 (ES_61 a ES_64, Capacity 28): unidade de quem liderava a página no
+    Legacy (hoje OM/OC/OS), Midwest Emma na U2 e Mikayla na U1 a pedido; < US$ 16 mil em postos de 3+,
+    < US$ 32 mil em postos de 2+, mesma agência junta (Infloww; Noah, Independent e Lolly = 5C Company);
+    Savannah com a Ivy Vale (Fanvue); C1 ≈ 60% / C2 ≈ 40% do faturamento da unidade, mesmo número de postos
+    (C1 pode ter 1 a mais); posto = 1 pessoa (página > 35 fãs/h no pico ocupa 2). O Capacity segue a tabela
+    `fc_posto_fixo` exatamente (sp_fc_postos_carteira do script 28); página fora dela segue a regra automática.
+    O Capacity usa a foto diária do cadastro (`fc_pagina_status_diario`): página reativada no dia precisa da foto corrigida.
+  - Saíram Arthur Novais Moraes e Larissa Ceola Guchert (ES_60). Andressa Urach cancelada (ES_63; ainda ativa no site).
+  - A Skylar saiu (não está ativa no site). Antes de dizer que falta página, conferir as ativas em
+    `5c_pages.pages`.
+  - Melhores SRs (passo 0 do motor) pelo faturamento, não pelo tier: modelos com
+    `v4_melhores_receita_min` (US$ 100 mil em 30 dias) ou mais recebem antes os SRs de maior venda/hora,
+    na ordem da fila (ES_58). Ordena só pela venda/hora (na página, ou geral sem histórico); ter histórico na página não passa na frente (antes a Free ficava com SR de US$ 12/h). Posto só de página desconsiderada não abre vaga: a página vira apoio no
+    posto da página principal da modelo (caso da Nicole OFTV, que tinha posto próprio por causa da
+    troca de unidade).
+  - PDF das páginas: um arquivo por unidade (PDF U1/U2/U3, `?ver=pdf&unidade=N`), para cada liderança
+    ver só a sua; o arquivo com todas só para quem pode planejar. Ordem de faturamento, folha de resumo
+    por unidade e venda por hora (US$/h) de cada SR.
+  - Simulação local do Gerar (sem gravar): `resultados/sim_0211/` (harness.php, cópia da estrutura em
+    overlay_base.sqlite, leituras respondidas pelo MySQL só de leitura). O rodapé do sistema mostra a versão no ar. Ao fim de toda mudança vale o
   gatilho de publicação: checagem de UX e a pergunta se publica como versão oficial e atualiza
   Ajuda e Changelog. Uma versão só por vez: se duas sessões mexem no módulo, juntar na mesma.
 - **O que a 1.17.0 trouxe (31/10).**
@@ -191,6 +233,9 @@ Módulo PHP do MIS Portal (`/escalas`) que gera, revisa e publica a escala seman
   - ES_54: a equipe que fez a Aline Novak de 04/10 a 31/10 vira a equipe da Aline e da Andressa
     Urach (Privacy), com 6 SRs indo para a U2; o Marcos fica no C até 08/11 e no D a partir de 09/11.
 - **Pendências.**
+  - 1.18.0: ES_57, script 27 do Capacity, ES_58 e ES_59 já rodaram em 01/11; falta subir o zip e conferir o rodapé;
+    abrir Páginas › Configuração das páginas; gerar a semana de 09/11 e conferir a ordem.
+    O usuário do portal precisa ler `5c_crm.tiers` (sem isso, página sem venda fica com zero).
   - Rodar ES_52, ES_53 e ES_54 (nessa ordem), subir o zip 1.17.0 e conferir o rodapé.
   - Gerar, publicar e postar a semana de 02/11; abrir o Organograma em 02/11.
   - Testar o PDF de metas no portal (só passou no lint e num teste com dados simulados).

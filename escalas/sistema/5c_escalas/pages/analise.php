@@ -125,14 +125,8 @@ if ($dcCarga) {
 }
 $receita = [];
 if ($carga && in_array($aba, ['demanda', 'cruzamento'], true)) {
-    $n = max(1, (int) escV4Param('v4_receita_dias', '28'));
-    foreach (escQ("SELECT CREATOR_NAME AS pagina, SUM(CASE WHEN Turno IN ('T2','T3') THEN US_AMOUNT ELSE 0 END) AS a,
-                          SUM(CASE WHEN Turno IN ('T4','T5') THEN US_AMOUNT ELSE 0 END) AS c, SUM(CASE WHEN Turno IN ('T6','T1') THEN US_AMOUNT ELSE 0 END) AS d
-                     FROM `5c_wfm_db_mis`.`tab_statement_interval`
-                    WHERE Date >= DATE_SUB(CURDATE(), INTERVAL {$n} DAY) AND Date < CURDATE() AND STATUS = 'complete' AND CREATOR_NAME IN (" . escIn(array_keys($carga)) . ')
-                    GROUP BY CREATOR_NAME', array_keys($carga)) as $r) {
-        $receita[$r['pagina']] = ['A' => (float) $r['a'] / $n, 'C' => (float) $r['c'] / $n, 'D' => (float) $r['d'] / $n];
-    }
+    $n = max(1, (int) escV4Param('v4_receita_dias', '30'));
+    $receita = escV4ReceitaPaginas(array_keys($carga), $n);
 }
 // SRs escalados por página e turno na semana (média por dia), para cruzar com o fluxo.
 $srPagina = [];

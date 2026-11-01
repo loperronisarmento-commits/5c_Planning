@@ -14,7 +14,7 @@
 const ESC_TREINO_COPIAR = [
     'esc_unidade', 'esc_modelo_escala', 'esc_nucleo', 'esc_colaborador_config', 'esc_lideranca',
     'esc_posto', 'esc_posto_pagina', 'esc_vaga_equipe', 'esc_parametro', 'esc_acesso',
-    'esc_ciclo_estado', 'esc_folga_par',
+    'esc_ciclo_estado', 'esc_folga_par', 'esc_pagina_config',
 ];
 // O mérito (esc_sr_merito, esc_sr_infraction) não é copiado: é dado individual restrito.
 
