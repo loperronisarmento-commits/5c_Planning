@@ -1,6 +1,7 @@
 ﻿# =====================================================================
 # Sobe o 5C Escalas para o servidor do portal sem RDP (SSH na porta 2222, chave ~/.ssh/5c_deploy).
 # Configuração única no servidor: deploy/servidor_ativar_ssh.ps1.
+#   python deploy/montar_zip.py         → monta escalas/sistema/5c_escalas.zip (antes do deploy)
 #   .\deploy\deploy.ps1                 → envia escalas/sistema/5c_escalas.zip e instala
 #   .\deploy\deploy.ps1 -Listar         → mostra as cópias de segurança no servidor
 #   .\deploy\deploy.ps1 -Voltar <nome>  → restaura uma cópia (nome do arquivo de -Listar)

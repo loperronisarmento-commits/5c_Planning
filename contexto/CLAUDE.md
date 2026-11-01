@@ -165,7 +165,7 @@ Módulo PHP do MIS Portal (`/escalas`) que gera, revisa e publica a escala seman
   - Código: `escalas/sistema/5c_escalas/`.
   - Zip para subir no portal: `escalas/sistema/5c_escalas.zip`.
   - Scripts: `escalas/sql/ES_01` a `ES_54`.
-  - Geradores offline: `escalas/sql/gerador/`.
+  - Zip montado por `python deploy/montar_zip.py`.
 - **Gravação.** O módulo grava só em `5c_escalas`. A única exceção é a lista fechada de
   `escCapacityGravar`: `fc_pagina_carteira` e os CALLs de postos do Capacity.
 - **Motor v4.** Antes de gerar:
