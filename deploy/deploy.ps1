@@ -20,9 +20,15 @@ $remoto = 'C:/WebServer/deploy'
 $opts = @('-i', $chave, '-p', "$Porta", '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes')
 $dest = "$Usuario@$Servidor"
 
+# O comando vai codificado (-EncodedCommand): o shell do SSH no servidor é o cmd.exe, e o PowerShell
+# 5.1 tira as aspas internas do argumento do ssh; sem isso o cmd lê "|" e "&" antes do PowerShell.
 function Remoto([string]$cmd) {
-    & ssh @opts $dest "powershell -NoProfile -ExecutionPolicy Bypass -Command `"$cmd`""
+    $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
+    & ssh @opts $dest "powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64"
     if ($LASTEXITCODE -ne 0) { throw "Falhou no servidor (código $LASTEXITCODE)." }
+}
+function RemotoScript([string]$arg) {
+    Remoto "& '$remoto/deploy_remoto.ps1' $arg"
 }
 
 Remoto "New-Item -ItemType Directory -Force -Path $remoto/backup | Out-Null"
@@ -33,11 +39,11 @@ if ($Listar) {
 }
 
 # O script do servidor vai junto a cada deploy (fica sempre na versão do repositório)
-& scp -i $chave -P $Porta -o BatchMode=yes (Join-Path $PSScriptRoot 'deploy_remoto.ps1') "${dest}:$remoto/deploy_remoto.ps1"
+& scp -O -i $chave -P $Porta -o BatchMode=yes (Join-Path $PSScriptRoot 'deploy_remoto.ps1') "${dest}:$remoto/deploy_remoto.ps1"
 if ($LASTEXITCODE -ne 0) { throw 'Não deu para enviar o deploy_remoto.ps1.' }
 
 if ($Voltar) {
-    Remoto "& '$remoto/deploy_remoto.ps1' -Voltar '$remoto/backup/$Voltar'"
+    RemotoScript "-Voltar $remoto/backup/$Voltar"
     exit 0
 }
 
@@ -45,6 +51,6 @@ if (-not (Test-Path $zip)) { throw "Zip não encontrado: $zip" }
 $versao = (Select-String -Path (Join-Path $raiz 'escalas\sistema\5c_escalas\lib\versao.php') -Pattern "'versao' => '(\d+\.\d+\.\d+)'" | Select-Object -First 1).Matches[0].Groups[1].Value
 $nome = "5c_escalas_$versao.zip"
 Write-Host "Enviando $nome ..."
-& scp -i $chave -P $Porta -o BatchMode=yes $zip "${dest}:$remoto/$nome"
+& scp -O -i $chave -P $Porta -o BatchMode=yes $zip "${dest}:$remoto/$nome"
 if ($LASTEXITCODE -ne 0) { throw 'Não deu para enviar o zip.' }
-Remoto "& '$remoto/deploy_remoto.ps1' -Zip '$remoto/$nome'"
+RemotoScript "-Zip $remoto/$nome"

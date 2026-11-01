@@ -952,6 +952,11 @@ label > .busca-select { order: 2; }
 .pag-pdf-metas .pag-pdf-membro { width: 30%; }
 .pag-pdf-metas .pag-pdf-semana { width: 22%; }
 .pag-pdf-metas .pag-pdf-num { text-align: right; font-variant-numeric: tabular-nums; }
+/* Representantes embaixo da escala de cada página: tempo de casa, dias na página e meta em 30/60/90 dias. */
+.pag-pdf-reps { margin-top: 8px; table-layout: auto; }
+.pag-pdf-reps th, .pag-pdf-reps td { padding: 3px 6px; font-size: 10px; }
+.pag-pdf-reps .pag-pdf-membro { width: 34%; }
+.pag-pdf-reps .pag-pdf-num { text-align: right; font-variant-numeric: tabular-nums; }
 @page escala-paginas {
   size: A4 landscape; margin: 10mm 10mm 13mm 0;
   @bottom-right { content: "www.5ccompany.com"; font: 600 9px "Open Sans", sans-serif; color: #650637; }

@@ -329,6 +329,9 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
         }
     }
     unset($n);
+    if (escV4Param('v4_os_equilibrio', '1') === '1') {
+        escEstruturaDividirOS($novos, $mantidos, $esc, $cap, $nucleos, $modeloDe);
+    }
 
     $ontem = escMaisDias($desde, -1);
     // Posto que nunca chegou a valer (começava em $desde ou depois) vai para antes da virada,
@@ -344,7 +347,9 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
         $paginaId[$chaveNome($g['name'])] = (int) $g['id'];
     }
 
-    escTx(static function () use ($cap, $mantidos, $novos, $fechar, $esc, $desde, $ontem, $neutra, $versao, $paginaId, $chaveNome, $dc, $partilha, &$res, $vig) {
+    $nucleoDe = array_map('intval', array_column(escQ('SELECT UPPER(rep_code) AS rep, nucleo_id FROM ' . escT('esc_colaborador_config')
+        . " WHERE funcao = 'EQUITE' AND nucleo_id IS NOT NULL AND" . $vig, [$desde, $desde]), 'nucleo_id', 'rep'));
+    escTx(static function () use ($cap, $mantidos, $novos, $fechar, $esc, $desde, $ontem, $neutra, $versao, $paginaId, $chaveNome, $dc, $partilha, &$res, $vig, $nucleoDe) {
         // Mantidos: só os números do Capacity de hoje.
         foreach ($mantidos as $id => $k) {
             $c = $cap[$k];
@@ -384,7 +389,13 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
             $equipe = escQ('SELECT id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$id, $desde]);
             if ($destino) {
                 $para = $idNovo[$destino[0]];
+                $nucleosPara = [(int) $novos[$destino[0]]['dono'] => true, (int) $novos[$destino[0]]['cob'] => true];
                 foreach ($equipe as $e) {
+                    // Só vai junto quem é do núcleo dono ou de cobertura do posto novo (a divisão por OS
+                    // pode ter trocado o núcleo); a vaga que sobrar é completada com gente do núcleo.
+                    if (isset($nucleoDe[strtoupper((string) $e['rep_code'])]) && !isset($nucleosPara[$nucleoDe[strtoupper((string) $e['rep_code'])]])) {
+                        continue;
+                    }
                     if (escQ1('SELECT 1 AS ok FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vaga = ? AND rep_code = ? AND vigente_ate IS NULL', [$para, $e['vaga'], $e['rep_code']])) {
                         continue;
                     }
@@ -407,6 +418,127 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
         $res['fechados'] = count($fechar);
     });
     return $res;
+}
+
+// Páginas por OS (núcleo dono dos postos novos), em cada unidade e turno: o OS ganha comissão sobre
+// o faturamento das páginas dele, então a divisão vai pelo valor. Todos os postos de uma página vão
+// juntos; da página que mais fatura no turno (30 dias, parte de cada posto pela fração) para a que
+// menos, cada uma vai para o OS com menos faturamento até ali. Páginas da mesma modelo (ex.: Mikayla
+// Free e Paid) ficam em OSs diferentes quando dá. OS novato na liderança (v4_os_novato, ids de núcleo)
+// só recebe páginas até a mediana do turno e conta o dobro (fica com cerca de metade do valor). O
+// núcleo de cobertura é o outro do turno com menos valor coberto. Postos mantidos ficam como estão.
+function escEstruturaDividirOS(array &$novos, array $mantidos, array $esc, array $cap, array $nucleos, array $modeloDe): void {
+    if (!$novos) {
+        return;
+    }
+    $novatos = array_flip(array_map('intval', array_filter(array_map('trim', explode(',', escV4Param('v4_os_novato', ''))))));
+    $todas = [];
+    foreach ($cap as $p) {
+        $todas += $p['paginas'];
+    }
+    $receita = escV4ReceitaPaginas(array_keys($todas), (int) escV4Param('v4_receita_dias', '30'));
+    $valor = static function (array $p) use ($receita): float {
+        $v = 0.0;
+        foreach ($p['paginas'] as $pg => $g) {
+            if (!$g['apoio']) {
+                $v += (float) ($receita[$pg][$p['turno']] ?? 0) * ((float) $g['fracao'] > 0 ? (float) $g['fracao'] : 1.0);
+            }
+        }
+        return $v;
+    };
+    $modelo = static fn(string $pg): string => ($modeloDe[$pg] ?? '') !== '' ? $modeloDe[$pg] : escPaginaChaveModelo($pg);
+    $porUT = [];
+    foreach ($novos as $k => $n) {
+        $porUT[$n['unidade'] . '|' . $n['turno']][] = $k;
+    }
+    foreach ($porUT as $ut => $ks) {
+        $doTurno = $nucleos[$ut] ?? [];
+        if (count($doTurno) < 2) {
+            continue;
+        }
+        $carga = array_fill_keys($doTurno, 0.0);
+        $cobre = array_fill_keys($doTurno, 0.0);
+        $modelosDe = array_fill_keys($doTurno, []);
+        foreach ($mantidos as $id => $kc) {
+            $e = $esc[$id];
+            if ($e['unidade'] . '|' . $e['turno'] !== $ut) {
+                continue;
+            }
+            $v = $valor($cap[$kc]);
+            $d = (int) $e['nucleo_dono_id'];
+            if (isset($carga[$d])) {
+                $carga[$d] += $v;
+                foreach (array_keys($cap[$kc]['paginas']) as $pg) {
+                    $modelosDe[$d][$modelo($pg)] = true;
+                }
+            }
+            if ($e['nucleo_cobertura_id'] !== null && isset($cobre[(int) $e['nucleo_cobertura_id']])) {
+                $cobre[(int) $e['nucleo_cobertura_id']] += $v;
+            }
+        }
+        // Grupos: postos que dividem página (titular, double e assistente da mesma página).
+        $grupo = [];
+        $raiz = static function (string $k) use (&$grupo, &$raiz): string {
+            return ($grupo[$k] ?? $k) === $k ? $k : ($grupo[$k] = $raiz($grupo[$k]));
+        };
+        $dono = [];
+        foreach ($ks as $k) {
+            $grupo[$k] = $k;
+            foreach (array_keys($novos[$k]['paginas']) as $pg) {
+                if (!$novos[$k]['paginas'][$pg]['apoio']) {
+                    if (isset($dono[$pg])) {
+                        $grupo[$raiz($k)] = $raiz($dono[$pg]);
+                    } else {
+                        $dono[$pg] = $k;
+                    }
+                }
+            }
+        }
+        $grupos = [];
+        foreach ($ks as $k) {
+            $r = $raiz($k);
+            $g = $grupos[$r] ?? ['ks' => [], 'valor' => 0.0, 'modelos' => []];
+            $g['ks'][] = $k;
+            $g['valor'] += $valor($novos[$k]);
+            foreach ($novos[$k]['paginas'] as $pg => $x) {
+                if (!$x['apoio']) {
+                    $g['modelos'][$modelo($pg)] = true;
+                }
+            }
+            $grupos[$r] = $g;
+        }
+        usort($grupos, static fn($a, $b) => $b['valor'] <=> $a['valor']);
+        $valores = array_column($grupos, 'valor');
+        sort($valores);
+        $mediana = $valores ? $valores[intdiv(count($valores), 2)] : 0.0;
+        $peso = static fn(int $id): float => isset($novatos[$id]) ? 2.0 : 1.0;
+        foreach ($grupos as $g) {
+            $melhor = null;
+            foreach ($doTurno as $id) {
+                if (isset($novatos[$id]) && $g['valor'] > $mediana && count($doTurno) > count(array_intersect_key($novatos, array_flip($doTurno)))) {
+                    continue;
+                }
+                $chave = [array_intersect_key($g['modelos'], $modelosDe[$id]) ? 1 : 0, $carga[$id] * $peso($id), $id];
+                if ($melhor === null || $chave < $melhor[1]) {
+                    $melhor = [$id, $chave];
+                }
+            }
+            $d = $melhor[0];
+            $c = null;
+            foreach ($doTurno as $id) {
+                if ($id !== $d && ($c === null || [$cobre[$id], $id] < [$cobre[$c], $c])) {
+                    $c = $id;
+                }
+            }
+            $carga[$d] += $g['valor'];
+            $cobre[$c] += $g['valor'];
+            $modelosDe[$d] += $g['modelos'];
+            foreach ($g['ks'] as $k) {
+                $novos[$k]['dono'] = $d;
+                $novos[$k]['cob'] = $c;
+            }
+        }
+    }
 }
 
 // Trocas de unidade aplicadas (esc_politica_troca) que valem em $desde ou depois e cujos postos
