@@ -59,8 +59,38 @@
     return { ok: false, msg: `${popupTitle(p)}: ${popupText(p)}`, outro: true }; // ex.: "Date Unselected"
   };
 
+  // ---------- T1 de segunda = T6 de domingo real ----------
+  // O T1 de segunda fecha o turno D que começou no T6 de domingo. Lê no site, na hora de postar, o
+  // T6 de domingo como está (pode ter mudado à mão depois da geração) e põe essas pessoas no T1 do
+  // CSV, o regular primeiro. Devolve null se a leitura falhar.
+  const ddmmaaaa = (iso, n) => {
+    const d = new Date(iso + 'T12:00:00'); d.setDate(d.getDate() + n);
+    return [d.getDate(), d.getMonth() + 1].map(x => String(x).padStart(2, '0')).join('/') + '/' + d.getFullYear();
+  };
+  async function t6Domingo(id) {
+    if (!window.jQuery) return null;
+    const txt = await new Promise(res => window.jQuery.ajax({
+      type: 'POST', url: '/Scheduler/ScheduleDay2CSV',
+      data: { ModelId: id, StartDate: ddmmaaaa(pacote.semana, -7), EndDate: ddmmaaaa(pacote.semana, -1), ExcludeAbsences: false },
+      success: r => res(typeof r === 'string' ? r : null), error: () => res(null),
+    }));
+    if (txt === null) return null;
+    const cel = ((txt.split(/\|\||\r?\n/)[5] || '').split(';')[6] || '');
+    const codes = cel.split(',').map(c => c.replace(/\$/g, '').trim()).filter(Boolean);
+    return [...codes.filter(c => !c.endsWith('#')), ...codes.filter(c => c.endsWith('#'))].join(', ');
+  }
+  const comT1 = (csv, cel) => { const l = csv.split('\n'); const c = l[0].split(';'); c[0] = cel; l[0] = c.join(';'); return l.join('\n'); };
+
   // ---------- uma página ----------
   async function postOne(pg, data, log) {
+    const t6 = await t6Domingo(pg.id);
+    let csv = pg.csv;
+    if (t6 === null) log('  (não consegui ler o T6 de domingo no site: vai o T1 da Grade)');
+    else {
+      const antes = (csv.split('\n')[0] || '').split(';')[0] || '';
+      csv = comT1(csv, t6);
+      if (antes.replace(/\s/g, '') !== t6.replace(/\s/g, '')) log(`  T1 de segunda = T6 de domingo do site: ${t6 || '(vazio)'} (na Grade: ${antes || '(vazio)'})`);
+    }
     for (let attempt = 1; attempt <= CFG.maxRetries; attempt++) {
       await closePopup();
       const e = els();
@@ -70,7 +100,7 @@
       setValue(e.model, String(pg.id));
       if (e.model.value !== String(pg.id)) throw new Error('Model não existe na lista do site');
       setValue(e.date, data);
-      setValue(e.csv, pg.csv);
+      setValue(e.csv, csv);
       await sleep(200);
       e.btnSave.click();
 

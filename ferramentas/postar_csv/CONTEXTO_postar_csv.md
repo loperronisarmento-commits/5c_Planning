@@ -30,11 +30,15 @@ Atualizado em 01/11/2026. É o par do **Delete Range em lote** (`ferramentas/del
 
 ## O que o favorito faz
 Para cada página marcada:
-1. Fecha qualquer popup aberto.
-2. Seleciona o Model, preenche o Date Schedule e cola o CSV no `schedule-csv-text-area`.
-3. Clica em Save Schedule CSV.
-4. Espera o Success ou o Error, por até 180 s.
-5. Trata o resultado:
+1. Lê no site o T6 de domingo real (`ScheduleDay2CSV` da semana anterior, linha T6, coluna de domingo) e põe essas pessoas no T1 de segunda do CSV, o regular primeiro e sem o `$`.
+   - O T1 de segunda fecha o turno D que começou no T6 de domingo, e o T6 pode ter mudado à mão depois da geração.
+   - Se a leitura falhar, fica o T1 da Grade e o log avisa.
+   - O CSV vai sempre completo. O T1 de amanhã, que o Delete Range não apaga, o site descarta sozinho quando vem duplicado.
+2. Fecha qualquer popup aberto.
+3. Seleciona o Model, preenche o Date Schedule e cola o CSV no `schedule-csv-text-area`.
+4. Clica em Save Schedule CSV.
+5. Espera o Success ou o Error, por até 180 s.
+6. Trata o resultado:
    - **Error de "being processed":** espera 8 s e repete, até 5 vezes.
    - **Outro Error:** para naquela página. Não repete, porque o site pode ter gravado parte da escala.
    - **Popup de erro ao recarregar a tabela depois do Success:** registra só como aviso.

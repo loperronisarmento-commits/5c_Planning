@@ -6,9 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.7' => ['titulo' => 'Monday T1 from the real Sunday T6 on the site', 'itens' => [
+        '"Batch post CSV" bookmark: before posting each page, it reads on the site (ScheduleDay2CSV) the Sunday T6 as it is at that moment and puts those people in the Monday T1 of the CSV, regular first. The D shift stays matched even after a manual change made after generation. If the read fails, the Grid T1 stays and the log warns.',
+        'The CSV is again always complete, from Monday T1. What the site already has and does not delete (the T1 of tomorrow) it discards itself when it comes duplicated.',
+    ]],
     '1.18.6' => ['titulo' => 'Monday T1 matches Sunday T6', 'itens' => [
         'Grid CSV and PDF: the Monday T1 copies the Sunday T6, which starts the same D shift. The T6 posted on the site counts (only people still on the schedule on Monday); a page with nothing posted uses the Sunday T6 of the previous plan. Before, it came from the previous plan T1 or the T1 already posted, and could differ from the T6.',
-        'Reposting the current week: the CSV leaves out what has already started and tomorrow\'s T1, which the site protects (Delete Range does not remove it and the CSV duplicated whoever stayed there). Reposting starts at tomorrow\'s T2; the Date Schedule stays on Monday.',
     ]],
     '1.18.5' => ['titulo' => 'Batch posting package', 'itens' => [
         'Grid › By page › Post on site: "Batch posting package (.json)" button, with the CSV, Date Schedule and status (to do, unchanged, already posted) of each page. It is always the latest published version of the week. The Chrome bookmark "Batch post CSV" reads this file on the site Schedule Tools screen and, for each page, selects the Model, pastes the CSV and clicks Save Schedule CSV.',

@@ -208,7 +208,7 @@ if (isset($_GET['baixar'])) {
             echo t('Página sem alocação neste plano.');
             return;
         }
-        $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemDesde($seg));
+        $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemCorte($seg));
         escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, page_id, pagina, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?, ?, ?)",
             [$planoId, $pid, $porPagina[$pid]['nome'], $seg, escPostagemCorte($seg) !== '' ? substr(escPostagemCorte($seg), 0, 10) : $seg, escMaisDias($seg, 6), hash('sha256', $csv), escUserId()]);
         header('Content-Type: text/csv; charset=utf-8');
@@ -226,7 +226,7 @@ if (isset($_GET['baixar'])) {
         $zip = new ZipArchive();
         $zip->open($tmp, ZipArchive::OVERWRITE);
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemDesde($seg));
+            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
             $zip->addFromString($arquivoDe($pg['nome']), $csv);
         }
         $zip->close();
@@ -259,7 +259,7 @@ if (isset($_GET['baixar'])) {
         }
         $paginas = [];
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemDesde($seg));
+            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
             $pp = $postadoLote[$pid] ?? null;
             $estado = !$pp ? 'afazer' : ((int) $pp['plano_id'] === $planoId ? 'postado' : (hash_equals((string) $pp['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer'));
             $paginas[] = ['id' => $pid, 'nome' => $pg['nome'], 'estado' => $estado, 'csv' => $csv];
@@ -636,7 +636,7 @@ if (escPost()) {
     if ($plano['status'] !== 'PUBLICADO') {
         throw new RuntimeException(t('Publique esta versão antes de marcar a postagem.'));
     }
-    $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemDesde($seg));
+    $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemCorte($seg));
     escW('INSERT INTO ' . escT('esc_plano_postagem') . ' (plano_id, page_id, pagina, semana, csv, csv_hash) VALUES (?, ?, ?, ?, ?, ?) AS n
           ON DUPLICATE KEY UPDATE csv = n.csv, csv_hash = n.csv_hash', [$planoId, $pid, $porPagina[$pid]['nome'], $seg, $csv, hash('sha256', $csv)]);
     if ($passo === 'apagado') {
@@ -1052,7 +1052,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     $rotuloVersao = static fn(array $p): string => 'v' . (int) $p['versao'] . ((int) $p['subversao'] > 0 ? '.' . (int) $p['subversao'] : '');
     $cartoes = [];
     foreach ($porPagina as $pid => $pg) {
-        $csv = escCsvT1T6($pg['cel'], $seg, escPostagemDesde($seg));
+        $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
         $pp = $postagens[$pid] ?? null;
         $ant = $postadoAntes[$pid] ?? null;
         $estado = $pp && $pp['postado_em'] ? 'postado' : ($ant && hash_equals((string) $ant['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer');

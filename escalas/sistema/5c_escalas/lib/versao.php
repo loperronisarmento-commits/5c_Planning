@@ -8,9 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.7', 'data' => '2026-11-01', 'titulo' => 'T1 de segunda pelo T6 de domingo real do site', 'sql' => [], 'itens' => [
+        'Favorito "Postar CSV em lote": antes de postar cada página, lê no site (ScheduleDay2CSV) o T6 de domingo como está naquele momento e põe essas pessoas no T1 de segunda do CSV, o regular primeiro. O turno D não fica descasado mesmo com troca feita à mão depois da geração. Se a leitura falhar, fica o T1 da Grade e o log avisa.',
+        'O CSV volta a ir sempre completo, desde o T1 de segunda. O que o site já tem e não apaga (o T1 de amanhã) ele mesmo descarta quando vem duplicado.',
+    ]],
     ['versao' => '1.18.6', 'data' => '2026-11-01', 'titulo' => 'T1 de segunda igual ao T6 de domingo', 'sql' => [], 'itens' => [
         'CSV e PDF da Grade: o T1 de segunda copia o T6 de domingo, que é o começo do mesmo turno D. Vale o T6 postado no site (com quem continua na escala na segunda); a página sem nada postado usa o T6 de domingo do plano anterior. Antes vinha do T1 do plano anterior ou do T1 já postado, e podia ficar diferente do T6.',
-        'Repostar a semana em andamento: o CSV deixa de fora o que já começou e o T1 de amanhã, que o site protege (o Delete Range não apaga e o CSV duplicava quem ficou lá). A repostagem começa no T2 de amanhã; o Date Schedule continua o da segunda.',
     ]],
     ['versao' => '1.18.5', 'data' => '2026-11-01', 'titulo' => 'Pacote para postar em lote', 'sql' => ['ES_72_mikayla_free_v30_1.sql'], 'itens' => [
         'Grade › Por página › Postar no site: botão "Pacote para postar em lote (.json)", com o CSV, o Date Schedule e o estado (a fazer, sem mudança, já postada) de cada página. É sempre o da última versão publicada da semana. O favorito "Postar CSV em lote" do Chrome lê esse arquivo na tela Schedule Tools do site e, para cada página, seleciona o Model, cola o CSV e clica em Save Schedule CSV.',
