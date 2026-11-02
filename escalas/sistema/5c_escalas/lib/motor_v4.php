@@ -433,6 +433,19 @@ function escV4Carregar(string $dia): array {
             }
         }
     }
+    // Plataformas só com SR brasileiro (v4_plataforma_so_brasil, padrão Privacy; pedido de 02/11): quem
+    // tem outra nacionalidade no headcount fica FORA das páginas ativas delas (5c_pages.platform).
+    $soBrasil = array_values(array_filter(array_map('trim', explode(',', escV4Param('v4_plataforma_so_brasil', 'Privacy')))));
+    if ($soBrasil && $pessoas) {
+        $pagsBrasil = array_column(escQ('SELECT name FROM `5c_pages`.`pages` WHERE active = 1 AND platform IN (' . escIn($soBrasil) . ')', $soBrasil), 'name');
+        if ($pagsBrasil) {
+            foreach (escQ('SELECT DISTINCT UPPER(code) AS rep FROM `5c_headcount`.`headcount` WHERE code IN (' . escIn(array_keys($pessoas)) . ") AND nacionality <> '' AND nacionality <> 'Brazil'", array_keys($pessoas)) as $h) {
+                foreach ($pagsBrasil as $pg) {
+                    $foraPag[$h['rep']][$pg] = true;
+                }
+            }
+        }
+    }
     // Quem já conhece cada página: dias escalados nela no 5C Schedule (menos troca de gente).
     $historico = [];
     if ($pessoas && $nomes) {

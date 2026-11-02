@@ -838,9 +838,12 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                             $ondePag[(int) $pg['page_id'] . '|' . $po['unidade'] . '|' . $po['turno']] = true;
                         }
                     }
+                    // Quem está FORA da página (pedido do manager ou plataforma só com SR brasileiro) também não volta.
                     $linhasPub = array_values(array_filter($linhasPub, static function ($l) use ($est, $ondePag) {
-                        $p = $est['pessoas'][strtoupper((string) $l['rep_code'])] ?? null;
-                        return $p !== null && $p['turno'] === $l['turno'] && isset($ondePag[(int) $l['page_id'] . '|' . $p['unidade'] . '|' . $l['turno']]);
+                        $rep = strtoupper((string) $l['rep_code']);
+                        $p = $est['pessoas'][$rep] ?? null;
+                        return $p !== null && $p['turno'] === $l['turno'] && isset($ondePag[(int) $l['page_id'] . '|' . $p['unidade'] . '|' . $l['turno']])
+                            && !isset($est['fora'][$rep][(string) $l['pagina']]);
                     }));
                 }
                 [$alocacoes, $sugestoesWorkload, $protegidos] = escMotorProtegerPublicado($linhasPub, $alocacoes, $removidos, $travadas);

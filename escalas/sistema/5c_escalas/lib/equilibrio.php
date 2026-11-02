@@ -252,6 +252,26 @@ function escEqDivisao(array $postos, array $srs, array $alvo3 = [0.15, 0.20]): a
         'tamanho' => $tam, 'srs' => $srsOut];
 }
 
+// SRs de equipe fixa (esc_pagina_prioridade) que não estão na unidade da página no dia. Regra de
+// 02/11: quem é fixado numa página vai sempre para a unidade dona dela (o Gerar só escolhe dentro da
+// unidade e do turno; fora dela a fixação não vale). $paginas = escEqDados()['paginas'].
+function escEqFixosForaDaUnidade(string $dia, array $paginas): array {
+    $out = [];
+    foreach (escQ('SELECT pagina, rep_codes FROM ' . escT('esc_pagina_prioridade') . ' WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$dia, $dia]) as $l) {
+        $u = $paginas[$l['pagina']]['unidade'] ?? null;
+        $reps = array_values(array_filter(array_map('trim', explode(',', strtoupper((string) $l['rep_codes'])))));
+        if ($u === null || !$reps) {
+            continue;
+        }
+        foreach (escQ('SELECT UPPER(rep_code) AS rep, unidade, turno FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND UPPER(rep_code) IN (" . escIn($reps) . ') AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', array_merge($reps, [$dia, $dia])) as $c) {
+            if ((int) $c['unidade'] !== (int) $u) {
+                $out[] = ['pagina' => $l['pagina'], 'rep' => $c['rep'], 'unidade_pagina' => (int) $u, 'unidade' => (int) $c['unidade'], 'turno' => $c['turno']];
+            }
+        }
+    }
+    return $out;
+}
+
 // Faixa da parte do OS3 no faturamento do turno (v4_os3_parte_min e v4_os3_parte_max).
 function escEqAlvoOS3(): array {
     $n = static fn(string $c, string $p) => (float) str_replace(',', '.', escV4Param($c, $p));

@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.11', 'data' => '2026-11-02', 'titulo' => 'Privacy só com brasileiros e equipe fixa na unidade da página', 'sql' => ['ES_76_desligamentos_e_aline_novak.sql', 'ES_77_privacy_so_brasileiros.sql'], 'itens' => [
+        'Páginas da Privacy só com SR brasileiro: no Gerar, quem tem outra nacionalidade no headcount fica fora das páginas das plataformas em v4_plataforma_so_brasil (Privacy: Aline Novak e Andressa Urach). Vale também para a proteção da escala publicada, que não mantém quem está fora da página.',
+        'Equilíbrio das unidades: painel "Equipe fixa fora da unidade da página". Quem é fixado numa página vai sempre para a unidade dona dela, no mesmo turno e nível; fora dela a fixação não vale.',
+        'ES_76: saída de Luís Leitão e Lilyo a partir de 03/11; equipe fixa da Aline Novak (Maiara, Karolayne, Loik, Giovanna, Jonhnata e Marcos Cid) a partir de 03/11, com a Giovanna na U2 A a partir de 09/11. ES_77: a M203717 sai da equipe fixa da Andressa Urach.',
+    ]],
     ['versao' => '1.18.10', 'data' => '2026-11-02', 'titulo' => 'OS3 com 15% a 20% do faturamento, equipe fixa da Holly Jane e nome do OM', 'sql' => ['ES_74_os3_faixa_faturamento.sql', 'ES_75_holly_jane_equipe_0911.sql', '5C_Planning_29_cargos_om_oc.sql'], 'itens' => [
         'Divisão dos OS (Equilíbrio): o OS3 fica com 15% a 20% do faturamento do turno (v4_os3_parte_min e v4_os3_parte_max). A ordem continua OS1, OS1, OS2 em cima e OS2, OS3, OS3 embaixo; o corte entre as partes sai do meio e vai para onde o OS3 cai na faixa. Antes o OS3 ficava com 9% a 15%.',
         'Holly Jane com equipe fixa a partir de 09/11 (ES_75): Alan Ramsay, João Beber, Stephen, Krizel e Angeline Butal. Outras pessoas só entram se ninguém da equipe estiver disponível. Os quatro que estavam em outras unidades vão para a U1 no mesmo turno, com 4 compensações; owners e backups da página atualizados.',

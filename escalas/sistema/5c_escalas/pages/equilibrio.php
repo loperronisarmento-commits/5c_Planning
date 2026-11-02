@@ -76,6 +76,7 @@ $sugestoes = escEqSugerirTrocas($eq['paginas'], $pesoTotal, 60, 0.005, $conheceM
 // Páginas com menos de v4_conhece_min SRs que as conhecem na própria unidade, da que mais fatura.
 $semConhecedor = array_filter($eq['paginas'], static fn($p) => ($p['conhece'][$p['unidade']] ?? 0) < $conheceMin);
 uasort($semConhecedor, static fn($a, $b) => array_sum($b['fat']) <=> array_sum($a['fat']));
+$fixosFora = escEqFixosForaDaUnidade($eq['dia'], $eq['paginas']);
 $fatDepois = $sugestoes ? end($sugestoes)['fat_depois'] : $eq['fat'];
 $depois = escEqDesvios($fatDepois, $pesoTotal)['desvio'];
 $depoisSr = escEqDesvios($fatDepois, $eq['srs'])['desvio'];
@@ -222,6 +223,18 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
     </tbody>
   </table>
   </div>
+</section>
+
+<section class="panel" id="fixos">
+  <h2><?php echo h(t('Equipe fixa fora da unidade da página')); ?></h2>
+  <p class="muted"><?php echo h(t('Quem é fixado numa página vai sempre para a unidade dona dela, no mesmo turno e nível, com uma compensação no sentido contrário. Fora dela a fixação não vale: o Gerar só escolhe entre os SRs da unidade e do turno.')); ?></p>
+  <?php if ($fixosFora): ?>
+  <ul class="regras small">
+    <?php foreach ($fixosFora as $x): ?><li><strong><?php echo h(nomeCurto($nomes[$x['rep']] ?? $x['rep'])); ?></strong> <span class="mono muted"><?php echo h($x['rep']); ?></span> · <?php echo h($x['pagina']); ?> · <?php echo h(t('está na U{u} {turno}; a página é da U{p}', ['u' => $x['unidade'], 'turno' => $x['turno'], 'p' => $x['unidade_pagina']])); ?></li><?php endforeach; ?>
+  </ul>
+  <?php else: ?>
+  <p class="small verde"><?php echo h(t('Todas as equipes fixas estão na unidade da página.')); ?></p>
+  <?php endif; ?>
 </section>
 
 <section class="panel" id="os">

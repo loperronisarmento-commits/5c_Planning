@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.11' => ['titulo' => 'Privacy with Brazilians only and fixed teams in the page unit', 'itens' => [
+        'Privacy pages with Brazilian SRs only: in Generate, anyone with another nationality in the headcount is kept off the pages of the platforms in v4_plataforma_so_brasil (Privacy: Aline Novak and Andressa Urach). This also applies to keeping the published schedule, which no longer keeps someone who is off the page.',
+        'Unit balance: new panel "Fixed team outside the page unit". Whoever is fixed on a page always moves to the unit that owns it, in the same shift and level; outside it the fixing does not apply.',
+        'ES_76: Luís Leitão and Lilyo leave from 11/03; Aline Novak fixed team (Maiara, Karolayne, Loik, Giovanna, Jonhnata and Marcos Cid) from 11/03, with Giovanna in U2 A from 11/09. ES_77: M203717 leaves the Andressa Urach fixed team.',
+    ]],
     '1.18.10' => ['titulo' => 'OS3 with 15% to 20% of revenue, fixed Holly Jane team and the OM name', 'itens' => [
         'OS split (Unit balance): OS3 gets 15% to 20% of the shift revenue (v4_os3_parte_min and v4_os3_parte_max). The order is still OS1, OS1, OS2 at the top and OS2, OS3, OS3 at the bottom; the cut between the parts moves from the middle to where OS3 falls in the range. OS3 used to get 9% to 15%.',
         'Holly Jane with a fixed team from 11/09 (ES_75): Alan Ramsay, João Beber, Stephen, Krizel and Angeline Butal. Other people only come in if nobody on the team is available. The four who were in other units move to U1 in the same shift, with 4 compensating moves; the page owners and backups were updated.',

@@ -72,4 +72,8 @@ return [
     '{n} dia' => '{n} day',
     '{n} dias' => '{n} days',
     'Toda página tem quem a conheça na própria unidade.' => 'Every page has someone who knows it in its own unit.',
+    'Equipe fixa fora da unidade da página' => 'Fixed team outside the page unit',
+    'Quem é fixado numa página vai sempre para a unidade dona dela, no mesmo turno e nível, com uma compensação no sentido contrário. Fora dela a fixação não vale: o Gerar só escolhe entre os SRs da unidade e do turno.' => 'Whoever is fixed on a page always moves to the unit that owns it, in the same shift and level, with a compensating move the other way. Outside it the fixing does not apply: Generate only picks among the SRs of the unit and shift.',
+    'está na U{u} {turno}; a página é da U{p}' => 'is in U{u} {turno}; the page belongs to U{p}',
+    'Todas as equipes fixas estão na unidade da página.' => 'Every fixed team is in the page unit.',
 ];
