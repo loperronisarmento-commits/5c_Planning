@@ -7,11 +7,11 @@ Use este arquivo como prompt de contexto no início de uma sessão. Os detalhes 
 - Repositório `D:\5C Planning\5c_Planning`, branch `main`.
   - Commit, push e deploy só com autorização explícita, dada a cada vez.
   - Nunca commitar `resultados/` nem credenciais.
-- MySQL pelo MCP é **somente leitura**:
-  - `mysql_5c` é o servidor `.11`;
-  - `mysql_7` é o data lake `.7`.
+- MySQL pelo MCP:
+  - `mysql_5c` é o servidor `.11`: desde 02/11/2026 o Claude grava direto, só o que o usuário pediu;
+  - `mysql_7` é o data lake `.7`: só leitura.
 - Alterações no banco:
-  - vão como script `escalas/sql/ES_NN_*.sql` ou `capacity/sql/5C_Planning_NN_*.sql`;
+  - ficam registradas como script `escalas/sql/ES_NN_*.sql` ou `capacity/sql/5C_Planning_NN_*.sql`;
   - todo script começa com `SET NAMES utf8mb4`;
   - um CALL roda pelo `mysql.exe --defaults-extra-file=%APPDATA%\MySQL\5c.cnf` (o MCP faz rollback de CALL).
 - Segurança e privacidade:

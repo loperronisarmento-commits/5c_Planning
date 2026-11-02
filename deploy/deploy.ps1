@@ -14,6 +14,7 @@ param(
     [switch]$Listar
 )
 $ErrorActionPreference = 'Stop'
+$ProgressPreference = 'SilentlyContinue'
 $raiz = Split-Path $PSScriptRoot -Parent
 $chave = Join-Path $HOME '.ssh\5c_deploy'
 $zip = Join-Path $raiz 'escalas\sistema\5c_escalas.zip'
@@ -24,6 +25,8 @@ $dest = "$Usuario@$Servidor"
 # O comando vai codificado (-EncodedCommand): o shell do SSH no servidor é o cmd.exe, e o PowerShell
 # 5.1 tira as aspas internas do argumento do ssh; sem isso o cmd lê "|" e "&" antes do PowerShell.
 function Remoto([string]$cmd) {
+    # Sem as barras de progresso do servidor: chegariam como dezenas de KB de CLIXML.
+    $cmd = "`$ProgressPreference = 'SilentlyContinue'; " + $cmd
     $b64 = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($cmd))
     & ssh @opts $dest "powershell -NoProfile -ExecutionPolicy Bypass -EncodedCommand $b64"
     if ($LASTEXITCODE -ne 0) { throw "Falhou no servidor (código $LASTEXITCODE)." }

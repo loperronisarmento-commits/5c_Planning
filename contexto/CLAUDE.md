@@ -1,6 +1,7 @@
 # 5C Planning: contexto geral do projeto (31/10/2026)
 
-Ponto de entrada para retomar o projeto em outra sessão ou com outra pessoa. Este arquivo dá a
+Desde 02/11/2026 o ponto de entrada das sessões é `D:\5C Planning\CLAUDE.md`, que é curto e
+carregado sozinho, com as regras, o estado e o índice. Este arquivo é a referência completa: dá a
 visão de conjunto e aponta para os documentos detalhados de cada parte.
 
 - Usuário: Luis Otávio (MIS da 5C Company).
@@ -24,11 +25,11 @@ visão de conjunto e aponta para os documentos detalhados de cada parte.
 ## 1. Regras de trabalho (valem para todas as partes)
 
 **Banco**
-- Para o Claude, o MySQL é **somente leitura**:
-  - MCP `mysql_5c`: servidor `.11`, MySQL 9.5;
-  - MCP `mysql_7`: data lake `209.159.144.7`.
-- Nenhum INSERT, UPDATE, DELETE, DDL ou CALL pelo MCP. Toda alteração vai como script `.sql` que o
-  usuário roda no Navicat.
+- Desde 02/11/2026 o Claude grava direto pelo MCP `mysql_5c` (servidor `.11`, MySQL 9.5), só o que o
+  usuário pediu, conferindo antes e depois. O MCP `mysql_7` (data lake `209.159.144.7`) segue só leitura.
+- Toda alteração continua salva como script `.sql` numerado, como registro ("já aplicado pelo MCP").
+  CALL e SET vão pelo `mysql.exe --defaults-extra-file=%APPDATA%\MySQL\5c.cnf` (o MCP faz rollback deles).
+- Deploy no servidor do portal por SSH (porta 2222, chave `~/.ssh/5c_deploy`): `deploy/deploy.ps1`.
 - Todo script começa com `SET NAMES utf8mb4`. Se usar tabela temporária, também com `USE <schema>;`.
 - Usar `COLLATE` nos joins entre schemas: `abs_adh_af.codigo` é `0900_ai_ci`, o resto é `unicode_ci`.
 - O parser do MCP rejeita `<=>`. Use `IFNULL(x = y, 0)`.
