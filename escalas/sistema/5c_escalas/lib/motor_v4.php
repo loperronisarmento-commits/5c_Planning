@@ -52,6 +52,13 @@ function escPostagemCorte(string $seg): string {
     return $corte > $seg . 'T01:00:00' && $corte < escMaisDias($seg, 7) . 'T01:00:00' ? $corte : '';
 }
 
+// Primeira célula que o CSV leva: além do corte da virada, com a semana em andamento fica de fora o
+// que já começou e o T1 de amanhã, que o site protege (o Delete Range não apaga e o CSV duplicaria
+// quem ficou lá). A repostagem começa no T2 de amanhã; o Date Schedule continua o do corte.
+function escPostagemDesde(string $seg): string {
+    return max(escPostagemCorte($seg), date('Y-m-d', strtotime('+1 day')) . 'T05:00:00');
+}
+
 // Primeiro turno da estrutura nova no dia da virada: 05:00 → A, 13:00 → C, 21:00 → D
 // (a virada às 21:00 começa no turno D: T6 do dia + T1 do dia seguinte).
 function escV4TurnoVirada(): string {

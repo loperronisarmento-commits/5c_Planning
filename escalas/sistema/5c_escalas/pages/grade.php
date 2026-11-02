@@ -140,28 +140,34 @@ $aloc = escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem
 
 // ---------- CSVs para postar (download e menu de copiar) ----------
 // $alocCsv = alocações do plano + o que completa o CSV (T1 de segunda e, na virada, o já postado).
-// O T1 de segunda é o fim do turno D do domingo anterior: vem do plano da semana anterior.
-$anterior = escPlanoPublicado(escMaisDias($seg, -7)) ?? escPlanoAtual(escMaisDias($seg, -7));
-$t1Anterior = $anterior ? escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . " WHERE plano_id = ? AND dia = ? AND bloco = 'T1'", [(int) $anterior['id'], $seg]) : [];
-if (!$t1Anterior) {
-    // Sem plano da semana anterior (virada): o T1 já postado ou, se não houver,
-    // quem está no T6 de domingo no scheduleday continua o turno D.
-    $nomesPag = array_column($aloc, 'pagina', 'page_id');
-    $postado = [];
-    foreach (escQ("SELECT modeloId, SUBSTRING(shiftDateAndHour, 12, 2) AS hora, UPPER(codigo) AS code, assitente
-                     FROM `5c_schedule`.`scheduleday`
-                    WHERE shiftDateAndHour IN (?, ?) AND modeloId <> 3",
-                  [escMaisDias($seg, -1) . 'T21:00:00', $seg . 'T01:00:00']) as $r) {
-        $postado[(int) $r['modeloId']][$r['hora']][$r['code']] = (int) $r['assitente'] === 1;
+// O T1 de segunda é o fim do turno D que começa no T6 de domingo: copia esse T6, para o turno
+// não ficar descasado. Primeiro o T6 postado no site (pode ter sido mudado à mão), só com quem
+// continua na escala na segunda; página sem nada postado usa o T6 de domingo do plano anterior.
+$nomesPag = array_column($aloc, 'pagina', 'page_id');
+$t6Domingo = [];
+$naEscala = array_flip(array_column(escQ('SELECT DISTINCT UPPER(rep_code) AS r FROM ' . escT('esc_colaborador_config') . '
+                                           WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$seg, $seg]), 'r'));
+foreach (escQ("SELECT modeloId, UPPER(codigo) AS code, assitente FROM `5c_schedule`.`scheduleday`
+                WHERE shiftDateAndHour = ? AND modeloId <> 3", [escMaisDias($seg, -1) . 'T21:00:00']) as $r) {
+    if (isset($nomesPag[(int) $r['modeloId']], $naEscala[$r['code']])) {
+        $t6Domingo[(int) $r['modeloId']][$r['code']] = ['papel' => (int) $r['assitente'] === 1 ? 'ASSISTENTE' : 'REGULAR', 'origem' => 'MANUAL'];
     }
-    foreach ($postado as $pid => $horas) {
-        if (!isset($nomesPag[$pid])) {
-            continue;
+}
+$anterior = escPlanoPublicado(escMaisDias($seg, -7)) ?? escPlanoAtual(escMaisDias($seg, -7));
+if ($anterior) {
+    $postadas = $t6Domingo;
+    foreach (escQ('SELECT page_id, UPPER(rep_code) AS code, papel, origem FROM ' . escT('esc_plano_alocacao') . "
+                    WHERE plano_id = ? AND dia = ? AND bloco = 'T6' AND rep_code IS NOT NULL", [(int) $anterior['id'], escMaisDias($seg, -1)]) as $r) {
+        if (isset($nomesPag[(int) $r['page_id']]) && !isset($postadas[(int) $r['page_id']])) {
+            $t6Domingo[(int) $r['page_id']][$r['code']] = ['papel' => $r['papel'], 'origem' => $r['origem']];
         }
-        foreach ($horas['01'] ?? $horas['21'] as $code => $assist) {
-            $t1Anterior[] = ['dia' => $seg, 'bloco' => 'T1', 'turno' => 'D', 'page_id' => $pid, 'pagina' => $nomesPag[$pid],
-                'rep_code' => $code, 'papel' => $assist ? 'ASSISTENTE' : 'REGULAR', 'origem' => 'MANUAL', 'travada' => 0, 'motivo' => 'continua o turno D postado'];
-        }
+    }
+}
+$t1Anterior = [];
+foreach ($t6Domingo as $pid => $quem) {
+    foreach ($quem as $code => $q) {
+        $t1Anterior[] = ['dia' => $seg, 'bloco' => 'T1', 'turno' => 'D', 'page_id' => $pid, 'pagina' => $nomesPag[$pid],
+            'rep_code' => $code, 'papel' => $q['papel'], 'origem' => $q['origem'], 'travada' => 0, 'motivo' => 'continua o T6 de domingo'];
     }
 }
 $alocCsv = array_merge($aloc, $t1Anterior);
@@ -202,7 +208,7 @@ if (isset($_GET['baixar'])) {
             echo t('Página sem alocação neste plano.');
             return;
         }
-        $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemCorte($seg));
+        $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemDesde($seg));
         escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, page_id, pagina, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?, ?, ?)",
             [$planoId, $pid, $porPagina[$pid]['nome'], $seg, escPostagemCorte($seg) !== '' ? substr(escPostagemCorte($seg), 0, 10) : $seg, escMaisDias($seg, 6), hash('sha256', $csv), escUserId()]);
         header('Content-Type: text/csv; charset=utf-8');
@@ -220,7 +226,7 @@ if (isset($_GET['baixar'])) {
         $zip = new ZipArchive();
         $zip->open($tmp, ZipArchive::OVERWRITE);
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
+            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemDesde($seg));
             $zip->addFromString($arquivoDe($pg['nome']), $csv);
         }
         $zip->close();
@@ -253,7 +259,7 @@ if (isset($_GET['baixar'])) {
         }
         $paginas = [];
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, $corte);
+            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemDesde($seg));
             $pp = $postadoLote[$pid] ?? null;
             $estado = !$pp ? 'afazer' : ((int) $pp['plano_id'] === $planoId ? 'postado' : (hash_equals((string) $pp['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer'));
             $paginas[] = ['id' => $pid, 'nome' => $pg['nome'], 'estado' => $estado, 'csv' => $csv];
@@ -630,7 +636,7 @@ if (escPost()) {
     if ($plano['status'] !== 'PUBLICADO') {
         throw new RuntimeException(t('Publique esta versão antes de marcar a postagem.'));
     }
-    $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemCorte($seg));
+    $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemDesde($seg));
     escW('INSERT INTO ' . escT('esc_plano_postagem') . ' (plano_id, page_id, pagina, semana, csv, csv_hash) VALUES (?, ?, ?, ?, ?, ?) AS n
           ON DUPLICATE KEY UPDATE csv = n.csv, csv_hash = n.csv_hash', [$planoId, $pid, $porPagina[$pid]['nome'], $seg, $csv, hash('sha256', $csv)]);
     if ($passo === 'apagado') {
@@ -1046,7 +1052,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     $rotuloVersao = static fn(array $p): string => 'v' . (int) $p['versao'] . ((int) $p['subversao'] > 0 ? '.' . (int) $p['subversao'] : '');
     $cartoes = [];
     foreach ($porPagina as $pid => $pg) {
-        $csv = escCsvT1T6($pg['cel'], $seg, $corte);
+        $csv = escCsvT1T6($pg['cel'], $seg, escPostagemDesde($seg));
         $pp = $postagens[$pid] ?? null;
         $ant = $postadoAntes[$pid] ?? null;
         $estado = $pp && $pp['postado_em'] ? 'postado' : ($ant && hash_equals((string) $ant['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer');

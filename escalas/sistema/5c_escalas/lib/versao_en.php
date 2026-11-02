@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.6' => ['titulo' => 'Monday T1 matches Sunday T6', 'itens' => [
+        'Grid CSV and PDF: the Monday T1 copies the Sunday T6, which starts the same D shift. The T6 posted on the site counts (only people still on the schedule on Monday); a page with nothing posted uses the Sunday T6 of the previous plan. Before, it came from the previous plan T1 or the T1 already posted, and could differ from the T6.',
+        'Reposting the current week: the CSV leaves out what has already started and tomorrow\'s T1, which the site protects (Delete Range does not remove it and the CSV duplicated whoever stayed there). Reposting starts at tomorrow\'s T2; the Date Schedule stays on Monday.',
+    ]],
     '1.18.5' => ['titulo' => 'Batch posting package', 'itens' => [
         'Grid › By page › Post on site: "Batch posting package (.json)" button, with the CSV, Date Schedule and status (to do, unchanged, already posted) of each page. It is always the latest published version of the week. The Chrome bookmark "Batch post CSV" reads this file on the site Schedule Tools screen and, for each page, selects the Model, pastes the CSV and clicks Save Schedule CSV.',
         'CSV fix: in each cell the regular comes before the assistants. The site treats every code after the first as an assistant, so a cell that started with the assistant had no regular. The order came from the rep code (the read used the per-person index), so both showed "#" whenever the assistant had the lower code: in the week of 11/02, Rocket Reyna VIP and OFTV, CJ Miles, Nicole OFTV, Nicole Doshi, Haven Free, Mikayla Free and Cynthia.',
