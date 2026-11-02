@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.8', 'data' => '2026-11-02', 'titulo' => 'Tema escuro com as caixas destacadas', 'sql' => [], 'itens' => [
+        'Tema escuro: painéis, cartões, tabelas e menu ficaram um pouco mais claros que o fundo, com bordas visíveis, para ver onde começa e termina cada caixa. Linhas das tabelas, cabeçalhos, etiquetas e o realce ao passar o mouse acompanham. O tema claro não mudou.',
+    ]],
     ['versao' => '1.18.7', 'data' => '2026-11-01', 'titulo' => 'T1 de segunda pelo T6 de domingo real do site', 'sql' => [], 'itens' => [
         'Favorito "Postar CSV em lote": antes de postar cada página, lê no site (ScheduleDay2CSV) o T6 de domingo como está naquele momento e põe essas pessoas no T1 de segunda do CSV, o regular primeiro. O turno D não fica descasado mesmo com troca feita à mão depois da geração. Se a leitura falhar, fica o T1 da Grade e o log avisa.',
         'O CSV volta a ir sempre completo, desde o T1 de segunda. O que o site já tem e não apaga (o T1 de amanhã) ele mesmo descarta quando vem duplicado.',

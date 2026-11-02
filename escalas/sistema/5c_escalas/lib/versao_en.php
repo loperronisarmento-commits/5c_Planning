@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.8' => ['titulo' => 'Dark theme with highlighted boxes', 'itens' => [
+        'Dark theme: panels, cards, tables and the menu are now slightly lighter than the background, with visible borders, so you can see where each box starts and ends. Table rows, headers, tags and the hover highlight follow. The light theme did not change.',
+    ]],
     '1.18.7' => ['titulo' => 'Monday T1 from the real Sunday T6 on the site', 'itens' => [
         '"Batch post CSV" bookmark: before posting each page, it reads on the site (ScheduleDay2CSV) the Sunday T6 as it is at that moment and puts those people in the Monday T1 of the CSV, regular first. The D shift stays matched even after a manual change made after generation. If the read fails, the Grid T1 stays and the log warns.',
         'The CSV is again always complete, from Monday T1. What the site already has and does not delete (the T1 of tomorrow) it discards itself when it comes duplicated.',
