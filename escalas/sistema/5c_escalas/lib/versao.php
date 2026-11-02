@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.12', 'data' => '2026-11-02', 'titulo' => 'PDF completo do organograma e T4/T5 no PDF de Owners', 'sql' => [], 'itens' => [
+        'Organograma: botão "Baixar PDF completo", com os 3 turnos lado a lado em cada unidade e duas folhas do tamanho do conteúdo: a 1ª só com as pessoas (liderança e SRs de cada núcleo) e a 2ª até os supervisores, com as páginas de cada núcleo em lista (a página em cima, os owners embaixo). O PDF é vetorial: dá para ampliar à vontade sem perder a qualidade do texto. O "Baixar PDF" de antes continua igual (A3, como está na tela).',
+        'Owners e backups: o Imprimir / PDF sai em A4 paisagem com as três colunas de turno (T6/T1, T2/T3 e T4/T5) dividindo a largura da folha. Antes, em A4 retrato, a tabela passava da largura e o T4/T5 era cortado. O cabeçalho da tabela se repete em cada folha.',
+    ]],
     ['versao' => '1.18.11', 'data' => '2026-11-02', 'titulo' => 'Privacy só com brasileiros e equipe fixa na unidade da página', 'sql' => ['ES_76_desligamentos_e_aline_novak.sql', 'ES_77_privacy_so_brasileiros.sql'], 'itens' => [
         'Páginas da Privacy só com SR brasileiro: no Gerar, quem tem outra nacionalidade no headcount fica fora das páginas das plataformas em v4_plataforma_so_brasil (Privacy: Aline Novak e Andressa Urach). Vale também para a proteção da escala publicada, que não mantém quem está fora da página.',
         'Equilíbrio das unidades: painel "Equipe fixa fora da unidade da página". Quem é fixado numa página vai sempre para a unidade dona dela, no mesmo turno e nível; fora dela a fixação não vale.',

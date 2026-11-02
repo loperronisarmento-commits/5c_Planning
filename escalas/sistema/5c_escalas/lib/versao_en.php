@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.12' => ['titulo' => 'Full org chart PDF and T4/T5 in the Owners PDF', 'itens' => [
+        'Org chart: "Download full PDF" button, with the 3 shifts side by side in each unit and two sheets the size of the content: the 1st with people only (leadership and the SRs of each team) and the 2nd down to the supervisors, with each team pages as a list (page on top, owners below). The PDF is vector: zoom in as much as you like without losing text quality. The previous "Download PDF" stays the same (A3, as on screen).',
+        'Owners and backups: Print / PDF comes out in A4 landscape with the three shift columns (T6/T1, T2/T3 and T4/T5) sharing the sheet width. Before, in A4 portrait, the table was wider than the page and T4/T5 was cut off. The table header repeats on every sheet.',
+    ]],
     '1.18.11' => ['titulo' => 'Privacy with Brazilians only and fixed teams in the page unit', 'itens' => [
         'Privacy pages with Brazilian SRs only: in Generate, anyone with another nationality in the headcount is kept off the pages of the platforms in v4_plataforma_so_brasil (Privacy: Aline Novak and Andressa Urach). This also applies to keeping the published schedule, which no longer keeps someone who is off the page.',
         'Unit balance: new panel "Fixed team outside the page unit". Whoever is fixed on a page always moves to the unit that owns it, in the same shift and level; outside it the fixing does not apply.',

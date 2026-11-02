@@ -116,6 +116,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
   <a class="botao<?php echo $verPaginas ? ' ativo' : ''; ?>" href="<?php echo h(link_tela('organograma', $verPaginas ? ['dia' => $dia] : ['dia' => $dia, 'paginas' => 1])); ?>" aria-pressed="<?php echo $verPaginas ? 'true' : 'false'; ?>"><?php echo h($verPaginas ? t('Só liderança') : t('Ver páginas')); ?></a>
   <?php if (escPode('decidir')): ?><a class="botao" href="<?php echo h(link_tela('roster', ['dia' => $dia])); ?>"><?php echo h(t('Ajustar roster')); ?></a><?php endif; ?>
   <button type="button" class="botao primario" id="org-imprimir" title="<?php echo h(t('Abre a impressão: escolha "Salvar como PDF". Sai como está na tela (núcleos recolhidos = só a liderança).')); ?>"><?php echo h(t('Baixar PDF')); ?></button>
+  <button type="button" class="botao" id="org-imprimir-completo" data-url="<?php echo h(link_tela('organograma', ['dia' => $dia, 'paginas' => 1, 'pdf' => 'completo'])); ?>" title="<?php echo h(t('Uma folha só, do tamanho do organograma inteiro: times, SRs e páginas de cada núcleo. Pode ampliar à vontade no PDF; o texto não perde qualidade.')); ?>"><?php echo h(t('Baixar PDF completo')); ?></button>
   <span class="muted small" id="org-achados" aria-live="polite"></span>
 </section>
 
@@ -178,7 +179,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
           <?php if ($verPaginas): $doNucleo = $pgNucleo[(int) $n['id']] ?? []; ?>
           <ul class="org-paginas" aria-label="<?php echo h(t('Páginas do núcleo {n}', ['n' => $k])); ?>">
             <?php foreach ($doNucleo as $pag => $owners): ?>
-            <li class="org-pagina" data-busca="<?php echo h(mb_strtolower($pag . ' ' . implode(' ', $owners), 'UTF-8')); ?>"><strong><?php echo h($pag); ?></strong><?php echo $owners ? ' · ' . h(implode(', ', array_map(static fn($r) => nomeCurto($nomes[$r] ?? $r), $owners))) : ' · <span class="org-sem-codigo">' . h(t('sem owner')) . '</span>'; ?></li>
+            <li class="org-pagina" data-busca="<?php echo h(mb_strtolower($pag . ' ' . implode(' ', $owners), 'UTF-8')); ?>"><strong><?php echo h($pag); ?></strong><?php echo $owners ? '<span class="org-pagina-quem">' . h(implode(', ', array_map(static fn($r) => nomeCurto($nomes[$r] ?? $r), $owners))) . '</span>' : '<span class="org-pagina-quem org-sem-codigo">' . h(t('sem owner')) . '</span>'; ?></li>
             <?php endforeach; ?>
             <?php if (!$doNucleo): ?><li class="org-pagina org-vazio"><?php echo h(t('nenhuma página como dono')); ?></li><?php endif; ?>
           </ul>
@@ -223,6 +224,53 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
     document.title = <?php echo json_encode(t('Organograma 5C {dia}', ['dia' => date('d-m-Y', strtotime($dia))])); ?> + (unidade.value ? ' U' + unidade.value : '');
     window.print();
   });
-  window.addEventListener('afterprint', function () { document.title = tituloTela; });
+  // PDF completo, em duas folhas do tamanho do conteúdo (medido aqui), com os 3 turnos lado a lado
+  // em cada unidade: 1ª só as pessoas (liderança e SRs); 2ª até os OS, com as páginas de cada núcleo.
+  // As folhas são cópias do organograma, que fica escondido na impressão. O PDF do navegador é
+  // vetorial: o texto continua nítido com qualquer zoom. Sem "Ver páginas", recarrega com ele e imprime.
+  var folha = document.createElement('style');
+  document.head.appendChild(folha);
+  var botaoCompleto = document.getElementById('org-imprimir-completo');
+  var subtitulos = { pessoas: <?php echo json_encode(t('Estrutura de liderança e SRs')); ?>, paginas: <?php echo json_encode(t('Supervisores e páginas')); ?> };
+  function imprimirCompleto() {
+    nucleos.forEach(function (d) { d.open = true; });
+    unidade.value = '';
+    busca.value = '';
+    aplicar();
+    document.querySelectorAll('.org-folha').forEach(function (f) { f.remove(); });
+    var folhas = ['pessoas', 'paginas'].map(function (tipo) {
+      var f = org.cloneNode(true);
+      f.classList.add('org-folha', 'org-folha-' + tipo);
+      f.querySelector('.org-sub').textContent = subtitulos[tipo];
+      return f;
+    });
+    org.after(folhas[0], folhas[1]);
+    document.body.classList.add('org-pdf-completo');
+    requestAnimationFrame(function () {
+      var mm = function (px) { return Math.ceil(px * 25.4 / 96); };
+      // 5% de folga na altura: a impressão pode medir as fontes um pouco diferente da tela.
+      folha.textContent = folhas.map(function (f, i) {
+        return '@page org-' + ['pessoas', 'paginas'][i] + ' { size: ' + mm(f.scrollWidth) + 'mm ' + Math.ceil(mm(f.scrollHeight) * 1.05) + 'mm; margin: 0; }';
+      }).join('\n');
+      document.title = <?php echo json_encode(t('Organograma completo 5C {dia}', ['dia' => date('d-m-Y', strtotime($dia))])); ?>;
+      window.print();
+    });
+  }
+  botaoCompleto.addEventListener('click', function () {
+    if (<?php echo $verPaginas ? 'true' : 'false'; ?>) {
+      imprimirCompleto();
+    } else {
+      window.location.href = botaoCompleto.dataset.url;
+    }
+  });
+  if (<?php echo $verPaginas && ($_GET['pdf'] ?? '') === 'completo' ? 'true' : 'false'; ?>) {
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(function () { setTimeout(imprimirCompleto, 300); });
+  }
+  window.addEventListener('afterprint', function () {
+    document.title = tituloTela;
+    document.body.classList.remove('org-pdf-completo');
+    document.querySelectorAll('.org-folha').forEach(function (f) { f.remove(); });
+    folha.textContent = '';
+  });
 })();
 </script>

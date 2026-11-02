@@ -36,4 +36,9 @@ return [
     'Baixar PDF' => 'Download PDF',
     'Organograma 5C {dia}' => '5C org chart {dia}',
     'Vigente em {dia}' => 'Valid on {dia}',
+    'Uma folha só, do tamanho do organograma inteiro: times, SRs e páginas de cada núcleo. Pode ampliar à vontade no PDF; o texto não perde qualidade.' => 'A single sheet the size of the whole org chart: teams, SRs and pages of each team. Zoom in as much as you like in the PDF; the text keeps its quality.',
+    'Baixar PDF completo' => 'Download full PDF',
+    'Organograma completo 5C {dia}' => '5C full org chart {dia}',
+    'Estrutura de liderança e SRs' => 'Leadership structure and SRs',
+    'Supervisores e páginas' => 'Supervisors and pages',
 ];
