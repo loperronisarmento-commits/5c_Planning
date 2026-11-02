@@ -232,6 +232,43 @@ if (isset($_GET['baixar'])) {
         @unlink($tmp);
         return;
     }
+    if ($_GET['baixar'] === 'lote') {
+        // Pacote do favorito "Postar CSV em lote" (ferramentas/postar_csv): sempre a última
+        // versão publicada da semana, com o CSV, o Date Schedule e o estado de cada página.
+        $pub = escPlanoPublicado($seg);
+        if (!$pub) {
+            http_response_code(404);
+            echo t('Esta semana ainda não tem versão publicada.');
+            return;
+        }
+        if ((int) $pub['id'] !== $planoId) {
+            header('Location: ' . link_tela('grade', ['plano' => (int) $pub['id'], 'baixar' => 'lote']));
+            return;
+        }
+        $corte = escPostagemCorte($seg);
+        $postadoLote = [];
+        foreach (escQ('SELECT pp.plano_id, pp.page_id, pp.csv_hash FROM ' . escT('esc_plano_postagem') . ' pp
+                        WHERE pp.semana = ? AND pp.postado_em IS NOT NULL ORDER BY pp.postado_em', [$seg]) as $pp) {
+            $postadoLote[(int) $pp['page_id']] = $pp;
+        }
+        $paginas = [];
+        foreach ($porPagina as $pid => $pg) {
+            $csv = escCsvT1T6($pg['cel'], $seg, $corte);
+            $pp = $postadoLote[$pid] ?? null;
+            $estado = !$pp ? 'afazer' : ((int) $pp['plano_id'] === $planoId ? 'postado' : (hash_equals((string) $pp['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer'));
+            $paginas[] = ['id' => $pid, 'nome' => $pg['nome'], 'estado' => $estado, 'csv' => $csv];
+        }
+        usort($paginas, static fn($a, $b) => strnatcasecmp($a['nome'], $b['nome']));
+        $inicio = $corte !== '' ? substr($corte, 0, 10) : $seg;
+        escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?)",
+            [$planoId, $seg, $inicio, escMaisDias($seg, 6), hash('sha256', json_encode($paginas)), escUserId()]);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . (escModoTreino() ? 'TREINO_' : '') . 'postar_' . $seg . '_' . escPlanoRotulo($plano) . '.json"');
+        echo json_encode(['semana' => $seg, 'versao' => escPlanoRotulo($plano), 'publicado_em' => $plano['publicado_em'] ?? null,
+            'treino' => escModoTreino(), 'date_schedule' => date('d/m/Y', strtotime($inicio)), 'paginas' => $paginas],
+            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        return;
+    }
     http_response_code(400);
     echo t('Download desconhecido.');
     return;
@@ -1065,6 +1102,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
       </div>
     </div>
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'])); ?>"><?php echo h(t('Baixar todos (.zip)')); ?></a>
+    <?php if ($publicado): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'lote'])); ?>" title="<?php echo h(t('Arquivo para o favorito "Postar CSV em lote" no site da 5C')); ?>"><?php echo h(t('Pacote para postar em lote (.json)')); ?></a><?php endif; ?>
   </div>
 
   <div class="postar-lista">

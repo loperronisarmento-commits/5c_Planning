@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.5', 'data' => '2026-11-01', 'titulo' => 'Pacote para postar em lote', 'sql' => ['ES_72_mikayla_free_v30_1.sql'], 'itens' => [
+        'Grade › Por página › Postar no site: botão "Pacote para postar em lote (.json)", com o CSV, o Date Schedule e o estado (a fazer, sem mudança, já postada) de cada página. É sempre o da última versão publicada da semana. O favorito "Postar CSV em lote" do Chrome lê esse arquivo na tela Schedule Tools do site e, para cada página, seleciona o Model, cola o CSV e clica em Save Schedule CSV.',
+        'Correção no CSV: em cada célula o regular vem antes dos assistentes. O site trata como assistente todo código depois do primeiro, e a célula que começava pelo assistente ficava sem regular. A ordem vinha do código do SR (a leitura usava o índice por pessoa), então os dois apareciam com "#" sempre que o assistente tinha o código menor: na semana de 02/11, Rocket Reyna VIP e OFTV, CJ Miles, Nicole OFTV, Nicole Doshi, Haven Free, Mikayla Free e Cynthia.',
+    ]],
     ['versao' => '1.18.4', 'data' => '2026-11-01', 'titulo' => 'Correção da 1.18.3', 'sql' => [], 'itens' => [
         'A regra da 1.18.3 (só proteger da escala publicada quem continua na estrutura) não chegava a valer: a gravação do plano não recebia a estrutura. Agora recebe.',
     ]],

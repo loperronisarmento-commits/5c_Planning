@@ -1147,11 +1147,17 @@ function escCsvT1T6(array $celulas, string $seg, string $desdeSlot = ''): string
             $slot = date('Y-m-d', strtotime("{$seg} +{$d} day")) . "T{$hora}:00:00";
             $cel = '';
             if ($slot >= $desdeSlot && !empty($celulas[$slot])) {
-                $codigos = [];
+                // O regular vai primeiro: o site trata como assistente todo código depois do primeiro,
+                // e uma célula que começa pelo assistente fica sem regular.
+                $regulares = $assistentes = [];
                 foreach ($celulas[$slot] as $code => $assist) {
-                    $codigos[] = $code . (is_string($assist) ? $assist : ($assist ? '#' : ''));
+                    if ($assist === true) {
+                        $assistentes[] = $code . '#';
+                    } else {
+                        $regulares[] = $code . (is_string($assist) ? $assist : '');
+                    }
                 }
-                $cel = implode(', ', $codigos);
+                $cel = implode(', ', array_merge($regulares, $assistentes));
             }
             $cols[] = $cel;
         }

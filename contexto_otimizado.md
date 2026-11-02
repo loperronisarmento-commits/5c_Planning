@@ -80,6 +80,10 @@ Use este arquivo como prompt de contexto no início de uma sessão. Os detalhes 
   - página sem venda usa o meio da faixa do tier;
   - OFTV ou código terminado em "t" é desconsiderada (carga zero), salvo com ≥ US$ 8 mil;
   - `esc_pagina_config` força o tratamento.
+- **Postagem no site da 5C:** favoritos do Chrome em `ferramentas/`, que rodam em WebPortal › Schedule Tools.
+  - Delete Range em lote (`POST /Scheduler/DeleteScheduleForRange`).
+  - Postar CSV em lote (`POST /Scheduler/InsertNewScheduleEntry`, com `inputCSV`, `StartWeek` e `ModelId`), que lê o pacote .json da Grade (`?baixar=lote`, sempre a última versão publicada).
+  - Para ler o que está postado: `POST /Scheduler/ScheduleDay2CSV`.
 - **Escala já postada:** a noite de hoje e o T1 de amanhã são editados à mão no 5C Schedule. O `5c_schedule.scheduleday` é só importação.
 - **Tabelas principais:**
   - postos e equipes: `esc_posto`, `esc_posto_pagina`, `esc_vaga_equipe`;
