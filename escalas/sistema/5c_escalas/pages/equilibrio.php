@@ -71,7 +71,11 @@ try {
 $pesoTotal = escEqPesoTotal($eq['fat'], $eq['srs']);
 $ds = escEqDesvios($eq['fat'], $pesoTotal);
 $dsSr = escEqDesvios($eq['fat'], $eq['srs']);
-$sugestoes = escEqSugerirTrocas($eq['paginas'], $pesoTotal);
+$conheceMin = max(0, (int) escV4Param('v4_conhece_min', '2'));
+$sugestoes = escEqSugerirTrocas($eq['paginas'], $pesoTotal, 60, 0.005, $conheceMin);
+// Páginas com menos de v4_conhece_min SRs que as conhecem na própria unidade, da que mais fatura.
+$semConhecedor = array_filter($eq['paginas'], static fn($p) => ($p['conhece'][$p['unidade']] ?? 0) < $conheceMin);
+uasort($semConhecedor, static fn($a, $b) => array_sum($b['fat']) <=> array_sum($a['fat']));
 $fatDepois = $sugestoes ? end($sugestoes)['fat_depois'] : $eq['fat'];
 $depois = escEqDesvios($fatDepois, $pesoTotal)['desvio'];
 $depoisSr = escEqDesvios($fatDepois, $eq['srs'])['desvio'];
@@ -176,7 +180,7 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
       <tr>
         <td class="num"><?php echo $i + 1; ?></td>
         <td><strong><?php echo h($s['pagina']); ?></strong><br><span class="muted small"><?php echo h(t('na U{u} desde {dia}', ['u' => $s['de'], 'dia' => dataBr($pg['desde'])])); ?></span></td>
-        <td>U<?php echo (int) $s['de']; ?> → <strong>U<?php echo (int) $s['para']; ?></strong></td>
+        <td>U<?php echo (int) $s['de']; ?> → <strong>U<?php echo (int) $s['para']; ?></strong><br><span class="muted small"><?php echo h(tn((int) $s['conhece_destino'], '{n} SR conhece no destino', '{n} SRs conhecem no destino')); ?></span></td>
         <?php foreach (['A', 'C', 'D'] as $t): ?><td class="num"><?php echo num($s['fat'][$t] ?? 0, 0); ?></td><?php endforeach; ?>
         <td class="num"><?php echo pct($s['melhora'], 0); ?></td>
         <td><?php echo $pode ? '<span class="tag verde">' . h(t('já pode')) . '</span>' : '<span class="tag laranja">' . h(dataBr($s['madura_em'])) . '</span>'; ?></td>
@@ -193,6 +197,28 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
       </tr>
     <?php endforeach; ?>
     <?php if (!$sugestoes): ?><tr><td colspan="9" class="muted"><?php echo h(t('Nenhuma troca melhora o equilíbrio.')); ?></td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="panel" id="conhece">
+  <h2><?php echo h(t('Páginas sem quem as conheça na unidade')); ?></h2>
+  <p class="muted"><?php echo h(t('Conhece a página quem tem {d} dias ou mais nela nas últimas 8 semanas (5C Schedule). Aqui ficam as páginas com menos de {n} SRs assim na própria unidade, com quem as conhece em outra. O Gerar só escolhe entre os SRs da unidade e do turno: para a página ganhar quem a conhece, a pessoa muda de unidade no mesmo turno e nível, com uma compensação no sentido contrário para a cobertura não mudar. As trocas de unidade acima só vão para onde a modelo tem pelo menos {n} SRs que a conhecem.', ['d' => max(1, (int) escV4Param('v4_conhece_dias', '3')), 'n' => $conheceMin])); ?></p>
+  <div class="tabela-rolagem largo">
+  <table>
+    <thead><tr><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Unidade')); ?></th><th class="num"><?php echo h(t('Faturamento 30 dias')); ?></th><th class="num"><?php echo h(t('Conhecem na unidade')); ?></th><th><?php echo h(t('Quem conhece em outra unidade')); ?></th></tr></thead>
+    <tbody>
+    <?php foreach ($semConhecedor as $nomePg => $p): $fora = array_slice(array_values(array_filter($p['conhecedores'], static fn($c) => $c['unidade'] !== $p['unidade'])), 0, 4); ?>
+      <tr>
+        <td><strong><?php echo h($nomePg); ?></strong></td>
+        <td>U<?php echo (int) $p['unidade']; ?></td>
+        <td class="num">US$ <?php echo num(array_sum($p['fat']), 0); ?></td>
+        <td class="num"><?php echo (int) ($p['conhece'][$p['unidade']] ?? 0); ?></td>
+        <td class="small"><?php if ($fora): foreach ($fora as $i => $c): ?><?php echo $i ? ' · ' : ''; ?><?php echo h(nomeCurto($nomes[$c['rep']] ?? $c['rep'])); ?> <span class="muted">U<?php echo (int) $c['unidade']; ?> <?php echo h($c['turno']); ?>, <?php echo h(tn((int) $c['dias'], '{n} dia', '{n} dias')); ?></span><?php endforeach; else: ?><span class="muted"><?php echo h(t('ninguém conhece')); ?></span><?php endif; ?></td>
+      </tr>
+    <?php endforeach; ?>
+    <?php if (!$semConhecedor): ?><tr><td colspan="5" class="muted"><?php echo h(t('Toda página tem quem a conheça na própria unidade.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>

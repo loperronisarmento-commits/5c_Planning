@@ -11,6 +11,10 @@
 //   - Troca de unidade: só página com 28 dias na unidade (maturação, pol_prazo_acomp). Sugere
 //     quantas forem precisas, da que mais aproxima as unidades para a que menos; o planejador
 //     decide uma a uma (tela Equilíbrio). Gap que sobra: o Funil prioriza a unidade abaixo.
+//   - Conhecimento da página (pedido de 02/11): conhece quem tem v4_conhece_dias (3) dias ou mais
+//     nela nas últimas 8 semanas. A troca de unidade só é sugerida se o destino tiver pelo menos
+//     v4_conhece_min (2) SRs que conhecem a modelo; a tela lista as páginas abaixo desse mínimo na
+//     própria unidade, com quem as conhece em outra (mudar a pessoa com compensação, como no ES_73).
 //   - Divisão dos OS em cada unidade e turno, pelo faturamento de 30 dias dos postos (regra de
 //     31/10): OS1 com as maiores páginas, OS3 com as menores e OS2 misto, cobrindo os dois. Ver
 //     escEqDivisao. Os melhores SRs vão para o OS1; no OS2, quem conhece páginas grandes e pequenas.
@@ -87,7 +91,9 @@ function escEqCusto(array $fat, array $srs, array $media): float {
 // unidade trocam juntas (o Capacity junta a modelo no mesmo posto). Cada grupo troca no máximo uma
 // vez; para quando nenhuma troca melhora o equilíbrio em pelo menos 0,5% (troca de US$ 50 não vale
 // a mexida). 'melhora' é acumulada: quanto do desequilíbrio de hoje some até aquela linha.
-function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ganhoMin = 0.005): array {
+// $conheceMin > 0: só vai para a unidade com pelo menos esse número de SRs que conhecem a modelo
+// ($paginas[nome]['conhece'][u], a página da modelo mais conhecida).
+function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ganhoMin = 0.005, int $conheceMin = 0): array {
     $fat = [];
     $grupos = [];
     foreach ($paginas as $nome => $p) {
@@ -95,8 +101,11 @@ function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ga
             $fat[$p['unidade']][$t] = ($fat[$p['unidade']][$t] ?? 0) + $v;
         }
         $g = $p['unidade'] . '|' . ($p['grupo'] ?? $nome);
-        $grupos[$g] = $grupos[$g] ?? ['unidade' => $p['unidade'], 'paginas' => [], 'fat' => [], 'madura_em' => null];
+        $grupos[$g] = $grupos[$g] ?? ['unidade' => $p['unidade'], 'paginas' => [], 'fat' => [], 'madura_em' => null, 'conhece' => []];
         $grupos[$g]['paginas'][] = $nome;
+        foreach ($p['conhece'] ?? [] as $u => $n) {
+            $grupos[$g]['conhece'][$u] = max($grupos[$g]['conhece'][$u] ?? 0, (int) $n);
+        }
         foreach ($p['fat'] as $t => $v) {
             $grupos[$g]['fat'][$t] = ($grupos[$g]['fat'][$t] ?? 0) + $v;
         }
@@ -115,7 +124,7 @@ function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ga
                 continue;
             }
             foreach ($unidades as $b) {
-                if ($b === $p['unidade']) {
+                if ($b === $p['unidade'] || ($conheceMin > 0 && ($p['conhece'][$b] ?? 0) < $conheceMin)) {
                     continue;
                 }
                 $f2 = $fat;
@@ -134,7 +143,7 @@ function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ga
         }
         $p = $grupos[$melhor['grupo']];
         $sug[] = ['pagina' => implode(' + ', $p['paginas']), 'paginas' => $p['paginas'], 'de' => $melhor['de'], 'para' => $melhor['para'],
-            'fat' => $p['fat'], 'faturamento' => round(array_sum($p['fat'])), 'madura_em' => $p['madura_em'],
+            'fat' => $p['fat'], 'faturamento' => round(array_sum($p['fat'])), 'madura_em' => $p['madura_em'], 'conhece_destino' => $p['conhece'][$melhor['para']] ?? 0,
             'melhora' => $custo0 > 0 ? round(1 - $melhor['custo'] / $custo0, 4) : 0.0, 'desvio_depois' => escEqDesvios($melhor['fat'], $srs)['desvio'], 'fat_depois' => $melhor['fat']];
         $fat = $melhor['fat'];
         $custo = $melhor['custo'];
@@ -303,6 +312,27 @@ function escEqDados(string $hoje, ?string $dia = null): array {
         unset($ps);
     }
     unset($porT);
+    // Quem conhece cada página, por unidade (v4_conhece_dias ou mais dias nela em 8 semanas).
+    $cDias = max(1, (int) escV4Param('v4_conhece_dias', '3'));
+    $porChave = [];
+    foreach ($pessoas as $u => $porT) {
+        foreach ($porT as $t => $ps) {
+            foreach ($ps as $rep => $p) {
+                foreach ($p['conhece'] as $k => $d) {
+                    if ($d >= $cDias) {
+                        $porChave[$k][] = ['rep' => $rep, 'unidade' => $u, 'turno' => $t, 'dias' => $d];
+                    }
+                }
+            }
+        }
+    }
+    foreach ($paginas as $nome => &$pg) {
+        $quem = $porChave[escEqChave((string) $nome)] ?? [];
+        usort($quem, static fn($a, $b) => $b['dias'] <=> $a['dias']);
+        $pg['conhecedores'] = $quem;
+        $pg['conhece'] = array_count_values(array_column($quem, 'unidade'));
+    }
+    unset($pg);
     ksort($srs);
     $fatUT = [];
     foreach ($paginas as $p) {

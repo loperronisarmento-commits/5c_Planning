@@ -81,7 +81,7 @@ function escEstruturaPaginasFora(string $hoje): array {
                           (SELECT SUM(i.`5CReps`) FROM `5c_wfm_db_mis`.`tab_intraday_base` i WHERE i.Page = g.name AND i.`Date` >= ?) AS venda
                      FROM `5c_pages`.`pages` g
                     WHERE g.active = 1 AND g.name <> ?
-                      AND NOT EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_carteira` c WHERE c.pagina = g.name AND (c.vigente_ate IS NULL OR c.vigente_ate > ?))',
+                      AND NOT EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_carteira` c WHERE REPLACE(c.pagina, \' \', \'\') = REPLACE(g.name, \' \', \'\') AND (c.vigente_ate IS NULL OR c.vigente_ate > ?))',
         [$de . 'T00:00:00', $de, escV4Param('v4_overlap_pagina', '5C Schedule'), $hoje]);
     $lista = array_values(array_filter($lista, static fn($l) => (int) $l['escala'] > 0 || (float) $l['venda'] > 0
         || ($l['imported_at'] !== null && substr((string) $l['imported_at'], 0, 10) >= $novaDe)));

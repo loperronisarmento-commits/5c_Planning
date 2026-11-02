@@ -6,6 +6,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.9' => ['titulo' => 'Page knowledge in Unit balance and Haven Free without a duplicate', 'itens' => [
+        'Unit balance: knowing the page now counts. An SR knows a page after 3 days or more on it in the last 8 weeks (v4_conhece_dias). A unit move is only suggested where the model has at least 2 SRs who know it (v4_conhece_min), and each suggestion shows how many know it at the destination.',
+        'Unit balance: new panel "Pages nobody in the unit knows", with who knows them in another unit, to move the person in the same shift and level with a compensating move. First applied for 09/11 (ES_73): Draya, Ellie D, Ariana Marie and Lily Lou OFTV get people who know them, with 4 compensating moves; unit coverage does not change.',
+        'Fix: the automatic page entry before generating compared the site name with the Capacity name without removing spaces and added Haven Free twice ("Haven  Free" and "Haven Free"), with 2 posts per shift. It now compares without spaces; the repeated row closed on 02/11 (ES_73).',
+        'Unit balance shows the structure of the next week to generate (next Monday), with the scheduled moves; the Structure on field shows another day.',
+        'Fix: the Capacity update before generating failed with error 1062 (duplicate slot) when a post closed and the same person had two slots that never took effect; the schedule came out with the previous structure. The repeated one is now deleted.',
+    ]],
     '1.18.8' => ['titulo' => 'Dark theme with highlighted boxes', 'itens' => [
         'Dark theme: panels, cards, tables and the menu are now slightly lighter than the background, with visible borders, so you can see where each box starts and ends. Table rows, headers, tags and the hover highlight follow. The light theme did not change.',
     ]],
@@ -253,6 +260,4 @@ const ESC_PATCH_NOTES_EN = [
 
 // Mudanças instaladas e ainda não publicadas, em inglês (mesma ordem de ESC_NAO_PUBLICADO).
 const ESC_NAO_PUBLICADO_EN = [
-    'Unit balance shows the structure of the next week to generate (next Monday), with the scheduled moves; the Structure on field shows another day.',
-    'Fix: the Capacity update before generating failed with error 1062 (duplicate slot) when a post closed and the same person had two slots that never took effect; the schedule came out with the previous structure. The repeated one is now deleted.',
 ];

@@ -8,6 +8,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.9', 'data' => '2026-11-02', 'titulo' => 'Conhecimento da página no Equilíbrio e Haven Free sem duplicata', 'sql' => ['ES_73_haven_e_conhecedores_0911.sql'], 'itens' => [
+        'Equilíbrio das unidades: conhecer a página passa a pesar. Conhece quem tem 3 dias ou mais nela nas últimas 8 semanas (v4_conhece_dias). A troca de unidade só é sugerida para onde a modelo tem pelo menos 2 SRs que a conhecem (v4_conhece_min), e cada sugestão mostra quantos conhecem no destino.',
+        'Equilíbrio das unidades: painel novo "Páginas sem quem as conheça na unidade", com quem as conhece em outra unidade, para mudar a pessoa no mesmo turno e nível com uma compensação. Primeira aplicação em 09/11 (ES_73): Draya, Ellie D, Ariana Marie e Lily Lou OFTV ganham quem as conhece, com 4 compensações; a cobertura das unidades não muda.',
+        'Correção: a entrada automática de página antes de gerar comparava o nome do site com o do Capacity sem tirar os espaços e incluiu a Haven Free duas vezes ("Haven  Free" e "Haven Free"), com 2 postos por turno. Agora compara sem espaços; a linha repetida fechou em 02/11 (ES_73).',
+        'Equilíbrio das unidades mostra a estrutura da próxima semana a gerar (segunda que vem), já com as trocas agendadas; o campo Estrutura de mostra outro dia.',
+        'Correção: a atualização do Capacity antes de gerar falhava com erro 1062 (vaga duplicada) quando um posto fechava e a mesma pessoa tinha duas vagas que nunca chegaram a valer; a escala saía com a estrutura anterior. Agora a repetida é apagada.',
+    ]],
     ['versao' => '1.18.8', 'data' => '2026-11-02', 'titulo' => 'Tema escuro com as caixas destacadas', 'sql' => [], 'itens' => [
         'Tema escuro: painéis, cartões, tabelas e menu ficaram um pouco mais claros que o fundo, com bordas visíveis, para ver onde começa e termina cada caixa. Linhas das tabelas, cabeçalhos, etiquetas e o realce ao passar o mouse acompanham. O tema claro não mudou.',
     ]],
@@ -258,6 +265,4 @@ define('ESC_VERSAO', ESC_PATCH_NOTES[0]['versao']);
 // Mudanças já instaladas e ainda não publicadas como versão oficial. Ao publicar, viram um
 // item novo no topo de ESC_PATCH_NOTES (com a versão) e a lista volta a ficar vazia.
 const ESC_NAO_PUBLICADO = [
-    'Equilíbrio das unidades mostra a estrutura da próxima semana a gerar (segunda que vem), já com as trocas agendadas; o campo Estrutura de mostra outro dia.',
-    'Correção: a atualização do Capacity antes de gerar falhava com erro 1062 (vaga duplicada) quando um posto fechava e a mesma pessoa tinha duas vagas que nunca chegaram a valer; a escala saía com a estrutura anterior. Agora a repetida é apagada.',
 ];
