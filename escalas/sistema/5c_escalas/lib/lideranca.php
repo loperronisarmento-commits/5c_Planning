@@ -3,7 +3,7 @@
 // ARQUIVO: 5c_escalas/lib/lideranca.php
 // Escala da liderança (estrutura de 01/11), separada da dos SRs.
 //
-// - Operational Manager (OM, 1 por unidade): não segue escala.
+// - Operational Unit Manager (OM, 1 por unidade): não segue escala.
 // - Operational Coordinator (OC, 1 por unidade e turno, 3 por turno) e
 //   Operational Supervisor (OS, 1 por núcleo, 3 por unidade e turno):
 //   5x2 no mesmo ciclo de 21 dias dos SRs. O OS segue o núcleo dele; os 3 OC
@@ -20,7 +20,7 @@
 // Só lê: nada é gravado.
 // ===============================================
 
-const ESC_LID_CARGO = ['OM' => 'Operational Manager', 'OC' => 'Operational Coordinator', 'OS' => 'Operational Supervisor', 'OA' => 'Operational Assistant'];
+const ESC_LID_CARGO = ['OM' => 'Operational Unit Manager', 'OC' => 'Operational Coordinator', 'OS' => 'Operational Supervisor', 'OA' => 'Operational Assistant'];
 // Mínimo no turno por grupo (OA: 1, cobertura 24/7; OC e OS: 2 de 3).
 const ESC_LID_MINIMO = ['OA' => 1];
 const ESC_LID_HORARIO = ['A' => '05:00–13:00', 'C' => '13:00–21:00', 'D' => '21:00–05:00'];

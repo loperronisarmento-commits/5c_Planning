@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.10', 'data' => '2026-11-02', 'titulo' => 'OS3 com 15% a 20% do faturamento, equipe fixa da Holly Jane e nome do OM', 'sql' => ['ES_74_os3_faixa_faturamento.sql', 'ES_75_holly_jane_equipe_0911.sql', '5C_Planning_29_cargos_om_oc.sql'], 'itens' => [
+        'Divisão dos OS (Equilíbrio): o OS3 fica com 15% a 20% do faturamento do turno (v4_os3_parte_min e v4_os3_parte_max). A ordem continua OS1, OS1, OS2 em cima e OS2, OS3, OS3 embaixo; o corte entre as partes sai do meio e vai para onde o OS3 cai na faixa. Antes o OS3 ficava com 9% a 15%.',
+        'Holly Jane com equipe fixa a partir de 09/11 (ES_75): Alan Ramsay, João Beber, Stephen, Krizel e Angeline Butal. Outras pessoas só entram se ninguém da equipe estiver disponível. Os quatro que estavam em outras unidades vão para a U1 no mesmo turno, com 4 compensações; owners e backups da página atualizados.',
+        'Cargos: o OM aparece como Operational Unit Manager em todas as telas. No Capacity, a liderança deixa OUM e OM e passa a OM (unidade) e OC (unidade e turno), como no 5C Escalas (script 29).',
+    ]],
     ['versao' => '1.18.9', 'data' => '2026-11-02', 'titulo' => 'Conhecimento da página no Equilíbrio e Haven Free sem duplicata', 'sql' => ['ES_73_haven_e_conhecedores_0911.sql'], 'itens' => [
         'Equilíbrio das unidades: conhecer a página passa a pesar. Conhece quem tem 3 dias ou mais nela nas últimas 8 semanas (v4_conhece_dias). A troca de unidade só é sugerida para onde a modelo tem pelo menos 2 SRs que a conhecem (v4_conhece_min), e cada sugestão mostra quantos conhecem no destino.',
         'Equilíbrio das unidades: painel novo "Páginas sem quem as conheça na unidade", com quem as conhece em outra unidade, para mudar a pessoa no mesmo turno e nível com uma compensação. Primeira aplicação em 09/11 (ES_73): Draya, Ellie D, Ariana Marie e Lily Lou OFTV ganham quem as conhece, com 4 compensações; a cobertura das unidades não muda.',

@@ -226,9 +226,9 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
 
 <section class="panel" id="os">
   <h2><?php echo h(t('Divisão dos OS')); ?></h2>
-  <p class="muted"><?php echo h(t('Em cada unidade e turno, pelo faturamento de 30 dias dos postos, do maior para o menor: na metade de cima, OS1, OS1, OS2 (repetindo); na metade de baixo, OS2, OS3, OS3. O OS1 fica com as maiores páginas, o OS3 com as menores e o OS2 com um misto, cerca de 1/3 dos postos cada. Cobertura: o OS2 cobre os postos do OS1 e do OS3; nos postos do OS2, os grandes ficam com o OS1 e os pequenos com o OS3. Os melhores SRs (nível, depois mérito) vão para o OS1; no OS2, quem conhece páginas grandes e pequenas; o tamanho de cada núcleo segue os postos dele.')); ?></p>
+  <p class="muted"><?php echo h(t('Em cada unidade e turno, pelo faturamento de 30 dias dos postos, do maior para o menor: na parte de cima, OS1, OS1, OS2 (repetindo); na parte de baixo, OS2, OS3, OS3. O corte entre as partes fica onde o OS3 soma de 15% a 20% do faturamento do turno. O OS1 fica com as maiores páginas, o OS3 com as menores e o OS2 com um misto. Cobertura: o OS2 cobre os postos do OS1 e do OS3; nos postos do OS2, os grandes ficam com o OS1 e os pequenos com o OS3. Os melhores SRs (nível, depois mérito) vão para o OS1; no OS2, quem conhece páginas grandes e pequenas; o tamanho de cada núcleo segue os postos dele.')); ?></p>
   <?php foreach ($eq['postos'] as $u => $porT): foreach (['A', 'C', 'D'] as $t): if (empty($porT[$t])) { continue; }
-      $div = escEqDivisao($porT[$t], $eq['pessoas'][$u][$t] ?? []);
+      $div = escEqDivisao($porT[$t], $eq['pessoas'][$u][$t] ?? [], escEqAlvoOS3());
       $mudaP = array_filter($div['postos'], static fn($p) => $p['muda']);
       $mudaS = array_filter($div['srs'], static fn($s) => $s['novo'] !== $s['num']);
       $tem3 = count($eq['nucleo_id'][$u][$t] ?? []) >= 3; ?>

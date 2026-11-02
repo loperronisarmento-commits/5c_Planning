@@ -65,7 +65,7 @@ foreach ($escala['presentes'] as $grupos) {
   <span class="eyebrow"><?php echo h(t('Escala')); ?></span>
   <h1><?php echo h(t('Escala da liderança · semana de {dia}', ['dia' => dataBr($seg)])); ?></h1>
   <p class="lid-so-pdf"><?php echo h(t('Leadership schedule · {de} a {ate} · versão de {gerado}', ['de' => date('d/m/Y', strtotime($dias[0])), 'ate' => date('d/m/Y', strtotime(end($dias))), 'gerado' => date('d/m/Y H:i')])); ?></p>
-  <p class="muted nao-imprimir"><?php echo h(t('Operational Coordinator (3 por turno) e Operational Supervisor (3 por unidade e turno) em 5x2, no mesmo ciclo de 21 dias dos SRs, cada um num turno só; o OS segue o núcleo dele. Operational Assistant: 1 por turno todo dia (24/7), numa semana fixa em que quem faz dois turnos sempre muda para o mais tarde. Não há dia de treinamento separado: no dia de Overlap os 3 do grupo estão no turno; nos outros dias, 2 de 3 (OA: ao menos 1). O Operational Manager não segue escala.')); ?></p>
+  <p class="muted nao-imprimir"><?php echo h(t('Operational Coordinator (3 por turno) e Operational Supervisor (3 por unidade e turno) em 5x2, no mesmo ciclo de 21 dias dos SRs, cada um num turno só; o OS segue o núcleo dele. Operational Assistant: 1 por turno todo dia (24/7), numa semana fixa em que quem faz dois turnos sempre muda para o mais tarde. Não há dia de treinamento separado: no dia de Overlap os 3 do grupo estão no turno; nos outros dias, 2 de 3 (OA: ao menos 1). O Operational Unit Manager não segue escala.')); ?></p>
 </header>
 
 <section class="panel nao-imprimir">
@@ -128,7 +128,7 @@ foreach ($escala['presentes'] as $grupos) {
 <?php endif; ?>
 
 <section class="panel lid-om">
-  <h2><?php echo h(t('Operational Manager · não segue escala')); ?></h2>
+  <h2><?php echo h(t('Operational Unit Manager · não segue escala')); ?></h2>
   <table>
     <thead><tr><th><?php echo h(t('Unidade')); ?></th><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Código')); ?></th></tr></thead>
     <tbody>

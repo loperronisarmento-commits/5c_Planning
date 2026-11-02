@@ -161,10 +161,30 @@ function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ga
 // cobertura]; $srs[rep] = ['num' => núcleo hoje, 'nivel', 'nota', 'conhece' => [escEqChave(pagina)
 // => dias escalado]]. SRs: os melhores (nível, depois mérito) no OS1; no OS2, quem conhece páginas
 // grandes e pequenas; o resto no OS3. O tamanho de cada núcleo segue os postos dele.
-function escEqDivisao(array $postos, array $srs): array {
+// $alvo3 = [mín, máx] da parte do OS3 no faturamento (pedido de 02/11: 15% a 20%, escEqAlvoOS3).
+// O corte entre as duas metades sai do meio e vai para onde o OS3 fica nessa faixa (o mais perto
+// do centro).
+function escEqDivisao(array $postos, array $srs, array $alvo3 = [0.15, 0.20]): array {
     uasort($postos, static fn($a, $b) => [$b['fat'], $a['id'] ?? 0] <=> [$a['fat'], $b['id'] ?? 0]);
     $total = array_sum(array_column($postos, 'fat'));
+    $fats = array_values(array_column($postos, 'fat'));
     $metade = (int) ceil(count($postos) / 2);
+    if ($total > 0) {
+        $centro = ($alvo3[0] + $alvo3[1]) / 2;
+        $melhorDist = null;
+        for ($k = 1; $k < count($fats); $k++) {
+            $os3 = 0.0;
+            foreach ($fats as $i => $f) {
+                $os3 += $i >= $k && ($i - $k) % 3 !== 0 ? $f : 0.0;
+            }
+            $parte = $os3 / $total;
+            $dist = $parte < $alvo3[0] ? $alvo3[0] - $parte : ($parte > $alvo3[1] ? $parte - $alvo3[1] : 0.0);
+            $dist = [$dist, abs($parte - $centro)];
+            if ($melhorDist === null || $dist < $melhorDist) {
+                [$melhorDist, $metade] = [$dist, $k];
+            }
+        }
+    }
     $parteHoje = [1 => 0.0, 2 => 0.0, 3 => 0.0];
     $parteNova = [1 => 0.0, 2 => 0.0, 3 => 0.0];
     $qtdPostos = [1 => 0, 2 => 0, 3 => 0];
@@ -230,6 +250,12 @@ function escEqDivisao(array $postos, array $srs): array {
     $porcento = static fn(array $v) => array_map(static fn($x) => $total > 0 ? round($x / $total, 4) : 0.0, $v);
     return ['postos' => $saida, 'parte_hoje' => $porcento($parteHoje), 'parte_nova' => $porcento($parteNova), 'postos_por_os' => $qtdPostos,
         'tamanho' => $tam, 'srs' => $srsOut];
+}
+
+// Faixa da parte do OS3 no faturamento do turno (v4_os3_parte_min e v4_os3_parte_max).
+function escEqAlvoOS3(): array {
+    $n = static fn(string $c, string $p) => (float) str_replace(',', '.', escV4Param($c, $p));
+    return [$n('v4_os3_parte_min', '0.15'), $n('v4_os3_parte_max', '0.20')];
 }
 
 // Dados do banco para a tela: faturamento por coordenador, SRs, páginas com maturação e postos.
@@ -409,7 +435,7 @@ function escEqAplicarDivisao(int $u, string $t, string $desde): array {
     if (count($ids) < 3) {
         throw new RuntimeException(t('A U{u} não tem os 3 núcleos no turno {turno}.', ['u' => $u, 'turno' => $t]));
     }
-    $div = escEqDivisao($e['postos'][$u][$t] ?? [], $e['pessoas'][$u][$t] ?? []);
+    $div = escEqDivisao($e['postos'][$u][$t] ?? [], $e['pessoas'][$u][$t] ?? [], escEqAlvoOS3());
     $ontem = escMaisDias($desde, -1);
     $neutra = escMaisDias(escV4DiaVirada(), -2);
     $res = ['postos' => 0, 'srs' => 0, 'equipe_fora' => 0];

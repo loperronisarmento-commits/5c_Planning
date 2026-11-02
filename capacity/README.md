@@ -2,7 +2,7 @@
 
 Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo dia, a necessidade de pessoas da estrutura nova. São as mesmas regras do `posts.py` usado no relatório "Estrutura 5C em Unidades" de 27/10:
 
-- **Hierarquia:** unidade (OUM) → OM por turno → 3 OS em rodízio 5x2.
+- **Hierarquia:** unidade (OM, Operational Unit Manager) → OC por turno (Operational Coordinator) → 3 OS em rodízio 5x2 (Operational Supervisor). Até 02/11 a tabela usava OUM e OM (script 29).
 - **Carteiras:** duas por unidade (C1 e C2).
 - **Postos por página e turno:** cada posto é 1 rep online o turno inteiro. Páginas pequenas são agrupadas em duas fases (decisão de 28/10):
   1. primeiro as da mesma modelo, até 3 por rep (ex.: CJ VIP + CJ Miles, Jena Wolfy VIP + Free);

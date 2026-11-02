@@ -2,7 +2,7 @@
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/organograma.php
 // Organograma da equipe operacional (estrutura de 01/11), no visual do roster:
-// COO → Director → Operational Manager de cada unidade (os Operational Assistants ficam
+// COO → Director → Operational Unit Manager de cada unidade (os Operational Assistants ficam
 // ao lado, ligados aos 3 OMs: são assistentes dos OMs como um todo)
 // → turnos T6/T1, T2/T3 e T4/T5, cada um com o OC e os 3 OS. Clicar no OS abre os
 // SRs do núcleo; a busca acha qualquer pessoa. "Baixar PDF" sai como na tela (A3 em pé,
@@ -101,7 +101,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Pessoas')); ?></span>
   <h1><?php echo h(t('Organograma')); ?></h1>
-  <p class="muted"><?php echo h(t('Estrutura vigente em {dia}: {om} Operational Managers, {oc} Operational Coordinators, {os} Operational Supervisors e {sr} Sales Representatives.', ['dia' => dataBr($dia), 'om' => count($om), 'oc' => array_sum(array_map('count', $oc)), 'os' => array_sum(array_map(static fn($pt) => array_sum(array_map('count', $pt)), $nucleos)), 'sr' => $totalSr])); ?> <span class="org-dica"><?php echo h(t('Clique num OS para ver os SRs do núcleo.')); ?></span></p>
+  <p class="muted"><?php echo h(t('Estrutura vigente em {dia}: {om} Operational Unit Managers, {oc} Operational Coordinators, {os} Operational Supervisors e {sr} Sales Representatives.', ['dia' => dataBr($dia), 'om' => count($om), 'oc' => array_sum(array_map('count', $oc)), 'os' => array_sum(array_map(static fn($pt) => array_sum(array_map('count', $pt)), $nucleos)), 'sr' => $totalSr])); ?> <span class="org-dica"><?php echo h(t('Clique num OS para ver os SRs do núcleo.')); ?></span></p>
   <?php foreach ($trocas as $d => $lista): ?>
   <p class="muted small"><?php echo h(t('Troca de unidade a partir de {dia}: {lista}. As pessoas ficam no time; a página passa para o time do destino.', ['dia' => dataBr($d), 'lista' => implode(', ', $lista)])); ?> <a href="<?php echo h(link_tela('organograma', ['dia' => $d] + ($verPaginas ? ['paginas' => 1] : []))); ?>"><?php echo h(t('Ver em {dia}', ['dia' => dataBr($d)])); ?></a></p>
   <?php endforeach; ?>
@@ -148,7 +148,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
     <div class="org-staff">
       <span class="org-staff-linha" aria-hidden="true"></span>
       <div class="org-oa">
-        <div class="org-oa-cab"><strong>Operational Assistants</strong><small><?php echo h(t('24/7 · assistentes dos Operational Managers')); ?></small></div>
+        <div class="org-oa-cab"><strong>Operational Assistants</strong><small><?php echo h(t('24/7 · assistentes dos Operational Unit Managers')); ?></small></div>
         <div class="org-oa-lista"><?php foreach ($oa as $p): echo $pessoa($p['nome'], $p['rep'], 'OA', 'org-oa-card', 'pessoa'); endforeach; ?></div>
       </div>
     </div>

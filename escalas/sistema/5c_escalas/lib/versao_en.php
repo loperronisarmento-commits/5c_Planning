@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.10' => ['titulo' => 'OS3 with 15% to 20% of revenue, fixed Holly Jane team and the OM name', 'itens' => [
+        'OS split (Unit balance): OS3 gets 15% to 20% of the shift revenue (v4_os3_parte_min and v4_os3_parte_max). The order is still OS1, OS1, OS2 at the top and OS2, OS3, OS3 at the bottom; the cut between the parts moves from the middle to where OS3 falls in the range. OS3 used to get 9% to 15%.',
+        'Holly Jane with a fixed team from 11/09 (ES_75): Alan Ramsay, João Beber, Stephen, Krizel and Angeline Butal. Other people only come in if nobody on the team is available. The four who were in other units move to U1 in the same shift, with 4 compensating moves; the page owners and backups were updated.',
+        'Roles: OM shows as Operational Unit Manager on every screen. In Capacity, leadership goes from OUM and OM to OM (unit) and OC (unit and shift), as in 5C Escalas (script 29).',
+    ]],
     '1.18.9' => ['titulo' => 'Page knowledge in Unit balance and Haven Free without a duplicate', 'itens' => [
         'Unit balance: knowing the page now counts. An SR knows a page after 3 days or more on it in the last 8 weeks (v4_conhece_dias). A unit move is only suggested where the model has at least 2 SRs who know it (v4_conhece_min), and each suggestion shows how many know it at the destination.',
         'Unit balance: new panel "Pages nobody in the unit knows", with who knows them in another unit, to move the person in the same shift and level with a compensating move. First applied for 09/11 (ES_73): Draya, Ellie D, Ariana Marie and Lily Lou OFTV get people who know them, with 4 compensating moves; unit coverage does not change.',

@@ -28,7 +28,7 @@ foreach ($eq['postos'] as $u => $porT) {
         if (empty($porT[$t])) {
             continue;
         }
-        $div = escEqDivisao($porT[$t], $eq['pessoas'][$u][$t] ?? []);
+        $div = escEqDivisao($porT[$t], $eq['pessoas'][$u][$t] ?? [], escEqAlvoOS3());
         $p = count(array_filter($div['postos'], static fn($x) => $x['muda']));
         $s = count(array_filter($div['srs'], static fn($x) => $x['novo'] !== $x['num']));
         $parte = implode(' / ', array_map(static fn($k) => 'OS' . $k . ' ' . round(($div['parte_nova'][$k] ?? 0) * 100) . '%', [1, 2, 3]));

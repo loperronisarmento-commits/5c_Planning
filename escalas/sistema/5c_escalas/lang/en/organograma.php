@@ -2,7 +2,7 @@
 // Tela Organograma (pages/organograma.php) em inglês. O português é a chave. Ver lib/i18n.php.
 return [
     'sem código' => 'no code',
-    'Estrutura vigente em {dia}: {om} Operational Managers, {oc} Operational Coordinators, {os} Operational Supervisors e {sr} Sales Representatives.' => 'Structure effective on {dia}: {om} Operational Managers, {oc} Operational Coordinators, {os} Operational Supervisors and {sr} Sales Representatives.',
+    'Estrutura vigente em {dia}: {om} Operational Unit Managers, {oc} Operational Coordinators, {os} Operational Supervisors e {sr} Sales Representatives.' => 'Structure effective on {dia}: {om} Operational Unit Managers, {oc} Operational Coordinators, {os} Operational Supervisors and {sr} Sales Representatives.',
     'Clique num OS para ver os SRs do núcleo.' => 'Click an OS to see the SRs in the core.',
     'Troca de unidade a partir de {dia}: {lista}. As pessoas ficam no time; a página passa para o time do destino.' => 'Unit change from {dia}: {lista}. People stay on their team; the page moves to the destination team.',
     'Ver em {dia}' => 'View on {dia}',
@@ -15,7 +15,7 @@ return [
     'Recolher' => 'Collapse',
     'Data' => 'Date',
     'Imprimir / PDF' => 'Print / PDF',
-    '24/7 · assistentes dos Operational Managers' => '24/7 · assistants to the Operational Managers',
+    '24/7 · assistentes dos Operational Unit Managers' => '24/7 · assistants to the Operational Unit Managers',
     'sem SRs' => 'no SRs',
     '{n} encontrado(s)' => '{n} found',
     'ninguém encontrado' => 'no one found',
