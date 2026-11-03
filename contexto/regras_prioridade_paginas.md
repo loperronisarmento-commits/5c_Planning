@@ -84,35 +84,43 @@ As regras P-01 a P-04 foram pedidas pelo Luis Otávio em 03/11/2026 e **validada
    - plataforma por turno (P-04);
    - não divide rep por modelo, e não mais por posto (P-03);
    - vermelha: 7 dias ou mais em 90, ou equipe fixa (P-02).
-2. **Passo 0 para todas as páginas, pela nota de mérito (P-01):**
-   - continuidade (15% relativa; piso de 65% de atingimento na janela do mérito);
+2. **Passo 0 para todas as páginas (P-01 junto com a A-01; com a sessão motor-alocação, 1.19.0):**
+   - continuidade: troca só com candidato de faixa acima, ou com quem estava abaixo de 65% da meta na página;
    - reserva de quem conhece a vermelha;
    - cota de 20% da amarela por turnos da semana.
-3. **Parâmetros novos** (`esc_parametro`, por um ES_NN): `v4_vermelha_dias_min`, `v4_vermelha_janela_dias`, `v4_amarela_novos_max`, `v4_troca_merito_dif` e `v4_troca_atingimento_piso`. O passo 0 deixa de ter o corte de `v4_melhores_receita_min`.
+3. **Parâmetros novos** (`esc_parametro`, por um ES_NN): `v4_vermelha_dias_min`, `v4_vermelha_janela_dias`, `v4_amarela_novos_max` e `v4_troca_atingimento_piso`. Do lado da motor-alocação: `v4_melhores_receita_min` = 0 e `v4_pagina_prioritaria_min` = 100000.
 4. **Capacity:** não agrupar páginas de plataformas diferentes no mesmo posto.
 5. **Grade:** alerta quando a alocação manual quebra uma trava.
 6. **Equilíbrio:** "Páginas sem quem as conheça" usando 7 dias em 90 para as vermelhas.
 7. **Textos:** Ajuda e Changelog; o texto da ES_58 (1.18.0) passa a dizer que a equipe fixa vem antes do melhor SR.
 
 ### P-01 · Melhor SR para todas as páginas, de cima para baixo
-- **Status:** Validada em 03/11/2026 (Luis Otávio). Ainda não implementada.
+- **Status:** Validada em 03/11/2026 (Luis Otávio). **Juntada com a A-01** (`contexto/regras_motor_alocacao.md`) em 03/11. A implementação está com a sessão motor-alocação (passo 0 no `motor_v4.php`, versão 1.19.0).
 - **Pedido por:** Luis Otávio em 03/11/2026
 - **Objetivo:** a página mais importante da fila fica sempre com o melhor SR disponível. As últimas ficam com o que sobra.
 - **Páginas:** todas, menos as On demand. Hoje o passo 0 vale só para as modelos com US$ 100 mil ou mais (16 modelos, 25 páginas).
 - **Regra:**
   - Em cada unidade, turno e dia, a primeira página da fila escolhe o melhor SR disponível, depois a segunda, e assim até a última.
   - A ordem da fila não muda: faturamento da modelo em 30 dias, depois o da página.
-  - O corte de `v4_melhores_receita_min` deixa de existir.
-  - **"Melhor" é a nota de mérito** (M-01, nota em pontos, validada em 02/11), não mais a venda por hora e a meta.
+  - O corte de `v4_melhores_receita_min` vai para 0, ou seja, todas as páginas. A "página prioritária" da A-02 passa a ter um parâmetro próprio, `v4_pagina_prioritaria_min` = 100000.
+  - **"Melhor", pela ordem da A-01** (com a P-01 juntada em 03/11):
+    1. atingimento de 65% ou mais da meta na página;
+    2. faixa da M-01 (Acima, Na média, Abaixo);
+    3. nota em pontos da M-01;
+    4. tempo de casa.
+    - A venda por hora sai da ordem, porque já entra na nota pela M-07.
   - **Continuidade:** quem estava no posto da última vez fica, a não ser que:
-    - o melhor SR disponível tenha nota de mérito pelo menos 15% maior, em diferença relativa (nota 100 contra 115 troca; 100 contra 114 não); ou
-    - quem estava esteja abaixo de 65% de **atingimento da meta na página**, na janela do mérito (`merito_janela_dias`, 28 dias até ontem).
+    - o melhor candidato esteja numa **faixa da M-01 acima** da dele. Isso substitui os 15% de diferença relativa decididos antes, que não servem para nota em pontos; ou
+    - quem estava esteja abaixo de 65% de **atingimento da meta na página**.
+  - **Janela do atingimento:** a do mérito (`merito_janela_dias`, 28 dias até ontem), pela decisão do Luis Otávio nesta sessão em 03/11. A A-01 registra 30 dias (o passo 0 de hoje) como escolha provisória da sessão motor-alocação. **Divergência a resolver**: ver "Em aberto".
 - **Tratamento:** —
 - **Dados e fontes:** nota de mérito (`esc_sr_merito` ou a nota nova da M-01) e o "quem estava da última vez" (`$ultimo` do motor).
 - **Parâmetros:**
   - `v4_melhores_receita_min` = 0, ou um parâmetro novo para ligar a regra;
-  - `v4_troca_merito_dif` = 0,15;
-  - `v4_troca_atingimento_piso` = 0,65 (atingimento da meta na página).
+  - `v4_melhores_receita_min` = 0 (todas as páginas);
+  - `v4_pagina_prioritaria_min` = 100000 (A-02);
+  - `v4_troca_atingimento_piso` = 0,65 (atingimento da meta na página);
+  - ~~`v4_troca_merito_dif` = 0,15~~: saiu com a junção com a A-01 (vale a faixa acima).
 - **Exemplo:** em U1·A, a Mikayla Free escolhe primeiro, depois a Mikayla Paid, depois a Rocket Reyna VIP, e assim por diante. A Blaire (US$ 2 mil) fica com quem sobrou.
 - **Impacto esperado:**
   - As páginas de cima ganham as maiores notas.
@@ -123,13 +131,14 @@ As regras P-01 a P-04 foram pedidas pelo Luis Otávio em 03/11/2026 e **validada
   - **P-02:** a página de cima não leva o último SR disponível que conhece uma página vermelha mais abaixo.
   - **P-03:** o SR que fica numa modelo que não divide rep sai do resto da fila no turno.
 - **Em aberto:**
-  - Nada.
+  1. **Janela do atingimento.** Aqui o Luis Otávio decidiu "janela do mérito" (28 dias). A sessão motor-alocação vai implementar 30 dias e ajusta se o usuário confirmar outra. Qual vale?
 - **Histórico:**
   - 03/11: rascunho.
   - 03/11: decididos a equipe fixa antes do melhor SR, a nota de mérito como critério e a continuidade (15% de diferença e piso de 65%). Passou para Em ajuste.
   - 03/11: o piso de 65% é do atingimento da meta na página.
   - 03/11: os 15% são de diferença relativa, e o atingimento usa a janela do mérito. Nenhum ponto em aberto.
   - 03/11: validada pelo Luis Otávio.
+  - 03/11: juntada com a A-01 por decisão do Luis Otávio, recebida da sessão motor-alocação. A ordem de escolha vem da A-01 (meta de 65% na página, faixa, pontos, tempo de casa) e a venda por hora sai. Na continuidade, a faixa acima substitui os 15%. A implementação está com a sessão motor-alocação. A janela do atingimento ficou em aberto: 28 dias aqui contra 30 dias lá.
 
 ### P-02 · Sensibilidade da página (vermelha, amarela, verde)
 - **Status:** Validada em 03/11/2026 (Luis Otávio). Dados no banco (ES_85, ES_89 e ES_90); o motor ainda não usa.
