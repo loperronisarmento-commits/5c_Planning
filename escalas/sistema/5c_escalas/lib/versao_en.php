@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.1' => ['titulo' => 'Merit recalculates on the server again', 'itens' => [
+        'The merit cache had not been recalculated on the server since 11/01: the query that removes the hours excluded by Capacity from the SLA used the REPLACE function, which the portal read-only guard blocks. The query was rewritten without it, with the same result; the 1.19.0 points score now applies in Generate.',
+    ]],
     '1.19.0' => ['titulo' => 'Merit in points and best SR from top to bottom', 'itens' => [
         'Merit in points (rules M-01 to M-10, validated on 11/02 and 11/03): the score becomes the sum of the main page tier (F 0 to A or above 8), target (±1 every 10%, up to ±10), absences (−1, −2, −4, −8, −16), SLA (0 at 80% or more; −1 to −16 below), tenure (+1 per year), sales per hour (0 to 4), highest role in the old structure (0, 1, 3 or 5), infractions (−2 each, 90 days) and, by M-10 (validated on 11/03), closed weeks in a row at 100% of target (1 = +1, 2 = +3, 3 or more = +5, among the last 4). With no data, the component is 0. Bands: Above at 8 or more, Below under −8. It replaces Performance × SLA × Attendance ÷ (1 + penalty); the old parameters are no longer used.',
         'Generate, best SR from top to bottom (rules A-01 and P-01): after the page\'s fixed team, each page, from the highest-revenue model to the lowest, picks the best SR available in the unit and shift. First whoever hit 65% or more of the page target in 30 days (was 70%), then the merit band, the score and tenure; sales per hour leave the order because they are already in the score. Whoever was on the post stays, unless an SR from a higher band shows up or they are below 65% of the page target. It applies to every page (v4_melhores_receita_min = 0).',

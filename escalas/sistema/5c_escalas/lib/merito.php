@@ -207,8 +207,9 @@ function escMeritoCalcular(array $reps): array {
     $venda = [];    // [cod] = [US$ comprado, horas] (M-07)
     // SLA justo (Capacity, script 23): as horas em que o posto forçado pela regra de faturamento
     // passou da capacidade (fc_sla_hora_excluida, última versão do dia) não entram no SLA.
+    // LOCATE em vez de FIND_IN_SET(REPLACE(...)): a trava de leitura (escQ) bloqueia a palavra REPLACE.
     $excl = escMeritoSlaExcluidaOk()
-        ? "EXISTS (SELECT 1 FROM `5c_planning`.`fc_sla_hora_excluida` x WHERE x.dia = c.dia AND x.hora = c.hora AND FIND_IN_SET(x.pagina, REPLACE(c.paginas, ' + ', ','))
+        ? "EXISTS (SELECT 1 FROM `5c_planning`.`fc_sla_hora_excluida` x WHERE x.dia = c.dia AND x.hora = c.hora AND LOCATE(CONCAT(' + ', x.pagina, ' + '), CONCAT(' + ', c.paginas, ' + ')) > 0
                      AND x.versao = (SELECT MAX(x2.versao) FROM `5c_planning`.`fc_sla_hora_excluida` x2 WHERE x2.dia = x.dia))"
         : '0';
     foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, n_paginas, SUM(msgs_rep) AS m,
