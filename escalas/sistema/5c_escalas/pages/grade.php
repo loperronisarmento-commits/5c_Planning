@@ -288,6 +288,17 @@ if (isset($_GET['baixar'])) {
 // ---------- PDF de metas (?ver=metas[&pagina=id]): a mesma folha do PDF da escala, uma página
 // por folha, com cada pessoa escalada na semana e o atingimento dela na página (5CReps ÷ meta,
 // pela fatia das mensagens, como no mérito) em cada uma das 4 semanas anteriores. ----------
+// Os PDFs (escala e metas) seguem o "CSV a partir de": nada antes do corte aparece, para conferir
+// só o que vai ser postado. Os dias antes do dia do corte saem; no dia do corte, os blocos antes dele.
+$rotCortePdf = '';
+if ($corteCsv !== '' && in_array($_GET['ver'] ?? '', ['pdf', 'metas'], true)) {
+    foreach ($porPagina as &$pgCorte) {
+        $pgCorte['cel'] = array_filter($pgCorte['cel'], static fn($slot) => (string) $slot >= $corteCsv, ARRAY_FILTER_USE_KEY);
+    }
+    unset($pgCorte);
+    $dias = array_values(array_filter($dias, static fn($d) => $d >= substr($corteCsv, 0, 10)));
+    $rotCortePdf = escSlotsDaSemana($seg)[$corteCsv] ?? $corteCsv;
+}
 if (($_GET['ver'] ?? '') === 'metas') {
     $nomesPdf = escNomes();
     $soPid = (int) ($_GET['pagina'] ?? 0);
@@ -328,9 +339,10 @@ if (($_GET['ver'] ?? '') === 'metas') {
         return '<span class="' . ($r >= 1 ? 'verde' : 'vermelho') . '">' . h($txt) . '</span>';
     };
     $somaMeta = static fn(array $porSemana): ?array => $porSemana ? [array_sum(array_column($porSemana, 0)), array_sum(array_column($porSemana, 1))] : null;
-    $dePdf = date('d/m/Y', strtotime($seg));
+    $dePdf = date('d/m/Y', strtotime($dias[0] ?? $seg));
     $atePdf = date('d/m/Y', strtotime(escMaisDias($seg, 6)));
-    $versaoPdf = escPlanoRotulo($plano) . ' · ' . ($plano['status'] === 'PUBLICADO' ? t('publicada') : t('rascunho'));
+    $versaoPdf = escPlanoRotulo($plano) . ' · ' . ($plano['status'] === 'PUBLICADO' ? t('publicada') : t('rascunho'))
+        . ($rotCortePdf !== '' ? ' · ' . t('a partir de {quando}', ['quando' => $rotCortePdf]) : '');
     $arquivoPdf = count($folhas) === 1 ? t('Metas {pagina} {de} a {ate}', ['pagina' => reset($folhas)['nome'], 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
         : t('Metas das páginas {de} a {ate}', ['de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))]);
     ?>
@@ -540,9 +552,10 @@ if (($_GET['ver'] ?? '') === 'pdf') {
         return '<span class="' . ($r >= 1 ? 'verde' : 'vermelho') . '">' . h(round($r * 100) . '%') . '</span>';
     };
     $blocosPdf = ['01' => ['T1', '01:00–05:00'], '05' => ['T2', '05:00–09:00'], '09' => ['T3', '09:00–13:00'], '13' => ['T4', '13:00–17:00'], '17' => ['T5', '17:00–21:00'], '21' => ['T6', '21:00–01:00']];
-    $dePdf = date('d/m/Y', strtotime($seg));
+    $dePdf = date('d/m/Y', strtotime($dias[0] ?? $seg));
     $atePdf = date('d/m/Y', strtotime(escMaisDias($seg, 6)));
-    $versaoPdf = escPlanoRotulo($plano) . ' · ' . ($plano['status'] === 'PUBLICADO' ? t('publicada') : t('rascunho'));
+    $versaoPdf = escPlanoRotulo($plano) . ' · ' . ($plano['status'] === 'PUBLICADO' ? t('publicada') : t('rascunho'))
+        . ($rotCortePdf !== '' ? ' · ' . t('a partir de {quando}', ['quando' => $rotCortePdf]) : '');
     $arquivoPdf = $soPid && count($folhas) === 1 ? t('Escala {pagina} {de} a {ate}', ['pagina' => reset($folhas)['nome'], 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
         : ($soUnidade ? t('Escala U{u} {de} a {ate}', ['u' => $soUnidade, 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
         : t('Escala das páginas {de} a {ate}', ['de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))]));
@@ -581,7 +594,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
         <tr>
           <th class="pag-pdf-bloco"><?php echo h($bl); ?><span><?php echo h($faixa); ?></span></th>
           <?php foreach ($dias as $d): $quem = $pg['cel'][$d . 'T' . $hora . ':00:00'] ?? []; ?>
-          <td><?php if (!$quem): ?><span class="pag-pdf-vazio">—</span><?php endif; ?>
+          <td><?php if (!$quem && ($corteCsv === '' || $d . 'T' . $hora . ':00:00' >= $corteCsv)): ?><span class="pag-pdf-vazio">—</span><?php endif; ?>
             <?php foreach ($quem as $rep => $marca): ?>
             <div class="pag-pdf-pessoa"><strong><?php echo h(nomeCurto($nomesPdf[$rep] ?? $rep)); ?></strong> <span class="mono"><?php echo h($rep); ?></span><?php echo $vendaTxt((string) $rep); ?><?php echo is_string($marca) ? ' <span class="pag-pdf-marca">' . h($marca) . '</span>' : ($marca ? ' <span class="pag-pdf-marca">#</span>' : ''); ?><?php echo !empty($pg['acima'][$d . 'T' . $hora . ':00:00'][$rep]) ? ' <span class="pag-pdf-marca">⚠</span>' : ''; ?></div>
             <?php endforeach; ?>
@@ -823,9 +836,9 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <div class="acoes">
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'] + $linkDesde)); ?>"><?php echo h(t('Baixar CSVs (.zip)')); ?></a>
     <?php foreach ([1, 2, 3] as $uPdf): ?>
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'unidade' => $uPdf, 'imprimir' => 1])); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Só as páginas da U{u}, em ordem de faturamento: uma folha de resumo e uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias e a venda por hora de cada SR.', ['u' => $uPdf])); ?>"><?php echo h(t('PDF U{u}', ['u' => $uPdf])); ?></a>
+    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'unidade' => $uPdf, 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Só as páginas da U{u}, em ordem de faturamento: uma folha de resumo e uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias e a venda por hora de cada SR.', ['u' => $uPdf])); ?>"><?php echo h(t('PDF U{u}', ['u' => $uPdf])); ?></a>
     <?php endforeach; ?>
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'imprimir' => 1])); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Uma folha por página (A4 paisagem, papel timbrado), com cada pessoa escalada na semana e o atingimento da meta dela na página nas 4 semanas anteriores.')); ?>"><?php echo h(t('Baixar PDF das metas')); ?></a>
+    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Uma folha por página (A4 paisagem, papel timbrado), com cada pessoa escalada na semana e o atingimento da meta dela na página nas 4 semanas anteriores.')); ?>"><?php echo h(t('Baixar PDF das metas')); ?></a>
     <?php if (escPode('planejar') && $ehRascunho): ?>
     <?php
     $resumoPublicar = t('Publicar a {versao} (semana de {dia})?', ['versao' => escPlanoRotulo($plano), 'dia' => dataBr($seg)])
@@ -870,7 +883,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
             </a>
           </td>
         <?php endforeach; ?>
-        <td class="grade-baixar"><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a></td>
+        <td class="grade-baixar"><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a></td>
       </tr>
     <?php endforeach; ?>
     <?php if (!$listaPaginas): ?><tr><td colspan="9" class="muted"><?php echo h(t('Nenhuma página neste filtro.')); ?></td></tr><?php endif; ?>

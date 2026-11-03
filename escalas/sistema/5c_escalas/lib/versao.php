@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.5', 'data' => '2026-11-03', 'titulo' => 'PDFs a partir do corte do CSV', 'sql' => [], 'itens' => [
+    'Grade, PDFs da escala (PDF U1, U2, U3 e o de cada página) e das metas: seguem o "CSV a partir de". Os dias antes do corte saem e, no dia do corte, os blocos antes dele ficam vazios; o subtítulo diz a partir de quando. Assim o PDF mostra só o que vai ser postado. "Semana inteira" volta ao PDF completo.',
+    ]],
     ['versao' => '1.19.4', 'data' => '2026-11-03', 'titulo' => 'Organograma com as páginas só da liderança', 'sql' => ['ES_93_andressa_sem_equipe_fixa.sql'], 'itens' => [
     'Organograma, "Ver páginas": as páginas de cada OS aparecem só com o nome, sem os SRs, porque a página é da liderança e não dos SRs; a lista de SRs do núcleo também deixa de mostrar as páginas de cada um. O botão "Sem os SRs" da 1.19.3 sai, porque esse passa a ser o padrão (também nos PDFs).',
         'ES_93: a Andressa Urach deixa de ter equipe fixa (ela tirava o Loik da Aline Novak no turno C). Na Aline, sem ninguém da equipe no turno, continua entrando outro SR brasileiro.',

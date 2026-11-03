@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.5' => ['titulo' => 'PDFs from the CSV cut', 'itens' => [
+    'Grid, schedule PDFs (U1, U2, U3 and per page) and the targets PDF: they follow "CSV from". Days before the cut are left out and, on the cut day, blocks before it are empty; the subtitle says from when. The PDF shows only what will be posted. "Whole week" brings back the full PDF.',
+    ]],
     '1.19.4' => ['titulo' => 'Org chart with pages belonging to the leadership only', 'itens' => [
     'Org chart, "View pages": each OS\'s pages show only the page name, without SRs, because the page belongs to the leadership, not to the SRs; the core\'s SR list no longer shows each person\'s pages either. The 1.19.3 "Without SRs" button is removed, since this is now the default (also in the PDFs).',
         'ES_93: Andressa Urach no longer has a fixed team (it pulled Loik away from Aline Novak in shift C). On Aline, when nobody from the team works the shift, another Brazilian SR still steps in.',
