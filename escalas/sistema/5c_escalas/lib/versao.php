@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.3', 'data' => '2026-11-03', 'titulo' => 'Quem já fez a página antes da faixa e organograma sem os SRs', 'sql' => ['ES_83_turno_a_tres_srs_0311.sql', 'ES_84_os_u2_turno_a_0311.sql', 'ES_92_mikayla_free_jose_turno_a.sql'], 'itens' => [
+    'Gerar, melhor SR de cada página (A-01): depois de quem bateu 65% da meta na página, vem quem já fez a página nos últimos 30 dias, e só então a faixa do mérito. Antes, um SR Acima que nunca fez a página passava na frente de quem já a fazia abaixo de 65% (caso da Mikayla Free em 03/11). Quem estava no posto e nunca fez a página também cede para quem já fez.',
+    'Organograma: com "Ver páginas", o botão "Sem os SRs" mostra só o nome das páginas de cada OS, sem os owners. Vale também para o Baixar PDF e o PDF completo.',
+    'ES_92: o José Otávio, que foi para o turno A (ES_83), sai do pedido da líder na Mikayla Free do T4/T5 de 05/11; as células da Mikayla Free do T4/T5 de 04 e 05/11 ficam destravadas (menos a do Jonas em 04/11) para o próximo recálculo.',
+        'ES_83 e ES_84 (desde 03/11): José Otávio, Marcos Cid e Esley Michael no turno A, no núcleo de mesmo número; OS da U2 A (OC Ricardo Cunico): Vinicius Kodama no núcleo 1, Julio Candia no 2 e Lucas Caetano no 3; o João Paulo Caial vira SR nível 5 no núcleo 1.',
+    ]],
     ['versao' => '1.19.2', 'data' => '2026-11-03', 'titulo' => 'Páginas fora do Capacity sem consulta bloqueada', 'sql' => [], 'itens' => [
         'Estrutura, páginas ativas fora do Capacity: a consulta que tira as páginas que já têm carteira usava a função REPLACE, que a trava de leitura do portal bloqueia. A comparação (sem espaços e sem diferença de maiúsculas) passou para o código, com o mesmo resultado.',
     ]],

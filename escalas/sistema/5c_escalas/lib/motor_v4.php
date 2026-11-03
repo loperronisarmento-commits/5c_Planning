@@ -1049,8 +1049,10 @@ function escMotorAlocarV4(array $in): array {
                             // Primeiro quem já fez a página e bateu a meta nela (v4_melhores_meta_min nos últimos 30 dias).
                             $bateu = ($mel['meta'][$pag][$rep] ?? 0.0) >= $metaMin ? 1 : 0;
                             if ($faixaPasso0) {
-                                // A-01 com a P-01: depois a faixa do mérito, a nota em pontos e o tempo de casa.
-                                $k = [$bateu, $faixaRep[$rep] ?? 1, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
+                                // A-01 com a P-01: depois quem já fez a página em 30 dias (tem meta nela, 03/11),
+                                // a faixa do mérito, a nota em pontos e o tempo de casa.
+                                $conhece = isset($mel['meta'][$pag][$rep]) ? 1 : 0;
+                                $k = [$bateu, $conhece, $faixaRep[$rep] ?? 1, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
                             } else {
                                 // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
                                 $naPag = $mel['pagina'][$pag][$rep] ?? null;
@@ -1068,10 +1070,12 @@ function escMotorAlocarV4(array $in): array {
                         $fica = false;
                         if ($faixaPasso0) {
                             // Continuidade (P-01): quem estava no posto fica, a não ser que o melhor seja de faixa acima
-                            // da dele ou que ele esteja abaixo da meta mínima na página.
+                            // da dele, que ele esteja abaixo da meta mínima na página ou que nunca a tenha feito
+                            // e o melhor já tenha.
                             $antes = $ultimo[(int) $p['id']] ?? null;
                             if ($antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && !isset($usado[$antes]) && $pode($antes, $p)
                                 && ($faixaRep[$melhor] ?? 1) <= ($faixaRep[$antes] ?? 1)
+                                && (isset($mel['meta'][$pag][$antes]) || !isset($mel['meta'][$pag][$melhor]))
                                 && !(isset($mel['meta'][$pag][$antes]) && $mel['meta'][$pag][$antes] < $metaMin)) {
                                 $melhor = $antes;
                                 $fica = true;

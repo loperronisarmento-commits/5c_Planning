@@ -89,15 +89,18 @@ regra faria, uma por uma, dentro do mesmo dia, turno e unidade.
 - **Regra (juntada com a P-01 em 03/11):** no passo 0, o SR de cada página é escolhido nesta ordem:
   1. **Quem bateu 65% ou mais da meta na página** nos últimos 30 dias. Isso vem antes de tudo, também
      da faixa (decisão de 03/11). Hoje esse corte é de 70%.
-  2. **A faixa:** Acima, depois Na média, depois Abaixo.
-  3. **A nota em pontos**, depois o tempo de casa (M-06) e o código. A venda/hora sai, porque já entra
+  2. **Quem já fez a página** nos últimos 30 dias (tem meta nela), mesmo abaixo de 65% (03/11, depois
+     da Mikayla Free do plano 96).
+  3. **A faixa:** Acima, depois Na média, depois Abaixo.
+  4. **A nota em pontos**, depois o tempo de casa (M-06) e o código. A venda/hora sai, porque já entra
      na nota pela M-07.
   - **Escopo, da P-01:** todas as páginas (menos as On demand), de cima para baixo na fila, e não só as
     prioritárias. Fica por parâmetro: `v4_melhores_receita_min` = 0.
   - **Continuidade, da P-01:** quem estava no posto da última vez fica, salvo em dois casos:
     - o melhor candidato está numa **faixa acima** da dele (decisão de 03/11; substitui os "15% de
       nota a mais" da P-01, que não servem para pontos);
-    - ele está abaixo de 65% da meta na página.
+    - ele está abaixo de 65% da meta na página;
+    - ele nunca fez a página e o melhor candidato já fez (03/11).
   - A fila dos postos não muda: a modelo que mais fatura continua escolhendo primeiro.
 - **Passo do motor:** passo 0 (melhores SRs), na chave `$k` da escolha (`motor_v4.php`, por volta da
   linha 1031).
@@ -140,6 +143,9 @@ regra faria, uma por uma, dentro do mesmo dia, turno e unidade.
   - 02/11: criada e simulada no plano 93.
   - 03/11: a meta na página (65% ou mais) vem antes da faixa (Luis Otávio). Em ajuste.
   - 03/11: validada (Luis Otávio), com o ok explícito para a faixa pesar além do desempate da M-01.
+  - 03/11: "já fez a página em 30 dias" entra entre a meta e a faixa, também na continuidade
+    (Luis Otávio, depois de SRs Acima que nunca fizeram a Mikayla Free entrarem no plano 96). Instalado,
+    a publicar.
   - 03/11: **juntada com a P-01** (Luis Otávio). O escopo e a continuidade vêm da P-01; a ordem vem
     desta regra, com a nota em pontos no lugar da venda/hora. Na continuidade, quem estava só sai
     para um candidato de faixa acima. A janela do atingimento é de 30 dias, como no passo 0 de hoje.

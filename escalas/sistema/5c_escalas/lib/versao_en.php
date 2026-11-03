@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.3' => ['titulo' => 'Page experience before the merit band, and org chart without SRs', 'itens' => [
+    'Generate, best SR for each page (A-01): after whoever hit 65% of the target on the page come those who worked the page in the last 30 days, and only then the merit band. Before, an Above SR who had never worked the page went ahead of someone already working it below 65% (Mikayla Free on 11/03). Whoever held the post and never worked the page also yields to someone who has.',
+    'Org chart: with "View pages", the "Without SRs" button shows only the page names under each OS, without the owners. It also applies to Download PDF and the full PDF.',
+    'ES_92: José Otávio, who moved to shift A (ES_83), leaves the leader\'s request on Mikayla Free in T4/T5 on 11/05; the Mikayla Free T4/T5 cells on 11/04 and 11/05 are unlocked (except Jonas on 11/04) for the next recalculation.',
+        'ES_83 and ES_84 (from 11/03): José Otávio, Marcos Cid and Esley Michael move to shift A, in the core with the same number; OSs of U2 A (OC Ricardo Cunico): Vinicius Kodama in core 1, Julio Candia in 2 and Lucas Caetano in 3; João Paulo Caial becomes a level 5 SR in core 1.',
+    ]],
     '1.19.2' => ['titulo' => 'Pages outside Capacity without a blocked query', 'itens' => [
         'Structure, active pages outside Capacity: the query that removes pages that already have a portfolio used the REPLACE function, which the portal read-only guard blocks. The comparison (ignoring spaces and case) moved to the code, with the same result.',
     ]],
