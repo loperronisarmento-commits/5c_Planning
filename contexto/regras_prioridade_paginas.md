@@ -77,7 +77,7 @@ As regras P-01 a P-04 foram pedidas pelo Luis Otávio em 03/11/2026 e **validada
   - filtros Vermelhas, Amarelas e "Fora do OnlyFans";
   - contagem de vermelhas e amarelas;
   - origem de cada valor (Telegram, cadastro do cliente, site ou manual, com nome e data).
-  - A origem só muda quando o valor muda. Ainda não foi publicada (versão a definir).
+  - A origem só muda quando o valor muda. Publicada na 1.18.15 (03/11, commit `b2de074`).
 
 **Falta (motor e telas, versão nova):**
 1. **Travas de candidato em todos os passos** (`motor_v4.php`):
