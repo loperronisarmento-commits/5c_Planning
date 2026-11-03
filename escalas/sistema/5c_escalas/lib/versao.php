@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.2', 'data' => '2026-11-03', 'titulo' => 'Páginas fora do Capacity sem consulta bloqueada', 'sql' => [], 'itens' => [
+        'Estrutura, páginas ativas fora do Capacity: a consulta que tira as páginas que já têm carteira usava a função REPLACE, que a trava de leitura do portal bloqueia. A comparação (sem espaços e sem diferença de maiúsculas) passou para o código, com o mesmo resultado.',
+    ]],
     ['versao' => '1.19.1', 'data' => '2026-11-03', 'titulo' => 'Mérito volta a se recalcular no servidor', 'sql' => [], 'itens' => [
         'O cache do mérito não se recalculava no servidor desde 01/11: a consulta que tira do SLA as horas excluídas pelo Capacity usava a função REPLACE, que a trava de leitura do portal bloqueia. A consulta foi reescrita sem ela, com o mesmo resultado; a nota em pontos da 1.19.0 passa a valer no Gerar.',
     ]],

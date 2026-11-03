@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.2' => ['titulo' => 'Pages outside Capacity without a blocked query', 'itens' => [
+        'Structure, active pages outside Capacity: the query that removes pages that already have a portfolio used the REPLACE function, which the portal read-only guard blocks. The comparison (ignoring spaces and case) moved to the code, with the same result.',
+    ]],
     '1.19.1' => ['titulo' => 'Merit recalculates on the server again', 'itens' => [
         'The merit cache had not been recalculated on the server since 11/01: the query that removes the hours excluded by Capacity from the SLA used the REPLACE function, which the portal read-only guard blocks. The query was rewritten without it, with the same result; the 1.19.0 points score now applies in Generate.',
     ]],

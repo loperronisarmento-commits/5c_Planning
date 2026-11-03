@@ -80,11 +80,16 @@ function escEstruturaPaginasFora(string $hoje): array {
                           (SELECT COUNT(*) FROM `5c_schedule`.`scheduleday` s WHERE s.modeloNome = g.name AND s.shiftDateAndHour >= ?) AS escala,
                           (SELECT SUM(i.`5CReps`) FROM `5c_wfm_db_mis`.`tab_intraday_base` i WHERE i.Page = g.name AND i.`Date` >= ?) AS venda
                      FROM `5c_pages`.`pages` g
-                    WHERE g.active = 1 AND g.name <> ?
-                      AND NOT EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_carteira` c WHERE REPLACE(c.pagina, \' \', \'\') = REPLACE(g.name, \' \', \'\') AND (c.vigente_ate IS NULL OR c.vigente_ate > ?))',
-        [$de . 'T00:00:00', $de, escV4Param('v4_overlap_pagina', '5C Schedule'), $hoje]);
-    $lista = array_values(array_filter($lista, static fn($l) => (int) $l['escala'] > 0 || (float) $l['venda'] > 0
-        || ($l['imported_at'] !== null && substr((string) $l['imported_at'], 0, 10) >= $novaDe)));
+                    WHERE g.active = 1 AND g.name <> ?',
+        [$de . 'T00:00:00', $de, escV4Param('v4_overlap_pagina', '5C Schedule')]);
+    // Já com carteira (comparando sem espaços e sem caixa): no PHP, porque a trava de leitura (escQ)
+    // bloqueia a palavra REPLACE no SQL.
+    $semEspaco = static fn($p) => mb_strtolower(str_replace(' ', '', trim((string) $p)));
+    $comCarteira = array_flip(array_map($semEspaco, array_column(escQ('SELECT pagina FROM `5c_planning`.`fc_pagina_carteira`
+                     WHERE vigente_ate IS NULL OR vigente_ate > ?', [$hoje]), 'pagina')));
+    $lista = array_values(array_filter($lista, static fn($l) => !isset($comCarteira[$semEspaco($l['pagina'])])
+        && ((int) $l['escala'] > 0 || (float) $l['venda'] > 0
+            || ($l['imported_at'] !== null && substr((string) $l['imported_at'], 0, 10) >= $novaDe))));
     if (!$lista) {
         return [];
     }
