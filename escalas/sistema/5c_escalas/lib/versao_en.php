@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.13' => ['titulo' => 'Generate from a shift, CSV from a date, On demand pages and the Fanvue team', 'itens' => [
+        'Pages: allocation setting on each page, Active team (default) or On demand. An on-demand page gets no one in Generate; when someone asks for it, the allocation is done by hand in the Grid, with the cell locked. New filter and counter on the screen. ES_79: Molly Stewart, Diana Rider, Britt, Blair and Jena Wolfy OFTV are on demand, per the sales spreadsheet of 02/11.',
+        'Generate schedule: "Starting from" option (day and shift of the week) for the three buttons. Before the chosen shift the published (or current) version stays, cell by cell, with the days off; the new calculation only applies from there on. Whoever works before the cut only comes back after 11 h of rest. In the current week, the next shift that has not started yet comes selected.',
+        'Grid: "CSV from" (day and shift). Blocks before it go out blank and the Date Schedule is the chosen day, so the site keeps what it already has and the past does not change. A version generated "starting from" already opens with that cut, including the batch posting package; "Whole week" goes back to the full CSV.',
+        'ES_80: fixed Fanvue team (Savannah and Ivy Vale) from 03/11 with the SRs who have Fanvue experience: Eduardo Gois, Guilherme Watanabe, Gabriel Pereira, Jean Larraine (from 09/11), Francisca Mylla, Francisco Joshua, Rachel Grace, Melody Joyce and Yasmim Barbosa. Those outside move to U3 on the same shift and level; the previous owners of both pages move to their units of origin as compensation.',
+    ]],
     '1.18.12' => ['titulo' => 'Full org chart PDF and T4/T5 in the Owners PDF', 'itens' => [
         'Org chart: "Download full PDF" button, with the 3 shifts side by side in each unit and two sheets the size of the content: the 1st with people only (leadership and the SRs of each team) and the 2nd down to the supervisors, with each team pages as a list (page on top, owners below). The PDF is vector: zoom in as much as you like without losing text quality. The previous "Download PDF" stays the same (A3, as on screen).',
         'Owners and backups: Print / PDF comes out in A4 landscape with the three shift columns (T6/T1, T2/T3 and T4/T5) sharing the sheet width. Before, in A4 portrait, the table was wider than the page and T4/T5 was cut off. The table header repeats on every sheet.',

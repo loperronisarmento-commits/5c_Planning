@@ -50,4 +50,5 @@ return [
     'Entraram no Capacity: {lista}.' => 'Added to Capacity: {lista}.',
     'Postos levados para a unidade nova: {lista}.' => 'Posts moved to the new unit: {lista}.',    'o Capacity de hoje veio com {n} páginas e a escala tem {m}; os postos não foram trocados. Confira o cálculo do Capacity' => 'today\'s Capacity came with {n} pages and the schedule has {m}; posts were not replaced. Check the Capacity calculation',
     'Mínimo de mudanças sobre a {base}: {mantidas} células mantidas; {paginas} páginas mudaram ({novas} vagas preenchidas, {mais} como página a mais, {lacunas} sem ninguém).' => 'Minimum changes on {base}: {mantidas} cells kept; {paginas} pages changed ({novas} slots filled, {mais} as an extra page, {lacunas} with no one).',
+    '{dia} · turno {turno} ({blocos})' => '{dia} · shift {turno} ({blocos})',
 ];

@@ -109,4 +109,8 @@ return [
     'Recalcular tudo (mantém {n} ajuste travado)' => 'Recalculate everything (keeps {n} locked adjustment)',
     'Recalcular tudo (mantém {n} ajustes travados)' => 'Recalculate everything (keeps {n} locked adjustments)',
     'Recalcular com o mínimo de mudanças parte da versão publicada e só mexe no necessário (use depois de postar). Recalcular tudo refaz a semana com a estrutura de hoje e mantém o que foi ajustado à mão. Gerar do zero cria uma versão nova sem os ajustes.' => 'Recalc With Minimum Changes starts from the published version and only touches what is needed (use it after posting). Recalculate everything redoes the week with today\'s structure and keeps manual adjustments. Generate from scratch creates a new version without the adjustments.',
+    'A partir de' => 'Starting from',
+    'Semana inteira' => 'Whole week',
+    'Só mudou a partir de {quando}; antes disso ficou a versão publicada.' => 'Only changed from {quando} on; before that the published version stays.',
+    'Com um turno escolhido, o recálculo só muda dali em diante: antes dele fica a versão publicada (ou a atual), célula por célula, e o CSV da nova versão já sai a partir desse turno. Quem trabalha antes do corte só volta com 11 h de descanso.' => 'With a shift chosen, the recalculation only changes from there on: before it the published (or current) version stays, cell by cell, and the new version\'s CSV already starts at that shift. Whoever works before the cut only comes back after 11 h of rest.',
 ];

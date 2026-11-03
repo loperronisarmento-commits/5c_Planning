@@ -223,4 +223,9 @@ return [
     'Mediana: US$ {v}/h.' => 'Median: US$ {v}/h.',
     'Só as páginas da U{u}, em ordem de faturamento: uma folha de resumo e uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias e a venda por hora de cada SR.' => 'Only the U{u} pages, in revenue order: a summary sheet and one sheet per page (A4 landscape, letterhead), with who is on each block T1 to T6 over the 7 days and each SR\'s sales per hour.',
     'PDF U{u}' => 'PDF U{u}',
+    'CSV a partir de' => 'CSV from',
+    'Semana inteira' => 'Whole week',
+    'Aplicar' => 'Apply',
+    'Os blocos antes desse turno saem em branco no CSV e o site continua com o que já tem (Date Schedule = o dia escolhido). O passado não muda.' => 'Blocks before that shift go out blank in the CSV and the site keeps what it already has (Date Schedule = the chosen day). The past does not change.',
+    'CSV a partir de {quando}: antes disso vale a escala já postada no site; não apague nem poste nada antes desse horário. Os passos abaixo chamam esse horário de virada.' => 'CSV from {quando}: before that the schedule already posted on the site stands; do not delete or post anything before that time. The steps below call that time the switch-over.',
 ];

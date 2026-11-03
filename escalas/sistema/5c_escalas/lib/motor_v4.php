@@ -52,6 +52,38 @@ function escPostagemCorte(string $seg): string {
     return $corte > $seg . 'T01:00:00' && $corte < escMaisDias($seg, 7) . 'T01:00:00' ? $corte : '';
 }
 
+// Início de cada turno no dia (slot do CSV): A às 05:00, C às 13:00, D às 21:00.
+const ESC_TURNO_HORA = ['A' => '05', 'C' => '13', 'D' => '21'];
+
+// "A partir de" (dia e turno) como slot da semana ('Y-m-dTHH:00:00', no início de um turno);
+// '' quando não é o começo de um turno desta semana.
+function escSlotDaSemana(string $seg, string $slot): string {
+    if (!preg_match('~^(\d{4}-\d{2}-\d{2})T(05|13|21):00:00$~', $slot, $m)) {
+        return '';
+    }
+    return $m[1] >= $seg && $m[1] <= escMaisDias($seg, 6) ? $slot : '';
+}
+
+// Turnos da semana para escolher o "a partir de": [slot => rótulo].
+function escSlotsDaSemana(string $seg): array {
+    $slots = [];
+    foreach (escDiasDaSemana($seg) as $d) {
+        foreach (ESC_TURNO_HORA as $turno => $hora) {
+            $slots[$d . 'T' . $hora . ':00:00'] = t('{dia} · turno {turno} ({blocos})', ['dia' => dataBr($d, true), 'turno' => $turno, 'blocos' => implode('/', ESC_TURNOS[$turno])]);
+        }
+    }
+    return $slots;
+}
+
+// Corte do CSV da Grade: os blocos antes dele ficam em branco e o site continua com o que já tem
+// (Date Schedule = dia do corte). Nunca antes da virada. Vale o escolhido na tela ('semana' = a
+// semana toda); sem escolha, o "a partir de" com que a versão foi gerada.
+function escCsvCorte(string $seg, ?array $plano, ?string $escolhido = null): string {
+    $par = $plano ? (json_decode((string) ($plano['parametros'] ?? ''), true) ?: []) : [];
+    $desde = escSlotDaSemana($seg, $escolhido ?? (string) ($par['desde'] ?? ''));
+    return max(escPostagemCorte($seg), $desde);
+}
+
 // Primeiro turno da estrutura nova no dia da virada: 05:00 → A, 13:00 → C, 21:00 → D
 // (a virada às 21:00 começa no turno D: T6 do dia + T1 do dia seguinte).
 function escV4TurnoVirada(): string {
@@ -123,6 +155,25 @@ function escPaginaConfig(): array {
         }
     } catch (Throwable $e) {
         // tabela ainda não criada (ES_57)
+    }
+    return $cache;
+}
+
+// Alocação de cada página (esc_pagina_config.alocacao, ES_79): EQUIPE (Active team, padrão) ou
+// SOB_DEMANDA (On demand: o Gerar não põe ninguém; quando pedem, a alocação é manual, travada na Grade).
+// Devolve [chave da página] = true só das sob demanda. Sem a coluna (ES_79 não rodou), nenhuma.
+function escPaginaSobDemanda(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cache = [];
+    try {
+        foreach (escQ('SELECT pagina FROM ' . escT('esc_pagina_config') . " WHERE alocacao = 'SOB_DEMANDA'") as $r) {
+            $cache[escV4ChavePagina((string) $r['pagina'])] = true;
+        }
+    } catch (Throwable $e) {
+        // coluna ainda não criada (ES_79)
     }
     return $cache;
 }
@@ -243,13 +294,28 @@ function escV4Carregar(string $dia): array {
     }
     $nomes = [];
     $cargaPagina = []; // [posto][página] = fãs/h
+    // Página sob demanda (On demand, ES_79) sai do posto com a carga dela; posto que fica sem
+    // página nenhuma não abre vaga. A alocação dela é manual (célula travada na Grade).
+    $sobDemanda = escPaginaSobDemanda();
+    $tiraDemanda = [];
     if ($postos) {
         foreach (escQ('SELECT posto_id, pagina, page_id, apoio, fracao, fans_h FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id IN (' . escIn(array_keys($postos)) . ')', array_keys($postos)) as $pp) {
+            if (isset($sobDemanda[escV4ChavePagina((string) $pp['pagina'])])) {
+                $tiraDemanda[(int) $pp['posto_id']] = ($tiraDemanda[(int) $pp['posto_id']] ?? 0) + (float) $pp['fans_h'];
+                continue;
+            }
             $postos[(int) $pp['posto_id']]['paginas'][] = ['pagina' => $pp['pagina'], 'page_id' => (int) $pp['page_id'], 'apoio' => (int) $pp['apoio'] === 1,
                 'fracao' => (float) $pp['fracao'], 'fans_h' => (float) $pp['fans_h']];
             $nomes[$pp['pagina']] = true;
             $cargaPagina[(int) $pp['posto_id']][$pp['pagina']] = ($cargaPagina[(int) $pp['posto_id']][$pp['pagina']] ?? 0) + (float) $pp['fans_h'];
         }
+    }
+    foreach ($tiraDemanda as $pid => $f) {
+        if (!$postos[$pid]['paginas']) {
+            unset($postos[$pid]);
+            continue;
+        }
+        $postos[$pid]['carga'] = max(0.0, round((float) $postos[$pid]['carga'] - $f, 1));
     }
     // Faturamento médio por dia de cada página e turno (US$, statement por bloco): ordem de preenchimento.
     $receita = [];

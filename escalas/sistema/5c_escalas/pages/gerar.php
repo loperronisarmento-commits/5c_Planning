@@ -19,9 +19,12 @@ if (escPost()) {
     escExigir('planejar');
     $acao = $_POST['acao'] ?? '';
     $segPost = segundaDaSemana((string) ($_POST['semana'] ?? $seg));
+    // "A partir de" (início de um turno da semana): antes dele fica a versão publicada como está.
+    $desde = escSlotDaSemana($segPost, (string) ($_POST['desde'] ?? ''));
+    $avisoDesde = $desde !== '' && escPlanoAtual($segPost) ? ' ' . t('Só mudou a partir de {quando}; antes disso ficou a versão publicada.', ['quando' => escSlotsDaSemana($segPost)[$desde]]) : '';
     if ($acao === 'gerar') {
-        $id = escMotorGerar($segPost, 'NOVA', escUserId());
-        escVoltar('grade', ['plano' => $id], t('Rascunho gerado para a semana de {dia}.', ['dia' => escData($segPost)]) . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
+        $id = escMotorGerar($segPost, 'NOVA', escUserId(), null, false, $desde);
+        escVoltar('grade', ['plano' => $id], t('Rascunho gerado para a semana de {dia}.', ['dia' => escData($segPost)]) . $avisoDesde . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
     }
     if ($acao === 'recalcular') {
         if (!escPlanoAtual($segPost)) {
@@ -29,8 +32,8 @@ if (escPost()) {
         }
         escW('INSERT INTO ' . escT('esc_recalculo_evento') . " (gatilho, descricao, semana_inicio, status) VALUES ('MANUAL', 'Recálculo pedido na tela', ?, 'DETECTADO')", [$segPost]);
         $ev = escUltimoId();
-        $id = escMotorGerar($segPost, 'RECALCULO', escUserId(), $ev);
-        escVoltar('grade', ['plano' => $id], t('Recalculado. Veja o De→Para no fim da tela Gerar escala.') . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
+        $id = escMotorGerar($segPost, 'RECALCULO', escUserId(), $ev, false, $desde);
+        escVoltar('grade', ['plano' => $id], t('Recalculado. Veja o De→Para no fim da tela Gerar escala.') . $avisoDesde . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
     }
     if ($acao === 'recalcular_minimo') {
         if (!escPlanoAtual($segPost)) {
@@ -38,8 +41,8 @@ if (escPost()) {
         }
         escW('INSERT INTO ' . escT('esc_recalculo_evento') . " (gatilho, descricao, semana_inicio, status) VALUES ('MANUAL', 'Recálculo com o mínimo de mudanças', ?, 'DETECTADO')", [$segPost]);
         $ev = escUltimoId();
-        $id = escMotorGerar($segPost, 'RECALCULO', escUserId(), $ev, true);
-        escVoltar('grade', ['plano' => $id], t('Recalculado com o mínimo de mudanças.') . escMinimoAviso() . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
+        $id = escMotorGerar($segPost, 'RECALCULO', escUserId(), $ev, true, $desde);
+        escVoltar('grade', ['plano' => $id], t('Recalculado com o mínimo de mudanças.') . $avisoDesde . escMinimoAviso() . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
     }
     if ($acao === 'verificar') {
         $r = escMotorVerificar(escUserId(), true);
@@ -155,6 +158,14 @@ if ($atual && $atual['plano_anterior_id']) {
     $difs = escQ('SELECT tipo, COUNT(*) AS n, SUM(aplicado = 0) AS nao_aplicados FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ? GROUP BY tipo', [(int) $atual['id']]);
 }
 $eventos = escQ('SELECT * FROM ' . escT('esc_recalculo_evento') . ' WHERE semana_inicio = ? OR semana_inicio IS NULL ORDER BY id DESC LIMIT 10', [$seg]);
+// Sugestão do "a partir de": na semana em andamento, o próximo turno que ainda não começou.
+$desdeSugerido = '';
+foreach (array_keys(escSlotsDaSemana($seg)) as $slot) {
+    if (strtotime(str_replace('T', ' ', $slot)) > time()) {
+        $desdeSugerido = $slot > $seg . 'T05:00:00' ? $slot : '';
+        break;
+    }
+}
 $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando FROM ' . escT('esc_entrada_diferenca') . ' d JOIN ' . escT('esc_entrada_foto') . ' f ON f.id = d.foto_para_id WHERE f.lido_em >= NOW() - INTERVAL 7 DAY GROUP BY d.fonte ORDER BY quando DESC');
 ?>
 <header class="cabecalho">
@@ -189,19 +200,28 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php endif; ?>
 
   <?php if (escPode('planejar')): ?>
+  <?php if ($atual && $v4): ?>
+  <label class="filtros"><?php echo h(t('A partir de')); ?>
+    <select id="gerar-desde" aria-describedby="gerar-desde-ajuda">
+      <option value=""><?php echo h(t('Semana inteira')); ?></option>
+      <?php foreach (escSlotsDaSemana($seg) as $slot => $rot): ?><option value="<?php echo h($slot); ?>"<?php echo $slot === $desdeSugerido ? ' selected' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
+    </select>
+  </label>
+  <p class="muted small" id="gerar-desde-ajuda"><?php echo h(t('Com um turno escolhido, o recálculo só muda dali em diante: antes dele fica a versão publicada (ou a atual), célula por célula, e o CSV da nova versão já sai a partir desse turno. Quem trabalha antes do corte só volta com 11 h de descanso.')); ?></p>
+  <?php endif; ?>
   <div class="acoes">
     <?php if ($atual): ?>
     <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Recalculando… pode levar até 3 min.')); ?>">
-      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular_minimo"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
+      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular_minimo"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao primario" title="<?php echo h(t('Parte da versão publicada (a postada) e muda só o necessário: página nova, quem saiu ou ficou indisponível. Quase todos os CSVs continuam iguais.')); ?>"><?php echo h(t('Recalcular com o mínimo de mudanças')); ?></button>
     </form>
     <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Recalculando… pode levar até 3 min.')); ?>" data-confirmar="<?php echo h(t('Recalcular tudo refaz a semana inteira com a estrutura de hoje: muitas páginas podem mudar e precisar ser postadas de novo. Os ajustes travados ficam. Recalcular tudo?')); ?>">
-      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
+      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao"><?php echo h(tn($travadasAtual, 'Recalcular tudo (mantém {n} ajuste travado)', 'Recalcular tudo (mantém {n} ajustes travados)')); ?></button>
     </form>
     <?php endif; ?>
     <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Gerando… pode levar até 3 min.')); ?>"<?php if ($atual && $travadasAtual): ?> data-confirmar="<?php echo h(tn($travadasAtual, 'Gerar do zero descarta o {n} ajuste manual travado da {versao}. Para manter, use Recalcular. Gerar do zero mesmo assim?', 'Gerar do zero descarta os {n} ajustes manuais travados da {versao}. Para manter, use Recalcular. Gerar do zero mesmo assim?', ['versao' => escPlanoRotulo($atual)])); ?>"<?php endif; ?>>
-      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="gerar"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
+      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="gerar"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao <?php echo $atual ? '' : 'primario'; ?>"><?php echo $atual ? h(t('Gerar do zero (nova versão)')) : h(t('Gerar rascunho')); ?></button>
     </form>
     <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Verificando… pode levar até 3 min.')); ?>">
@@ -213,6 +233,15 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php else: ?>
   <p class="muted small"><?php echo h(t('Seu perfil só visualiza. Gerar e recalcular: Planejamento ou Admin.')); ?></p>
   <?php endif; ?>
+  <script>
+  (function () {
+    var sel = document.getElementById('gerar-desde');
+    if (!sel) { return; }
+    document.querySelectorAll('.campo-desde').forEach(function (c) {
+      c.form.addEventListener('submit', function () { c.value = sel.value; }, true);
+    });
+  })();
+  </script>
   <?php if ($v4): ?>
   <ol class="roteiro muted small">
     <li><strong><?php echo h(t('Estrutura nova')); ?></strong> <?php echo h(t('(a partir de {dia} às {hora}): unidade → turno → 3 núcleos; todo dia 2 núcleos trabalham. Os times e parties atuais não entram.', ['dia' => dataBr(escV4DiaVirada()), 'hora' => substr(escV4Param('v4_virada', '2026-11-01 05:00'), 11, 5)])); ?></li>

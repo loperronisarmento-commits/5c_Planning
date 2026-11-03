@@ -30,4 +30,8 @@ return [
     'Normal (marcada)' => 'Normal (set)',
     'Normal' => 'Normal',
     'Configuração de {pagina}' => 'Setting for {pagina}',
+    'Equipe ativa' => 'Active team',
+    'Sob demanda' => 'On demand',
+    'Alocação de {pagina}' => 'Allocation for {pagina}',
+    'Página sob demanda (On demand) não recebe ninguém no "Gerar". Quando alguém pede, a alocação é feita à mão na Grade, com a célula travada.' => 'An on-demand page gets no one in "Generate". When someone asks for it, the allocation is done by hand in the Grid, with the cell locked.',
 ];

@@ -654,10 +654,28 @@ function escPlanoRotulo(array $p): string {
  *                          grava o De→Para da escala.
  */
 // $minimo: "Recalcular com o mínimo de mudanças" (lib/minimo.php), a partir da versão publicada.
-function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoId = null, bool $minimo = false): int {
+// $desde: "a partir de" (slot do início de um turno da semana, ex. 2026-11-03T21:00:00). Antes dele
+// as células e as folgas são as da versão publicada (sem ela, a atual), como estão; o cálculo novo
+// só vale dali em diante. Quem trabalha antes do corte só volta com 11 h de descanso.
+function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoId = null, bool $minimo = false, string $desde = ''): int {
     @set_time_limit(180);
     $dias = escDiasDaSemana($seg);
     $base = escPlanoAtual($seg);
+    $desde = escSlotDaSemana($seg, $desde);
+    $refDesde = $desde !== '' ? (escPlanoPublicado($seg) ?? $base) : null;
+    $refPre = [];
+    $refFolgas = [];
+    if ($refDesde) {
+        foreach (escQ('SELECT dia, bloco, turno, page_id, pagina, posto_id, vaga, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ?', [(int) $refDesde['id']]) as $l) {
+            $l['dia'] = substr((string) $l['dia'], 0, 10);
+            if ($l['dia'] . 'T' . escHoraDoBloco((string) $l['bloco']) . ':00:00' < $desde) {
+                $refPre[] = $l;
+            }
+        }
+        $refFolgas = escQ('SELECT rep_code, dia, tipo, ref_id FROM ' . escT('esc_plano_folga') . ' WHERE plano_id = ? AND dia < ?', [(int) $refDesde['id'], substr($desde, 0, 10)]);
+    } else {
+        $desde = '';
+    }
 
     $fotos = escMotorFotosAtuais();
     [$fotoIds] = escMotorRegistrarFotos($fotos);
@@ -719,6 +737,28 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                 }
             }
         }
+        // "A partir de": quem trabalha antes do corte (na versão de referência) só entra num turno
+        // depois dele com 11 h de descanso desde o fim do último bloco (cada bloco tem 4 h).
+        if ($desde !== '') {
+            $fim = [];
+            foreach ($refPre as $l) {
+                if ($l['rep_code'] !== null) {
+                    $t = strtotime($l['dia'] . ' ' . escHoraDoBloco((string) $l['bloco']) . ':00') + 4 * 3600;
+                    $fim[strtoupper((string) $l['rep_code'])] = max($fim[strtoupper((string) $l['rep_code'])] ?? 0, $t);
+                }
+            }
+            $corte = strtotime(str_replace('T', ' ', $desde));
+            foreach ($fim as $code => $t) {
+                foreach ($dias as $d) {
+                    foreach (ESC_TURNO_HORA as $tb => $hora) {
+                        $ini = strtotime($d . ' ' . $hora . ':00');
+                        if ($ini >= $corte && $ini < $t + 11 * 3600) {
+                            $indisp[$code][$d][$tb] ??= ['id' => null, 'blocos' => null];
+                        }
+                    }
+                }
+            }
+        }
         $saida = escMotorAlocarV4([
             'dias' => $dias, 'est' => $est, 'indisp' => $indisp,
             'travadas' => $travadas, 'virada' => $virada, 'turno_virada' => $turnoVirada, 'transicao' => $transicoes,
@@ -777,7 +817,12 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
     }
 
     $est = $est ?? []; // estrutura v4 (pessoas e postos), para proteger só quem continua nela
-    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo, $est) {
+    if ($desde !== '') {
+        // Folgas antes do dia do corte: as da versão de referência.
+        $diaCorte = substr($desde, 0, 10);
+        $saida['folgas'] = array_merge($refFolgas, array_values(array_filter($saida['folgas'] ?? [], static fn($f) => substr((string) $f['dia'], 0, 10) >= $diaCorte)));
+    }
+    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo, $est, $desde, $refPre, $refDesde) {
         // Releitura do realizado.
         $linhasEstado = [];
         foreach ($estado as $rep => $e) {
@@ -849,12 +894,21 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                 [$alocacoes, $sugestoesWorkload, $protegidos] = escMotorProtegerPublicado($linhasPub, $alocacoes, $removidos, $travadas);
             }
         }
+        // "A partir de": antes do corte fica a versão de referência, célula por célula.
+        if ($desde !== '') {
+            $antesDoCorte = static fn(array $a): bool => substr((string) $a['dia'], 0, 10) . 'T' . escHoraDoBloco((string) $a['bloco']) . ':00:00' < $desde;
+            $alocacoes = array_merge($refPre, array_values(array_filter($alocacoes, static fn($a) => !$antesDoCorte($a))));
+            $sugestoesWorkload = array_values(array_filter($sugestoesWorkload, static fn($w) => substr((string) $w['dia'], 0, 10) >= substr($desde, 0, 10)));
+            $protegidos = array_values(array_filter($protegidos, static fn($d) => !$antesDoCorte($d)));
+            $saida['resumo']['lacunas'] = count(array_filter($alocacoes, static fn($a) => $a['rep_code'] === null && $a['origem'] === 'LACUNA'));
+            $saida['resumo']['desde'] = ['slot' => $desde, 'base' => escPlanoRotulo($refDesde)];
+        }
         if ($base) {
             $anteriores = escQW('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ?', [(int) $base['id']]);
             $diferencas = array_merge(escMotorDeParaEscala($anteriores, $alocacoes), $protegidos);
         }
 
-        $parametros = ['fotos' => $fotoIds, 'ancora' => ESC_ANCORA, 'modo' => $modo] + ($minimo ? ['minimo' => true] : []);
+        $parametros = ['fotos' => $fotoIds, 'ancora' => ESC_ANCORA, 'modo' => $modo] + ($minimo ? ['minimo' => true] : []) + ($desde !== '' ? ['desde' => $desde] : []);
         escW('INSERT INTO ' . escT('esc_plano') . ' (semana_inicio, semana_fim, time_nome, estrutura, versao, subversao, status, plano_anterior_id, recalculo_id, capacity_calculo, entradas_hash, parametros, resumo, gerado_por) VALUES (?, ?, \'\', ?, ?, ?, \'RASCUNHO\', ?, ?, ?, ?, ?, ?, ?)', [
             $seg, end($dias), $estruturaPlano, $versao, $subversao, $base ? (int) $base['id'] : null, $recalculoId,
             $cap['dc'], escHashEntradas($fotoIds), json_encode($parametros), json_encode($saida['resumo'], JSON_UNESCAPED_UNICODE), $userId,
@@ -944,7 +998,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
             ]);
         }
         escLog($modo === 'RECALCULO' ? 'plano.recalcular' : 'plano.gerar', 'esc_plano', $planoId, null,
-            ['semana' => $seg, 'versao' => $versao . '.' . $subversao, 'lacunas' => $saida['resumo']['lacunas']], $userId ? 'SITE' : 'SISTEMA');
+            ['semana' => $seg, 'versao' => $versao . '.' . $subversao, 'lacunas' => $saida['resumo']['lacunas']] + ($desde !== '' ? ['desde' => $desde] : []), $userId ? 'SITE' : 'SISTEMA');
         return $planoId;
     });
 }

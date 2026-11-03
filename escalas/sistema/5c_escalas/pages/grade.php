@@ -136,6 +136,11 @@ if (!$plano) {
 
 $seg = substr($plano['semana_inicio'], 0, 10);
 $dias = escDiasDaSemana($seg);
+// Corte do CSV ("a partir de"): ?desde=slot escolhido na tela ou ?desde=semana para a semana toda;
+// sem escolha, o turno a partir do qual a versão foi gerada. Nunca antes da virada.
+$desdeGet = is_string($_GET['desde'] ?? null) ? (string) $_GET['desde'] : null;
+$corteCsv = escCsvCorte($seg, $plano, $desdeGet);
+$linkDesde = $desdeGet !== null ? ['desde' => $desdeGet] : [];
 $aloc = escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ?', [$planoId]);
 
 // ---------- CSVs para postar (download e menu de copiar) ----------
@@ -208,9 +213,9 @@ if (isset($_GET['baixar'])) {
             echo t('Página sem alocação neste plano.');
             return;
         }
-        $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemCorte($seg));
+        $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, $corteCsv);
         escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, page_id, pagina, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?, ?, ?)",
-            [$planoId, $pid, $porPagina[$pid]['nome'], $seg, escPostagemCorte($seg) !== '' ? substr(escPostagemCorte($seg), 0, 10) : $seg, escMaisDias($seg, 6), hash('sha256', $csv), escUserId()]);
+            [$planoId, $pid, $porPagina[$pid]['nome'], $seg, $corteCsv !== '' ? substr($corteCsv, 0, 10) : $seg, escMaisDias($seg, 6), hash('sha256', $csv), escUserId()]);
         header('Content-Type: text/csv; charset=utf-8');
         header('Content-Disposition: attachment; filename="' . $arquivoDe($porPagina[$pid]['nome']) . '"');
         echo $csv;
@@ -226,12 +231,12 @@ if (isset($_GET['baixar'])) {
         $zip = new ZipArchive();
         $zip->open($tmp, ZipArchive::OVERWRITE);
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
+            $csv = escCsvT1T6($pg['cel'], $seg, $corteCsv);
             $zip->addFromString($arquivoDe($pg['nome']), $csv);
         }
         $zip->close();
         escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?)",
-            [$planoId, $seg, $seg, escMaisDias($seg, 6), hash_file('sha256', $tmp), escUserId()]);
+            [$planoId, $seg, $corteCsv !== '' ? substr($corteCsv, 0, 10) : $seg, escMaisDias($seg, 6), hash_file('sha256', $tmp), escUserId()]);
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="' . (escModoTreino() ? 'TREINO_' : '') . 'escala_' . $seg . '_' . escPlanoRotulo($plano) . '.zip"');
         readfile($tmp);
@@ -251,7 +256,7 @@ if (isset($_GET['baixar'])) {
             header('Location: ' . link_tela('grade', ['plano' => (int) $pub['id'], 'baixar' => 'lote']));
             return;
         }
-        $corte = escPostagemCorte($seg);
+        $corte = $corteCsv;
         $postadoLote = [];
         foreach (escQ('SELECT pp.plano_id, pp.page_id, pp.csv_hash FROM ' . escT('esc_plano_postagem') . ' pp
                         WHERE pp.semana = ? AND pp.postado_em IS NOT NULL ORDER BY pp.postado_em', [$seg]) as $pp) {
@@ -259,7 +264,7 @@ if (isset($_GET['baixar'])) {
         }
         $paginas = [];
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
+            $csv = escCsvT1T6($pg['cel'], $seg, $corteCsv);
             $pp = $postadoLote[$pid] ?? null;
             $estado = !$pp ? 'afazer' : ((int) $pp['plano_id'] === $planoId ? 'postado' : (hash_equals((string) $pp['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer'));
             $paginas[] = ['id' => $pid, 'nome' => $pg['nome'], 'estado' => $estado, 'csv' => $csv];
@@ -636,7 +641,7 @@ if (escPost()) {
     if ($plano['status'] !== 'PUBLICADO') {
         throw new RuntimeException(t('Publique esta versão antes de marcar a postagem.'));
     }
-    $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, escPostagemCorte($seg));
+    $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, $corteCsv);
     escW('INSERT INTO ' . escT('esc_plano_postagem') . ' (plano_id, page_id, pagina, semana, csv, csv_hash) VALUES (?, ?, ?, ?, ?, ?) AS n
           ON DUPLICATE KEY UPDATE csv = n.csv, csv_hash = n.csv_hash', [$planoId, $pid, $porPagina[$pid]['nome'], $seg, $csv, hash('sha256', $csv)]);
     if ($passo === 'apagado') {
@@ -802,8 +807,21 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     </form>
   </div>
 
+  <?php if ($ehV4): ?>
+  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes small">
+    <input type="hidden" name="p" value="grade"><input type="hidden" name="plano" value="<?php echo (int) $planoId; ?>">
+    <?php if (isset($_GET['aba']) && is_string($_GET['aba'])): ?><input type="hidden" name="aba" value="<?php echo h($_GET['aba']); ?>"><?php endif; ?>
+    <label class="filtros" title="<?php echo h(t('Os blocos antes desse turno saem em branco no CSV e o site continua com o que já tem (Date Schedule = o dia escolhido). O passado não muda.')); ?>"><?php echo h(t('CSV a partir de')); ?>
+      <select name="desde" onchange="this.form.submit()">
+        <option value="semana"<?php echo $corteCsv === '' ? ' selected' : ''; ?>><?php echo h(t('Semana inteira')); ?></option>
+        <?php foreach (escSlotsDaSemana($seg) as $slot => $rot): ?><option value="<?php echo h($slot); ?>"<?php echo $slot === $corteCsv ? ' selected' : ''; ?><?php echo $slot < escPostagemCorte($seg) ? ' disabled' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
+      </select>
+    </label>
+    <noscript><button type="submit" class="botao"><?php echo h(t('Aplicar')); ?></button></noscript>
+  </form>
+  <?php endif; ?>
   <div class="acoes">
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'])); ?>"><?php echo h(t('Baixar CSVs (.zip)')); ?></a>
+    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'] + $linkDesde)); ?>"><?php echo h(t('Baixar CSVs (.zip)')); ?></a>
     <?php foreach ([1, 2, 3] as $uPdf): ?>
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'unidade' => $uPdf, 'imprimir' => 1])); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Só as páginas da U{u}, em ordem de faturamento: uma folha de resumo e uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias e a venda por hora de cada SR.', ['u' => $uPdf])); ?>"><?php echo h(t('PDF U{u}', ['u' => $uPdf])); ?></a>
     <?php endforeach; ?>
@@ -852,7 +870,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
             </a>
           </td>
         <?php endforeach; ?>
-        <td class="grade-baixar"><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']])); ?>">CSV</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a></td>
+        <td class="grade-baixar"><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a></td>
       </tr>
     <?php endforeach; ?>
     <?php if (!$listaPaginas): ?><tr><td colspan="9" class="muted"><?php echo h(t('Nenhuma página neste filtro.')); ?></td></tr><?php endif; ?>
@@ -1029,8 +1047,10 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
         $temControle = false;
         appLog('warning', 'Controle de postagem da grade indisponível (rodar ES_23)', ['erro' => $e->getMessage()]);
     }
-    // Semana da virada: antes dela vale a escala já postada (não apaga nem posta).
-    $corte = escPostagemCorte($seg);
+    // Semana da virada ou versão gerada a partir de um turno: antes do corte vale a escala já
+    // postada (não apaga nem posta).
+    $corte = $corteCsv;
+    $corteVirada = $corte !== '' && $corte === escPostagemCorte($seg);
     $diaCorte = $corte !== '' ? substr($corte, 0, 10) : $seg;
     $blocosMao = [];
     if ($corte !== '') {
@@ -1052,7 +1072,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     $rotuloVersao = static fn(array $p): string => 'v' . (int) $p['versao'] . ((int) $p['subversao'] > 0 ? '.' . (int) $p['subversao'] : '');
     $cartoes = [];
     foreach ($porPagina as $pid => $pg) {
-        $csv = escCsvT1T6($pg['cel'], $seg, escPostagemCorte($seg));
+        $csv = escCsvT1T6($pg['cel'], $seg, $corteCsv);
         $pp = $postagens[$pid] ?? null;
         $ant = $postadoAntes[$pid] ?? null;
         $estado = $pp && $pp['postado_em'] ? 'postado' : ($ant && hash_equals((string) $ant['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer');
@@ -1076,7 +1096,9 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <ol class="roteiro">
     <?php if ($comSite || $soApagar): ?>
     <?php if ($corte !== ''): ?>
-    <li><?php echo t('Semana da virada ({virada}): antes disso vale a escala já postada no site; não apague nem poste nada antes da virada.', ['virada' => '<strong>' . h(dataBr($diaCorte) . ' ' . substr($corte, 11, 2) . ':00') . '</strong>']); ?></li>
+    <li><?php echo $corteVirada
+        ? t('Semana da virada ({virada}): antes disso vale a escala já postada no site; não apague nem poste nada antes da virada.', ['virada' => '<strong>' . h(dataBr($diaCorte) . ' ' . substr($corte, 11, 2) . ':00') . '</strong>'])
+        : t('CSV a partir de {quando}: antes disso vale a escala já postada no site; não apague nem poste nada antes desse horário. Os passos abaixo chamam esse horário de virada.', ['quando' => '<strong>' . h(dataBr($diaCorte) . ' ' . substr($corte, 11, 2) . ':00') . '</strong>']); ?></li>
     <li><?php echo $diaCorte < $fimSem
         ? t('{acao} de {de} a {ate} e, {aMao}, em {dia} só os blocos {blocos}, nas {n} páginas que já têm escala depois da virada, antes de postar qualquer uma.', ['acao' => '<strong>Delete Range</strong>', 'de' => h(dataBr(escMaisDias($diaCorte, 1))), 'ate' => h(dataBr($fimSem)), 'aMao' => '<strong>' . h(t('à mão')) . '</strong>', 'dia' => h(dataBr($diaCorte, true)), 'blocos' => h(implode(', ', $blocosMao)), 'n' => $comSite + count($soApagar)])
         : t('Apague {aMao}, em {dia}, só os blocos {blocos}, nas {n} páginas que já têm escala depois da virada, antes de postar qualquer uma.', ['aMao' => '<strong>' . h(t('à mão')) . '</strong>', 'dia' => h(dataBr($diaCorte, true)), 'blocos' => h(implode(', ', $blocosMao)), 'n' => $comSite + count($soApagar)]); ?><?php if ($soApagar): ?> <?php echo h(tn(count($soApagar), 'Inclui {n} página fora deste plano: só apagar.', 'Inclui {n} páginas fora deste plano: só apagar.')); ?><?php endif; ?></li>
@@ -1107,7 +1129,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
         <?php endforeach; ?>
       </div>
     </div>
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'])); ?>"><?php echo h(t('Baixar todos (.zip)')); ?></a>
+    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'] + $linkDesde)); ?>"><?php echo h(t('Baixar todos (.zip)')); ?></a>
     <?php if ($publicado): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'lote'])); ?>" title="<?php echo h(t('Arquivo para o favorito "Postar CSV em lote" no site da 5C')); ?>"><?php echo h(t('Pacote para postar em lote (.json)')); ?></a><?php endif; ?>
   </div>
 
@@ -1121,7 +1143,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
       <pre id="<?php echo h($idPre); ?>" class="csv"><?php echo h($c['csv']); ?></pre>
       <div class="acoes">
         <button type="button" class="botao primario" data-copiar="<?php echo h($idPre); ?>"><?php echo h(t('Copiar CSV')); ?></button>
-        <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $c['id']])); ?>"><?php echo h(t('Baixar .csv')); ?></a>
+        <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $c['id']] + $linkDesde)); ?>"><?php echo h(t('Baixar .csv')); ?></a>
         <?php if ($pp && $pp['postado_em']): ?><span class="tag verde"><?php echo h(t('postado {quando}', ['quando' => escDataHora($pp['postado_em'])])); ?></span>
         <?php elseif ($c['estado'] === 'igual'): ?><span class="tag verde"><?php echo h(t('sem mudança desde a {versao}', ['versao' => $rotuloVersao($ant)])); ?></span>
         <?php elseif ($pp && $pp['apagado_em']): ?><span class="tag amarelo"><?php echo h(t('intervalo apagado')); ?></span>
