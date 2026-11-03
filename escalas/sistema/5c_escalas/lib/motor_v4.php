@@ -469,9 +469,9 @@ function escV4Carregar(string $dia): array {
         }
     }
     // Quem bateu a meta na página: atingimento da meta 5CReps nela nos últimos 30 dias (a parte de cada
-    // um, como no PDF da Grade). Com v4_melhores_meta_min (70%) ou mais, passa na frente de quem nunca fez a página.
+    // um, como no PDF da Grade). Com v4_melhores_meta_min (65%) ou mais, passa na frente de quem nunca fez a página.
     $melhores['meta'] = [];
-    $melhores['meta_min'] = (float) str_replace(',', '.', escV4Param('v4_melhores_meta_min', '0.70'));
+    $melhores['meta_min'] = (float) str_replace(',', '.', escV4Param('v4_melhores_meta_min', '0.65'));
     if ($melhores['paginas'] && $pessoas && function_exists('escMeritoAtingimentoPaginas')) {
         $periodo = [[date('Y-m-d', strtotime('-30 day')), date('Y-m-d', strtotime('-1 day'))]];
         foreach (escMeritoAtingimentoPaginas(array_keys($melhores['paginas']), array_keys($pessoas), $periodo) as $pg => $porRep) {
@@ -483,6 +483,16 @@ function escV4Carregar(string $dia): array {
             }
         }
     }
+    // Página prioritária (A-02): modelo com v4_pagina_prioritaria_min (US$ 100 mil) ou mais em 30 dias. O SR
+    // Abaixo só fica nela sem outro disponível e não sobe para ela no remanejamento.
+    $minPrio = (float) str_replace(',', '.', escV4Param('v4_pagina_prioritaria_min', '100000'));
+    $prioritaria = [];
+    foreach (array_keys($nomes) as $pg) {
+        if (!isset($desconsiderada[$pg]) && (float) ($receitaModelo[$modeloPag[$pg] ?? $pg]['total'] ?? 0) >= $minPrio) {
+            $prioritaria[$pg] = true;
+        }
+    }
+    $mer = function_exists('escMeritoCarregar') ? escMeritoMotor(escMeritoCarregar()) : ['nota' => [], 'faixa' => [], 'anos' => []];
     $equipes = [];
     foreach (escQ('SELECT posto_id, vaga, UPPER(rep_code) AS rep, fatia FROM ' . escT('esc_vaga_equipe') . ' WHERE' . $vig, [$dia, $dia]) as $e) {
         $equipes[(int) $e['posto_id']][$e['vaga']][$e['rep']] = (float) $e['fatia'];
@@ -539,7 +549,7 @@ function escV4Carregar(string $dia): array {
     }
     $overlap = escV4Param('v4_overlap_posicao_ciclo', '');
     return ['modelo' => $modelo, 'nucleos' => $nucleos, 'pessoas' => $pessoas, 'postos' => $postos, 'equipes' => $equipes,
-        'historico' => $historico, 'merito' => function_exists('escMeritoCarregar') ? escMeritoNotasMotor(escMeritoCarregar()) : [],
+        'historico' => $historico, 'merito' => $mer['nota'], 'faixa' => $mer['faixa'], 'anos' => $mer['anos'], 'prioritaria' => $prioritaria,
         'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02'),
         'overlap_posicoes' => array_map('intval', array_filter(array_map('trim', explode(',', $overlap)), 'strlen')),
         'overlap_pagina' => $pagOverlap ? ['page_id' => (int) $pagOverlap['id'], 'pagina' => $pagOverlap['name']] : null,
@@ -678,6 +688,13 @@ function escMotorAlocarV4(array $in): array {
     $treinoCobre = $in['treino_cobre'] ?? [];
     // Na transição também remaneja por faturamento e acumula (pedido de 30/10; 0 desliga).
     $remanejaTransicao = escV4Param('v4_remanejar_transicao', '1') === '1';
+    // Mérito no Gerar (1.19.0, regras A-01 a A-04 de contexto/regras_motor_alocacao.md; 0 = regra da 1.18):
+    // A-01 passo 0 por meta na página, faixa e nota; A-02 o Abaixo só fica em página prioritária sem outro;
+    // A-03 a faixa primeiro no acúmulo e na sobrecarga; A-04 sobe o SR de melhor faixa no remanejamento.
+    $faixaPasso0 = escV4Param('v4_merito_faixa_passo0', '1') === '1';
+    $abaixoForaTopo = escV4Param('v4_merito_abaixo_fora_topo', '1') === '1';
+    $faixaAcumulo = escV4Param('v4_merito_faixa_acumulo', '1') === '1';
+    $faixaRemanejar = escV4Param('v4_merito_faixa_remanejar', '1') === '1';
     // SR de nível 3 ou mais não trabalha como assistente: posto de assistente ou de apoio só
     // recebe SR até este nível e com "pode ser assistente" no cadastro (em todas as etapas,
     // inclusive a equipe fixa).
@@ -913,9 +930,11 @@ function escMotorAlocarV4(array $in): array {
                 return $n;
             };
             // Menos troca de gente: quem estava no posto, quem é da equipe de alguma página dele,
-            // quem mais trabalhou nas páginas dele (5C Schedule); depois o mérito (5C George) e o nível.
+            // quem mais trabalhou nas páginas dele (5C Schedule); depois a nota em pontos, o tempo de casa e o nível.
             $historico = $est['historico'] ?? [];
             $merito = $est['merito'] ?? [];
+            $faixaRep = $est['faixa'] ?? [];
+            $anosRep = $est['anos'] ?? [];
             $soAssist = $est['so_assist'] ?? [];
             $foraPag = $est['fora'] ?? [];
             $pode = static function (string $rep, array $p) use ($pessoas, $nivelMaxAssist, $soAssist, $foraPag): bool {
@@ -939,7 +958,7 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $pode): ?string {
+            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $anosRep, $pode): ?string {
                 $melhor = null;
                 $chaveMelhor = null;
                 foreach ($cands as $rep) {
@@ -951,7 +970,7 @@ function escMotorAlocarV4(array $in): array {
                         $dias += min(28, $historico[$rep][$pg['pagina']] ?? 0);
                     }
                     $k = [($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
-                        round($merito[$rep] ?? 1.0, 2), $pessoas[$rep]['nivel'] ?? 0, $rep];
+                        round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $pessoas[$rep]['nivel'] ?? 0, $rep];
                     if ($chaveMelhor === null || $k > $chaveMelhor) {
                         $melhor = $rep;
                         $chaveMelhor = $k;
@@ -990,15 +1009,18 @@ function escMotorAlocarV4(array $in): array {
                         $v['rep'] = $melhor;
                         $v['origem'] = $transicao ? 'TRANSICAO' : (isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO');
                         $v['motivo'] = 'equipe fixa da página ' . $equipe[$melhor];
+                        $v['fixa'] = true; // não sai da página para remanejar (A-04)
                         $usado[$melhor] = true;
                     }
                 }
                 unset($v, $st);
             }
 
-            // 0. Páginas das modelos que mais faturam (v4_melhores_receita_min): o melhor SR do turno
-            //    na página entra antes da equipe da vaga; a equipe fixa da página (acima) vem antes dele
-            //    (maior venda/hora na página; sem histórico nela, a venda/hora geral). As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro.
+            // 0. Páginas das modelos de v4_melhores_receita_min ou mais (0 = todas, P-01): o melhor SR do turno
+            //    na página entra antes da equipe da vaga; a equipe fixa da página (acima) vem antes dele.
+            //    As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro. Desde a 1.19.0
+            //    (A-01, v4_merito_faixa_passo0): quem bateu a meta na página, a faixa do mérito, a nota em
+            //    pontos e o tempo de casa, com continuidade; antes, a venda/hora.
             $mel = $est['melhores'] ?? null;
             if (!$transicao && $mel && !empty($mel['paginas'])) {
                 foreach ($estadoUT as $u => &$st) {
@@ -1019,29 +1041,58 @@ function escMotorAlocarV4(array $in): array {
                         }
                         $melhor = null;
                         $kMelhor = null;
+                        $metaMin = $mel['meta_min'] ?? 0.65;
                         foreach ($st['disp'] as $rep => $pp) {
                             if (isset($usado[$rep]) || !$pode($rep, $p)) {
                                 continue;
                             }
-                            $naPag = $mel['pagina'][$pag][$rep] ?? null;
-                            $geral = $mel['geral'][$rep] ?? 0.0;
-                            // Primeiro quem já fez a página e bateu a meta nela (v4_melhores_meta_min nos últimos
-                            // 30 dias); depois vale a venda/hora (na página, se tem histórico nela; senão a geral).
-                            $bateu = ($mel['meta'][$pag][$rep] ?? 0.0) >= ($mel['meta_min'] ?? 0.70) ? 1 : 0;
-                            $k = [$bateu, $naPag ?? $geral, $naPag !== null ? 1 : 0, $geral, (int) ($pp['nivel'] ?? 0), $rep];
+                            // Primeiro quem já fez a página e bateu a meta nela (v4_melhores_meta_min nos últimos 30 dias).
+                            $bateu = ($mel['meta'][$pag][$rep] ?? 0.0) >= $metaMin ? 1 : 0;
+                            if ($faixaPasso0) {
+                                // A-01 com a P-01: depois a faixa do mérito, a nota em pontos e o tempo de casa.
+                                $k = [$bateu, $faixaRep[$rep] ?? 1, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
+                            } else {
+                                // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
+                                $naPag = $mel['pagina'][$pag][$rep] ?? null;
+                                $geral = $mel['geral'][$rep] ?? 0.0;
+                                $k = [$bateu, $naPag ?? $geral, $naPag !== null ? 1 : 0, $geral, (int) ($pp['nivel'] ?? 0), $rep];
+                            }
                             if ($kMelhor === null || $k > $kMelhor) {
                                 $kMelhor = $k;
                                 $melhor = $rep;
                             }
                         }
-                        if ($melhor === null || ($kMelhor[0] === 0 && $kMelhor[1] <= 0)) {
+                        if ($melhor === null || (!$faixaPasso0 && $kMelhor[0] === 0 && $kMelhor[1] <= 0)) {
                             continue;
+                        }
+                        $fica = false;
+                        if ($faixaPasso0) {
+                            // Continuidade (P-01): quem estava no posto fica, a não ser que o melhor seja de faixa acima
+                            // da dele ou que ele esteja abaixo da meta mínima na página.
+                            $antes = $ultimo[(int) $p['id']] ?? null;
+                            if ($antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && !isset($usado[$antes]) && $pode($antes, $p)
+                                && ($faixaRep[$melhor] ?? 1) <= ($faixaRep[$antes] ?? 1)
+                                && !(isset($mel['meta'][$pag][$antes]) && $mel['meta'][$pag][$antes] < $metaMin)) {
+                                $melhor = $antes;
+                                $fica = true;
+                            }
                         }
                         $v['rep'] = $melhor;
                         $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
-                        $v['motivo'] = 'melhor SR do turno para ' . $pag . ' (modelo com US$ ' . number_format($mel['paginas'][$pag], 0, ',', '.')
-                            . ' em 30 dias; SR com US$ ' . number_format($kMelhor[1], 0, ',', '.') . '/h ' . ($kMelhor[2] ? 'na página' : 'no geral')
-                            . ($kMelhor[0] ? ', ' . round(($mel['meta'][$pag][$melhor] ?? 0) * 100) . '% da meta na página em 30 dias' : '') . ')';
+                        $metaPag = isset($mel['meta'][$pag][$melhor]) ? round($mel['meta'][$pag][$melhor] * 100) . '% da meta na página em 30 dias' : 'sem meta na página em 30 dias';
+                        if ($faixaPasso0) {
+                            $fx = [2 => 'Acima', 1 => 'Na média', 0 => 'Abaixo'][$faixaRep[$melhor] ?? 1];
+                            $v['motivo'] = ($fica ? 'continua no posto, ' : 'melhor SR do turno, ') . 'para ' . $pag . ' (' . $metaPag . '; mérito ' . $fx . ', '
+                                . str_replace('.', ',', (string) round($merito[$melhor] ?? 0.0, 1)) . ' pontos)';
+                            // A-02: o SR Abaixo só fica em página prioritária sem outro disponível (ou se bateu a meta nela).
+                            if ($abaixoForaTopo && ($faixaRep[$melhor] ?? 1) === 0 && isset($est['prioritaria'][$pag])) {
+                                $v['motivo'] .= ' · Abaixo em página prioritária';
+                            }
+                        } else {
+                            $v['motivo'] = 'melhor SR do turno para ' . $pag . ' (modelo com US$ ' . number_format($mel['paginas'][$pag], 0, ',', '.')
+                                . ' em 30 dias; SR com US$ ' . number_format($kMelhor[1], 0, ',', '.') . '/h ' . ($kMelhor[2] ? 'na página' : 'no geral')
+                                . ($kMelhor[0] ? ', ' . $metaPag : '') . ')';
+                        }
                         $usado[$melhor] = true;
                     }
                     unset($v);
@@ -1065,7 +1116,7 @@ function escMotorAlocarV4(array $in): array {
                         }
                         $share = ($feito[$rep][$v['chave']] ?? 0) / max(1, $diasVaga[$v['chave']]);
                         $continua = ($ultimo[$v['pid']] ?? null) === $rep && $share < $fatia + 0.15 ? 1 : 0;
-                        $k = [$continua, round($fatia - $share, 2), $fatia, round($est['merito'][$rep] ?? 1.0, 2), $rep];
+                        $k = [$continua, round($fatia - $share, 2), $fatia, round($est['merito'][$rep] ?? 0.0, 2), $rep];
                         if ($chaveMelhor === null || $k > $chaveMelhor) {
                             $melhor = $rep;
                             $chaveMelhor = $k;
@@ -1228,18 +1279,22 @@ function escMotorAlocarV4(array $in): array {
                     if ($estadoUT[$u]['vagas'][$i]['rep'] !== null || $rec <= 0) {
                         continue;
                     }
+                    $alvo5 = $est['postos'][$estadoUT[$u]['vagas'][$i]['pid']];
+                    $alvoPrio = (bool) array_filter($alvo5['paginas'], static fn($pg) => !$pg['apoio'] && isset($est['prioritaria'][$pg['pagina']]));
+                    // Hoje sobe o SR do posto que menos fatura. A-04: antes o de melhor faixa; A-02: o Abaixo vai
+                    // por último para página prioritária. O SR da equipe fixa não sai da página dele (A-04).
                     $fonte = null;
-                    $recFonte = null;
+                    $kFonte = null;
                     foreach ($estadoUT[$u]['vagas'] as $j => $w) {
                         if ($w['rep'] === null || $j === $i || !empty($w['treino']) || $receitaPosto[$w['pid']] >= $rec
-                            || !$pode($w['rep'], $est['postos'][$estadoUT[$u]['vagas'][$i]['pid']])) {
+                            || ($faixaRemanejar && !empty($w['fixa'])) || !$pode($w['rep'], $alvo5)) {
                             continue;
                         }
-                        if ($fonte === null || $receitaPosto[$w['pid']] < $recFonte) {
-                            if (!$temAssistente($estadoUT[$u]['vagas'], $j)) {
-                                $fonte = $j;
-                                $recFonte = $receitaPosto[$w['pid']];
-                            }
+                        $fx = $faixaRep[$w['rep']] ?? 1;
+                        $k = [$faixaRemanejar ? $fx : (($abaixoForaTopo && $alvoPrio && $fx === 0) ? 0 : 1), -$receitaPosto[$w['pid']]];
+                        if (($kFonte === null || $k > $kFonte) && !$temAssistente($estadoUT[$u]['vagas'], $j)) {
+                            $fonte = $j;
+                            $kFonte = $k;
                         }
                     }
                     if ($fonte !== null) {
@@ -1247,7 +1302,9 @@ function escMotorAlocarV4(array $in): array {
                         $estadoUT[$u]['vagas'][$i]['rep'] = $w['rep'];
                         $estadoUT[$u]['vagas'][$i]['origem'] = 'BUFFER_NUCLEO';
                         $estadoUT[$u]['vagas'][$i]['motivo'] = 'remanejado de ' . $est['postos'][$w['pid']]['pagina_principal']
-                            . ' (faturamento menor) para a página de faturamento maior';
+                            . ' (faturamento menor) para a página de faturamento maior'
+                            . ($faixaRemanejar ? ' (mérito ' . [2 => 'Acima', 1 => 'Na média', 0 => 'Abaixo'][$faixaRep[$w['rep']] ?? 1] . ')' : '')
+                            . ($abaixoForaTopo && $alvoPrio && ($faixaRep[$w['rep']] ?? 1) === 0 ? ' · Abaixo em página prioritária' : '');
                         $estadoUT[$u]['vagas'][$fonte]['rep'] = null;
                         $estadoUT[$u]['vagas'][$fonte]['origem'] = null;
                         $estadoUT[$u]['vagas'][$fonte]['motivo'] = null;
@@ -1295,7 +1352,8 @@ function escMotorAlocarV4(array $in): array {
                                 $mesmaModelo = 1;
                             }
                         }
-                        $k = [$alvoDesc ? $mesmaModelo : 0, -round($razao, 3), $afinidade($rep, $alvo), $rep];
+                        // A-03: o SR Abaixo vai por último (só acumula se ninguém mais couber); o resto fica igual.
+                        $k = [$alvoDesc ? $mesmaModelo : 0, $faixaAcumulo && ($faixaRep[$rep] ?? 1) === 0 ? 0 : 1, -round($razao, 3), $afinidade($rep, $alvo), $rep];
                         if ($kMelhor === null || $k > $kMelhor) {
                             $kMelhor = $k;
                             $melhor = ['rep' => $rep, 'base' => $base, 'carga' => $carga, 'cap' => $cap, 'razao' => $razao];
@@ -1380,7 +1438,8 @@ function escMotorAlocarV4(array $in): array {
                                 if ($razao > 1 + $maxOver + 1e-9) {
                                     continue;
                                 }
-                                $k = [-$c['n'], -round($razao, 3), $afinidade($rep, $alvo), $rep];
+                                // A-03: o SR Abaixo vai por último (só cobre se ninguém mais couber); o resto fica igual.
+                                $k = [$faixaAcumulo && ($faixaRep[$rep] ?? 1) === 0 ? 0 : 1, -$c['n'], -round($razao, 3), $afinidade($rep, $alvo), $rep];
                                 if ($kMelhor === null || $k > $kMelhor) {
                                     $kMelhor = $k;
                                     $melhor = ['rep' => $rep, 'razao' => $razao];

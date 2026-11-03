@@ -1,105 +1,116 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/lib/merito.php
-// Mérito dos SRs (eixo do 5C George):
-//   nota = Desempenho × SLA × Presença(absenteísmo) ÷ (1 + pena)
-// - Desempenho: realizado ÷ meta 5CReps das páginas (Intraday, por dia,
-//   turno T1–T6 e página), rateado pelas mensagens do SR na página no turno
-//   (5c_capacity.cap_rep_hora), como o 5C George faz com o pct_rep.
-// - SLA: respostas em até 5 min ÷ respostas (cap_rep_hora), sem as horas em que o
-//   posto forçado pela regra de faturamento passou da capacidade (fc_sla_hora_excluida).
-// - Absenteísmo: blocos ABS ÷ blocos escalados sem AF (escAbsRealizado). A falha
-//   administrativa (AF) não conta contra o SR.
-// - Presença: 1 − absenteísmo até a tolerância (6%); acima dela cai rápido até
-//   o piso no absenteísmo crítico (15%). Do crítico para cima a nota fica no
-//   máximo em 80% da mediana: o SR nunca aparece "na média" ou "acima".
-// - Pena: Σ peso da classificação × 0,5^(dias desde a aplicação ÷ meia-vida).
-//   A infração pesa menos a cada dia sem outra ("pagando a pena") e some
-//   depois da janela. Sem infração, pena 0 (divide por 1).
+// Mérito dos SRs: nota em pontos (1.19.0, regras M-01 a M-09 de contexto/regras_merito.md),
+// a soma dos componentes, na janela de merito_janela_dias (28) dias até ontem:
+// - M-02 tier da página principal (a de mais horas no 5C Schedule, regular ou assistente):
+//   F 0, E 1, D 2, C 3, B 5, A/S/SS 8. Tier pelo faturamento da página na janela, levado a 30 dias.
+// - M-03 meta: realizado ÷ meta 5CReps (Intraday), rateado pelas mensagens do SR na página no
+//   turno (cap_rep_hora), como o 5C George. 100% = 0; ±1 a cada 10%, cortado em direção ao zero; ±10.
+// - M-04 faltas: dias com falta (abs_adh_af ABS, já sem a falha administrativa): −2^(x−1), x até 5.
+// - M-05 SLA (respostas em até 5 min, sem fc_sla_hora_excluida): 0 com 80% ou mais; a pena dobra a
+//   cada 10% abaixo: −1, −2, −4, −8, −16.
+// - M-06 tempo de casa: 1 por ano completo (headcount.startContract); também desempata.
+// - M-07 venda por hora (cap_rep_hora): 0 a 4 pelo quintil entre os SRs com dado.
+// - M-08 maior cargo da estrutura antiga (historic_members_planner até 31/10): 0, 1, 3 ou 5.
+// - M-09 infrações (esc_sr_infraction): −2 por infração dos últimos 90 dias.
+// - M-10 sequência de semanas fechadas (segunda a domingo, as últimas 4) batendo 100% da meta, da
+//   última para trás: 1 semana +1, 2 +3, 3 ou mais +5. Semana sem dado é pulada; abaixo da meta encerra.
+// Sem dado num componente, ele vale 0. Faixa: Acima com 8 ou mais, Abaixo com menos de −8.
 // Fica em cache (esc_sr_merito) e é recalculado a cada merito_cache_horas.
 // ===============================================
 
-function escMeritoPesos(): array {
-    $pesos = [];
-    foreach (explode(',', escV4Param('merito_infracao_pesos', 'LEVE:1,MEDIA:2,GRAVE:4')) as $par) {
-        $p = explode(':', $par, 2);
-        if (count($p) === 2 && trim($p[0]) !== '') {
-            $pesos[mb_strtoupper(trim($p[0]))] = (float) str_replace(',', '.', trim($p[1]));
+// Parâmetros da nota em pontos (grupo "merito", prefixo merito_pts_).
+function escMeritoPtsParam(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $f = static fn(string $k, string $d): float => (float) str_replace(',', '.', escV4Param($k, $d));
+    $mapa = static function (string $txt): array {
+        $out = [];
+        foreach (explode(',', $txt) as $par) {
+            $p = explode(':', $par, 2);
+            if (count($p) === 2 && trim($p[0]) !== '') {
+                $out[mb_strtoupper(trim($p[0]))] = (float) str_replace(',', '.', trim($p[1]));
+            }
         }
-    }
-    return $pesos;
-}
-
-// Pena de uma infração hoje: peso × 0,5^(dias ÷ meia-vida); 0 fora da janela.
-function escMeritoPena(float $peso, int $dias, float $meiaVida, int $janela): float {
-    if ($dias < 0) {
-        $dias = 0;
-    }
-    if ($dias > $janela || $meiaVida <= 0) {
-        return 0.0;
-    }
-    return $peso * pow(0.5, $dias / $meiaVida);
-}
-
-// Parâmetros do absenteísmo (grupo "merito"). merito_abs_ativo = 0 tira o absenteísmo da nota
-// (presença 1 e sem o teto do crítico); ele continua aparecendo nas telas, só como informação.
-function escMeritoAbsParam(): array {
-    $f = static fn(string $nome, string $padrao): float => (float) str_replace(',', '.', escV4Param($nome, $padrao));
-    $tol = min(0.5, max(0.0, $f('merito_abs_tolerancia', '0.06')));
-    return [
-        'ativo' => trim(escV4Param('merito_abs_ativo', '1')) !== '0',
-        'tolerancia' => $tol,
-        'critico' => max($tol + 0.01, min(0.9, $f('merito_abs_critico', '0.15'))),
-        'piso' => min(1.0, max(0.05, $f('merito_abs_piso', '0.5'))),
-        'teto_critico' => min(0.84, max(0.1, $f('merito_abs_teto_critico', '0.8'))),
+        return $out;
+    };
+    $cache = [
+        'tier' => $mapa(escV4Param('merito_pts_tier', 'F:0,E:1,D:2,C:3,B:5,A:8,S:8,SS:8')),
+        'meta_passo' => max(0.01, $f('merito_pts_meta_passo', '0.10')),
+        'meta_limite' => (int) $f('merito_pts_meta_limite', '10'),
+        'falta_max_x' => max(1, (int) $f('merito_pts_falta_max_x', '5')),
+        'sla_meta' => $f('merito_pts_sla_meta', '0.80'),
+        'sla_faixa' => max(0.01, $f('merito_pts_sla_faixa', '0.10')),
+        'sla_max_k' => max(1, (int) $f('merito_pts_sla_max_k', '5')),
+        'ano' => $f('merito_pts_ano', '1'),
+        'vendas_faixas' => max(2, (int) $f('merito_pts_vendas_faixas', '5')),
+        // Pelo código do cargo no histórico (newRoleId): 1 = líder que era gerente do time, 2 e 3 = outros
+        // líderes de party, 4 = segundo da party, 5 = SR do pool.
+        'cargo' => $mapa(escV4Param('merito_pts_cargo_antigo', '1:5,2:3,3:3,4:1,5:0')),
+        'cargo_ate' => escV4Param('merito_pts_cargo_ate', '2026-10-31'),
+        'infracao' => $f('merito_pts_infracao', '2'),
+        'infracao_dias' => max(1, (int) $f('merito_pts_infracao_dias', '90')),
+        'seq_semanas' => max(1, (int) $f('merito_pts_seq_semanas', '4')),
+        'seq_meta' => $f('merito_pts_seq_meta', '1.00'),
+        'seq' => $mapa(escV4Param('merito_pts_seq', '1:1,2:3,3:5')),
+        'acima' => $f('merito_pts_faixa_acima', '8'),
+        'abaixo' => $f('merito_pts_faixa_abaixo', '-8'),
     ];
+    return $cache;
 }
 
-// Fator de presença: 1 − a até a tolerância; entre a tolerância e o crítico cai em
-// linha reta até (1 − tolerância) × piso; depois do crítico continua caindo com a
-// própria presença. Contínua: não há salto em nenhum ponto.
-function escMeritoPresenca(?float $abs, ?array $p = null): float {
-    $p = $p ?? escMeritoAbsParam();
-    if (!($p['ativo'] ?? true)) {
-        return 1.0;
+// M-03: 1 ponto a cada meta_passo (10%) acima ou abaixo de 100%, cortado em direção ao zero.
+function escMeritoPtsMeta(?float $desempenho, array $p): int {
+    if ($desempenho === null) {
+        return 0;
     }
-    $a = min(1.0, max(0.0, (float) $abs));
-    if ($a <= $p['tolerancia']) {
-        return 1 - $a;
-    }
-    $base = 1 - $p['tolerancia'];
-    if ($a <= $p['critico']) {
-        return $base * (1 - (1 - $p['piso']) * ($a - $p['tolerancia']) / ($p['critico'] - $p['tolerancia']));
-    }
-    return $base * $p['piso'] * (1 - $a) / (1 - $p['critico']);
+    $x = round(($desempenho - 1) / $p['meta_passo'], 6);
+    $v = (int) ($x < 0 ? ceil($x) : floor($x));
+    return max(-$p['meta_limite'], min($p['meta_limite'], $v));
 }
 
-function escMeritoNota(?float $desempenho, ?float $sla, ?float $abs, float $pena, ?array $p = null): ?float {
-    if ($desempenho === null || $sla === null) {
-        return null;
-    }
-    return $desempenho * $sla * escMeritoPresenca($abs, $p) / (1 + max(0.0, $pena));
+// M-04: −2^(x−1), com x = dias com falta, até falta_max_x.
+function escMeritoPtsFaltas(int $dias, array $p): int {
+    return $dias <= 0 ? 0 : -(2 ** (min($dias, $p['falta_max_x']) - 1));
 }
 
-// Absenteísmo crítico: a nota fica no máximo em teto_critico × mediana das notas,
-// então a faixa é sempre "Abaixo" (abaixo de 85% da mediana) e o SR perde o desempate.
-function escMeritoTetoCritico(array $saida, ?array $p = null): array {
-    $p = $p ?? escMeritoAbsParam();
-    if (!($p['ativo'] ?? true)) {
-        return $saida;
+// M-05: com k faixas de 10% abaixo da meta de SLA, −2^(k−1); até sla_max_k faixas.
+function escMeritoPtsSla(?float $sla, array $p): int {
+    if ($sla === null || $sla >= $p['sla_meta']) {
+        return 0;
     }
-    $notas = array_values(array_filter(array_column($saida, 'nota'), static fn($n) => $n !== null));
-    if (!$notas) {
-        return $saida;
+    $k = max(1, min($p['sla_max_k'], (int) ceil(round(($p['sla_meta'] - $sla) / $p['sla_faixa'], 6))));
+    return -(2 ** ($k - 1));
+}
+
+// M-10: pontos pela sequência de semanas batendo a meta; o último degrau vale "ou mais".
+function escMeritoPtsSeq(int $semanas, array $p): int {
+    if ($semanas <= 0 || !$p['seq']) {
+        return 0;
     }
-    sort($notas);
-    $teto = $notas[intdiv(count($notas), 2)] * $p['teto_critico'];
-    foreach ($saida as $rep => $m) {
-        if ($m['nota'] !== null && $m['absenteismo'] !== null && (float) $m['absenteismo'] >= $p['critico'] && $m['nota'] > $teto) {
-            $saida[$rep]['nota'] = $teto;
-        }
+    $degraus = array_map('intval', array_keys($p['seq']));
+    $d = min($semanas, max($degraus));
+    while ($d > 0 && !isset($p['seq'][(string) $d])) {
+        $d--;
     }
-    return $saida;
+    return $d > 0 ? (int) round($p['seq'][(string) $d]) : 0;
+}
+
+// Faixa pelos pontos: ACIMA, MEDIA ou ABAIXO (sem nota = MEDIA).
+function escMeritoFaixa(?float $pontos, ?array $p = null): string {
+    $p = $p ?? escMeritoPtsParam();
+    if ($pontos === null) {
+        return 'MEDIA';
+    }
+    return $pontos >= $p['acima'] ? 'ACIMA' : ($pontos < $p['abaixo'] ? 'ABAIXO' : 'MEDIA');
+}
+
+// Rótulo e cor da faixa nas telas.
+function escMeritoFaixaRotulo(string $faixa): array {
+    return ['ACIMA' => [t('Acima'), 'verde'], 'ABAIXO' => [t('Abaixo'), 'laranja']][$faixa] ?? [t('Na média'), ''];
 }
 
 // Absenteísmo realizado de $de a $ate, por SR ($por = 'rep') ou por turno A/C/D ($por = 'turno'):
@@ -167,8 +178,13 @@ function escMeritoCalcular(array $reps): array {
     $n = max(7, (int) escV4Param('merito_janela_dias', '28'));
     $ate = date('Y-m-d', strtotime('-1 day'));
     $de = date('Y-m-d', strtotime('-' . $n . ' day'));
-    $minResp = (int) escV4Param('merito_min_respostas', '100');
     $teto = (float) str_replace(',', '.', escV4Param('merito_desempenho_teto', '2'));
+    $pts = escMeritoPtsParam();
+    // M-10: as últimas seq_semanas semanas fechadas (segunda a domingo), que podem começar antes da janela.
+    $segAtual = segundaDaSemana(date('Y-m-d'));
+    $ateSem = escMaisDias($segAtual, -1);
+    $deSem = escMaisDias($segAtual, -7 * $pts['seq_semanas']);
+    $deDados = min($de, $deSem);
 
     // Código do Infloww (prefixo do remetente, ex.: "SRJ70") → código do SR.
     $repDe = [];
@@ -179,7 +195,7 @@ function escMeritoCalcular(array $reps): array {
     // Meta e realizado 5CReps por dia, turno (T1–T6) e página.
     $pag = [];
     foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5
-                     FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE Date >= ? AND Date <= ? GROUP BY Date, Turn, Page', [$de, $ate]) as $r) {
+                     FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE Date >= ? AND Date <= ? GROUP BY Date, Turn, Page', [$deDados, $ate]) as $r) {
         $pag[substr((string) $r['dia'], 0, 10) . '|' . $r['t'] . '|' . $r['pagina']] = [(float) $r['meta'], (float) $r['real5']];
     }
 
@@ -188,6 +204,7 @@ function escMeritoCalcular(array $reps): array {
     $msgs = [];     // [dia|t|pagina][cod] = mensagens
     $tot = [];      // [dia|t|pagina] = mensagens de todos
     $sla = [];      // [cod] = [respostas, em até 5 min, horas]
+    $venda = [];    // [cod] = [US$ comprado, horas] (M-07)
     // SLA justo (Capacity, script 23): as horas em que o posto forçado pela regra de faturamento
     // passou da capacidade (fc_sla_hora_excluida, última versão do dia) não entram no SLA.
     $excl = escMeritoSlaExcluidaOk()
@@ -195,9 +212,10 @@ function escMeritoCalcular(array $reps): array {
                      AND x.versao = (SELECT MAX(x2.versao) FROM `5c_planning`.`fc_sla_hora_excluida` x2 WHERE x2.dia = x.dia))"
         : '0';
     foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, n_paginas, SUM(msgs_rep) AS m,
-                          SUM(IF(excl, 0, respostas)) AS resp, SUM(IF(excl, 0, resp_5min)) AS r5, SUM(1 - excl) AS horas
+                          SUM(IF(excl, 0, respostas)) AS resp, SUM(IF(excl, 0, resp_5min)) AS r5, SUM(1 - excl) AS horas,
+                          SUM(valor_comprado) AS v, COUNT(*) AS hh
                      FROM (SELECT c.*, " . $excl . " AS excl FROM `5c_capacity`.`cap_rep_hora` c WHERE c.dia >= ? AND c.dia <= ?) h
-                    GROUP BY dia, turno, cod, paginas, n_paginas", [$de, $ate]) as $r) {
+                    GROUP BY dia, turno, cod, paginas, n_paginas", [$deDados, $ate]) as $r) {
         $cod = (string) $r['cod'];
         $lista = array_values(array_filter(array_map('trim', explode(' + ', (string) $r['paginas']))));
         $parte = (float) $r['m'] / max(1, count($lista));
@@ -208,63 +226,190 @@ function escMeritoCalcular(array $reps): array {
                 $msgs[$k][$cod] = ($msgs[$k][$cod] ?? 0) + $parte;
             }
         }
-        if (isset($repDe[$cod])) {
+        if (isset($repDe[$cod]) && substr((string) $r['dia'], 0, 10) >= $de) {
             $s = $sla[$cod] ?? [0, 0, 0];
             $sla[$cod] = [$s[0] + (int) $r['resp'], $s[1] + (int) $r['r5'], $s[2] + (int) $r['horas']];
+            $vd = $venda[$cod] ?? [0.0, 0];
+            $venda[$cod] = [$vd[0] + (float) $r['v'], $vd[1] + (int) $r['hh']];
         }
     }
     $metaRep = [];
     $realRep = [];
+    $semana = []; // [cod][segunda] = [realizado, meta] (M-10)
+    $segDe = [];
     foreach ($msgs as $k => $porCod) {
         if (!isset($pag[$k]) || empty($tot[$k])) {
             continue;
         }
         [$meta, $real] = $pag[$k];
+        $dia = substr($k, 0, 10);
         foreach ($porCod as $cod => $m) {
             $share = $m / $tot[$k];
-            $metaRep[$cod] = ($metaRep[$cod] ?? 0) + $share * $meta;
-            $realRep[$cod] = ($realRep[$cod] ?? 0) + $share * $real;
+            if ($dia >= $de) {
+                $metaRep[$cod] = ($metaRep[$cod] ?? 0) + $share * $meta;
+                $realRep[$cod] = ($realRep[$cod] ?? 0) + $share * $real;
+            }
+            if ($dia >= $deSem && $dia <= $ateSem) {
+                $sg = $segDe[$dia] ?? ($segDe[$dia] = segundaDaSemana($dia));
+                $semana[$cod][$sg] = [($semana[$cod][$sg][0] ?? 0) + $share * $real, ($semana[$cod][$sg][1] ?? 0) + $share * $meta];
+            }
         }
     }
 
     // Absenteísmo sem a falha administrativa (abs_adh_af; se falhar, o 5C Schedule por horário).
     $abs = escAbsRealizado('rep', $de, $ate, $reps)['taxa'];
 
-    // Infrações (tabela prevista; vazia enquanto não houver carga).
-    $pena = [];
-    $nInf = [];
-    $pesos = escMeritoPesos();
-    $meiaVida = (float) escV4Param('merito_infracao_meia_vida_dias', '90');
-    $janelaInf = (int) escV4Param('merito_infracao_janela_dias', '365');
+    $codDe = array_flip($repDe);
+
+    // M-04: dias com falta (abs_adh_af já sem a falha administrativa, regra da AF v2).
+    $faltas = [];
     try {
-        foreach (escQ('SELECT UPPER(sr_code) AS rep, classification, COALESCE(applied_date, occurrency_date) AS desde
-                         FROM ' . escT('esc_sr_infraction') . ' WHERE sr_code IN (' . escIn($reps) . ') AND COALESCE(applied_date, occurrency_date) >= ?',
-            array_merge($reps, [date('Y-m-d', strtotime('-' . $janelaInf . ' day'))])) as $r) {
-            $dias = (int) floor((strtotime(date('Y-m-d')) - strtotime(substr((string) $r['desde'], 0, 10))) / 86400);
-            $peso = $pesos[mb_strtoupper(trim((string) $r['classification']))] ?? 1.0;
-            $pena[$r['rep']] = ($pena[$r['rep']] ?? 0) + escMeritoPena($peso, $dias, $meiaVida, $janelaInf);
-            $nInf[$r['rep']] = ($nInf[$r['rep']] ?? 0) + 1;
+        foreach (escQ("SELECT UPPER(codigo) AS rep, COUNT(DISTINCT dia) AS dias FROM `5c_wfm_db_mis`.`abs_adh_af`
+                        WHERE dia >= ? AND dia <= ? AND classificacao = 'ABS' AND codigo IN (" . escIn($reps) . ') GROUP BY UPPER(codigo)',
+            array_merge([$de, $ate], $reps)) as $r) {
+            $faltas[$r['rep']] = (int) $r['dias'];
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'Mérito: faltas indisponíveis (abs_adh_af)', ['erro' => $e->getMessage()]);
+    }
+
+    // M-02: página principal (mais horas no 5C Schedule na janela, regular ou assistente, sem a página do
+    // Overlap; no empate, a que mais fatura) e o tier dela pelo faturamento da janela levado a 30 dias.
+    $horasPag = [];
+    $receitaPag = [];
+    $tiers = [];
+    try {
+        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(*) AS n FROM `5c_schedule`.`scheduleday`
+                        WHERE shiftDateAndHour >= ? AND shiftDateAndHour < ? AND modeloNome <> ? AND codigo IN (' . escIn($reps) . ')
+                        GROUP BY UPPER(codigo), modeloNome',
+            array_merge([$de . 'T00:00:00', escMaisDias($ate, 1) . 'T00:00:00', escV4Param('v4_overlap_pagina', '5C Schedule')], $reps)) as $r) {
+            $horasPag[$r['rep']][(string) $r['pagina']] = (int) $r['n'];
+        }
+        foreach (escQ("SELECT CREATOR_NAME AS pagina, SUM(US_AMOUNT) AS v FROM `5c_wfm_db_mis`.`tab_statement_interval`
+                        WHERE Date >= ? AND Date <= ? AND STATUS IN ('complete', 'pending') GROUP BY CREATOR_NAME", [$de, $ate]) as $r) {
+            $k = escV4ChavePagina((string) $r['pagina']);
+            $receitaPag[$k] = ($receitaPag[$k] ?? 0) + (float) $r['v'] * 30 / $n;
+        }
+        $tiers = escQ('SELECT letter, min_value FROM `5c_crm`.`tiers` ORDER BY min_value DESC');
+    } catch (Throwable $e) {
+        appLog('warning', 'Mérito: tier da página indisponível', ['erro' => $e->getMessage()]);
+    }
+    $tierDe = static function (float $v) use ($tiers): ?string {
+        foreach ($tiers as $t) {
+            if ($v >= (float) $t['min_value']) {
+                return strtoupper(trim((string) $t['letter']));
+            }
+        }
+        return null;
+    };
+
+    // M-06: anos completos de casa (só o código e o início do contrato do headcount).
+    $anos = [];
+    try {
+        $hoje = new DateTime(date('Y-m-d'));
+        foreach (escQ('SELECT UPPER(code) AS rep, startContract AS ini FROM `5c_headcount`.`headcount` WHERE code IN (' . escIn($reps) . ')', $reps) as $r) {
+            $d = DateTime::createFromFormat('!d/m/Y', trim((string) $r['ini']));
+            if ($d && $d <= $hoje) {
+                $anos[$r['rep']] = max($anos[$r['rep']] ?? 0, (int) $d->diff($hoje)->y);
+            }
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'Mérito: tempo de casa indisponível (headcount)', ['erro' => $e->getMessage()]);
+    }
+
+    // M-07: venda por hora; quintil entre os SRs com dado (o mesmo valor fica no mesmo quintil).
+    $vendaH = [];
+    foreach ($reps as $rep) {
+        $cod = $codDe[$rep] ?? null;
+        if ($cod !== null && !empty($venda[$cod][1])) {
+            $vendaH[$rep] = $venda[$cod][0] / $venda[$cod][1];
+        }
+    }
+    $ordem = array_values($vendaH);
+    sort($ordem);
+    $primeiro = [];
+    foreach ($ordem as $i => $v) {
+        $primeiro[(string) round($v, 6)] = $primeiro[(string) round($v, 6)] ?? $i;
+    }
+    $ptsVenda = [];
+    foreach ($vendaH as $rep => $v) {
+        $ptsVenda[$rep] = min($pts['vendas_faixas'] - 1, intdiv($pts['vendas_faixas'] * $primeiro[(string) round($v, 6)], max(1, count($ordem))));
+    }
+
+    // M-08: maior cargo que o SR já teve na estrutura antiga (eventos Added e Role Changed até cargo_ate).
+    $ptsCargo = [];
+    try {
+        foreach (escQ("SELECT UPPER(repCode) AS rep, newRoleId AS papel FROM `5c_historic_planner`.`historic_members_planner`
+                        WHERE changeType IN ('Added', 'Role Changed') AND `timestamp` < ? AND repCode IN (" . escIn($reps) . ') GROUP BY UPPER(repCode), newRoleId',
+            array_merge([escMaisDias($pts['cargo_ate'], 1)], $reps)) as $r) {
+            $v = $pts['cargo'][(string) (int) $r['papel']] ?? 0.0;
+            $ptsCargo[$r['rep']] = max($ptsCargo[$r['rep']] ?? 0.0, $v);
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'Mérito: histórico de cargos indisponível', ['erro' => $e->getMessage()]);
+    }
+
+    // M-09: infrações dos últimos infracao_dias dias (tabela prevista; vazia enquanto não houver carga).
+    $nInf = [];
+    try {
+        foreach (escQ('SELECT UPPER(sr_code) AS rep, COUNT(*) AS n FROM ' . escT('esc_sr_infraction') . ' WHERE sr_code IN (' . escIn($reps) . ')
+                         AND COALESCE(applied_date, occurrency_date) >= ? GROUP BY UPPER(sr_code)',
+            array_merge($reps, [date('Y-m-d', strtotime('-' . $pts['infracao_dias'] . ' day'))])) as $r) {
+            $nInf[$r['rep']] = (int) $r['n'];
         }
     } catch (Throwable $e) {
         appLog('warning', 'Mérito: tabela de infrações indisponível', ['erro' => $e->getMessage()]);
     }
 
-    $codDe = array_flip($repDe);
-    $pAbs = escMeritoAbsParam();
     $saida = [];
     foreach ($reps as $rep) {
         $cod = $codDe[$rep] ?? null;
         $s = $cod !== null ? ($sla[$cod] ?? null) : null;
-        $temDados = $s !== null && $s[0] >= $minResp;
         // Teto no desempenho: com meta muito pequena (poucas horas em horário fraco) a razão explode.
-        $des = $temDados && !empty($metaRep[$cod]) ? min($teto, $realRep[$cod] / $metaRep[$cod]) : null;
-        $sl = $temDados ? $s[1] / max(1, $s[0]) : null;
-        $ab = $abs[$rep] ?? null;
-        $pe = $pena[$rep] ?? 0.0;
-        $saida[$rep] = ['desempenho' => $des, 'sla' => $sl, 'absenteismo' => $ab, 'pena' => $pe, 'infracoes' => $nInf[$rep] ?? 0,
-            'nota' => escMeritoNota($des, $sl, $ab, $pe, $pAbs), 'horas' => $s[2] ?? 0, 'respostas' => $s[0] ?? 0, 'janela_de' => $de, 'janela_ate' => $ate];
+        $des = $cod !== null && !empty($metaRep[$cod]) ? min($teto, $realRep[$cod] / $metaRep[$cod]) : null;
+        $sl = $s !== null && $s[0] > 0 ? $s[1] / $s[0] : null;
+        $principal = null;
+        $hPrincipal = -1;
+        foreach ($horasPag[$rep] ?? [] as $pg => $h) {
+            $pg = (string) $pg;
+            $rec = $receitaPag[escV4ChavePagina($pg)] ?? 0.0;
+            if ($h > $hPrincipal || ($h === $hPrincipal && $rec > ($receitaPag[escV4ChavePagina((string) $principal)] ?? 0.0))) {
+                $principal = $pg;
+                $hPrincipal = $h;
+            }
+        }
+        // M-10: da última semana fechada para trás; semana sem dado é pulada, abaixo da meta encerra.
+        $seq = 0;
+        for ($sg = escMaisDias($segAtual, -7); $sg >= $deSem; $sg = escMaisDias($sg, -7)) {
+            $x = $cod !== null ? ($semana[$cod][$sg] ?? null) : null;
+            if ($x === null || $x[1] <= 0) {
+                continue;
+            }
+            if ($x[0] / $x[1] < $pts['seq_meta']) {
+                break;
+            }
+            $seq++;
+        }
+        $tier = $principal !== null ? $tierDe($receitaPag[escV4ChavePagina($principal)] ?? 0.0) : null;
+        $comp = [
+            'pts_tier' => $tier !== null ? (int) round($pts['tier'][$tier] ?? 0) : 0,
+            'pts_meta' => escMeritoPtsMeta($des, $pts),
+            'pts_faltas' => escMeritoPtsFaltas($faltas[$rep] ?? 0, $pts),
+            'pts_sla' => escMeritoPtsSla($sl, $pts),
+            'pts_casa' => (int) floor(($anos[$rep] ?? 0) * $pts['ano']),
+            'pts_vendas' => (int) ($ptsVenda[$rep] ?? 0),
+            'pts_cargo' => (int) round($ptsCargo[$rep] ?? 0),
+            'pts_infracao' => -(int) round(($nInf[$rep] ?? 0) * $pts['infracao']),
+            'pts_seq' => escMeritoPtsSeq($seq, $pts),
+        ];
+        $total = (float) array_sum($comp);
+        $saida[$rep] = ['desempenho' => $des, 'sla' => $sl, 'absenteismo' => $abs[$rep] ?? null, 'pena' => 0.0, 'infracoes' => $nInf[$rep] ?? 0,
+            'nota' => $total, 'horas' => $s[2] ?? 0, 'respostas' => $s[0] ?? 0, 'janela_de' => $de, 'janela_ate' => $ate]
+            + $comp + ['faixa' => escMeritoFaixa($total, $pts), 'faltas' => $faltas[$rep] ?? 0, 'tier' => $tier,
+                'pagina_principal' => $principal !== null ? mb_substr($principal, 0, 120) : null,
+                'venda_h' => isset($vendaH[$rep]) ? round($vendaH[$rep], 2) : null, 'anos' => $anos[$rep] ?? 0, 'semanas_meta' => $seq];
     }
-    return escMeritoTetoCritico($saida, $pAbs);
+    return $saida;
 }
 
 // Atingimento de cada rep em cada página, por período (PDF de metas da Grade): a parte do
@@ -364,15 +509,20 @@ function escMeritoCarregar(bool $forcar = false): array {
         return []; // ES_16 ainda não rodou: sem mérito, o motor segue como antes
     }
     $velho = !$ult || $ult['m'] === null || strtotime((string) $ult['m']) < time() - $horas * 3600;
+    // Cache ainda da fórmula antiga (antes da 1.19.0): sem a faixa, recalcula em pontos.
+    if (!$velho && escQ1('SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?', [ESC_SCHEMA, 'esc_sr_merito', 'faixa'])) {
+        $velho = !escQ1('SELECT 1 AS ok FROM ' . escT('esc_sr_merito') . ' WHERE faixa IS NOT NULL LIMIT 1');
+    }
     if ($forcar || $velho) {
         try {
             $calc = escMeritoCalcular(escMeritoSrsAtivos());
             $agora = date('Y-m-d H:i:s');
+            // Só as colunas que o cache tem (as dos pontos vêm do ES_91; sem ele, grava só a nota).
+            $cols = array_flip(array_column(escQ('SELECT COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?', [ESC_SCHEMA, 'esc_sr_merito']), 'c'));
             $linhas = [];
             foreach ($calc as $rep => $m) {
-                $linhas[] = ['rep_code' => $rep, 'desempenho' => $m['desempenho'], 'sla' => $m['sla'], 'absenteismo' => $m['absenteismo'],
-                    'pena' => round($m['pena'], 4), 'infracoes' => $m['infracoes'], 'nota' => $m['nota'], 'horas' => $m['horas'],
-                    'respostas' => $m['respostas'], 'janela_de' => $m['janela_de'], 'janela_ate' => $m['janela_ate'], 'calculado_em' => $agora];
+                $m['pena'] = round((float) $m['pena'], 4);
+                $linhas[] = array_intersect_key(['rep_code' => $rep] + $m + ['calculado_em' => $agora], $cols);
             }
             if ($linhas) {
                 escTx(static function () use ($linhas, $agora) {
@@ -391,23 +541,24 @@ function escMeritoCarregar(bool $forcar = false): array {
     return $out;
 }
 
-// Nota normalizada para o motor: 1 = mediana; sem nota = mediana.
+// Nota em pontos de cada SR (sem nota = 0, como o novato da M-01).
 function escMeritoNotasMotor(array $merito): array {
-    $notas = [];
-    foreach ($merito as $rep => $m) {
-        if ($m['nota'] !== null) {
-            $notas[$rep] = (float) $m['nota'];
-        }
-    }
-    if (!$notas) {
-        return [];
-    }
-    $v = array_values($notas);
-    sort($v);
-    $med = $v[intdiv(count($v), 2)] ?: 1.0;
     $out = [];
     foreach ($merito as $rep => $m) {
-        $out[$rep] = isset($notas[$rep]) ? $notas[$rep] / $med : 1.0;
+        $out[$rep] = $m['nota'] !== null ? (float) $m['nota'] : 0.0;
+    }
+    return $out;
+}
+
+// O que o Gerar usa do mérito: a nota em pontos, a faixa (Acima = 2, Na média = 1, Abaixo = 0) e os
+// anos de casa (desempate da M-06). Quem não está no cache conta como Na média, com 0 pontos.
+function escMeritoMotor(array $merito): array {
+    $p = escMeritoPtsParam();
+    $valor = ['ACIMA' => 2, 'MEDIA' => 1, 'ABAIXO' => 0];
+    $out = ['nota' => escMeritoNotasMotor($merito), 'faixa' => [], 'anos' => []];
+    foreach ($merito as $rep => $m) {
+        $out['faixa'][$rep] = $valor[$m['faixa'] ?? escMeritoFaixa($m['nota'] !== null ? (float) $m['nota'] : null, $p)] ?? 1;
+        $out['anos'][$rep] = (int) ($m['anos'] ?? 0);
     }
     return $out;
 }

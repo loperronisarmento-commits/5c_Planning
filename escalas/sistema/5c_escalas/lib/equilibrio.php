@@ -229,7 +229,7 @@ function escEqDivisao(array $postos, array $srs, array $alvo3 = [0.15, 0.20]): a
     }
     // OS1: os melhores. OS2: dos que sobram, quem conhece as duas pontas (menor dos dias em páginas
     // grandes e em pequenas), depois nível e mérito. OS3: os demais.
-    $melhor = static fn($a, $b) => [$b['nivel'], $b['nota'] ?? -1] <=> [$a['nivel'], $a['nota'] ?? -1];
+    $melhor = static fn($a, $b) => [$b['nivel'], $b['nota'] ?? -999] <=> [$a['nivel'], $a['nota'] ?? -999]; // nota em pontos: pode ser negativa
     $dias = static fn(array $s, array $set) => array_sum(array_intersect_key($s['conhece'] ?? [], $set));
     uasort($srs, $melhor);
     $srsOut = [];

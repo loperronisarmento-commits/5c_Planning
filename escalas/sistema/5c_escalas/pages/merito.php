@@ -1,39 +1,39 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/merito.php
-// Mérito explicado: o do SR (nota do 5C George, lib/merito.php) e o da unidade (mérito da
-// equipe, usado no Funil, e atingimento das páginas na unidade, lib/politica.php). Os números
-// vêm dos Parâmetros (o que vale agora). Todos veem a explicação e o simulador; o resumo ao vivo
-// por unidade (agregado, sem nomes) fica só para Planejamento e Admin, como o mérito individual.
-// Texto em PT e EN lado a lado, como as Regras; imprime no papel timbrado.
+// Mérito explicado: o do SR (nota em pontos, M-01 a M-09, lib/merito.php) e o da unidade
+// (mérito da equipe, usado no Funil, e atingimento das páginas na unidade, lib/politica.php).
+// Os números vêm dos Parâmetros (o que vale agora). Todos veem a explicação e o simulador; o
+// resumo ao vivo por unidade (agregado, sem nomes) fica só para Planejamento e Admin, como o
+// mérito individual. Texto em PT e EN lado a lado, como as Regras; imprime no papel timbrado.
 // ===============================================
 
 $en = escEmIngles();
 $L = static fn(string $pt, string $enTxt): string => $en ? $enTxt : $pt;
-$pAbs = escMeritoAbsParam();
-$absAtivo = $pAbs['ativo']; // merito_abs_ativo = 0: o absenteísmo sai da nota e fica só como informação
+$pts = escMeritoPtsParam();
 $pol = escPolParam();
 $pc = static fn($x, int $c = 0) => pct((float) $x, $c);
 $janela = (int) escV4Param('merito_janela_dias', '28');
-$minResp = (int) escV4Param('merito_min_respostas', '100');
-$tetoDes = (float) str_replace(',', '.', escV4Param('merito_desempenho_teto', '2'));
-$pesos = escMeritoPesos();
-$meiaVida = (int) escV4Param('merito_infracao_meia_vida_dias', '90');
-$janelaInf = (int) escV4Param('merito_infracao_janela_dias', '365');
 $verMerito = escPodeReal('planejar');
+$n0 = static fn($x): string => str_replace('-', '−', num((float) $x, 0));
+$tierTxt = implode(', ', array_map(static fn($k, $v) => $k . ' ' . num($v, 0), array_keys($pts['tier']), $pts['tier']));
 
-// Curva da presença: pontos fixos mais os três limites.
-$pontos = array_values(array_unique(array_merge([0, 0.03], [$pAbs['tolerancia']], [0.08, 0.10, 0.12], [$pAbs['critico']], [0.20, 0.29, 0.40])));
-sort($pontos);
-
-// Mediana das notas de hoje (agregado; serve para a faixa do simulador).
+// Notas de hoje (agregado; serve para a distribuição por faixa).
 $merito = escMeritoCarregar();
-$notas = array_values(array_filter(array_map(static fn($m) => $m['nota'] !== null ? (float) $m['nota'] : null, $merito), static fn($n) => $n !== null));
-sort($notas);
-$mediana = $notas ? $notas[intdiv(count($notas), 2)] : null;
+$contaFaixa = ['ACIMA' => 0, 'MEDIA' => 0, 'ABAIXO' => 0];
+foreach ($merito as $m) {
+    if ($m['nota'] !== null) {
+        $contaFaixa[$m['faixa'] ?? escMeritoFaixa((float) $m['nota'], $pts)]++;
+    }
+}
 
-// Exemplos: mesmo desempenho e SLA, absenteísmo diferente.
-$exemplos = [[1.44, 0.97, 0.03], [1.44, 0.97, 0.10], [1.44, 0.97, 0.19], [1.44, 0.97, 0.29], [0.95, 0.85, 0.00]];
+// Exemplos: soma dos pontos de SRs típicos.
+$exemplos = [
+    [$L('Página B, bate a meta há 2 semanas, sem falta', 'Tier B page, on target for 2 weeks, no absences'), ['tier' => 5, 'meta' => 1, 'faltas' => 0, 'sla' => 0, 'casa' => 1, 'vendas' => 3, 'cargo' => 1, 'infracao' => 0, 'seq' => 3]],
+    [$L('Página D, 85% da meta, 2 faltas, SLA 75%', 'Tier D page, 85% of target, 2 absences, SLA 75%'), ['tier' => 2, 'meta' => -1, 'faltas' => -2, 'sla' => -1, 'casa' => 0, 'vendas' => 1, 'cargo' => 1, 'infracao' => 0, 'seq' => 0]],
+    [$L('Página A, 120% da meta há 3 semanas, 5 faltas', 'Tier A page, 120% of target for 3 weeks, 5 absences'), ['tier' => 8, 'meta' => 2, 'faltas' => -16, 'sla' => 0, 'casa' => 2, 'vendas' => 4, 'cargo' => 3, 'infracao' => 0, 'seq' => 5]],
+    [$L('Novato, página E, sem dados de meta', 'New hire, tier E page, no target data'), ['tier' => 1, 'meta' => 0, 'faltas' => 0, 'sla' => 0, 'casa' => 0, 'vendas' => 0, 'cargo' => 0, 'infracao' => 0, 'seq' => 0]],
+];
 
 // Resumo ao vivo por unidade (só Planejamento e Admin).
 $porUt = [];
@@ -44,15 +44,14 @@ if ($verMerito) {
     foreach (escQ('SELECT UPPER(c.rep_code) AS rep, n.unidade, n.turno FROM ' . escT('esc_colaborador_config') . ' c JOIN ' . escT('esc_nucleo') . " n ON n.id = c.nucleo_id
                     WHERE c.funcao = 'EQUITE' AND c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)", [$dia, $dia]) as $s) {
         $k = (int) $s['unidade'] . '|' . $s['turno'];
-        $porUt[$k] = $porUt[$k] ?? ['u' => (int) $s['unidade'], 't' => $s['turno'], 'srs' => 0, 'notas' => [], 'abs' => [], 'criticos' => 0];
+        $porUt[$k] = $porUt[$k] ?? ['u' => (int) $s['unidade'], 't' => $s['turno'], 'srs' => 0, 'notas' => [], 'acima' => 0, 'abaixo' => 0];
         $porUt[$k]['srs']++;
         $m = $merito[$s['rep']] ?? null;
         if ($m && $m['nota'] !== null) {
             $porUt[$k]['notas'][] = (float) $m['nota'];
-        }
-        if ($m && $m['absenteismo'] !== null) {
-            $porUt[$k]['abs'][] = (float) $m['absenteismo'];
-            $porUt[$k]['criticos'] += (float) $m['absenteismo'] >= $pAbs['critico'] ? 1 : 0;
+            $fx = $m['faixa'] ?? escMeritoFaixa((float) $m['nota'], $pts);
+            $porUt[$k]['acima'] += $fx === 'ACIMA' ? 1 : 0;
+            $porUt[$k]['abaixo'] += $fx === 'ABAIXO' ? 1 : 0;
         }
     }
     ksort($porUt);
@@ -80,9 +79,6 @@ if ($verMerito) {
         appLog('warning', 'Mérito: resumo da política indisponível', ['erro' => $e->getMessage()]);
     }
 }
-$mediaNum = static function (array $v): ?float {
-    return $v ? array_sum($v) / count($v) : null;
-};
 $medianaDe = static function (array $v): ?float {
     if (!$v) {
         return null;
@@ -96,13 +92,11 @@ $rotSit = [
     'ACOMP_VENCIDO' => [$L('acompanhamento vencido', 'monitoring overdue'), 'laranja'], 'VENCIDO' => [$L('prazo vencido', 'deadline missed'), 'vermelho'],
     'CARENCIA' => [$L('carência', 'grace period'), 'cinza'], 'AGUARDANDO' => [$L('aguardando dados', 'waiting for data'), 'cinza'],
 ];
-$faixaDe = static function (?float $nota) use ($mediana, $L): array {
-    if ($nota === null || !$mediana) {
-        return ['—', ''];
-    }
-    $rel = $nota / $mediana;
-    return $rel >= 1.15 ? [$L('Acima', 'Above'), 'verde'] : ($rel < 0.85 ? [$L('Abaixo', 'Below'), 'laranja'] : [$L('Na média', 'Average'), '']);
+$faixaDe = static function (float $nota) use ($pts, $L): array {
+    $fx = escMeritoFaixa($nota, $pts);
+    return $fx === 'ACIMA' ? [$L('Acima', 'Above'), 'verde'] : ($fx === 'ABAIXO' ? [$L('Abaixo', 'Below'), 'laranja'] : [$L('Na média', 'Average'), '']);
 };
+$sinal = static fn($v): string => (int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 ? '−' . abs((int) $v) : '0');
 ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h($L('Ajuda', 'Help')); ?></span>
@@ -114,7 +108,7 @@ $faixaDe = static function (?float $nota) use ($mediana, $L): array {
   <div class="acoes nao-imprimir"><button type="button" class="botao primario" onclick="window.print()"><?php echo h($L('Imprimir / PDF', 'Print / PDF')); ?></button> <a class="botao" href="<?php echo h(link_tela('regras')); ?>"><?php echo h($L('Todas as regras', 'All rules')); ?></a><?php if ($verMerito): ?> <a class="botao" href="<?php echo h(link_tela('tertius')); ?>"><?php echo h($L('Mérito de cada SR', 'Each SR\'s merit')); ?></a><?php endif; ?></div>
   <nav class="regras-indice" aria-label="<?php echo h($L('Índice', 'Contents')); ?>"><ol>
     <li><a href="#sr"><?php echo h($L('Mérito do SR', 'SR merit')); ?></a></li>
-    <li><a href="#absenteismo"><?php echo h($L('Absenteísmo', 'Absenteeism')); ?></a></li>
+    <li><a href="#faixas"><?php echo h($L('Faixas e exemplos', 'Bands and examples')); ?></a></li>
     <li><a href="#simulador"><?php echo h($L('Simulador', 'Simulator')); ?></a></li>
     <li><a href="#unidade"><?php echo h($L('Mérito da unidade', 'Unit merit')); ?></a></li>
     <li><a href="#uso"><?php echo h($L('Onde o mérito pesa', 'Where merit counts')); ?></a></li>
@@ -122,52 +116,37 @@ $faixaDe = static function (?float $nota) use ($mediana, $L): array {
 
   <section class="regras-secao" id="sr">
     <h2>1. <?php echo h($L('Mérito do SR', 'SR merit')); ?></h2>
-    <p class="merito-formula"><strong><?php echo h($absAtivo ? $L('Nota = Desempenho × SLA × Presença ÷ (1 + pena)', 'Score = Performance × SLA × Attendance ÷ (1 + penalty)') : $L('Nota = Desempenho × SLA ÷ (1 + pena)', 'Score = Performance × SLA ÷ (1 + penalty)')); ?></strong></p>
-    <p class="muted small"><?php echo h($L('Últimos ' . $janela . ' dias até ontem. A nota aparece × 100 (0,625 = 62,5). Sem pelo menos ' . $minResp . ' respostas na janela o SR fica "sem dados" e conta como a mediana.', 'Last ' . $janela . ' days up to yesterday. The score is shown × 100 (0.625 = 62.5). With fewer than ' . $minResp . ' replies in the window the SR is "no data" and counts as the median.')); ?></p>
+    <p class="merito-formula"><strong><?php echo h($L('Nota = soma dos pontos de cada componente', 'Score = sum of the points of each component')); ?></strong></p>
+    <p class="muted small"><?php echo h($L('Últimos ' . $janela . ' dias até ontem. Sem dado num componente (novato, sem meta ou sem venda), ele vale 0. Com a mesma nota, vem antes quem tem mais tempo de casa.', 'Last ' . $janela . ' days up to yesterday. With no data for a component (new hire, no target or no sales), it is 0. With the same score, whoever has been with the company longer comes first.')); ?></p>
     <div class="tabela-rolagem"><table>
-      <thead><tr><th><?php echo h($L('Parte', 'Part')); ?></th><th><?php echo h($L('Como mede', 'How it is measured')); ?></th><th><?php echo h($L('Fonte', 'Source')); ?></th></tr></thead>
+      <thead><tr><th><?php echo h($L('Componente', 'Component')); ?></th><th><?php echo h($L('Pontos', 'Points')); ?></th><th><?php echo h($L('Fonte', 'Source')); ?></th></tr></thead>
       <tbody>
-        <tr><td><strong><?php echo h($L('Desempenho', 'Performance')); ?></strong></td><td><?php echo h($L('5CReps realizado ÷ meta 5CReps das páginas que o SR atendeu, rateado pelas mensagens dele em cada página, dia e turno (a lógica do 5C George). Teto de ' . $pc($tetoDes) . ', para meta muito pequena não explodir.', '5CReps actual ÷ 5CReps target of the pages the SR worked, split by their messages on each page, day and shift (the 5C George logic). Capped at ' . $pc($tetoDes) . ' so a tiny target does not blow up.')); ?></td><td class="small">Intraday · cap_rep_hora</td></tr>
-        <tr><td><strong>SLA</strong></td><td><?php echo h($L('Respostas em até 5 minutos ÷ respostas.', 'Replies within 5 minutes ÷ replies.')); ?></td><td class="small">cap_rep_hora</td></tr>
-        <tr><td><strong><?php echo h($L('Presença', 'Attendance')); ?></strong></td><td><?php echo h($absAtivo ? $L('Vem do absenteísmo (seção 2): até ' . $pc($pAbs['tolerancia']) . ' quase não pesa; acima disso cai rápido.', 'Comes from absenteeism (section 2): up to ' . $pc($pAbs['tolerancia']) . ' it barely counts; above that it drops fast.')
-              : $L('Desligada (merito_abs_ativo = 0): vale 1 para todos. O absenteísmo aparece só como informação.', 'Turned off (merito_abs_ativo = 0): it is 1 for everyone. Absenteeism is shown for information only.')); ?></td><td class="small">abs_adh_af</td></tr>
-        <tr><td><strong><?php echo h($L('Pena', 'Penalty')); ?></strong></td><td><?php echo h($L('Soma das infrações: peso da classificação (' . implode(', ', array_map(static fn($k, $v) => $k . ' ' . num($v, 0), array_keys($pesos), $pesos)) . ') que cai pela metade a cada ' . $meiaVida . ' dias sem outra e some depois de ' . $janelaInf . ' dias. Sem infração, divide por 1.', 'Sum of infractions: classification weight (' . implode(', ', array_map(static fn($k, $v) => $k . ' ' . num($v, 0), array_keys($pesos), $pesos)) . ') that halves every ' . $meiaVida . ' days without another one and disappears after ' . $janelaInf . ' days. No infraction divides by 1.')); ?></td><td class="small">esc_sr_infraction</td></tr>
+        <tr><td><strong><?php echo h($L('Tier da página', 'Page tier')); ?></strong></td><td><?php echo h($L('Tier da página em que o SR mais esteve, como regular ou assistente, pelo faturamento dela na janela: ' . $tierTxt . '.', 'Tier of the page where the SR spent the most hours, as regular or assistant, by its revenue in the window: ' . $tierTxt . '.')); ?></td><td class="small">5C Schedule · statement · tiers</td></tr>
+        <tr><td><strong><?php echo h($L('Meta', 'Target')); ?></strong></td><td><?php echo h($L('5CReps realizado ÷ meta, rateado pelas mensagens do SR em cada página, dia e turno. 100% = 0; cada ' . $pc($pts['meta_passo']) . ' acima soma 1 e abaixo tira 1, cortado em direção ao zero (95% = 0, 89% = −1). Limite de ±' . $pts['meta_limite'] . '.', '5CReps actual ÷ target, split by the SR\'s messages on each page, day and shift. 100% = 0; each ' . $pc($pts['meta_passo']) . ' above adds 1 and below takes 1, rounded towards zero (95% = 0, 89% = −1). Limit ±' . $pts['meta_limite'] . '.')); ?></td><td class="small">Intraday · cap_rep_hora</td></tr>
+        <tr><td><strong><?php echo h($L('Faltas', 'Absences')); ?></strong></td><td><?php echo h($L('Cada dia com falta pesa o dobro do anterior: 1 = −1, 2 = −2, 3 = −4, 4 = −8, ' . $pts['falta_max_x'] . ' ou mais = −' . (2 ** ($pts['falta_max_x'] - 1)) . '. A falha administrativa (escala dobrada ou fora do horário) e quem estava presente não contam.', 'Each day absent weighs double the previous one: 1 = −1, 2 = −2, 3 = −4, 4 = −8, ' . $pts['falta_max_x'] . ' or more = −' . (2 ** ($pts['falta_max_x'] - 1)) . '. Administrative failure (double scheduling or outside the shift) and being present do not count.')); ?></td><td class="small">abs_adh_af</td></tr>
+        <tr><td><strong>SLA</strong></td><td><?php echo h($L('Respostas em até 5 minutos ÷ respostas. ' . $pc($pts['sla_meta']) . ' ou mais = 0; a cada ' . $pc($pts['sla_faixa']) . ' abaixo a pena dobra: −1, −2, −4, −8, −16. SLA alto não ganha ponto.', 'Replies within 5 minutes ÷ replies. ' . $pc($pts['sla_meta']) . ' or more = 0; every ' . $pc($pts['sla_faixa']) . ' below doubles the penalty: −1, −2, −4, −8, −16. A high SLA earns no points.')); ?></td><td class="small">cap_rep_hora</td></tr>
+        <tr><td><strong><?php echo h($L('Tempo de casa', 'Tenure')); ?></strong></td><td><?php echo h($L($n0($pts['ano']) . ' ponto por ano completo de empresa, sem teto. Também é o desempate.', $n0($pts['ano']) . ' point per full year at the company, no cap. It is also the tie-break.')); ?></td><td class="small">headcount</td></tr>
+        <tr><td><strong><?php echo h($L('Vendas', 'Sales')); ?></strong></td><td><?php echo h($L('Venda por hora (US$/h), por faixa entre os SRs com dado: de 0 (os 20% que menos vendem) a ' . ($pts['vendas_faixas'] - 1) . ' (os 20% que mais vendem).', 'Sales per hour (US$/h), by band among SRs with data: from 0 (the 20% who sell least) to ' . ($pts['vendas_faixas'] - 1) . ' (the 20% who sell most).')); ?></td><td class="small">cap_rep_hora</td></tr>
+        <tr><td><strong><?php echo h($L('Cargo na estrutura antiga', 'Role in the old structure')); ?></strong></td><td><?php echo h($L('O maior cargo que o SR já teve até 31/10: SR do pool 0, segundo da party 1, líder de party 3, líder que era gerente do time 5.', 'The highest role the SR ever had up to 31/10: pool SR 0, party second 1, party leader 3, leader who was team manager 5.')); ?></td><td class="small"><?php echo h($L('histórico do Planner', 'Planner history')); ?></td></tr>
+        <tr><td><strong><?php echo h($L('Sequência batendo a meta', 'Target streak')); ?></strong></td><td><?php echo h($L('Semanas fechadas (segunda a domingo) seguidas com 100% ou mais da meta, contadas da última para trás, entre as últimas ' . $pts['seq_semanas'] . ': ' . implode(', ', array_map(static fn($k, $v) => $k . ' = +' . num($v, 0), array_keys($pts['seq']), $pts['seq'])) . ' (o último vale "ou mais"). Semana sem dado do SR é pulada; uma abaixo da meta encerra a contagem. É a única parte que olha semanas, e não os ' . $janela . ' dias.', 'Closed weeks (Monday to Sunday) in a row at 100% or more of target, counted back from the last one, among the last ' . $pts['seq_semanas'] . ': ' . implode(', ', array_map(static fn($k, $v) => $k . ' = +' . num($v, 0), array_keys($pts['seq']), $pts['seq'])) . ' (the last one means "or more"). A week with no data for the SR is skipped; one below target ends the count. It is the only part that looks at weeks instead of the ' . $janela . ' days.')); ?></td><td class="small">Intraday · cap_rep_hora</td></tr>
+        <tr><td><strong><?php echo h($L('Infrações', 'Infractions')); ?></strong></td><td><?php echo h($L('−' . $n0($pts['infracao']) . ' por infração dos últimos ' . $pts['infracao_dias'] . ' dias, sem limite. O cadastro ainda está vazio: vale 0 para todos até a carga.', '−' . $n0($pts['infracao']) . ' per infraction in the last ' . $pts['infracao_dias'] . ' days, no limit. The register is still empty: it is 0 for everyone until it is loaded.')); ?></td><td class="small">esc_sr_infraction</td></tr>
       </tbody>
     </table></div>
-    <p><?php echo h($L('Faixa: a nota comparada com a mediana de todos os SRs. Acima = 115% da mediana ou mais; Na média = 85% a 115%; Abaixo = menos de 85%.', 'Band: the score compared with the median of all SRs. Above = 115% of the median or more; Average = 85% to 115%; Below = under 85%.')); ?><?php if ($mediana): ?> <span class="muted"><?php echo h($L('Mediana de hoje: ', 'Today\'s median: ') . num($mediana * 100, 1)); ?>.</span><?php endif; ?></p>
   </section>
 
-  <section class="regras-secao" id="absenteismo">
-    <h2>2. <?php echo h($L('Absenteísmo e presença', 'Absenteeism and attendance')); ?></h2>
-    <?php if (!$absAtivo): ?>
-    <p><strong><?php echo h($L('O absenteísmo está fora da nota (Parâmetros › merito_abs_ativo = 0): a presença vale 1 e não há teto para o absenteísmo crítico. Ele continua medido e aparece nas telas, só como informação. Para voltar, ponha 1 no parâmetro.', 'Absenteeism is left out of the score (Parameters › merito_abs_ativo = 0): attendance is 1 and there is no cap for critical absenteeism. It is still measured and shown on the screens, for information only. To turn it back on, set the parameter to 1.')); ?></strong></p>
-    <?php endif; ?>
-    <ul<?php echo $absAtivo ? '' : ' class="muted"'; ?>>
-      <li><?php echo h($L('Absenteísmo = blocos de falta (ABS) ÷ blocos escalados, na mesma classificação que o Capacity usa para os buffers. Falha administrativa (AF: escala dobrada, quando o SR estava em outra página no mesmo horário, ou fora do horário) não conta contra o SR, nem como falta nem como bloco escalado; bloco substituído também não.', 'Absenteeism = absence blocks (ABS) ÷ scheduled blocks, the same classification Capacity uses for buffers. Administrative failure (AF: double scheduling, when the SR was on another page at the same time, or outside the shift) does not count against the SR, neither as an absence nor as a scheduled block; neither does a substituted block.')); ?></li>
-      <li><?php echo h($L('Até ' . $pc($pAbs['tolerancia']) . ' (tolerância): presença = 1 − absenteísmo.', 'Up to ' . $pc($pAbs['tolerancia']) . ' (tolerance): attendance = 1 − absenteeism.')); ?></li>
-      <li><?php echo h($L('De ' . $pc($pAbs['tolerancia']) . ' a ' . $pc($pAbs['critico']) . ': a presença cai em linha reta até ' . $pc($pAbs['piso']) . ' do que valia na tolerância.', 'From ' . $pc($pAbs['tolerancia']) . ' to ' . $pc($pAbs['critico']) . ': attendance drops in a straight line down to ' . $pc($pAbs['piso']) . ' of its value at tolerance.')); ?></li>
-      <li><strong><?php echo h($L('Com ' . $pc($pAbs['critico']) . ' ou mais (crítico): a nota fica no máximo em ' . $pc($pAbs['teto_critico']) . ' da mediana. O SR nunca aparece na média nem acima, por melhor que seja o desempenho e o SLA.', 'At ' . $pc($pAbs['critico']) . ' or more (critical): the score is capped at ' . $pc($pAbs['teto_critico']) . ' of the median. The SR never shows as average or above, however good performance and SLA are.')); ?></strong></li>
+  <section class="regras-secao" id="faixas">
+    <h2>2. <?php echo h($L('Faixas e exemplos', 'Bands and examples')); ?></h2>
+    <ul>
+      <li><strong><?php echo h($L('Acima', 'Above')); ?>:</strong> <?php echo h($L($n0($pts['acima']) . ' pontos ou mais.', $n0($pts['acima']) . ' points or more.')); ?></li>
+      <li><strong><?php echo h($L('Na média', 'Average')); ?>:</strong> <?php echo h($L('de ' . $n0($pts['abaixo']) . ' a ' . $n0($pts['acima'] - 1) . ' pontos.', 'from ' . $n0($pts['abaixo']) . ' to ' . $n0($pts['acima'] - 1) . ' points.')); ?></li>
+      <li><strong><?php echo h($L('Abaixo', 'Below')); ?>:</strong> <?php echo h($L('menos de ' . $n0($pts['abaixo']) . ' pontos.', 'under ' . $n0($pts['abaixo']) . ' points.')); ?></li>
     </ul>
-    <div class="tabela-rolagem"><table class="merito-curva">
-      <thead><tr><th class="num"><?php echo h($L('Absenteísmo', 'Absenteeism')); ?></th><th class="num"><?php echo h($L('Presença', 'Attendance')); ?></th><th class="num"><?php echo h($L('Antes (1 − abs.)', 'Before (1 − abs.)')); ?></th><th><?php echo h($L('Leitura', 'Reading')); ?></th></tr></thead>
-      <tbody>
-      <?php foreach ($pontos as $a): $pr = escMeritoPresenca($a, $pAbs); $cls = $a >= $pAbs['critico'] ? 'vermelho' : ($a > $pAbs['tolerancia'] ? 'laranja' : ''); ?>
-        <tr><td class="num <?php echo $cls; ?>"><?php echo $pc($a); ?></td><td class="num"><strong><?php echo num($pr, 2); ?></strong> <span class="barra-presenca" style="--w:<?php echo round($pr * 100); ?>%"></span></td><td class="num muted"><?php echo num(1 - $a, 2); ?></td>
-          <td class="small"><?php echo h($a <= $pAbs['tolerancia'] ? $L('dentro da tolerância', 'within tolerance') : ($a < $pAbs['critico'] ? $L('pesa mais a cada ponto', 'weighs more with every point') : $L('crítico: sempre abaixo da média', 'critical: always below average'))); ?></td></tr>
-      <?php endforeach; ?>
-      </tbody>
-    </table></div>
-    <h3><?php echo h($L('Exemplos', 'Examples')); ?></h3>
+    <?php if ($verMerito && array_sum($contaFaixa)): ?><p class="muted small"><?php echo h($L('Hoje: ' . $contaFaixa['ACIMA'] . ' Acima, ' . $contaFaixa['MEDIA'] . ' Na média e ' . $contaFaixa['ABAIXO'] . ' Abaixo.', 'Today: ' . $contaFaixa['ACIMA'] . ' Above, ' . $contaFaixa['MEDIA'] . ' Average and ' . $contaFaixa['ABAIXO'] . ' Below.')); ?></p><?php endif; ?>
     <div class="tabela-rolagem"><table>
-      <thead><tr><th class="num"><?php echo h($L('Desempenho', 'Performance')); ?></th><th class="num">SLA</th><th class="num"><?php echo h($L('Absenteísmo', 'Absenteeism')); ?></th><th class="num"><?php echo h($L('Nota', 'Score')); ?></th><th><?php echo h($L('Faixa hoje', 'Band today')); ?></th></tr></thead>
+      <thead><tr><th><?php echo h($L('Exemplo', 'Example')); ?></th><th class="num"><?php echo h($L('Tier', 'Tier')); ?></th><th class="num"><?php echo h($L('Meta', 'Target')); ?></th><th class="num"><?php echo h($L('Faltas', 'Absences')); ?></th><th class="num">SLA</th><th class="num"><?php echo h($L('Casa', 'Tenure')); ?></th><th class="num"><?php echo h($L('Vendas', 'Sales')); ?></th><th class="num"><?php echo h($L('Cargo', 'Role')); ?></th><th class="num"><?php echo h($L('Sequência', 'Streak')); ?></th><th class="num"><?php echo h($L('Nota', 'Score')); ?></th><th><?php echo h($L('Faixa', 'Band')); ?></th></tr></thead>
       <tbody>
-      <?php foreach ($exemplos as [$d, $s, $a]):
-          $n = escMeritoNota($d, $s, $a, 0.0, $pAbs);
-          if ($absAtivo && $mediana && $a >= $pAbs['critico']) {
-              $n = min($n, $mediana * $pAbs['teto_critico']);
-          }
-          [$fx, $fc] = $faixaDe($n); ?>
-        <tr><td class="num"><?php echo $pc($d); ?></td><td class="num"><?php echo $pc($s); ?></td><td class="num <?php echo $a >= $pAbs['critico'] ? 'vermelho' : ($a > $pAbs['tolerancia'] ? 'laranja' : ''); ?>"><?php echo $pc($a); ?></td><td class="num"><strong><?php echo num($n * 100, 1); ?></strong></td><td><span class="tag <?php echo $fc; ?>"><?php echo h($fx); ?></span></td></tr>
+      <?php foreach ($exemplos as [$rot, $c]): $tot = array_sum($c); [$fx, $fc] = $faixaDe((float) $tot); ?>
+        <tr><td><?php echo h($rot); ?></td><?php foreach (['tier', 'meta', 'faltas', 'sla', 'casa', 'vendas', 'cargo', 'seq'] as $k): ?><td class="num"><?php echo h($sinal($c[$k])); ?></td><?php endforeach; ?><td class="num"><strong><?php echo h($sinal($tot)); ?></strong></td><td><span class="tag <?php echo $fc; ?>"><?php echo h($fx); ?></span></td></tr>
       <?php endforeach; ?>
       </tbody>
     </table></div>
@@ -175,14 +154,18 @@ $faixaDe = static function (?float $nota) use ($mediana, $L): array {
 
   <section class="regras-secao nao-imprimir" id="simulador">
     <h2>3. <?php echo h($L('Simulador', 'Simulator')); ?></h2>
-    <p class="muted small"><?php echo h($L('Mude os números e veja a nota. A faixa usa a mediana de hoje.', 'Change the numbers and see the score. The band uses today\'s median.')); ?></p>
-    <form class="merito-sim" data-merito-sim data-tol="<?php echo h((string) $pAbs['tolerancia']); ?>" data-critico="<?php echo h((string) $pAbs['critico']); ?>" data-piso="<?php echo h((string) $pAbs['piso']); ?>" data-teto="<?php echo h((string) $pAbs['teto_critico']); ?>" data-abs-ativo="<?php echo $absAtivo ? '1' : '0'; ?>" data-mediana="<?php echo h((string) ($mediana ?? 0)); ?>" data-teto-des="<?php echo h((string) $tetoDes); ?>" onsubmit="return false">
-      <label><?php echo h($L('Desempenho %', 'Performance %')); ?><input type="number" name="des" value="144" min="0" max="400" step="1" inputmode="decimal"></label>
-      <label><?php echo h($L('SLA 5 min %', 'SLA 5 min %')); ?><input type="number" name="sla" value="97" min="0" max="100" step="1" inputmode="decimal"></label>
-      <label><?php echo h($L('Absenteísmo %', 'Absenteeism %')); ?><input type="number" name="abs" value="29" min="0" max="100" step="0.5" inputmode="decimal"></label>
-      <label><?php echo h($L('Pena', 'Penalty')); ?><input type="number" name="pena" value="0" min="0" max="20" step="0.1" inputmode="decimal"></label>
+    <p class="muted small"><?php echo h($L('Mude os números e veja os pontos e a faixa.', 'Change the numbers and see the points and the band.')); ?></p>
+    <form class="merito-sim" data-merito-sim data-pts="<?php echo h((string) json_encode($pts)); ?>" onsubmit="return false">
+      <label><?php echo h($L('Tier da página', 'Page tier')); ?><select name="tier"><?php foreach ($pts['tier'] as $t => $v): ?><option value="<?php echo h((string) $v); ?>" <?php echo $t === 'C' ? 'selected' : ''; ?>><?php echo h($t); ?></option><?php endforeach; ?></select></label>
+      <label><?php echo h($L('Meta %', 'Target %')); ?><input type="number" name="meta" value="100" min="0" max="400" step="1" inputmode="decimal"></label>
+      <label><?php echo h($L('Dias com falta', 'Days absent')); ?><input type="number" name="faltas" value="0" min="0" max="28" step="1" inputmode="numeric"></label>
+      <label><?php echo h($L('SLA 5 min %', 'SLA 5 min %')); ?><input type="number" name="sla" value="85" min="0" max="100" step="1" inputmode="decimal"></label>
+      <label><?php echo h($L('Anos de casa', 'Years at the company')); ?><input type="number" name="anos" value="0" min="0" max="40" step="1" inputmode="numeric"></label>
+      <label><?php echo h($L('Faixa de vendas (0 a ' . ($pts['vendas_faixas'] - 1) . ')', 'Sales band (0 to ' . ($pts['vendas_faixas'] - 1) . ')')); ?><input type="number" name="vendas" value="2" min="0" max="<?php echo $pts['vendas_faixas'] - 1; ?>" step="1" inputmode="numeric"></label>
+      <label><?php echo h($L('Cargo antigo', 'Old role')); ?><select name="cargo"><option value="0"><?php echo h($L('SR do pool', 'Pool SR')); ?></option><option value="1" selected><?php echo h($L('segundo da party', 'party second')); ?></option><option value="3"><?php echo h($L('líder de party', 'party leader')); ?></option><option value="5"><?php echo h($L('líder e gerente do time', 'leader and team manager')); ?></option></select></label>
+      <label><?php echo h($L('Semanas seguidas na meta', 'Weeks in a row on target')); ?><input type="number" name="seq" value="0" min="0" max="<?php echo (int) $pts['seq_semanas']; ?>" step="1" inputmode="numeric"></label>
+      <label><?php echo h($L('Infrações (90 dias)', 'Infractions (90 days)')); ?><input type="number" name="infracoes" value="0" min="0" max="20" step="1" inputmode="numeric"></label>
       <output class="merito-sim-saida" aria-live="polite">
-        <span><?php echo h($L('Presença', 'Attendance')); ?> <strong data-sim="presenca">—</strong></span>
         <span><?php echo h($L('Nota', 'Score')); ?> <strong data-sim="nota">—</strong></span>
         <span class="tag" data-sim="faixa">—</span>
         <span class="small muted" data-sim="obs"></span>
@@ -194,7 +177,7 @@ $faixaDe = static function (?float $nota) use ($mediana, $L): array {
     <h2>4. <?php echo h($L('Mérito da unidade', 'Unit merit')); ?></h2>
     <p><?php echo h($L('A unidade é medida de dois jeitos, um pelas pessoas e outro pelas páginas:', 'The unit is measured two ways, one by its people and one by its pages:')); ?></p>
     <ul>
-      <li><strong><?php echo h($L('Mérito da equipe', 'Team merit')); ?>:</strong> <?php echo h($L('a nota média dos SRs do núcleo (o mesmo cálculo da seção 1' . ($absAtivo ? ', já com a presença' : '') . '). É o que o Funil usa para indicar onde entra uma página nova.', 'the average score of the core\'s SRs (the section 1 calculation' . ($absAtivo ? ', attendance included' : '') . '). It is what the Funnel uses to suggest where a new page goes.')); ?></li>
+      <li><strong><?php echo h($L('Mérito da equipe', 'Team merit')); ?>:</strong> <?php echo h($L('a nota média dos SRs do núcleo (em pontos, seção 1). É o que o Funil usa para indicar onde entra uma página nova.', 'the average score of the core\'s SRs (in points, section 1). It is what the Funnel uses to suggest where a new page goes.')); ?></li>
       <li><strong><?php echo h($L('Atingimento das páginas', 'Page attainment')); ?>:</strong> <?php echo h($L('5CReps realizado ÷ meta 5CReps (Intraday) de cada página na unidade, em todos os turnos, desde que a página entrou na unidade; e de cada página em cada turno, desde que o owner atual assumiu. Janela de ' . (int) $pol['pol_janela'] . ' dias, com pelo menos ' . (int) $pol['pol_dias_minimos'] . ' dias de dados.', '5CReps actual ÷ 5CReps target (Intraday) of each page in the unit, across all shifts, since the page joined the unit; and of each page in each shift, since the current owner took over. ' . (int) $pol['pol_janela'] . '-day window, with at least ' . (int) $pol['pol_dias_minimos'] . ' days of data.')); ?></li>
     </ul>
     <div class="tabela-rolagem"><table>
@@ -213,11 +196,11 @@ $faixaDe = static function (?float $nota) use ($mediana, $L): array {
     <?php if ($verMerito && ($porUt || $porUnidade)): ?>
     <h3><?php echo h($L('Hoje, por unidade', 'Today, by unit')); ?> <span class="muted small">(<?php echo h($L('só Planejamento e Admin', 'Planning and Admin only')); ?>)</span></h3>
     <div class="tabela-rolagem"><table>
-      <thead><tr><th><?php echo h($L('Unidade · turno', 'Unit · shift')); ?></th><th class="num">SRs</th><th class="num"><?php echo h($L('Com nota', 'With score')); ?></th><th class="num"><?php echo h($L('Nota mediana', 'Median score')); ?></th><th class="num"><?php echo h($L('Absenteísmo médio', 'Average absenteeism')); ?></th><th class="num"><?php echo h($L('Críticos', 'Critical')); ?></th></tr></thead>
+      <thead><tr><th><?php echo h($L('Unidade · turno', 'Unit · shift')); ?></th><th class="num">SRs</th><th class="num"><?php echo h($L('Com nota', 'With score')); ?></th><th class="num"><?php echo h($L('Nota mediana', 'Median score')); ?></th><th class="num"><?php echo h($L('Acima', 'Above')); ?></th><th class="num"><?php echo h($L('Abaixo', 'Below')); ?></th></tr></thead>
       <tbody>
-      <?php foreach ($porUt as $l): $mn = $medianaDe($l['notas']); $ma = $mediaNum($l['abs']); ?>
-        <tr><td>U<?php echo $l['u']; ?> <?php echo chipTurno((string) $l['t']); ?></td><td class="num"><?php echo $l['srs']; ?></td><td class="num"><?php echo count($l['notas']); ?></td><td class="num"><strong><?php echo $mn !== null ? num($mn * 100, 1) : '—'; ?></strong></td>
-          <td class="num <?php echo $ma !== null && $ma >= $pAbs['critico'] ? 'vermelho' : ($ma !== null && $ma > $pAbs['tolerancia'] ? 'laranja' : ''); ?>"><?php echo $ma !== null ? $pc($ma, 1) : '—'; ?></td><td class="num <?php echo $l['criticos'] ? 'vermelho' : 'muted'; ?>"><?php echo $l['criticos']; ?></td></tr>
+      <?php foreach ($porUt as $l): $mn = $medianaDe($l['notas']); ?>
+        <tr><td>U<?php echo $l['u']; ?> <?php echo chipTurno((string) $l['t']); ?></td><td class="num"><?php echo $l['srs']; ?></td><td class="num"><?php echo count($l['notas']); ?></td><td class="num"><strong><?php echo $mn !== null ? h($sinal($mn)) : '—'; ?></strong></td>
+          <td class="num <?php echo $l['acima'] ? 'verde' : 'muted'; ?>"><?php echo $l['acima']; ?></td><td class="num <?php echo $l['abaixo'] ? 'laranja' : 'muted'; ?>"><?php echo $l['abaixo']; ?></td></tr>
       <?php endforeach; ?>
       </tbody>
     </table></div>
@@ -240,48 +223,44 @@ $faixaDe = static function (?float $nota) use ($mediana, $L): array {
   <section class="regras-secao" id="uso">
     <h2>5. <?php echo h($L('Onde o mérito pesa', 'Where merit counts')); ?></h2>
     <ul>
-      <li><strong><?php echo h($L('Escala', 'Schedule')); ?>:</strong> <?php echo h($L('no empate (depois de quem já estava no posto e de quem conhece a página), o SR de nota maior fica com o posto e o de nota menor fica de buffer.', 'on a tie (after whoever was already on the post and whoever knows the page), the SR with the higher score gets the post and the lower one becomes buffer.')); ?></li>
+      <li><strong><?php echo h($L('Escala (Gerar)', 'Schedule (Generate)')); ?>:</strong> <?php echo h($L('cada página, da que mais fatura para a que menos fatura, escolhe o melhor SR disponível na unidade e no turno: primeiro quem bateu ' . $pc((float) str_replace(',', '.', escV4Param('v4_melhores_meta_min', '0.65'))) . ' ou mais da meta na página nos últimos 30 dias, depois a faixa (Acima, Na média, Abaixo), a nota e o tempo de casa. A equipe fixa da página vem antes. Quem estava no posto fica, a não ser que apareça um SR de faixa acima ou que ele esteja abaixo da meta mínima na página.', 'each page, from the highest-revenue to the lowest, picks the best SR available in the unit and shift: first whoever hit ' . $pc((float) str_replace(',', '.', escV4Param('v4_melhores_meta_min', '0.65'))) . ' or more of the page target in the last 30 days, then the band (Above, Average, Below), the score and tenure. The page\'s fixed team comes first. Whoever was on the post stays, unless an SR from a higher band shows up or they are below the minimum target on the page.')); ?></li>
+      <li><strong><?php echo h($L('Página prioritária', 'Priority page')); ?>:</strong> <?php echo h($L('o SR Abaixo só fica como regular numa página de modelo com US$ ' . num((float) str_replace(',', '.', escV4Param('v4_pagina_prioritaria_min', '100000')), 0) . ' ou mais em 30 dias quando não há outro disponível (a célula fica sinalizada) ou quando bateu a meta nela.', 'a Below SR only stays as regular on a page of a model with US$ ' . num((float) str_replace(',', '.', escV4Param('v4_pagina_prioritaria_min', '100000')), 0) . ' or more in 30 days when no one else is available (the cell is flagged) or when they hit the target there.')); ?></li>
+      <li><strong><?php echo h($L('Lacunas', 'Gaps')); ?>:</strong> <?php echo h($L('no remanejamento para uma página maior sobe o SR de melhor faixa; no acúmulo de posto e na sobrecarga, a faixa é o primeiro critério e o SR Abaixo vai por último. Nada é proibido: só muda a ordem.', 'when moving someone up to a bigger page, the SR with the best band goes; when stacking a post or covering above capacity, the band comes first and the Below SR goes last. Nothing is forbidden: only the order changes.')); ?></li>
       <li><strong><?php echo h($L('Owner', 'Owner')); ?>:</strong> <?php echo h($L('na troca de owner entra o SR de nota mais alta do núcleo dono, respeitando as prioridades fixas.', 'on an owner change, the core\'s highest-scoring SR comes in, respecting fixed priorities.')); ?></li>
       <li><strong><?php echo h($L('Página nova', 'New page')); ?>:</strong> <?php echo h($L('o mérito da equipe vale 25 de 100 pontos no Funil (35 em página de tier alto, 15 em tier baixo).', 'team merit is worth 25 of 100 points in the Funnel (35 for high-tier pages, 15 for low-tier).')); ?></li>
-      <li><strong><?php echo h($L('Troca de unidade', 'Unit change')); ?>:</strong> <?php echo h($L('no destino, o núcleo dono é o de melhor mérito com menos carga por SR.', 'at the destination, the owning core is the one with the best merit and the least load per SR.')); ?></li>
+      <li><strong><?php echo h($L('Equilíbrio', 'Balance')); ?>:</strong> <?php echo h($L('na divisão dos OS, depois do nível, vem a nota.', 'in the supervisor split, after the level, comes the score.')); ?></li>
     </ul>
-    <p class="muted small"><?php echo h($L('Os números de cada pessoa ficam só para Planejamento e Admin. Os parâmetros (liga/desliga, tolerância, crítico, piso e teto do absenteísmo) ficam em Parâmetros, grupo "merito".', 'Each person\'s numbers are shown only to Planning and Admin. The parameters (absenteeism on/off, tolerance, critical, floor and cap) are in Parameters, group "merito".')); ?></p>
+    <p class="muted small"><?php echo h($L('Os números de cada pessoa ficam só para Planejamento e Admin. Os parâmetros ficam em Parâmetros: grupo "merito" (prefixo merito_pts_) para a nota e grupo "v4" (v4_merito_*) para o Gerar.', 'Each person\'s numbers are shown only to Planning and Admin. The parameters are in Parameters: group "merito" (prefix merito_pts_) for the score and group "v4" (v4_merito_*) for Generate.')); ?></p>
   </section>
 </section>
 <script>
 (function () {
   var f = document.querySelector('[data-merito-sim]');
   if (!f) { return; }
-  var d = f.dataset, tol = +d.tol, cri = +d.critico, piso = +d.piso, teto = +d.teto, med = +d.mediana, tetoDes = +d.tetoDes, absAtivo = d.absAtivo !== '0';
+  var p = JSON.parse(f.dataset.pts || '{}');
   var en = <?php echo $en ? 'true' : 'false'; ?>;
-  var rot = en ? { acima: 'Above', media: 'Average', abaixo: 'Below', crit: 'Critical absenteeism: capped at ', med: ' of the median.', semMed: 'No median yet.' }
-               : { acima: 'Acima', media: 'Na média', abaixo: 'Abaixo', crit: 'Absenteísmo crítico: limitado a ', med: ' da mediana.', semMed: 'Ainda sem mediana.' };
-  var fmt = function (x, c) { return x.toLocaleString(en ? 'en-US' : 'pt-BR', { minimumFractionDigits: c, maximumFractionDigits: c }); };
-  function presenca(a) {
-    if (!absAtivo) { return 1; }
-    a = Math.min(1, Math.max(0, a));
-    if (a <= tol) { return 1 - a; }
-    var b = 1 - tol;
-    if (a <= cri) { return b * (1 - (1 - piso) * (a - tol) / (cri - tol)); }
-    return b * piso * (1 - a) / (1 - cri);
-  }
+  var rot = en ? { acima: 'Above', media: 'Average', abaixo: 'Below' } : { acima: 'Acima', media: 'Na média', abaixo: 'Abaixo' };
+  var fmt = function (x) { return (x > 0 ? '+' : (x < 0 ? '−' : '')) + Math.abs(x); };
+  function trunca(x) { x = Math.round(x * 1e6) / 1e6; return x < 0 ? Math.ceil(x) : Math.floor(x); }
   function calc() {
     var v = function (n) { var x = parseFloat(String(f.elements[n].value).replace(',', '.')); return isNaN(x) ? 0 : x; };
-    var a = v('abs') / 100, p = presenca(a);
-    var nota = Math.min(tetoDes, v('des') / 100) * Math.min(1, v('sla') / 100) * p / (1 + Math.max(0, v('pena')));
-    var obs = '';
-    if (absAtivo && a >= cri && med > 0 && nota > med * teto) { nota = med * teto; obs = rot.crit + fmt(teto * 100, 0) + '%' + rot.med; }
-    f.querySelector('[data-sim="presenca"]').textContent = fmt(p, 2);
-    f.querySelector('[data-sim="nota"]').textContent = fmt(nota * 100, 1);
+    var meta = Math.max(-p.meta_limite, Math.min(p.meta_limite, trunca((v('meta') / 100 - 1) / p.meta_passo)));
+    var x = Math.min(Math.max(0, Math.floor(v('faltas'))), p.falta_max_x), faltas = x > 0 ? -Math.pow(2, x - 1) : 0;
+    var s = v('sla') / 100, sla = 0;
+    if (s < p.sla_meta) { var k = Math.max(1, Math.min(p.sla_max_k, Math.ceil(Math.round((p.sla_meta - s) / p.sla_faixa * 1e6) / 1e6))); sla = -Math.pow(2, k - 1); }
+    var sem = Math.max(0, Math.floor(v('seq'))), degraus = Object.keys(p.seq || {}).map(Number).sort(function (a, b) { return a - b; }), seq = 0;
+    degraus.forEach(function (d) { if (sem >= d) { seq = Math.round(p.seq[d]); } });
+    var partes = [v('tier'), meta, faltas, sla, Math.floor(v('anos') * p.ano), Math.min(p.vendas_faixas - 1, Math.max(0, Math.floor(v('vendas')))), v('cargo'), -Math.round(Math.floor(v('infracoes')) * p.infracao), seq];
+    var nota = partes.reduce(function (a, b) { return a + b; }, 0);
+    f.querySelector('[data-sim="nota"]').textContent = fmt(nota);
     var tag = f.querySelector('[data-sim="faixa"]');
-    if (med > 0) {
-      var r = nota / med;
-      tag.textContent = r >= 1.15 ? rot.acima : (r < 0.85 ? rot.abaixo : rot.media);
-      tag.className = 'tag ' + (r >= 1.15 ? 'verde' : (r < 0.85 ? 'laranja' : ''));
-    } else { tag.textContent = '—'; obs = obs || rot.semMed; }
-    f.querySelector('[data-sim="obs"]').textContent = obs;
+    var fx = nota >= p.acima ? 'acima' : (nota < p.abaixo ? 'abaixo' : 'media');
+    tag.textContent = rot[fx];
+    tag.className = 'tag ' + (fx === 'acima' ? 'verde' : (fx === 'abaixo' ? 'laranja' : ''));
+    f.querySelector('[data-sim="obs"]').textContent = (en ? 'tier ' : 'tier ') + fmt(partes[0]) + ' · ' + (en ? 'target ' : 'meta ') + fmt(meta) + ' · ' + (en ? 'absences ' : 'faltas ') + fmt(faltas) + ' · SLA ' + fmt(sla);
   }
   f.addEventListener('input', calc);
+  f.addEventListener('change', calc);
   calc();
 })();
 </script>
