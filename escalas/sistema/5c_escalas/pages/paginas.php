@@ -11,7 +11,7 @@
 $instalada = (bool) escQ1("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_config'", [ESC_SCHEMA]);
 $modos = ['AUTO' => t('Automático'), 'NORMAL' => t('Sempre normal'), 'DESCONSIDERAR' => t('Desconsiderar')];
 $comAlocacao = $instalada && (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_config' AND COLUMN_NAME = 'alocacao'", [ESC_SCHEMA]);
-$alocacoes = ['EQUIPE' => t('Equipe ativa'), 'SOB_DEMANDA' => t('Sob demanda')];
+$alocacoes = ['EQUIPE' => t('Equipe ativa'), 'SOB_DEMANDA' => t('Sob demanda'), 'EXCLUSIVA' => t('Exclusiva (solo)')];
 
 if (escPost()) {
     escExigir('planejar');
@@ -48,13 +48,13 @@ $lista = escQ('SELECT p.name AS pagina, p.tier, c.modelo, c.carteira, c.regra
 $dias = max(1, (int) escV4Param('v4_receita_dias', '30'));
 $receita = escV4ReceitaPaginas(array_column($lista, 'pagina'), $dias);
 $config = $instalada ? escPaginaConfig() : [];
-$sobDemanda = $comAlocacao ? escPaginaSobDemanda() : [];
+$alocPag = $comAlocacao ? escPaginaAlocacao() : [];
 $minimo = (float) escV4Param('v4_trivial_receita_min', '8000');
 $porModelo = [];
 foreach ($lista as &$l) {
     $l['rec'] = $receita[$l['pagina']] ?? ['total' => 0.0, 'dias' => 0, 'base' => 'SEM', 'tier' => null];
     $l['modo'] = $config[escV4ChavePagina($l['pagina'])] ?? 'AUTO';
-    $l['aloc'] = isset($sobDemanda[escV4ChavePagina($l['pagina'])]) ? 'SOB_DEMANDA' : 'EQUIPE';
+    $l['aloc'] = $alocPag[escV4ChavePagina($l['pagina'])] ?? 'EQUIPE';
     $l['desc'] = escV4Desconsiderada($l['pagina'], (float) $l['rec']['total']);
     $porModelo[$l['modelo']] = ($porModelo[$l['modelo']] ?? 0) + (float) $l['rec']['total'];
 }
@@ -100,7 +100,7 @@ $baseTxt = static function (array $r) use ($dias): string {
   <h1><?php echo h(t('Configuração das páginas')); ?></h1>
   <p class="muted"><?php echo h(t('A escala é preenchida da modelo que mais fatura para a que menos fatura: as páginas da mesma modelo (VIP, Free, OFTV) contam juntas. O faturamento é o dos últimos {n} dias, com as vendas fechadas e as pendentes. Página com menos dias de venda tem a média emulada para {n} dias; sem venda nenhuma, vale o meio da faixa do tier.', ['n' => $dias])); ?></p>
   <p class="muted"><?php echo h(t('Página desconsiderada não tem SLA a cumprir: a carga dela fica zero no posto e ela é a última a receber gente. No automático, é a página com cara de OFTV (OFTV no nome ou código terminado em t) que faturou menos de {min} em {n} dias.', ['min' => $usd($minimo), 'n' => $dias])); ?></p>
-  <?php if ($comAlocacao): ?><p class="muted"><?php echo h(t('Página sob demanda (On demand) não recebe ninguém no "Gerar". Quando alguém pede, a alocação é feita à mão na Grade, com a célula travada.')); ?></p><?php endif; ?>
+  <?php if ($comAlocacao): ?><p class="muted"><?php echo h(t('Página sob demanda (On demand) não recebe ninguém no "Gerar". Quando alguém pede, a alocação é feita à mão na Grade, com a célula travada.')); ?> <?php echo h(t('Página exclusiva (solo): o SR dela fica só nela, sem acumular nem cobrir outra página, e ela não vai para o SR de outra página. O assistente vem do posto fixo do Capacity (2 pessoas).')); ?></p><?php endif; ?>
 </header>
 
 <?php if (!$instalada): ?>
@@ -133,7 +133,7 @@ $baseTxt = static function (array $r) use ($dias): string {
         <td>
           <?php if ($l['desc']): ?><span class="tag laranja"><?php echo h($l['modo'] === 'DESCONSIDERAR' ? t('Desconsiderada (marcada)') : t('Desconsiderada (OFTV abaixo de {min})', ['min' => $usd($minimo)])); ?></span>
           <?php else: ?><span class="tag verde"><?php echo h($l['modo'] === 'NORMAL' ? t('Normal (marcada)') : t('Normal')); ?></span><?php endif; ?>
-          <?php if ($l['aloc'] === 'SOB_DEMANDA'): ?><span class="tag"><?php echo h(t('Sob demanda')); ?></span><?php endif; ?>
+          <?php if ($l['aloc'] !== 'EQUIPE'): ?><span class="tag"><?php echo h($alocacoes[$l['aloc']]); ?></span><?php endif; ?>
         </td>
         <td>
           <?php if ($instalada && escPode('planejar')): ?>

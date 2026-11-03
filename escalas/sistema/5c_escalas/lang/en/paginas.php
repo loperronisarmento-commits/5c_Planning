@@ -34,4 +34,6 @@ return [
     'Sob demanda' => 'On demand',
     'Alocação de {pagina}' => 'Allocation for {pagina}',
     'Página sob demanda (On demand) não recebe ninguém no "Gerar". Quando alguém pede, a alocação é feita à mão na Grade, com a célula travada.' => 'An on-demand page gets no one in "Generate". When someone asks for it, the allocation is done by hand in the Grid, with the cell locked.',
+    'Exclusiva (solo)' => 'Exclusive (solo)',
+    'Página exclusiva (solo): o SR dela fica só nela, sem acumular nem cobrir outra página, e ela não vai para o SR de outra página. O assistente vem do posto fixo do Capacity (2 pessoas).' => 'Exclusive page (solo): its SR stays only on it, without stacking or covering another page, and it does not go to the SR of another page. The assistant comes from the Capacity fixed post (2 people).',
 ];

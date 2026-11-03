@@ -159,23 +159,30 @@ function escPaginaConfig(): array {
     return $cache;
 }
 
-// Alocação de cada página (esc_pagina_config.alocacao, ES_79): EQUIPE (Active team, padrão) ou
-// SOB_DEMANDA (On demand: o Gerar não põe ninguém; quando pedem, a alocação é manual, travada na Grade).
-// Devolve [chave da página] = true só das sob demanda. Sem a coluna (ES_79 não rodou), nenhuma.
-function escPaginaSobDemanda(): array {
+// Alocação de cada página (esc_pagina_config.alocacao): EQUIPE (Active team, padrão);
+// SOB_DEMANDA (On demand, ES_79: o Gerar não põe ninguém; quando pedem, a alocação é manual, travada
+// na Grade); EXCLUSIVA (solo, ES_82: o SR do posto da página não acumula nem cobre outra página, e o
+// posto dela não vai para o SR de outro posto). Devolve [chave da página] = alocação, só das que não
+// são EQUIPE. Sem a coluna (ES_79 não rodou), nenhuma.
+function escPaginaAlocacao(): array {
     static $cache = null;
     if ($cache !== null) {
         return $cache;
     }
     $cache = [];
     try {
-        foreach (escQ('SELECT pagina FROM ' . escT('esc_pagina_config') . " WHERE alocacao = 'SOB_DEMANDA'") as $r) {
-            $cache[escV4ChavePagina((string) $r['pagina'])] = true;
+        foreach (escQ('SELECT pagina, alocacao FROM ' . escT('esc_pagina_config') . " WHERE alocacao <> 'EQUIPE'") as $r) {
+            $cache[escV4ChavePagina((string) $r['pagina'])] = (string) $r['alocacao'];
         }
     } catch (Throwable $e) {
         // coluna ainda não criada (ES_79)
     }
     return $cache;
+}
+
+// Páginas sob demanda: [chave da página] = true.
+function escPaginaSobDemanda(): array {
+    return array_map(static fn() => true, array_filter(escPaginaAlocacao(), static fn($a) => $a === 'SOB_DEMANDA'));
 }
 
 // Página desconsiderada (sem SLA a cumprir, carga zero no posto, fim da fila):
@@ -316,6 +323,11 @@ function escV4Carregar(string $dia): array {
             continue;
         }
         $postos[$pid]['carga'] = max(0.0, round((float) $postos[$pid]['carga'] - $f, 1));
+    }
+    // Posto com página exclusiva (solo, ES_82): o SR dele fica só nele (passos 6 e 7 do Gerar).
+    $alocPag = escPaginaAlocacao();
+    foreach ($postos as $pid => $p) {
+        $postos[$pid]['exclusivo'] = (bool) array_filter($p['paginas'], static fn($pg) => ($alocPag[escV4ChavePagina((string) $pg['pagina'])] ?? '') === 'EXCLUSIVA');
     }
     // Faturamento médio por dia de cada página e turno (US$, statement por bloco): ordem de preenchimento.
     $receita = [];
@@ -1253,7 +1265,7 @@ function escMotorAlocarV4(array $in): array {
                     $v = $estadoUT[$u]['vagas'][$i];
                     $alvo = $est['postos'][$v['pid']];
                     $alvoDesc = $receitaPosto[$v['pid']] < 0;
-                    if ($v['rep'] !== null || (isset($semAcumular[$alvo['tipo']]) && !$alvoDesc)) {
+                    if ($v['rep'] !== null || (isset($semAcumular[$alvo['tipo']]) && !$alvoDesc) || !empty($alvo['exclusivo'])) {
                         continue;
                     }
                     $modelosAlvo = [];
@@ -1268,7 +1280,7 @@ function escMotorAlocarV4(array $in): array {
                             continue;
                         }
                         $base = $est['postos'][$w['pid']];
-                        if (isset($semAcumular[$base['tipo']])) {
+                        if (isset($semAcumular[$base['tipo']]) || !empty($base['exclusivo'])) {
                             continue;
                         }
                         $cap = escV4CapacidadeJunta($base, $alvo, $est['modelo_pagina'] ?? [], $est['desconsiderada'] ?? []);
@@ -1321,6 +1333,7 @@ function escMotorAlocarV4(array $in): array {
                             $c['carga'] += (float) $base['carga'];
                             $c['cap'] = max($c['cap'], (float) ($base['capacidade'] ?? 0) > 0 ? (float) $base['capacidade'] : 28.0);
                             $c['so_apoio'] = $c['so_apoio'] && isset($semAcumular[$base['tipo']]);
+                            $c['exclusivo'] = ($c['exclusivo'] ?? false) || !empty($base['exclusivo']);
                             foreach ($base['paginas'] as $pg) {
                                 if (!isset($est['desconsiderada'][$pg['pagina']])) {
                                     $c['agencias'][$agPag[$pg['pagina']] ?? ('?' . $pg['pagina'])] = true;
@@ -1332,7 +1345,7 @@ function escMotorAlocarV4(array $in): array {
                     foreach ($listarLacunas() as [$u, $i]) {
                         $v = $estadoUT[$u]['vagas'][$i];
                         $alvo = $est['postos'][$v['pid']];
-                        if ($v['rep'] !== null || isset($semAcumular[$alvo['tipo']])) {
+                        if ($v['rep'] !== null || isset($semAcumular[$alvo['tipo']]) || !empty($alvo['exclusivo'])) {
                             continue;
                         }
                         // Por modelo: as páginas da mesma modelo no posto (VIP, Free, OFTV, também a de apoio)
@@ -1360,7 +1373,7 @@ function escMotorAlocarV4(array $in): array {
                             $melhor = null;
                             $kMelhor = null;
                             foreach ($carregado[$u] ?? [] as $rep => $c) {
-                                if ($c['so_apoio'] || isset($todoDia[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
+                                if ($c['so_apoio'] || !empty($c['exclusivo']) || isset($todoDia[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
                                     continue;
                                 }
                                 $razao = ($c['carga'] + $fans) / $c['cap'];

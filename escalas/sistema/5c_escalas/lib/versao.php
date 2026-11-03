@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.18.14', 'data' => '2026-11-02', 'titulo' => 'Página exclusiva (solo) e Sisi Rose com assistente', 'sql' => ['ES_81_fanvue_nathalia_0311.sql', 'ES_82_sisi_rose_solo_assistente.sql'], 'itens' => [
+        'Páginas: alocação nova Exclusiva (solo). O SR do posto da página fica só nela: não acumula outro posto nem cobre página na sobrecarga, e o posto dela não vai para o SR de outro posto. ES_82: Sisi Rose exclusiva e de novo com assistente em cada turno (posto fixo do Capacity com 2 pessoas).',
+    ]],
     ['versao' => '1.18.13', 'data' => '2026-11-02', 'titulo' => 'Gerar a partir de um turno, CSV a partir de uma data, páginas On demand e equipe da Fanvue', 'sql' => ['ES_79_pagina_sob_demanda.sql', 'ES_80_fanvue_equipe_0311.sql'], 'itens' => [
         'Páginas: opção de alocação em cada página, Equipe ativa (padrão) ou Sob demanda (On demand). A página sob demanda não recebe ninguém no Gerar; quando alguém pede, a alocação é feita à mão na Grade, com a célula travada. Filtro e contador novos na tela. ES_79: Molly Stewart, Diana Rider, Britt, Blair e Jena Wolfy OFTV ficam sob demanda, pela planilha do comercial de 02/11.',
         'Gerar escala: opção "A partir de" (dia e turno da semana) para os três botões. Antes do turno escolhido fica a versão publicada (ou a atual), célula por célula, com as folgas; o cálculo novo só vale dali em diante. Quem trabalha antes do corte só volta com 11 h de descanso. Na semana em andamento, vem marcado o próximo turno que ainda não começou.',

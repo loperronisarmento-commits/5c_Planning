@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.18.14' => ['titulo' => 'Exclusive (solo) page and Sisi Rose with an assistant', 'itens' => [
+        'Pages: new Exclusive (solo) allocation. The SR of the page\'s post stays only on it: no stacking another post or covering a page in overload, and its post does not go to the SR of another post. ES_82: Sisi Rose exclusive and again with an assistant on each shift (Capacity fixed post with 2 people).',
+    ]],
     '1.18.13' => ['titulo' => 'Generate from a shift, CSV from a date, On demand pages and the Fanvue team', 'itens' => [
         'Pages: allocation setting on each page, Active team (default) or On demand. An on-demand page gets no one in Generate; when someone asks for it, the allocation is done by hand in the Grid, with the cell locked. New filter and counter on the screen. ES_79: Molly Stewart, Diana Rider, Britt, Blair and Jena Wolfy OFTV are on demand, per the sales spreadsheet of 02/11.',
         'Generate schedule: "Starting from" option (day and shift of the week) for the three buttons. Before the chosen shift the published (or current) version stays, cell by cell, with the days off; the new calculation only applies from there on. Whoever works before the cut only comes back after 11 h of rest. In the current week, the next shift that has not started yet comes selected.',
