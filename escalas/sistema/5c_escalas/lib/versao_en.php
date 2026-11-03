@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.4' => ['titulo' => 'Org chart with pages belonging to the leadership only', 'itens' => [
+    'Org chart, "View pages": each OS\'s pages show only the page name, without SRs, because the page belongs to the leadership, not to the SRs; the core\'s SR list no longer shows each person\'s pages either. The 1.19.3 "Without SRs" button is removed, since this is now the default (also in the PDFs).',
+        'ES_93: Andressa Urach no longer has a fixed team (it pulled Loik away from Aline Novak in shift C). On Aline, when nobody from the team works the shift, another Brazilian SR still steps in.',
+    ]],
     '1.19.3' => ['titulo' => 'Page experience before the merit band, and org chart without SRs', 'itens' => [
     'Generate, best SR for each page (A-01): after whoever hit 65% of the target on the page come those who worked the page in the last 30 days, and only then the merit band. Before, an Above SR who had never worked the page went ahead of someone already working it below 65% (Mikayla Free on 11/03). Whoever held the post and never worked the page also yields to someone who has.',
     'Org chart: with "View pages", the "Without SRs" button shows only the page names under each OS, without the owners. It also applies to Download PDF and the full PDF.',

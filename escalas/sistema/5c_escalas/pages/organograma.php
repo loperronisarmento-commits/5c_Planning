@@ -70,23 +70,15 @@ $pessoa = static function (?string $nome, ?string $rep, string $cargo, string $c
         . $icone($ic) . '<span class="org-pessoa-txt"><strong>' . h($nome ?: '—') . '</strong><small>' . h($cargo) . '</small></span>'
         . (!$rep && $nome ? '<span class="org-sem-codigo">' . h(t('sem código')) . '</span>' : '') . $extra . '</div>';
 };
-// Modo "Ver páginas" (?paginas=1): cada OS mostra as páginas de que o núcleo é dono (com o owner),
-// cada SR as páginas em que é owner ou backup, e cada OM quantas páginas a unidade tem.
+// Modo "Ver páginas" (?paginas=1): cada OS mostra as páginas de que o núcleo é dono e cada OM
+// quantas páginas a unidade tem. Só o nome da página: ela é da liderança, não dos SRs (03/11).
 $verPaginas = !empty($_GET['paginas']);
-// "Sem os SRs" (?sem_srs=1, só com "Ver páginas"): a lista de páginas de cada OS sai sem os owners.
-$semSrs = $verPaginas && !empty($_GET['sem_srs']);
-$pgNucleo = $pgRep = $pgUnidade = [];
+$pgNucleo = $pgUnidade = [];
 if ($verPaginas) {
     foreach (escPolPaginas($dia) as $pg) {
         $pgUnidade[$pg['unidade']] = ($pgUnidade[$pg['unidade']] ?? 0) + 1;
         foreach ($pg['turnos'] as $tu) {
-            $pgNucleo[$tu['dono']][$pg['pagina']] = array_keys($tu['owners']);
-            foreach (array_keys($tu['owners']) as $r) {
-                $pgRep[$r]['dono'][$pg['pagina']] = true;
-            }
-            foreach (array_keys($tu['backups']) as $r) {
-                $pgRep[$r]['backup'][$pg['pagina']] = true;
-            }
+            $pgNucleo[$tu['dono']][$pg['pagina']] = true;
         }
     }
 }
@@ -105,7 +97,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
   <h1><?php echo h(t('Organograma')); ?></h1>
   <p class="muted"><?php echo h(t('Estrutura vigente em {dia}: {om} Operational Unit Managers, {oc} Operational Coordinators, {os} Operational Supervisors e {sr} Sales Representatives.', ['dia' => dataBr($dia), 'om' => count($om), 'oc' => array_sum(array_map('count', $oc)), 'os' => array_sum(array_map(static fn($pt) => array_sum(array_map('count', $pt)), $nucleos)), 'sr' => $totalSr])); ?> <span class="org-dica"><?php echo h(t('Clique num OS para ver os SRs do núcleo.')); ?></span></p>
   <?php foreach ($trocas as $d => $lista): ?>
-  <p class="muted small"><?php echo h(t('Troca de unidade a partir de {dia}: {lista}. As pessoas ficam no time; a página passa para o time do destino.', ['dia' => dataBr($d), 'lista' => implode(', ', $lista)])); ?> <a href="<?php echo h(link_tela('organograma', ['dia' => $d] + ($verPaginas ? ['paginas' => 1] : []) + ($semSrs ? ['sem_srs' => 1] : []))); ?>"><?php echo h(t('Ver em {dia}', ['dia' => dataBr($d)])); ?></a></p>
+  <p class="muted small"><?php echo h(t('Troca de unidade a partir de {dia}: {lista}. As pessoas ficam no time; a página passa para o time do destino.', ['dia' => dataBr($d), 'lista' => implode(', ', $lista)])); ?> <a href="<?php echo h(link_tela('organograma', ['dia' => $d] + ($verPaginas ? ['paginas' => 1] : []))); ?>"><?php echo h(t('Ver em {dia}', ['dia' => dataBr($d)])); ?></a></p>
   <?php endforeach; ?>
 </header>
 
@@ -115,11 +107,9 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
   <button type="button" class="botao" id="org-abrir"><?php echo h(t('Abrir todos os núcleos')); ?></button>
   <button type="button" class="botao" id="org-fechar"><?php echo h(t('Recolher')); ?></button>
   <form method="get" class="acoes" style="margin:0"><input type="hidden" name="p" value="organograma"><label class="small muted"><?php echo h(t('Data')); ?> <input type="date" name="dia" value="<?php echo h($dia); ?>" onchange="this.form.submit()"></label></form>
-  <a class="botao<?php echo $verPaginas ? ' ativo' : ''; ?>" href="<?php echo h(link_tela('organograma', $verPaginas ? ['dia' => $dia] : ['dia' => $dia, 'paginas' => 1])); ?>" aria-pressed="<?php echo $verPaginas ? 'true' : 'false'; ?>"><?php echo h($verPaginas ? t('Só liderança') : t('Ver páginas')); ?></a>
-  <?php if ($verPaginas): ?><a class="botao<?php echo $semSrs ? ' ativo' : ''; ?>" href="<?php echo h(link_tela('organograma', ['dia' => $dia, 'paginas' => 1] + ($semSrs ? [] : ['sem_srs' => 1]))); ?>" aria-pressed="<?php echo $semSrs ? 'true' : 'false'; ?>" title="<?php echo h(t('Mostra só o nome das páginas de cada OS, sem os owners.')); ?>"><?php echo h($semSrs ? t('Com os SRs') : t('Sem os SRs')); ?></a><?php endif; ?>
-  <?php if (escPode('decidir')): ?><a class="botao" href="<?php echo h(link_tela('roster', ['dia' => $dia])); ?>"><?php echo h(t('Ajustar roster')); ?></a><?php endif; ?>
+  <a class="botao<?php echo $verPaginas ? ' ativo' : ''; ?>" href="<?php echo h(link_tela('organograma', $verPaginas ? ['dia' => $dia] : ['dia' => $dia, 'paginas' => 1])); ?>" aria-pressed="<?php echo $verPaginas ? 'true' : 'false'; ?>"><?php echo h($verPaginas ? t('Só liderança') : t('Ver páginas')); ?></a>  <?php if (escPode('decidir')): ?><a class="botao" href="<?php echo h(link_tela('roster', ['dia' => $dia])); ?>"><?php echo h(t('Ajustar roster')); ?></a><?php endif; ?>
   <button type="button" class="botao primario" id="org-imprimir" title="<?php echo h(t('Abre a impressão: escolha "Salvar como PDF". Sai como está na tela (núcleos recolhidos = só a liderança).')); ?>"><?php echo h(t('Baixar PDF')); ?></button>
-  <button type="button" class="botao" id="org-imprimir-completo" data-url="<?php echo h(link_tela('organograma', ['dia' => $dia, 'paginas' => 1, 'pdf' => 'completo'] + ($semSrs ? ['sem_srs' => 1] : []))); ?>" title="<?php echo h(t('Uma folha só, do tamanho do organograma inteiro: times, SRs e páginas de cada núcleo. Pode ampliar à vontade no PDF; o texto não perde qualidade.')); ?>"><?php echo h(t('Baixar PDF completo')); ?></button>
+  <button type="button" class="botao" id="org-imprimir-completo" data-url="<?php echo h(link_tela('organograma', ['dia' => $dia, 'paginas' => 1, 'pdf' => 'completo'])); ?>" title="<?php echo h(t('Uma folha só, do tamanho do organograma inteiro: times, SRs e páginas de cada núcleo. Pode ampliar à vontade no PDF; o texto não perde qualidade.')); ?>"><?php echo h(t('Baixar PDF completo')); ?></button>
   <span class="muted small" id="org-achados" aria-live="polite"></span>
 </section>
 
@@ -174,15 +164,15 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
             <summary><?php echo $pessoa($n['decurio_nome'], $n['decurio_code'] ? strtoupper($n['decurio_code']) : null, 'OS ' . $k, 'org-os', 'pessoa', '<span class="org-qtd">' . h(tn(count($n['srs']), '{n} SR', '{n} SRs')) . '<svg class="org-seta-abrir" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>'); ?></summary>
             <ul class="org-srs">
               <?php foreach ($n['srs'] as $s): ?>
-              <li data-busca="<?php echo h(mb_strtolower($s['nome'] . ' ' . $s['rep'], 'UTF-8')); ?>" title="<?php echo h($s['rep']); ?>"><span><?php echo h($s['nome']); ?></span><span class="org-nivel">SR <?php echo $s['nivel'] ?? '?'; ?></span><?php if ($verPaginas && isset($pgRep[$s['rep']])): $pr = $pgRep[$s['rep']]; ?><span class="org-sr-paginas"><?php echo h(implode(' · ', array_filter([isset($pr['dono']) ? t('dono: {lista}', ['lista' => implode(', ', array_keys($pr['dono']))]) : '', isset($pr['backup']) ? t('backup: {lista}', ['lista' => implode(', ', array_keys($pr['backup']))]) : '']))); ?></span><?php endif; ?></li>
+              <li data-busca="<?php echo h(mb_strtolower($s['nome'] . ' ' . $s['rep'], 'UTF-8')); ?>" title="<?php echo h($s['rep']); ?>"><span><?php echo h($s['nome']); ?></span><span class="org-nivel">SR <?php echo $s['nivel'] ?? '?'; ?></span></li>
               <?php endforeach; ?>
               <?php if (!$n['srs']): ?><li class="org-vazio"><?php echo h(t('sem SRs')); ?></li><?php endif; ?>
             </ul>
           </details>
           <?php if ($verPaginas): $doNucleo = $pgNucleo[(int) $n['id']] ?? []; ?>
           <ul class="org-paginas" aria-label="<?php echo h(t('Páginas do núcleo {n}', ['n' => $k])); ?>">
-            <?php foreach ($doNucleo as $pag => $owners): ?>
-            <li class="org-pagina" data-busca="<?php echo h(mb_strtolower($pag . ' ' . implode(' ', $owners), 'UTF-8')); ?>"><strong><?php echo h($pag); ?></strong><?php echo $semSrs ? '' : ($owners ? '<span class="org-pagina-quem">' . h(implode(', ', array_map(static fn($r) => nomeCurto($nomes[$r] ?? $r), $owners))) . '</span>' : '<span class="org-pagina-quem org-sem-codigo">' . h(t('sem owner')) . '</span>'); ?></li>
+            <?php foreach (array_keys($doNucleo) as $pag): ?>
+            <li class="org-pagina" data-busca="<?php echo h(mb_strtolower($pag, 'UTF-8')); ?>"><strong><?php echo h($pag); ?></strong></li>
             <?php endforeach; ?>
             <?php if (!$doNucleo): ?><li class="org-pagina org-vazio"><?php echo h(t('nenhuma página como dono')); ?></li><?php endif; ?>
           </ul>

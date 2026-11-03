@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.4', 'data' => '2026-11-03', 'titulo' => 'Organograma com as páginas só da liderança', 'sql' => ['ES_93_andressa_sem_equipe_fixa.sql'], 'itens' => [
+    'Organograma, "Ver páginas": as páginas de cada OS aparecem só com o nome, sem os SRs, porque a página é da liderança e não dos SRs; a lista de SRs do núcleo também deixa de mostrar as páginas de cada um. O botão "Sem os SRs" da 1.19.3 sai, porque esse passa a ser o padrão (também nos PDFs).',
+        'ES_93: a Andressa Urach deixa de ter equipe fixa (ela tirava o Loik da Aline Novak no turno C). Na Aline, sem ninguém da equipe no turno, continua entrando outro SR brasileiro.',
+    ]],
     ['versao' => '1.19.3', 'data' => '2026-11-03', 'titulo' => 'Quem já fez a página antes da faixa e organograma sem os SRs', 'sql' => ['ES_83_turno_a_tres_srs_0311.sql', 'ES_84_os_u2_turno_a_0311.sql', 'ES_92_mikayla_free_jose_turno_a.sql'], 'itens' => [
     'Gerar, melhor SR de cada página (A-01): depois de quem bateu 65% da meta na página, vem quem já fez a página nos últimos 30 dias, e só então a faixa do mérito. Antes, um SR Acima que nunca fez a página passava na frente de quem já a fazia abaixo de 65% (caso da Mikayla Free em 03/11). Quem estava no posto e nunca fez a página também cede para quem já fez.',
     'Organograma: com "Ver páginas", o botão "Sem os SRs" mostra só o nome das páginas de cada OS, sem os owners. Vale também para o Baixar PDF e o PDF completo.',
