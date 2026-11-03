@@ -997,8 +997,8 @@ function escMotorAlocarV4(array $in): array {
             }
 
             // 0. Páginas das modelos que mais faturam (v4_melhores_receita_min): o melhor SR do turno
-            //    na página entra antes da equipe fixa (maior venda/hora na página; sem histórico nela,
-            //    a venda/hora geral). As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro.
+            //    na página entra antes da equipe da vaga; a equipe fixa da página (acima) vem antes dele
+            //    (maior venda/hora na página; sem histórico nela, a venda/hora geral). As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro.
             $mel = $est['melhores'] ?? null;
             if (!$transicao && $mel && !empty($mel['paginas'])) {
                 foreach ($estadoUT as $u => &$st) {
