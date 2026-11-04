@@ -12,6 +12,8 @@ return [
     '{n} vaga fixa no núcleo antigo fechada; o motor cobre.' => '{n} fixed slot in the old core closed; the engine covers it.',
     '{n} vagas fixas no núcleo antigo fechadas; o motor cobre.' => '{n} fixed slots in the old core closed; the engine covers them.',
     'O próximo recálculo usa a nova configuração.' => 'The next recalculation uses the new setup.',
+    'Para refazer a escala, use Recalcular tudo: o "a partir de" já está em {quando}. Depois publique e poste os CSVs.' => 'To redo the schedule, use Recalculate all: "from" is already set to {quando}. Then publish and post the CSVs.',
+    'A semana de {dias} também já tem escala: recalcule-a depois.' => 'The week of {dias} also has a schedule: recalculate it afterwards.',
 
     // cabeçalho
     'U{u} · {turno} · núcleo {n}' => 'U{u} · {turno} · core {n}',

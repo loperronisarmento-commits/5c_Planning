@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.6', 'data' => '2026-11-04', 'titulo' => 'Tags de leitura e mudança no meio da semana', 'sql' => ['ES_94_mariana_vilela_afastada.sql'], 'itens' => [
+    'Colaboradores: mudança no meio da semana. O "Vale a partir de" aceita qualquer data; a data escolhe o formulário (de 01/11 em diante o da estrutura nova, com núcleo; antes, o do cadastro antigo) e, ao passar para o outro lado, a edição reabre nessa data. Antes, com a tela num dia anterior a 01/11, o campo só aceitava até 31/10.',
+    'Ao salvar uma mudança de núcleo, turno ou nível numa semana que já tem escala, a tela vai para o Gerar com o "a partir de" no primeiro turno desse dia que ainda não começou: é só usar Recalcular tudo, publicar e postar. Se a semana seguinte também já tiver escala, o aviso lembra de recalcular ela.',
+    'Tags de leitura na Grade e no PDF das páginas: ao lado de cada SR, chips curtos com Meta ✓ / Meta ✗ (na página, 30 dias), Exp. / Inexp. (dias na página em 90), Trainee, Faltas, SLA ↓, Infração, Mérito ↑ / ↓ e Seq. meta. Vermelho e laranja são risco, verde ajuda. Na grade e nas células do PDF aparecem só os riscos; no detalhe da célula e na nova coluna Tags da tabela de representantes do PDF, todas. Ao lado de cada página, ⚠ n conta os SRs com tag vermelha no turno, e o filtro "só páginas com ⚠" mostra só essas. A legenda fica embaixo da grade e em cada folha do PDF.',
+    'ES_94: a Mariana Vilela fica afastada por tempo indeterminado (indisponibilidade aprovada dia a dia, de 04/11 a 31/12).',
+    ]],
     ['versao' => '1.19.5', 'data' => '2026-11-03', 'titulo' => 'PDFs a partir do corte do CSV', 'sql' => [], 'itens' => [
     'Grade, PDFs da escala (PDF U1, U2, U3 e o de cada página) e das metas: seguem o "CSV a partir de". Os dias antes do corte saem e, no dia do corte, os blocos antes dele ficam vazios; o subtítulo diz a partir de quando. Assim o PDF mostra só o que vai ser postado. "Semana inteira" volta ao PDF completo.',
     ]],

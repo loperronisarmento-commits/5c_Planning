@@ -596,7 +596,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
           <?php foreach ($dias as $d): $quem = $pg['cel'][$d . 'T' . $hora . ':00:00'] ?? []; ?>
           <td><?php if (!$quem && ($corteCsv === '' || $d . 'T' . $hora . ':00:00' >= $corteCsv)): ?><span class="pag-pdf-vazio">—</span><?php endif; ?>
             <?php foreach ($quem as $rep => $marca): ?>
-            <div class="pag-pdf-pessoa"><strong><?php echo h(nomeCurto($nomesPdf[$rep] ?? $rep)); ?></strong> <span class="mono"><?php echo h($rep); ?></span><?php echo $vendaTxt((string) $rep); ?><?php echo is_string($marca) ? ' <span class="pag-pdf-marca">' . h($marca) . '</span>' : ($marca ? ' <span class="pag-pdf-marca">#</span>' : ''); ?><?php echo !empty($pg['acima'][$d . 'T' . $hora . ':00:00'][$rep]) ? ' <span class="pag-pdf-marca">⚠</span>' : ''; ?></div>
+            <div class="pag-pdf-pessoa"><strong><?php echo h(nomeCurto($nomesPdf[$rep] ?? $rep)); ?></strong> <span class="mono"><?php echo h($rep); ?></span><?php echo $vendaTxt((string) $rep); ?><?php echo escTagsHtml(escTagsDe((string) $rep, $pg['nome'])); ?><?php echo is_string($marca) ? ' <span class="pag-pdf-marca">' . h($marca) . '</span>' : ($marca ? ' <span class="pag-pdf-marca">#</span>' : ''); ?><?php echo !empty($pg['acima'][$d . 'T' . $hora . ':00:00'][$rep]) ? ' <span class="pag-pdf-marca">⚠</span>' : ''; ?></div>
             <?php endforeach; ?>
           </td>
           <?php endforeach; ?>
@@ -608,6 +608,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <table class="pag-pdf-tabela pag-pdf-reps">
       <thead><tr>
         <th class="pag-pdf-membro"><?php echo h(t('Representante')); ?></th>
+        <th><?php echo h(t('Tags')); ?></th>
         <th class="pag-pdf-num"><?php echo h(t('Tempo de casa')); ?></th>
         <?php foreach ($janelasPdf as $j): ?><th class="pag-pdf-num"><?php echo h(t('Dias na página {d}d', ['d' => $j])); ?></th><th class="pag-pdf-num"><?php echo h(t('Meta {d}d', ['d' => $j])); ?></th><?php endforeach; ?>
       </tr></thead>
@@ -615,6 +616,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
       <?php foreach (array_keys($repsPag[$pid]) as $rep): ?>
         <tr>
           <td><div class="pag-pdf-pessoa"><strong><?php echo h(nomeCurto($nomesPdf[$rep] ?? $rep)); ?></strong> <span class="mono"><?php echo h($rep); ?></span></div></td>
+          <td><?php echo escTagsHtml(escTagsDe((string) $rep, $pg['nome']), 'todas') ?: '<span class="pag-pdf-vazio">—</span>'; ?></td>
           <td class="pag-pdf-num"><?php echo h($casaTxt($casaPdf[$rep] ?? null)); ?></td>
           <?php foreach ($janelasPdf as $j): ?><td class="pag-pdf-num"><?php echo (int) ($diasPag[$pid][$rep][$j] ?? 0); ?></td><td class="pag-pdf-num"><?php echo $metaTxt($metaPag[$pid][$rep][$j] ?? null); ?></td><?php endforeach; ?>
         </tr>
@@ -625,6 +627,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <p class="pag-pdf-legenda"><?php echo h(t('# assistente (o primeiro da página no bloco entra sem #; os demais, que ajudam no capacity, com #) · ⚠ cobrindo acima da capacidade (até 30%, só páginas da mesma agência; cede quando houver gente) · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS. Turno A = T2 e T3 · C = T4 e T5 · D = T6 e o T1 do dia seguinte.') . ' ' . t('Ao lado do código: venda por hora do SR nos últimos {d} dias (US$ vendido ÷ horas no chat), o número que o motor usa para pôr os melhores SRs nas páginas grandes; verde = 115% da mediana ou mais, laranja = menos de 85%, sem cor = na média.', ['d' => $diasPdf])
         . ($medPdf ? ' ' . t('Mediana: US$ {v}/h.', ['v' => number_format($medPdf, 0, ',', '.')]) : '')
         . ' ' . t('Representantes: tempo de casa pela data mais antiga do cadastro (headcount); dias escalados na página no 5C Schedule e atingimento da meta 5CReps na página (na parte de cada um, pela fatia das mensagens) nos 30, 60 e 90 dias antes da semana. Verde: meta batida. — : sem mensagens na página no período.')); ?></p>
+    <p class="pag-pdf-legenda"><?php echo h(t('Tags (na escala só os riscos; na tabela, todas):')) . ' ' . escTagsLegenda(); ?></p>
   </section>
   <?php endforeach; ?>
   <?php if (!$folhas): ?><p class="muted"><?php echo h(t('Página sem alocação neste plano.')); ?></p><?php endif; ?>
@@ -735,7 +738,26 @@ $sel = null;
 if (isset($_GET['pg'], $_GET['dia'])) {
     $sel = ['page_id' => (int) $_GET['pg'], 'dia' => (string) $_GET['dia'], 'linhas' => $grade[(int) $_GET['pg']][(string) $_GET['dia']] ?? []];
 }
-$params = ['plano' => $planoId, 'turno' => $turnoSel, 'time' => $timeSel];
+// Tags de leitura (lib/tags.php): na grade, só os riscos por padrão; "todas" ou "nao" pela tela.
+$tagsModo = in_array($_GET['tags'] ?? '', ['todas', 'nao'], true) ? $_GET['tags'] : 'riscos';
+$soRisco = $ehV4 && !empty($_GET['risco']);
+$params = ['plano' => $planoId, 'turno' => $turnoSel, 'time' => $timeSel] + ($tagsModo !== 'riscos' ? ['tags' => $tagsModo] : []) + ($soRisco ? ['risco' => 1] : []);
+// Por página, no turno da tela: os SRs com alguma tag vermelha (ameaça ao resultado).
+$riscoPag = [];
+if ($ehV4) {
+    foreach ($grade as $pid => $porDia) {
+        foreach ($porDia as $cel) {
+            foreach ($cel as $x) {
+                if ($x['rep_code'] !== null && array_filter(escTagsDe($x['rep_code'], $x['pagina']), static fn($c) => (escTagsDef()[$c][2] ?? '') === 'vermelho')) {
+                    $riscoPag[$pid][$x['rep_code']] = true;
+                }
+            }
+        }
+    }
+    if ($soRisco) {
+        $listaPaginas = array_values(array_filter($listaPaginas, static fn($pg) => !empty($riscoPag[$pg['id']])));
+    }
+}
 $ehRascunho = $plano['status'] === 'RASCUNHO';
 // Seletor de semana: as semanas com escala (da mais nova para a mais antiga), com a versão atual
 // e, se for outra, a publicada.
@@ -808,6 +830,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     </div>
     <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
       <input type="hidden" name="p" value="grade"><input type="hidden" name="plano" value="<?php echo $planoId; ?>"><input type="hidden" name="aba" value="<?php echo h($aba); ?>">
+      <?php foreach (array_intersect_key($params, ['tags' => 1, 'risco' => 1]) as $k => $v): ?><input type="hidden" name="<?php echo h($k); ?>" value="<?php echo h((string) $v); ?>"><?php endforeach; ?>
       <select name="turno" onchange="this.form.submit()" aria-label="<?php echo h(t('Turno')); ?>">
         <?php foreach (['A' => t('Turno {turno} ({horas})', ['turno' => 'A', 'horas' => '05–13']), 'C' => t('Turno {turno} ({horas})', ['turno' => 'C', 'horas' => '13–21']), 'D' => t('Turno {turno} ({horas})', ['turno' => 'D', 'horas' => '21–05'])] as $t => $rot): ?><option value="<?php echo $t; ?>" <?php echo $t === $turnoSel ? 'selected' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
       </select>
@@ -870,7 +893,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <tbody>
     <?php foreach ($listaPaginas as $pg): ?>
       <tr>
-        <td class="col-pagina"><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: t('sem party')); ?></span></td>
+        <td class="col-pagina"><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: t('sem party')); ?></span><?php if (!empty($riscoPag[$pg['id']])): $nr = count($riscoPag[$pg['id']]); ?> <span class="tag-sr tag-sr-vermelho" title="<?php echo h(tn($nr, '{n} SR com tag vermelha neste turno', '{n} SRs com tag vermelha neste turno')); ?>">⚠ <?php echo $nr; ?></span><?php endif; ?></td>
         <?php foreach ($dias as $d): $cel = $grade[$pg['id']][$d] ?? []; $lac = $cel && !array_filter($cel, static fn($x) => $x['rep_code'] !== null || $x['origem'] === 'TREINO'); ?>
           <td class="celula <?php echo $lac ? 'lacuna' : ''; ?> <?php echo array_filter($cel, static fn($x) => (int) $x['travada'] === 1) ? 'travada' : ''; ?>">
             <a href="<?php echo h(link_tela('grade', $params + ['pg' => $pg['id'], 'dia' => $d])); ?>" data-manter-rolagem>
@@ -878,7 +901,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
             <?php foreach ($cel as $x): ?>
               <?php if ($x['rep_code'] === null && $x['origem'] === 'TREINO'): ?><span class="origem-treino" title="<?php echo h($x['motivo']); ?>"><?php echo h(t('treinamento')); ?></span><br>
               <?php elseif ($x['rep_code'] === null): ?><span class="laranja"><?php echo h(t('lacuna')); ?></span><br>
-              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php echo h($nomeCelula($x['rep_code'])); ?><?php $mc = escMarcaCsv($x); echo is_string($mc) ? ' ' . $mc : ($mc ? ' #' : ''); ?><?php echo $x['origem'] === 'SOBRECARGA' ? ' ⚠' : ''; ?></span><br><?php endif; ?>
+              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php echo h($nomeCelula($x['rep_code'])); ?><?php $mc = escMarcaCsv($x); echo is_string($mc) ? ' ' . $mc : ($mc ? ' #' : ''); ?><?php echo $x['origem'] === 'SOBRECARGA' ? ' ⚠' : ''; ?></span><?php echo $ehV4 ? escTagsHtml(escTagsDe($x['rep_code'], $x['pagina']), $tagsModo) : ''; ?><br><?php endif; ?>
             <?php endforeach; ?>
             </a>
           </td>
@@ -899,6 +922,19 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <?php endforeach; ?>
     <span class="muted">· <?php echo h(t('"#" = assistente · clique na célula para ver o porquê e ajustar')); ?></span>
   </div>
+  <?php if ($ehV4): ?>
+  <details class="legenda small legenda-tags">
+    <summary><?php echo h(t('Tags')); ?>:
+      <?php foreach (['riscos' => t('só riscos'), 'todas' => t('todas'), 'nao' => t('nenhuma')] as $m => $rot): ?>
+      <a class="chip-filtro <?php echo $tagsModo === $m ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', array_diff_key($params, ['tags' => 1]) + ['aba' => 'pagina'] + ($m !== 'riscos' ? ['tags' => $m] : []))); ?>" data-manter-rolagem><?php echo h($rot); ?></a>
+      <?php endforeach; ?>
+      <a class="chip-filtro <?php echo $soRisco ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', array_diff_key($params, ['risco' => 1]) + ['aba' => 'pagina'] + ($soRisco ? [] : ['risco' => 1]))); ?>"><?php echo h(t('só páginas com ⚠')); ?></a>
+      <span class="muted"><?php echo h(t('(ver o que cada uma quer dizer)')); ?></span>
+    </summary>
+    <p><?php echo escTagsLegenda(); ?></p>
+    <p class="muted"><?php echo h(t('⚠ n ao lado da página: SRs com tag vermelha no turno. Na grade aparecem só os riscos (vermelho e laranja); no detalhe da célula e na tabela de representantes do PDF, todas.')); ?></p>
+  </details>
+  <?php endif; ?>
 
   <?php if ($sel): $pgSel = $porId[$sel['page_id']] ?? ['nome' => $paginasPlano[$sel['page_id']] ?? '', 'party' => '']; ?>
   <div class="modal-fundo" role="dialog" aria-modal="true" aria-label="<?php echo h(t('Ajustar célula')); ?>">
@@ -906,7 +942,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <div class="linha-titulo"><strong><?php echo h($pgSel['nome']); ?> · <?php echo h(dataBr($sel['dia'], true)); ?> · <?php echo h(t('turno {turno}', ['turno' => $turnoSel])); ?></strong><a class="botao" href="<?php echo h(link_tela('grade', $params)); ?>" data-manter-rolagem data-fechar-modal><?php echo h(t('Fechar')); ?></a></div>
     <ul class="regras small">
       <?php foreach ($sel['linhas'] as $x): ?>
-        <li><?php echo $x['rep_code'] ? h(($nomes[$x['rep_code']] ?? '') . ' (' . $x['rep_code'] . ')') : ($x['origem'] === 'TREINO' ? '<span class="origem-treino">' . h(t('treinamento')) . '</span>' : '<span class="laranja">' . h(t('lacuna')) . '</span>'); ?> · <?php echo h(escRotulo('papel', $x['papel'])); ?> · <?php echo h($x['motivo']); ?><?php echo (int) $x['travada'] ? ' · <strong>' . h(t('travado')) . '</strong>' : ''; ?></li>
+        <li><?php echo $x['rep_code'] ? h(($nomes[$x['rep_code']] ?? '') . ' (' . $x['rep_code'] . ')') : ($x['origem'] === 'TREINO' ? '<span class="origem-treino">' . h(t('treinamento')) . '</span>' : '<span class="laranja">' . h(t('lacuna')) . '</span>'); ?> · <?php echo h(escRotulo('papel', $x['papel'])); ?> · <?php echo h($x['motivo']); ?><?php echo (int) $x['travada'] ? ' · <strong>' . h(t('travado')) . '</strong>' : ''; ?><?php echo $ehV4 && $x['rep_code'] ? '<br>' . escTagsHtml(escTagsDe($x['rep_code'], $x['pagina']), 'todas', true) : ''; ?></li>
       <?php endforeach; ?>
       <?php if (!$sel['linhas']): ?><li class="muted"><?php echo h(t('A página não tem necessidade neste turno.')); ?></li><?php endif; ?>
     </ul>

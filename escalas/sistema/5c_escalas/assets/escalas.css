@@ -1029,3 +1029,19 @@ label > .busca-select { order: 2; }
   .pag-pdf-tabela thead th { background: #f8f3f5 !important; }
   .pag-pdf-marca { color: #970250; }
 }
+/* Tags de leitura da escala (lib/tags.php): chip curto ao lado do SR, vermelho e laranja = risco,
+   verde = ajuda. Na grade quebram para a linha de baixo sem empurrar a célula. */
+.tags-sr { display: inline-flex; flex-wrap: wrap; gap: 2px; vertical-align: middle; }
+.tag-sr { font-size: 10px; font-weight: 700; line-height: 1.35; padding: 0 4px; border-radius: 4px; white-space: nowrap; }
+.tag-sr-vermelho { background: color-mix(in srgb, var(--vermelho) 16%, transparent); color: var(--vermelho); }
+.tag-sr-laranja { background: color-mix(in srgb, var(--laranja) 16%, transparent); color: var(--laranja); }
+.tag-sr-verde { background: color-mix(in srgb, var(--verde) 16%, transparent); color: var(--verde); }
+.legenda-tags summary { cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.legenda-tags p { margin: 6px 0 0; line-height: 1.8; }
+.pag-pdf .tag-sr-vermelho { background: #fbdada; color: #9b1c1c; }
+.pag-pdf .tag-sr-laranja { background: #fbe3d4; color: #9a3d0c; }
+.pag-pdf .tag-sr-verde { background: #dcefe2; color: #1d6b3a; }
+.pag-pdf .tags-sr { margin-left: 2px; }
+@media print {
+  .tag-sr { font-size: 8.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

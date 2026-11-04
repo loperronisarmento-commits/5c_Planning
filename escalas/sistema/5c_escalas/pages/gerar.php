@@ -166,6 +166,11 @@ foreach (array_keys(escSlotsDaSemana($seg)) as $slot) {
         break;
     }
 }
+// Vindo de uma mudança no meio da semana (Colaboradores): o turno dela, se ainda não começou.
+$desdePedido = escSlotDaSemana($seg, (string) ($_GET['desde'] ?? ''));
+if ($desdePedido !== '' && strtotime(str_replace('T', ' ', $desdePedido)) > time()) {
+    $desdeSugerido = $desdePedido;
+}
 $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando FROM ' . escT('esc_entrada_diferenca') . ' d JOIN ' . escT('esc_entrada_foto') . ' f ON f.id = d.foto_para_id WHERE f.lido_em >= NOW() - INTERVAL 7 DAY GROUP BY d.fonte ORDER BY quando DESC');
 ?>
 <header class="cabecalho">

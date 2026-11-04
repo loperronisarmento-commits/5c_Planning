@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.6' => ['titulo' => 'Reading tags and mid-week changes', 'itens' => [
+    'Employees: mid-week changes. "Effective from" accepts any date; the date picks the form (from 11/01 on, the new-structure form with the core; before that, the old setup) and, when it crosses over, the edit reopens on that date. Before, with the screen on a day before 11/01, the field only accepted up to 10/31.',
+    'Saving a core, shift or level change in a week that already has a schedule takes you to Generate with "from" set to the first shift of that day that has not started: just use Recalculate all, publish and post. If the next week also has a schedule, the notice reminds you to recalculate it.',
+    'Reading tags in the Grid and in the page PDF: next to each SR, short chips with Goal ✓ / Goal ✗ (on the page, 30 days), Exp. / New (days on the page in 90), Trainee, Absences, SLA ↓, Infraction, Merit ↑ / ↓ and Goal streak. Red and orange are risks, green helps. The grid and the PDF cells show only the risks; the cell detail and the new Tags column in the PDF representatives table show all of them. Next to each page, ⚠ n counts the SRs with a red tag in the shift, and the "only pages with ⚠" filter shows just those. The legend is below the grid and on every PDF sheet.',
+    'ES_94: Mariana Vilela is on leave indefinitely (approved unavailability day by day, from 11/04 to 12/31).',
+    ]],
     '1.19.5' => ['titulo' => 'PDFs from the CSV cut', 'itens' => [
     'Grid, schedule PDFs (U1, U2, U3 and per page) and the targets PDF: they follow "CSV from". Days before the cut are left out and, on the cut day, blocks before it are empty; the subtitle says from when. The PDF shows only what will be posted. "Whole week" brings back the full PDF.',
     ]],

@@ -30,6 +30,7 @@ require_once __DIR__ . '/lib/dados.php';
 require_once __DIR__ . '/lib/motor.php';
 require_once __DIR__ . '/lib/motor_v4.php';
 require_once __DIR__ . '/lib/merito.php';
+require_once __DIR__ . '/lib/tags.php';
 require_once __DIR__ . '/lib/saida.php';
 require_once __DIR__ . '/lib/equipes.php';
 require_once __DIR__ . '/lib/estrutura.php';

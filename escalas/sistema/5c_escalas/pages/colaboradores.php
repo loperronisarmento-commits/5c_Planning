@@ -115,9 +115,29 @@ if (escPost()) {
         }
         escLog('colaborador.salvar', 'esc_colaborador_config', $rep, $atual, $novo + ['vigente_desde' => $desde, 'vagas_fechadas' => $vagasFechadas, 'canceladas' => $canceladas]);
     });
-    escVoltar('colaboradores', ['q' => $rep, 'dia' => $desde], t('Configuração de {rep} salva a partir de {dia}.', ['rep' => $rep, 'dia' => dataBr($desde)])
+    $aviso = t('Configuração de {rep} salva a partir de {dia}.', ['rep' => $rep, 'dia' => dataBr($desde)])
         . escConfigCanceladasAviso()
-        . ($vagasFechadas ? ' ' . tn($vagasFechadas, '{n} vaga fixa no núcleo antigo fechada; o motor cobre.', '{n} vagas fixas no núcleo antigo fechadas; o motor cobre.') : '') . ' ' . t('O próximo recálculo usa a nova configuração.'));
+        . ($vagasFechadas ? ' ' . tn($vagasFechadas, '{n} vaga fixa no núcleo antigo fechada; o motor cobre.', '{n} vagas fixas no núcleo antigo fechadas; o motor cobre.') : '');
+    // Mudança no meio de uma semana que já tem escala: vai para o Gerar com o "a partir de" no
+    // primeiro turno do dia que ainda não começou, para refazer a escala dali em diante.
+    if ($nucleo) {
+        $segMud = segundaDaSemana($desde);
+        $corte = '';
+        if (escPlanoAtual($segMud)) {
+            foreach (array_keys(escSlotsDaSemana($segMud)) as $slot) {
+                if ($slot >= $desde . 'T05:00:00' && strtotime(str_replace('T', ' ', $slot)) > time()) {
+                    $corte = $slot;
+                    break;
+                }
+            }
+        }
+        if ($corte !== '') {
+            $depois = array_column(escQ('SELECT DISTINCT semana_inicio FROM ' . escT('esc_plano') . " WHERE semana_inicio > ? AND time_nome = '' AND status IN ('RASCUNHO','PUBLICADO') ORDER BY semana_inicio", [$segMud]), 'semana_inicio');
+            escVoltar('gerar', ['semana' => $segMud, 'desde' => $corte], $aviso . ' ' . t('Para refazer a escala, use Recalcular tudo: o "a partir de" já está em {quando}. Depois publique e poste os CSVs.', ['quando' => escSlotsDaSemana($segMud)[$corte]])
+                . ($depois ? ' ' . t('A semana de {dias} também já tem escala: recalcule-a depois.', ['dias' => implode(', ', array_map(static fn($s) => dataBr(substr((string) $s, 0, 10)), $depois))]) : ''));
+        }
+    }
+    escVoltar('colaboradores', ['q' => $rep, 'dia' => $desde], $aviso . ' ' . t('O próximo recálculo usa a nova configuração.'));
 }
 
 $dia = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_GET['dia'] ?? '')) ? $_GET['dia'] : max(date('Y-m-d'), $diaEstrutura);
@@ -221,13 +241,13 @@ $linkDia = static fn(array $p = []) => link_tela('colaboradores', $p + ['dia' =>
     <label><?php echo h(t('Nível de SR')); ?><select name="nivel"><option value=""><?php echo h(t('sem nível')); ?></option><?php for ($k = 5; $k >= 0; $k--): ?><option value="<?php echo $k; ?>" <?php echo $x['nivel'] !== null && (int) $x['nivel'] === $k ? 'selected' : ''; ?>>SR <?php echo $k; ?></option><?php endfor; ?></select></label>
     <?php endif; ?>
     <label><?php echo h(t('Modelo')); ?><select name="modelo_id"><?php foreach ($modelos as $m): ?><option value="<?php echo (int) $m['id']; ?>" <?php echo (int) $m['id'] === (int) $c['modelo_id'] ? 'selected' : ''; ?>><?php echo h($m['nome']); ?></option><?php endforeach; ?></select></label>
-    <label><?php echo h(t('Vale a partir de')); ?><input type="date" name="vigente_desde" required min="<?php echo h($diaEstrutura); ?>" value="<?php echo h($dia); ?>"></label>
+    <label><?php echo h(t('Vale a partir de')); ?><input type="date" name="vigente_desde" required value="<?php echo h($dia); ?>" data-troca-cadastro></label>
     <?php else: $c = $ce ?? ['modelo_id' => 0, 'tipo' => 'TIME', 'turno' => 'A', 'trilha' => null, 'folgas_fixas' => null, 'pode_assistente' => 1, 'observacao' => null]; ?>
     <label><?php echo h(t('Modelo')); ?><select name="modelo_id"><?php foreach ($modelos as $m): ?><option value="<?php echo (int) $m['id']; ?>" <?php echo (int) $m['id'] === (int) $c['modelo_id'] ? 'selected' : ''; ?>><?php echo h($m['nome']); ?></option><?php endforeach; ?></select></label>
     <label><?php echo h(t('Turno fixo')); ?><select name="turno"><?php foreach (['A' => 'A · 05–13', 'C' => 'C · 13–21', 'D' => 'D · 21–05'] as $t => $r): ?><option value="<?php echo $t; ?>" <?php echo $c['turno'] === $t ? 'selected' : ''; ?>><?php echo h($r); ?></option><?php endforeach; ?></select></label>
     <label><?php echo h(t('Tipo')); ?><select name="tipo"><option value="TIME" <?php echo $c['tipo'] === 'TIME' ? 'selected' : ''; ?>><?php echo h(t('Time')); ?></option><option value="BUFFER" <?php echo $c['tipo'] === 'BUFFER' ? 'selected' : ''; ?>><?php echo h(t('Buffer')); ?></option><option value="NUCLEO" <?php echo $c['tipo'] === 'NUCLEO' ? 'selected' : ''; ?>><?php echo h(t('Núcleo (estrutura nova)')); ?></option></select></label>
     <label><?php echo h(t('Trilha (vazio = calcular)')); ?><input type="number" name="trilha" min="0" max="13" value="<?php echo h($c['trilha'] ?? ''); ?>"></label>
-    <label><?php echo h(t('Vale a partir de')); ?><input type="date" name="vigente_desde" required max="<?php echo h(escMaisDias($diaEstrutura, -1)); ?>" value="<?php echo h(min($dia, escMaisDias($diaEstrutura, -1))); ?>"></label>
+    <label><?php echo h(t('Vale a partir de')); ?><input type="date" name="vigente_desde" required value="<?php echo h(min($dia, escMaisDias($diaEstrutura, -1))); ?>" data-troca-cadastro></label>
     <fieldset class="dias-folga"><legend><?php echo h(t('Folgas fixas (só modelo semana fixa)')); ?></legend>
       <?php for ($i = 0; $i < 7; $i++): ?><label class="small"><input type="checkbox" name="folga[<?php echo $i; ?>]" value="1" <?php echo !empty($c['folgas_fixas']) && $c['folgas_fixas'][$i] === '1' ? 'checked' : ''; ?>> <?php echo h($dsem[$i]); ?></label><?php endfor; ?>
     </fieldset>
@@ -239,6 +259,22 @@ $linkDia = static fn(array $p = []) => link_tela('colaboradores', $p + ['dia' =>
     <div class="acoes"><button type="submit" class="botao primario"><?php echo h(t('Salvar')); ?></button><a class="botao" href="<?php echo h($linkDia()); ?>"><?php echo h(t('Cancelar')); ?></a></div>
     <?php if ($ehV4): ?><span class="muted small"><?php echo h(t('Trocar de núcleo fecha as vagas fixas da pessoa no núcleo antigo na véspera; o motor cobre essas vagas. Quem é OS de cada núcleo muda pelo quadro da liderança, não por aqui.')); ?></span><?php endif; ?>
   </form>
+  <script>
+  (function () {
+    // A data escolhe o formulário: de <?php echo h(dataBr($diaEstrutura)); ?> em diante, o da estrutura nova (núcleo);
+    // antes, o do cadastro antigo. Passou para o outro lado: reabre a edição nessa data.
+    var campo = document.querySelector('#form-colaborador [data-troca-cadastro]');
+    if (!campo) { return; }
+    var estrutura = <?php echo json_encode($diaEstrutura); ?>, ehV4 = <?php echo $ehV4 ? 'true' : 'false'; ?>;
+    campo.addEventListener('change', function () {
+      var v = campo.value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || (v >= estrutura) === ehV4) { return; }
+      var u = new URL(<?php echo json_encode(link_tela('colaboradores', ['editar' => $edit])); ?>, location.href);
+      u.searchParams.set('dia', v);
+      location.href = u.toString();
+    });
+  })();
+  </script>
   <script>
   (function () {
     // Nível de SR acima do máximo de assistente: a caixa "pode ser assistente" fica desmarcada e bloqueada.
