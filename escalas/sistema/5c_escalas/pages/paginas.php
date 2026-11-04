@@ -177,6 +177,10 @@ $baseTxt = static function (array $r) use ($dias): string {
 </div>
 
 <section class="panel">
+  <div class="acoes nao-imprimir">
+    <span class="muted small"><?php echo h(t('Fixações e restrições feitas à mão, para mandar às equipes:')); ?></span>
+    <?php foreach ([1, 2, 3] as $uFix): ?><a class="botao" href="<?php echo h(link_tela('fixacoes', ['unidade' => $uFix, 'imprimir' => 1])); ?>" target="_blank" rel="noopener"><?php echo h(t('PDF das fixações U{u}', ['u' => $uFix])); ?></a><?php endforeach; ?>
+  </div>
   <nav class="acoes" aria-label="<?php echo h(t('Filtro')); ?>">
     <?php foreach ($filtros as $k => $rot): ?>
     <a class="botao<?php echo $k === $filtro ? ' primario' : ''; ?>" href="<?php echo h(link_tela('paginas', $k === 'todas' ? [] : ['f' => $k])); ?>"<?php echo $k === $filtro ? ' aria-current="page"' : ''; ?>><?php echo h($rot); ?></a>
@@ -189,7 +193,7 @@ $baseTxt = static function (array $r) use ($dias): string {
     <tbody>
     <?php foreach ($mostrar as $l): ?>
       <tr>
-        <td><strong><?php echo h($l['pagina']); ?></strong><br><span class="muted small"><?php echo h(t('modelo {m} · {c} · tier {t}', ['m' => $l['modelo'], 'c' => $l['carteira'], 't' => $l['tier'] ?: '—'])); ?></span></td>
+        <td><strong><?php echo h($l['pagina']); ?></strong> <a class="botao small nao-imprimir" href="<?php echo h(link_tela('fixacoes', ['pagina' => $l['pagina'], 'imprimir' => 1])); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da configuração de {pagina}', ['pagina' => $l['pagina']])); ?>">PDF</a><br><span class="muted small"><?php echo h(t('modelo {m} · {c} · tier {t}', ['m' => $l['modelo'], 'c' => $l['carteira'], 't' => $l['tier'] ?: '—'])); ?></span></td>
         <td class="num"><?php echo h($usd((float) $l['rec']['total'], escMoedaPagina($l['pagina']))); ?><br><span class="muted small"><?php echo h($baseTxt($l['rec'])); ?></span></td>
         <td class="num"><?php echo h($usd((float) $porModelo[$l['modelo']], escMoedaPagina($l['pagina']))); ?></td>
         <td>

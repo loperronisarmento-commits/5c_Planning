@@ -224,7 +224,7 @@ function escSolTrocar(string $a, string $b, string $desde, string $motivo): arra
                 escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET rep_code = ?, motivo = ? WHERE id = ?', ['#' . $novo, $mot, (int) $v['id']]);
             } else {
                 escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ? WHERE id = ?', [escMaisDias($desde, -1), (int) $v['id']]);
-                escW('INSERT INTO ' . escT('esc_vaga_equipe') . ' (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, \'TELA\', ?)',
+                escW('INSERT INTO ' . escT('esc_vaga_equipe') . ' (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, \'TELA\', ?) AS n ON DUPLICATE KEY UPDATE vigente_ate = n.vigente_ate, fatia = n.fatia, ordem = n.ordem, status = n.status, motivo = n.motivo',
                     [(int) $v['posto_id'], $v['vaga'], '#' . $novo, $v['fatia'], (int) $v['ordem'], $v['status'], $mot, $desde, $v['vigente_ate'], escUserId()]);
             }
             $resumo['vagas'][$novo][] = (int) $v['posto_id'];

@@ -1053,3 +1053,10 @@ label > .busca-select { order: 2; }
 .espera-banco-roda { width: 36px; height: 36px; margin: 0 auto; border-radius: 50%; border: 4px solid color-mix(in srgb, var(--accent) 20%, transparent); border-top-color: var(--accent); animation: espera-banco-gira 0.9s linear infinite; }
 @keyframes espera-banco-gira { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .espera-banco-roda { animation-duration: 3s; } }
+/* Fixações (pages/fixacoes.php): tabela das regras por página e por pessoa, no PDF do papel timbrado. */
+.fix-pdf .fix-tabela { table-layout: auto; }
+.fix-pdf .fix-tabela th, .fix-pdf .fix-tabela td { font-size: 10.5px; padding: 4px 6px; }
+.fix-pdf .fix-tabela tbody th { width: 28%; background: var(--cab-tabela); }
+.fix-pdf .fix-col-pag { width: 22%; }
+.fix-pdf .fix-h2 { font-size: 15px; margin: 12px 0 6px; }
+@media print { .fix-pdf .fix-h2 { color: #650637; } .fix-pdf .fix-tabela tr { break-inside: avoid; } }

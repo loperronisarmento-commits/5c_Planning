@@ -7,6 +7,8 @@ return [
     'Modelo inválido.' => 'Invalid model.',
     'Na estrutura nova a vigência começa em {dia} ou depois.' => 'In the new structure, the effective date must be {dia} or later.',
     'Núcleo inválido na data.' => 'Invalid core on this date.',
+    '{lider} é OS deste núcleo, e {rep} não pode ficar sob essa pessoa.' => '{lider} is the OS of this core, and {rep} cannot report to this person.',
+    '{lider} é {nivel} da U{u}{turno}, e {rep} não pode ficar sob essa pessoa.' => '{lider} is the {nivel} of U{u}{turno}, and {rep} cannot report to this person.',
     'Turno ou tipo inválidos.' => 'Invalid shift or type.',
     'Configuração de {rep} salva a partir de {dia}.' => 'Setup for {rep} saved, effective from {dia}.',
     '{n} vaga fixa no núcleo antigo fechada; o motor cobre.' => '{n} fixed slot in the old core closed; the engine covers it.',

@@ -300,7 +300,7 @@ function escPolDefinirOwner(int $posto, string $rep, string $desde, string $moti
     if ($ja) {
         throw new RuntimeException(t('{rep} já é owner deste posto.', ['rep' => $rep]));
     }
-    escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, origem, criado_por) VALUES (?, 'DONO', ?, 1.000, 1, 'CONFIRMADA', ?, ?, 'TELA', ?)",
+    escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, origem, criado_por) VALUES (?, 'DONO', ?, 1.000, 1, 'CONFIRMADA', ?, ?, 'TELA', ?) AS n ON DUPLICATE KEY UPDATE vigente_ate = NULL, fatia = n.fatia, ordem = n.ordem, status = n.status, motivo = n.motivo",
         [$posto, $rep, mb_substr($motivo, 0, 255), $desde, escUserId()]);
 }
 

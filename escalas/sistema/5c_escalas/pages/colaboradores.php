@@ -40,6 +40,11 @@ if (escPost()) {
         if (!$nucleo) {
             throw new RuntimeException(t('Núcleo inválido na data.'));
         }
+        // Quem não pode ser subordinado de quem (v4_nao_subordinado, ex.: casal).
+        $proibido = escSubordinacaoProibida($rep, (int) $nucleo['id'], $desde);
+        if ($proibido !== '') {
+            throw new RuntimeException($proibido);
+        }
         $nivel = (string) ($_POST['nivel'] ?? '');
         $novo = [
             'modelo_id' => $modelo, 'tipo' => 'NUCLEO', 'turno' => $nucleo['turno'], 'trilha' => null, 'folgas_fixas' => null,

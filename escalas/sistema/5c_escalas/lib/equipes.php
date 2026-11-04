@@ -235,7 +235,7 @@ function escEquipesCompletar(string $desde, string $ref): array {
                 foreach ($paginas[(int) $p['id']] ?? [] as $pg) {
                     $dias += $hist[$rep][$pg] ?? 0;
                 }
-                escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem) VALUES (?, ?, ?, ?, ?, 'PROPOSTA', ?, ?, ?, 'MONTADOR')",
+                escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem) VALUES (?, ?, ?, ?, ?, 'PROPOSTA', ?, ?, ?, 'MONTADOR') AS n ON DUPLICATE KEY UPDATE vigente_ate = n.vigente_ate, fatia = n.fatia, ordem = n.ordem, status = n.status, motivo = n.motivo",
                     [(int) $p['id'], $v['vaga'], $rep, min(1.0, round($f / $v['precisa'], 3)), $ordem + 1,
                      mb_substr('vaga sem equipe, completada antes de gerar: ' . $motivo . ($dias ? ', ' . min($dias, 99) . ' dias nas páginas em 8 semanas' : ', sem histórico nas páginas'), 0, 255), $de, $ate]);
                 $reps[] = $rep;

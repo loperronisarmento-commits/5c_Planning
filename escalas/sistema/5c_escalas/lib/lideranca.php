@@ -105,6 +105,24 @@ function escLiderancaSemana(string $seg): array {
     $turnoVirada = escV4TurnoVirada();
     $est = escLiderancaCarregar(max($seg, escV4DiaEstrutura()));
     $indisp = escMotorIndisp($dias);
+    // OS que muda no meio da semana (ex.: ES_84, Kodama do núcleo 2 para o 1 em 03/11): a vaga de OS é do
+    // núcleo, então em cada dia vale quem é o OS do núcleo naquele dia. OC e OA seguem a lista do início da semana.
+    $osDia = [];
+    foreach ($dias as $d) {
+        if ($d < escV4DiaEstrutura()) {
+            continue;
+        }
+        foreach (escLiderancaCarregar($d)['grupos'] as $turno => $grupos) {
+            foreach ($grupos as $g => $pessoas) {
+                if (is_int($g)) {
+                    foreach ($pessoas as $i => $p) {
+                        $osDia[$turno . '|' . $g . '|' . $i][$d] = $p;
+                    }
+                }
+            }
+        }
+    }
+    $repDia = [];
 
     $sit = [];
     $presentes = [];
@@ -113,6 +131,9 @@ function escLiderancaSemana(string $seg): array {
             foreach ($pessoas as $i => $p) {
                 $chave = $turno . '|' . $g . '|' . $i;
                 foreach ($dias as $d) {
+                    $pd = $osDia[$chave][$d] ?? null;
+                    $rp = $pd !== null && $pd['nucleo'] === $p['nucleo'] ? $pd['rep'] : $p['rep'];
+                    $repDia[$chave][$d] = $rp;
                     if (!escV4TurnoNovo($d, $turno, $virada, $turnoVirada)) {
                         $sit[$chave][$d] = 'ANTES';
                         continue;
@@ -124,7 +145,7 @@ function escLiderancaSemana(string $seg): array {
                         $idx = escV4IndiceCiclo($p, $ciclo, $ancora, $d);
                         $s = $ciclo[$idx] === '1' ? 'TRABALHO' : (in_array($idx, $overlap, true) ? 'OVERLAP' : 'FOLGA');
                     }
-                    if (!in_array($s, ['FOLGA', 'OUTRO'], true) && $p['rep'] && isset($indisp[$p['rep']][$d][$turno])) {
+                    if (!in_array($s, ['FOLGA', 'OUTRO'], true) && $rp && isset($indisp[$rp][$d][$turno])) {
                         $s = 'AUSENTE';
                     }
                     $sit[$chave][$d] = $s;
@@ -133,7 +154,7 @@ function escLiderancaSemana(string $seg): array {
             }
         }
     }
-    return ['dias' => $dias, 'om' => $est['om'], 'grupos' => $est['grupos'], 'sit' => $sit, 'presentes' => $presentes];
+    return ['dias' => $dias, 'om' => $est['om'], 'grupos' => $est['grupos'], 'sit' => $sit, 'presentes' => $presentes, 'rep_dia' => $repDia];
 }
 
 // Origem da alocação da liderança no plano e sufixo do código no CSV (página 5C Schedule).
@@ -156,12 +177,10 @@ function escLiderancaAlocacoes(string $seg, array $travadas, ?array $pagina): ar
     foreach ($e['grupos'] as $turno => $grupos) {
         foreach ($grupos as $g => $pessoas) {
             foreach ($pessoas as $i => $p) {
-                if (!$p['rep']) {
-                    continue;
-                }
                 foreach ($e['dias'] as $d) {
+                    $rp = $e['rep_dia'][$turno . '|' . $g . '|' . $i][$d] ?? $p['rep'];
                     $s = $e['sit'][$turno . '|' . $g . '|' . $i][$d];
-                    if ($s !== 'TRABALHO' && $s !== 'OVERLAP') {
+                    if (!$rp || ($s !== 'TRABALHO' && $s !== 'OVERLAP')) {
                         continue;
                     }
                     $onde = $p['cargo'] === 'OS' ? 'núcleo U' . $p['unidade'] . $turno . $p['nucleo'] : ($p['unidade'] ? 'U' . $p['unidade'] : 'turno ' . $turno);
@@ -174,7 +193,7 @@ function escLiderancaAlocacoes(string $seg, array $travadas, ?array $pagina): ar
                             'dia' => $diaB, 'bloco' => $bloco, 'turno' => $turno,
                             'page_id' => $pagina['page_id'], 'pagina' => $pagina['pagina'],
                             'posto_id' => null, 'vaga' => null,
-                            'rep_code' => $p['rep'], 'papel' => 'REGULAR', 'origem' => ESC_LID_ORIGEM[$p['cargo']], 'travada' => 0,
+                            'rep_code' => $rp, 'papel' => 'REGULAR', 'origem' => ESC_LID_ORIGEM[$p['cargo']], 'travada' => 0,
                             'motivo' => ESC_LID_CARGO[$p['cargo']] . ' · ' . $onde . ($s === 'OVERLAP' ? ' · Overlap (os 3 no turno)' : ''),
                         ];
                     }
@@ -210,4 +229,39 @@ function escLiderancaCsv(array $e): string {
         }
     }
     return "\xEF\xBB\xBF" . implode("\r\n", $linhas) . "\r\n";
+}
+
+// ---------- quem não pode ser subordinado de quem (v4_nao_subordinado) ----------
+// Pares "subordinado:líder" separados por vírgula (ex.: casal, pedido de 04/11: J110041:R096272, o
+// João Paulo Caial não fica sob o Rafael Gauze). Devolve o motivo se, no núcleo $nucleoId em $dia, o
+// SR $rep ficaria sob um líder proibido (OS do núcleo, OC da unidade e turno ou OM da unidade); senão ''.
+function escSubordinacaoProibida(string $rep, int $nucleoId, string $dia): string {
+    $rep = strtoupper($rep);
+    $proibidos = [];
+    foreach (explode(',', escV4Param('v4_nao_subordinado', '')) as $par) {
+        $x = array_map(static fn($v) => strtoupper(trim($v)), explode(':', $par, 2));
+        if (count($x) === 2 && $x[0] === $rep && $x[1] !== '') {
+            $proibidos[$x[1]] = true;
+        }
+    }
+    if (!$proibidos) {
+        return '';
+    }
+    $n = escQ1('SELECT id, unidade, turno, numero, decurio_code, decurio_nome FROM ' . escT('esc_nucleo') . ' WHERE id = ?', [$nucleoId]);
+    if (!$n) {
+        return '';
+    }
+    $n = escNucleoComOsDoDia($n, $dia);
+    $nomes = escNomes();
+    if (isset($proibidos[strtoupper((string) $n['decurio_code'])])) {
+        return t('{lider} é OS deste núcleo, e {rep} não pode ficar sob essa pessoa.', ['lider' => $nomes[strtoupper((string) $n['decurio_code'])] ?? $n['decurio_code'], 'rep' => $nomes[$rep] ?? $rep]);
+    }
+    foreach (escQ('SELECT nivel, UPPER(rep_code) AS rep, nome FROM ' . escT('esc_lideranca') . " WHERE unidade = ? AND (nivel = 'OM' OR (nivel = 'OC' AND turno = ?)) AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)",
+        [(int) $n['unidade'], $n['turno'], $dia, $dia]) as $l) {
+        if (isset($proibidos[(string) $l['rep']])) {
+            return t('{lider} é {nivel} da U{u}{turno}, e {rep} não pode ficar sob essa pessoa.', ['lider' => $l['nome'], 'nivel' => $l['nivel'], 'u' => $n['unidade'],
+                'turno' => $l['nivel'] === 'OC' ? ' ' . $n['turno'] : '', 'rep' => $nomes[$rep] ?? $rep]);
+        }
+    }
+    return '';
 }

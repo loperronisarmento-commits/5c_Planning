@@ -1,6 +1,8 @@
 <?php
 // Textos em inglês da tela Escala da liderança (pages/lideranca.php). O português é a chave.
 return [
+    'a partir de {dia}: {nome}' => 'from {dia}: {nome}',
+    'sem OS' => 'no OS',
     'trabalha' => 'works',
     'folga' => 'day off',
     'ausente' => 'absent',

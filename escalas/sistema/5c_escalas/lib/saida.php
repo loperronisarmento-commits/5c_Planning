@@ -645,7 +645,7 @@ function escSaidaAplicarEntrada(array $pe, int $saidaId, array &$res): void {
             if (!isset($reservados[$rep]) || $e['posto_idx'] === null || !isset($postos[$e['turno']][$e['posto_idx']])) {
                 continue;
             }
-            escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, origem) VALUES (?, ?, ?, ?, 1, 'CONFIRMADA', ?, ?, 'TELA')",
+            escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, origem) VALUES (?, ?, ?, ?, 1, 'CONFIRMADA', ?, ?, 'TELA') AS n ON DUPLICATE KEY UPDATE vigente_ate = NULL, fatia = n.fatia, ordem = n.ordem, status = n.status, motivo = n.motivo",
                 [$postos[$e['turno']][$e['posto_idx']], $e['vaga'], $rep, $e['fatia'] ?: 1, $motivo, $pe['desde']]);
             $res['entrada']['equipe'][] = ['rep' => $rep, 'turno' => $e['turno'], 'vaga' => $e['vaga'], 'posto' => $postos[$e['turno']][$e['posto_idx']]];
             unset($reservados[$rep]);

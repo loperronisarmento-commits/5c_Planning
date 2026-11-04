@@ -96,15 +96,27 @@ foreach ($escala['presentes'] as $grupos) {
     <tbody>
     <?php foreach ($grupos as $g => $pessoas): ?>
       <tr><th colspan="<?php echo 2 + count($dias); ?>" class="small"><?php echo h($rotuloGrupo($g)); ?></th></tr>
-      <?php foreach ($pessoas as $i => $p): ?>
+      <?php foreach ($pessoas as $i => $p):
+          // OS trocado no meio da semana: a linha é do núcleo e mostra a troca (a partir de qual dia).
+          $repsDia = $escala['rep_dia'][$turno . '|' . $g . '|' . $i] ?? [];
+          $trocaOs = [];
+          $antRep = $p['rep'];
+          foreach ($repsDia as $dTroca => $rTroca) {
+              if ($rTroca !== $antRep) {
+                  $trocaOs[] = [$dTroca, $rTroca];
+                  $antRep = $rTroca;
+              }
+          } ?>
       <tr>
-        <td><strong><?php echo h(nomeCurto($p['nome'])); ?></strong><br><span class="muted small mono"><?php echo h($p['rep'] ?? t('sem código')); ?></span></td>
+        <td><strong><?php echo h(nomeCurto($p['nome'])); ?></strong><br><span class="muted small mono"><?php echo h($p['rep'] ?? t('sem código')); ?></span>
+          <?php foreach ($trocaOs as [$dTroca, $rTroca]): ?><br><span class="small"><?php echo h(t('a partir de {dia}: {nome}', ['dia' => dataBr($dTroca, true), 'nome' => $rTroca ? nomeCurto(escNomes()[$rTroca] ?? $rTroca) : t('sem OS')])); ?></span><?php endforeach; ?></td>
         <td class="small"><?php echo h($p['cargo'] === 'OS' ? t('OS · núcleo {nucleo}', ['nucleo' => 'U' . $p['unidade'] . $turno . $p['nucleo']]) : $p['cargo'] . ($p['unidade'] ? ' · U' . $p['unidade'] : '')); ?></td>
         <?php foreach ($dias as $d):
             $sit = $escala['sit'][$turno . '|' . $g . '|' . $i][$d];
             $marca = '';
-            if ($planoSemana && $p['rep'] && in_array($sit, ['TRABALHO', 'OVERLAP', 'FOLGA'], true)) {
-                $naGrade = isset($noPlano[strtoupper($p['rep']) . '|' . $d . '|' . $turno]);
+            $repD = $repsDia[$d] ?? $p['rep'];
+            if ($planoSemana && $repD && in_array($sit, ['TRABALHO', 'OVERLAP', 'FOLGA'], true)) {
+                $naGrade = isset($noPlano[strtoupper($repD) . '|' . $d . '|' . $turno]);
                 if ($naGrade !== ($sit !== 'FOLGA')) {
                     $diferencas++;
                     $marca = ' <span class="tag laranja nao-imprimir" title="' . h($naGrade ? t('Na Grade ({versao}) a pessoa está escalada neste dia', ['versao' => escPlanoRotulo($planoSemana)]) : t('Na Grade ({versao}) a pessoa não está escalada neste dia', ['versao' => escPlanoRotulo($planoSemana)])) . '">' . h(t('≠ grade')) . '</span>';

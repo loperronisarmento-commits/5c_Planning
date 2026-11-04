@@ -404,7 +404,7 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
                     if (escQ1('SELECT 1 AS ok FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vaga = ? AND rep_code = ? AND vigente_ate IS NULL', [$para, $e['vaga'], $e['rep_code']])) {
                         continue;
                     }
-                    escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, origem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'MONTADOR')",
+                    escW('INSERT INTO ' . escT('esc_vaga_equipe') . " (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, origem) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'MONTADOR') AS n ON DUPLICATE KEY UPDATE vigente_ate = NULL, fatia = n.fatia, ordem = n.ordem, status = n.status, motivo = n.motivo",
                         [$para, $e['vaga'], $e['rep_code'], $e['fatia'], (int) $e['ordem'], $e['status'], mb_substr('Capacity de ' . $dc . ': veio do posto ' . $id . ($e['motivo'] ? '; ' . $e['motivo'] : ''), 0, 255), $desde]);
                     $res['equipe_movida']++;
                 }
