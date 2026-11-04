@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.8', 'data' => '2026-11-04', 'titulo' => '# na frente do nome e R$ na Privacy', 'sql' => ['ES_95_mysql_redo_log_2gb.sql', 'ES_96_saidas_0411.sql'], 'itens' => [
+    'Grade e PDF das páginas: o # do assistente vem na frente do nome do SR, para achar rápido quem é assistente no bloco.',
+    'Privacy vende em reais: nas folhas do PDF das páginas da Privacy (hoje Aline Novak e Andressa Urach) o faturamento da página e da modelo e a venda por hora do SR saem em R$, e a venda por hora conta só as horas na Privacy (nas outras folhas, só as horas em dólar; cada moeda com a sua mediana). A folha de resumo da unidade separa US$ e R$, e a tela Páginas mostra R$ nelas. A plataforma vem da tela Páginas ou do cadastro (parâmetro v4_plataforma_brl, padrão Privacy).',
+    'ES_96: Barbara Helena Nieviadonski (movimentação interna) e Felister Mwende Mwongela (desligada) saem a partir de 04/11.',
+    'ES_95: o redo log do MySQL do .11 passou de 128 MB para 2 GB (o banco reiniciava quase todo dia com o redo log cheio).',
+    ]],
     ['versao' => '1.19.7', 'data' => '2026-11-04', 'titulo' => 'Espera pelo banco em vez de erro', 'sql' => [], 'itens' => [
     'Banco fora do ar: em vez de "Banco indisponível", o sistema tenta de novo por alguns segundos e, se o banco não voltar, mostra "Conectando ao banco…" e testa sozinho (3 s, 5 s, 10 s… por até 10 min); a tela abre assim que ele volta. Numa ação enviada (salvar, aprovar…), nada é reenviado sozinho: aparece "Enviar de novo" com os mesmos campos. Se o banco cair no meio de uma tela, ela espera e recarrega; no meio de uma ação, o aviso pede para conferir se a mudança foi gravada.',
     ]],

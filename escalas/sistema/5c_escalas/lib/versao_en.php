@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.8' => ['titulo' => '# before the name and R$ on Privacy', 'itens' => [
+    'Grid and page PDF: the assistant # comes before the SR name, so it is quick to see who is assisting in the block.',
+    'Privacy sells in Brazilian reais: on the PDF sheets of Privacy pages (today Aline Novak and Andressa Urach) the page and model revenue and the SR sales per hour are shown in R$, and sales per hour count only the hours on Privacy (on other sheets, only the dollar hours; each currency with its own median). The unit summary sheet splits US$ and R$, and the Pages screen shows R$ for them. The platform comes from the Pages screen or the registry (parameter v4_plataforma_brl, default Privacy).',
+    'ES_96: Barbara Helena Nieviadonski (internal move) and Felister Mwende Mwongela (dismissed) leave from 11/04.',
+    'ES_95: the .11 MySQL redo log went from 128 MB to 2 GB (the database restarted almost daily with a full redo log).',
+    ]],
     '1.19.7' => ['titulo' => 'Waiting for the database instead of an error', 'itens' => [
     'Database down: instead of "Database unavailable", the system retries for a few seconds and, if the database is not back, shows "Connecting to the database…" and keeps testing by itself (3 s, 5 s, 10 s… for up to 10 min); the screen opens as soon as it is back. For a submitted action (save, approve…), nothing is resent automatically: "Send again" appears with the same fields. If the database drops in the middle of a screen, it waits and reloads; in the middle of an action, the notice asks you to check whether the change was saved.',
     ]],

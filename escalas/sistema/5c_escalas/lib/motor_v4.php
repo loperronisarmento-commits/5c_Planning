@@ -159,6 +159,42 @@ function escPaginaConfig(): array {
     return $cache;
 }
 
+// Páginas que vendem em reais (BRL): as das plataformas de v4_plataforma_brl (padrão Privacy), pela
+// plataforma da tela Páginas (esc_pagina_config.plataforma, ES_85) ou, sem ela, a do cadastro
+// (5c_pages.pages.platform). Devolve [chave da página => true]. Só muda a exibição (R$ no lugar de US$).
+function escPaginasBrl(): array {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $cache = [];
+    $plats = array_values(array_filter(array_map('trim', explode(',', escV4Param('v4_plataforma_brl', 'Privacy')))));
+    if (!$plats) {
+        return $cache;
+    }
+    $definida = [];
+    try {
+        foreach (escQ('SELECT pagina, plataforma FROM ' . escT('esc_pagina_config') . " WHERE plataforma IS NOT NULL AND plataforma <> ''") as $r) {
+            $definida[escV4ChavePagina((string) $r['pagina'])] = in_array((string) $r['plataforma'], $plats, true);
+        }
+    } catch (Throwable $e) {
+        // coluna ainda não criada (ES_85)
+    }
+    try {
+        foreach (escQ('SELECT name FROM `5c_pages`.`pages` WHERE platform IN (' . escIn($plats) . ')', $plats) as $r) {
+            $definida[escV4ChavePagina((string) $r['name'])] ??= true;
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'Moeda das páginas: cadastro indisponível', ['erro' => $e->getMessage()]);
+    }
+    return $cache = array_filter($definida);
+}
+
+// Símbolo da moeda da página: R$ (Privacy) ou US$.
+function escMoedaPagina(string $pagina): string {
+    return isset(escPaginasBrl()[escV4ChavePagina($pagina)]) ? 'R$' : 'US$';
+}
+
 // Alocação de cada página (esc_pagina_config.alocacao): EQUIPE (Active team, padrão);
 // SOB_DEMANDA (On demand, ES_79: o Gerar não põe ninguém; quando pedem, a alocação é manual, travada
 // na Grade); EXCLUSIVA (solo, ES_82: o SR do posto da página não acumula nem cobre outra página, e o

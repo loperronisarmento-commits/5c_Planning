@@ -137,7 +137,8 @@ $nDesc = count(array_filter($lista, static fn($l) => $l['desc']));
 $nDemanda = count(array_filter($lista, static fn($l) => $l['aloc'] === 'SOB_DEMANDA'));
 $nVermelhas = count(array_filter($lista, static fn($l) => $l['cor'] === 'VERMELHA'));
 $nAmarelas = count(array_filter($lista, static fn($l) => $l['cor'] === 'AMARELA'));
-$usd = static fn(float $v): string => 'US$ ' . number_format($v, 0, ',', '.');
+// Privacy vende em reais (escPaginasBrl): o valor dela sai em R$.
+$usd = static fn(float $v, string $moeda = 'US$'): string => $moeda . ' ' . number_format($v, 0, ',', '.');
 $baseTxt = static function (array $r) use ($dias): string {
     if ($r['base'] === 'EMULADO') {
         return t('emulado de {n} dias de venda', ['n' => $r['dias']]);
@@ -189,8 +190,8 @@ $baseTxt = static function (array $r) use ($dias): string {
     <?php foreach ($mostrar as $l): ?>
       <tr>
         <td><strong><?php echo h($l['pagina']); ?></strong><br><span class="muted small"><?php echo h(t('modelo {m} · {c} · tier {t}', ['m' => $l['modelo'], 'c' => $l['carteira'], 't' => $l['tier'] ?: '—'])); ?></span></td>
-        <td class="num"><?php echo h($usd((float) $l['rec']['total'])); ?><br><span class="muted small"><?php echo h($baseTxt($l['rec'])); ?></span></td>
-        <td class="num"><?php echo h($usd((float) $porModelo[$l['modelo']])); ?></td>
+        <td class="num"><?php echo h($usd((float) $l['rec']['total'], escMoedaPagina($l['pagina']))); ?><br><span class="muted small"><?php echo h($baseTxt($l['rec'])); ?></span></td>
+        <td class="num"><?php echo h($usd((float) $porModelo[$l['modelo']], escMoedaPagina($l['pagina']))); ?></td>
         <td>
           <?php if ($l['desc']): ?><span class="tag laranja"><?php echo h($l['modo'] === 'DESCONSIDERAR' ? t('Desconsiderada (marcada)') : t('Desconsiderada (OFTV abaixo de {min})', ['min' => $usd($minimo)])); ?></span>
           <?php else: ?><span class="tag verde"><?php echo h($l['modo'] === 'NORMAL' ? t('Normal (marcada)') : t('Normal')); ?></span><?php endif; ?>
