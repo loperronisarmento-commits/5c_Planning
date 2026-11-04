@@ -87,7 +87,26 @@ function escEstruturaPaginasFora(string $hoje): array {
     $semEspaco = static fn($p) => mb_strtolower(str_replace(' ', '', trim((string) $p)));
     $comCarteira = array_flip(array_map($semEspaco, array_column(escQ('SELECT pagina FROM `5c_planning`.`fc_pagina_carteira`
                      WHERE vigente_ate IS NULL OR vigente_ate > ?', [$hoje]), 'pagina')));
-    $lista = array_values(array_filter($lista, static fn($l) => !isset($comCarteira[$semEspaco($l['pagina'])])
+    // Página que saiu pela tela Saídas (esc_saida_pagina APLICADA) nos últimos v4_saida_bloqueio_dias (60) não
+    // volta sozinha, mesmo ativa no site (ex.: Andressa Urach em 04/11: saía e entrava de novo como modelo nova,
+    // e a segunda entrada no mesmo dia dava chave duplicada). Para voltar antes, a entrada é pelo Funil.
+    $saiu = [];
+    try {
+        foreach (escQ('SELECT pagina, MAX(criado_em) AS quando FROM ' . escT('esc_saida_pagina') . " WHERE status = 'APLICADA' AND vale_desde >= ? GROUP BY pagina",
+            [escMaisDias($hoje, -max(1, (int) escV4Param('v4_saida_bloqueio_dias', '60')))]) as $s) {
+            $saiu[$semEspaco($s['pagina'])] = (string) $s['quando'];
+        }
+        // Destino novo no Funil depois da saída: a página volta normalmente.
+        foreach ($saiu ? escQ('SELECT pagina, GREATEST(criado_em, COALESCE(atualizado_em, criado_em)) AS quando FROM ' . escT('esc_pagina_previsao')) : [] as $pv) {
+            $k = $semEspaco($pv['pagina']);
+            if (isset($saiu[$k]) && (string) $pv['quando'] > $saiu[$k]) {
+                unset($saiu[$k]);
+            }
+        }
+    } catch (Throwable $e) {
+        // tabela ainda não criada
+    }
+    $lista = array_values(array_filter($lista, static fn($l) => !isset($comCarteira[$semEspaco($l['pagina'])]) && !isset($saiu[$semEspaco($l['pagina'])])
         && ((int) $l['escala'] > 0 || (float) $l['venda'] > 0
             || ($l['imported_at'] !== null && substr((string) $l['imported_at'], 0, 10) >= $novaDe))));
     if (!$lista) {

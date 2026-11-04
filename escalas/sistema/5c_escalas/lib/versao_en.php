@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.11' => ['titulo' => 'A page that left does not come back by itself', 'itens' => [
+    'A page that left through the Exits screen does not come back by itself (parameter v4_saida_bloqueio_dias, 60 days), even if still active on the site; before, the structure update brought it back as a new model (Andressa Urach on 11/04, which on the second run gave a duplicate key and stopped the update before generating). To bring it back earlier, record its destination in the Funnel.',
+    ]],
     '1.19.10' => ['titulo' => 'Assistant only, low flow and fixed-assignment adjustments', 'itens' => [
     'Assistant only on any page (parameter v4_sr_so_assistente): the person only takes assistant posts, at any level, and does not stack or cover pages. Today: Letícia Zaleski.',
     'Low flow (v4_sr_baixo_fluxo): only posts up to v4_baixo_fluxo_max fans/h (12) or assistant posts; no stacking or covering. Today: Matheus Chagas. Strict low flow (v4_sr_baixo_fluxo_estrito): never on a post above the cut, not even as assistant. Today: Gabriela Boretti, Alexandre Mortagua and Oliver Melo.',

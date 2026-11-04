@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.11', 'data' => '2026-11-04', 'titulo' => 'Página que saiu não volta sozinha', 'sql' => [], 'itens' => [
+    'Página que saiu pela tela Saídas não volta sozinha (parâmetro v4_saida_bloqueio_dias, 60 dias), mesmo ainda ativa no site; antes, a atualização da estrutura a trazia de volta como modelo nova (caso da Andressa Urach em 04/11, que no segundo dia dava chave duplicada e travava a atualização antes de gerar). Para voltar antes disso, registre o destino no Funil.',
+    ]],
     ['versao' => '1.19.10', 'data' => '2026-11-04', 'titulo' => 'Só assistente, baixo fluxo e ajustes das fixações', 'sql' => ['ES_104_skye_angeline_oftv.sql', 'ES_105_assist_baixo_fluxo.sql', 'ES_106_gabriela_estrito_julio.sql', 'ES_107_danilo_proibido_molly.sql', 'ES_108_danilo_privacy_restricoes.sql', 'ES_109_melody_fora_rocket.sql'], 'itens' => [
     'Só assistente em qualquer página (parâmetro v4_sr_so_assistente): a pessoa só entra em posto de assistente, de qualquer nível, e não acumula nem cobre página. Hoje: Letícia Zaleski.',
     'Baixo fluxo (v4_sr_baixo_fluxo): só posto de até v4_baixo_fluxo_max fãs/h (12) ou de assistente; não acumula nem cobre. Hoje: Matheus Chagas. Baixo fluxo estrito (v4_sr_baixo_fluxo_estrito): nunca em posto acima do corte, nem de assistente. Hoje: Gabriela Boretti, Alexandre Mortagua e Oliver Melo.',
