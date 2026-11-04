@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.12', 'data' => '2026-11-04', 'titulo' => 'Antes do corte igual ao site', 'sql' => [], 'itens' => [
+    'Gerar com "A partir de": nova opção "Antes do corte, igual ao site (5C Schedule)", marcada por padrão. As células de antes do corte vêm da escala oficial do site (5c_schedule.scheduleday), como estão, e não da versão publicada; na 5C Schedule, o sufixo (-2, -5, -6, -7, -8, -4) vem da versão publicada ou do cargo. O CSV do dia do corte passa a levar os blocos de antes dele (ex.: T1, T2 e T3 quando o corte é o T4/T5), iguais ao site.',
+    ]],
     ['versao' => '1.19.11', 'data' => '2026-11-04', 'titulo' => 'Página que saiu não volta sozinha', 'sql' => [], 'itens' => [
     'Página que saiu pela tela Saídas não volta sozinha (parâmetro v4_saida_bloqueio_dias, 60 dias), mesmo ainda ativa no site; antes, a atualização da estrutura a trazia de volta como modelo nova (caso da Andressa Urach em 04/11, que no segundo dia dava chave duplicada e travava a atualização antes de gerar). Para voltar antes disso, registre o destino no Funil.',
     ]],

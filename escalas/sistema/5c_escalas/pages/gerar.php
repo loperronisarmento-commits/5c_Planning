@@ -21,7 +21,11 @@ if (escPost()) {
     $segPost = segundaDaSemana((string) ($_POST['semana'] ?? $seg));
     // "A partir de" (início de um turno da semana): antes dele fica a versão publicada como está.
     $desde = escSlotDaSemana($segPost, (string) ($_POST['desde'] ?? ''));
-    $avisoDesde = $desde !== '' && escPlanoAtual($segPost) ? ' ' . t('Só mudou a partir de {quando}; antes disso ficou a versão publicada.', ['quando' => escSlotsDaSemana($segPost)[$desde]]) : '';
+    // Antes do corte igual ao site (5c_schedule.scheduleday) em vez da versão publicada (escMotorPreCorteDoSite).
+    $GLOBALS['ESC_PRE_SITE'] = $desde !== '' && !empty($_POST['pre_site']);
+    $avisoDesde = $desde !== '' && escPlanoAtual($segPost) ? ' ' . ($GLOBALS['ESC_PRE_SITE']
+        ? t('Só mudou a partir de {quando}; antes disso ficou igual ao site (5C Schedule), e o CSV do dia leva os blocos de antes iguais ao site.', ['quando' => escSlotsDaSemana($segPost)[$desde]])
+        : t('Só mudou a partir de {quando}; antes disso ficou a versão publicada.', ['quando' => escSlotsDaSemana($segPost)[$desde]])) : '';
     if ($acao === 'gerar') {
         $id = escMotorGerar($segPost, 'NOVA', escUserId(), null, false, $desde);
         escVoltar('grade', ['plano' => $id], t('Rascunho gerado para a semana de {dia}.', ['dia' => escData($segPost)]) . $avisoDesde . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
@@ -212,6 +216,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
       <?php foreach (escSlotsDaSemana($seg) as $slot => $rot): ?><option value="<?php echo h($slot); ?>"<?php echo $slot === $desdeSugerido ? ' selected' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
     </select>
   </label>
+  <label class="small"><input type="checkbox" id="gerar-pre-site" checked> <?php echo h(t('Antes do corte, igual ao site (5C Schedule): as células de antes vêm da escala oficial, não da versão publicada')); ?></label>
   <p class="muted small" id="gerar-desde-ajuda"><?php echo h(t('Com um turno escolhido, o recálculo só muda dali em diante: antes dele fica a versão publicada (ou a atual), célula por célula, e o CSV da nova versão já sai a partir desse turno. Quem trabalha antes do corte só volta com 11 h de descanso.')); ?></p>
   <?php endif; ?>
   <div class="acoes">
@@ -242,8 +247,14 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   (function () {
     var sel = document.getElementById('gerar-desde');
     if (!sel) { return; }
+    var site = document.getElementById('gerar-pre-site');
     document.querySelectorAll('.campo-desde').forEach(function (c) {
-      c.form.addEventListener('submit', function () { c.value = sel.value; }, true);
+      c.form.addEventListener('submit', function () {
+        c.value = sel.value;
+        var x = c.form.querySelector('input[name="pre_site"]');
+        if (!x) { x = document.createElement('input'); x.type = 'hidden'; x.name = 'pre_site'; c.form.appendChild(x); }
+        x.value = site && site.checked && sel.value ? '1' : '';
+      }, true);
     });
   })();
   </script>

@@ -1,6 +1,8 @@
 <?php
 // Textos em inglês da tela Gerar escala (pages/gerar.php). O português é a chave.
 return [
+    'Só mudou a partir de {quando}; antes disso ficou igual ao site (5C Schedule), e o CSV do dia leva os blocos de antes iguais ao site.' => 'Only changed from {quando}; before that it stayed as on the site (5C Schedule), and the CSV for that day carries the earlier blocks as on the site.',
+    'Antes do corte, igual ao site (5C Schedule): as células de antes vêm da escala oficial, não da versão publicada' => 'Before the cut, as on the site (5C Schedule): earlier cells come from the official schedule, not the published version',
     // avisos e erros das ações
     'Rascunho gerado para a semana de {dia}.' => 'Draft generated for the week of {dia}.',
     'Não há versão desta semana para recalcular. Gere primeiro.' => 'This week has no version to recalculate. Generate one first.',

@@ -1,6 +1,7 @@
 <?php
 // Textos em inglês da tela Grade da escala (pages/grade.php). O português é a chave.
 return [
+    'Date Schedule = o dia escolhido. Nesse dia, os blocos antes do turno saem iguais à versão (gerada com "antes do corte, igual ao site", são os do site); os dias antes ficam fora do CSV. O passado não muda.' => 'Date Schedule = the chosen day. On that day, the blocks before the shift come out as in the version (generated with "before the cut, as on the site", they are the site ones); earlier days stay out of the CSV. The past does not change.',
     // erros e avisos das ações
     'Plano não encontrado.' => 'Plan not found.',
     'Só dá para ajustar um rascunho. Para mexer na versão publicada, use "Criar rascunho a partir desta".' => 'Only a draft can be adjusted. To change the published version, use "Create draft from this one".',

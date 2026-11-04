@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.12' => ['titulo' => 'Before the cut, as on the site', 'itens' => [
+    'Generate with "From": new option "Before the cut, as on the site (5C Schedule)", checked by default. Cells before the cut come from the official site schedule (5c_schedule.scheduleday), as they are, instead of the published version; on 5C Schedule, the suffix (-2, -5, -6, -7, -8, -4) comes from the published version or the role. The CSV for the cut day now carries the blocks before it (e.g. T1, T2 and T3 when the cut is T4/T5), as on the site.',
+    ]],
     '1.19.11' => ['titulo' => 'A page that left does not come back by itself', 'itens' => [
     'A page that left through the Exits screen does not come back by itself (parameter v4_saida_bloqueio_dias, 60 days), even if still active on the site; before, the structure update brought it back as a new model (Andressa Urach on 11/04, which on the second run gave a duplicate key and stopped the update before generating). To bring it back earlier, record its destination in the Funnel.',
     ]],

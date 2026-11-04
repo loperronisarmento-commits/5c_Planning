@@ -868,7 +868,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes small">
     <input type="hidden" name="p" value="grade"><input type="hidden" name="plano" value="<?php echo (int) $planoId; ?>">
     <?php if (isset($_GET['aba']) && is_string($_GET['aba'])): ?><input type="hidden" name="aba" value="<?php echo h($_GET['aba']); ?>"><?php endif; ?>
-    <label class="filtros" title="<?php echo h(t('Os blocos antes desse turno saem em branco no CSV e o site continua com o que já tem (Date Schedule = o dia escolhido). O passado não muda.')); ?>"><?php echo h(t('CSV a partir de')); ?>
+    <label class="filtros" title="<?php echo h(t('Date Schedule = o dia escolhido. Nesse dia, os blocos antes do turno saem iguais à versão (gerada com "antes do corte, igual ao site", são os do site); os dias antes ficam fora do CSV. O passado não muda.')); ?>"><?php echo h(t('CSV a partir de')); ?>
       <select name="desde" onchange="this.form.submit()">
         <option value="semana"<?php echo $corteCsv === '' ? ' selected' : ''; ?>><?php echo h(t('Semana inteira')); ?></option>
         <?php foreach (escSlotsDaSemana($seg) as $slot => $rot): ?><option value="<?php echo h($slot); ?>"<?php echo $slot === $corteCsv ? ' selected' : ''; ?><?php echo $slot < escPostagemCorte($seg) ? ' disabled' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
