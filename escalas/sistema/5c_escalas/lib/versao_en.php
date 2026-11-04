@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.10' => ['titulo' => 'Assistant only, low flow and fixed-assignment adjustments', 'itens' => [
+    'Assistant only on any page (parameter v4_sr_so_assistente): the person only takes assistant posts, at any level, and does not stack or cover pages. Today: Letícia Zaleski.',
+    'Low flow (v4_sr_baixo_fluxo): only posts up to v4_baixo_fluxo_max fans/h (12) or assistant posts; no stacking or covering. Today: Matheus Chagas. Strict low flow (v4_sr_baixo_fluxo_estrito): never on a post above the cut, not even as assistant. Today: Gabriela Boretti, Alexandre Mortagua and Oliver Melo.',
+    'ES_104 to ES_109: Skye no longer assistant only on Mikayla Free; Angeline on the Rocket Reyna team, without the bar; fixed teams copied to the OFTV of the same model (Rocket Reyna, Nicole, Britt, Molly); Gabriela barred from Molly Stewart and Ariana Marie and out of the Molly team; Julio without the bar on Sophie Sierra; Danilo Oliveira barred from Molly and on the Aline Novak team (Privacy); Rodjah Maddy, Alexandre Mortagua and Oliver Melo on a single page only; Melody off Rocket Reyna. The Fixed assignments screen shows the new rules.',
+    ]],
     '1.19.9' => ['titulo' => 'Fixed assignments: splits, several pages, other unit as last resort and PDF per unit', 'itens' => [
     'SR split across pages (esc_sr_divisao, ES_98): the SR splits the shifts they are available for among the listed pages, by each page share, even when the page belongs to another unit; whatever is missing to 100% is the normal schedule of their unit. Each day, the turn goes to the page furthest behind its share. It comes before the page fixed team. Today: Vanderson Garcia 50% Brandi Love and 50% Elly Clutch; Luan Oliveira 50% Elly Clutch and 50% normal schedule.',
     'Fixed team from another unit: a page fixed-team member who is in another unit only steps in as a last resort, after all steps, on a slot that is still empty, and only if they are left without a post in their own unit shift (e.g. Eduardo Gois, from U1, on Ivy Vale, from U3).',

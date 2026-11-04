@@ -848,6 +848,15 @@ function escMotorAlocarV4(array $in): array {
     // Várias páginas ao mesmo tempo (v4_sr_multipagina, "CÓDIGO:página|página;CÓDIGO:..."; pedido de 04/11): o SR
     // fica fixo em todas as páginas da lista no turno dele, acumulando os postos delas, sem assistente e sem limite
     // de capacidade (o manager garante que ele dá conta). Não acumula outro posto nem cobre outra página.
+    // Só assistente em qualquer página (v4_sr_so_assistente) e baixo fluxo (v4_sr_baixo_fluxo: só posto de até
+    // v4_baixo_fluxo_max fãs/h, ou de assistente), pedidos de 04/11. Nenhum dos dois acumula nem cobre página.
+    $soAssistGeral = array_flip(array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_so_assistente', '')))));
+    $baixoFluxo = array_flip(array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_baixo_fluxo', '')))));
+    $baixoFluxoMax = (float) str_replace(',', '.', escV4Param('v4_baixo_fluxo_max', '12'));
+    // Baixo fluxo estrito (v4_sr_baixo_fluxo_estrito): nunca em posto acima do corte, nem de assistente.
+    foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_baixo_fluxo_estrito', '')))) as $c) {
+        $baixoFluxo[$c] = 'estrito';
+    }
     $multiPag = [];
     foreach (explode(';', escV4Param('v4_sr_multipagina', '')) as $item) {
         $x = explode(':', $item, 2);
@@ -996,7 +1005,7 @@ function escMotorAlocarV4(array $in): array {
             $anosRep = $est['anos'] ?? [];
             $soAssist = $est['so_assist'] ?? [];
             $foraPag = $est['fora'] ?? [];
-            $pode = static function (string $rep, array $p) use ($pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag): bool {
+            $pode = static function (string $rep, array $p) use ($pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax): bool {
                 foreach ($p['paginas'] as $pg) {
                     if (isset($foraPag[$rep][$pg['pagina']])) {
                         return false; // fora desta página
@@ -1004,6 +1013,16 @@ function escMotorAlocarV4(array $in): array {
                 }
                 if (isset($umaPag[$rep]) && count(array_filter($p['paginas'], static fn($pg) => !$pg['apoio'])) > 1) {
                     return false; // só trabalha com uma página
+                }
+                $postoAssist = in_array($p['tipo'], ['assistente', 'apoio'], true);
+                if (isset($soAssistGeral[$rep]) && !$postoAssist) {
+                    return false; // só assistente, em qualquer página
+                }
+                if (isset($baixoFluxo[$rep]) && ($baixoFluxo[$rep] === 'estrito' || !$postoAssist) && (float) $p['carga'] > $baixoFluxoMax + 1e-9) {
+                    return false; // só página de baixo fluxo (no estrito, nem de assistente)
+                }
+                if ((isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep])) && $postoAssist) {
+                    return true; // de assistente, mesmo acima do nível máximo de assistente
                 }
                 if (in_array($p['tipo'], ['assistente', 'apoio'], true)) {
                     foreach ($p['paginas'] as $pg) {
@@ -1572,7 +1591,7 @@ function escMotorAlocarV4(array $in): array {
                     $kMelhor = null;
                     foreach ($estadoUT[$u]['vagas'] as $j => $w) {
                         $rep = $w['rep'];
-                        if ($rep === null || $j === $i || isset($acumula[$rep]) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || ($w['acumulada'] ?? false) || !$pode($rep, $alvo)) {
+                        if ($rep === null || $j === $i || isset($acumula[$rep]) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep]) || ($w['acumulada'] ?? false) || !$pode($rep, $alvo)) {
                             continue;
                         }
                         $base = $est['postos'][$w['pid']];
@@ -1670,7 +1689,7 @@ function escMotorAlocarV4(array $in): array {
                             $melhor = null;
                             $kMelhor = null;
                             foreach ($carregado[$u] ?? [] as $rep => $c) {
-                                if ($c['so_apoio'] || !empty($c['exclusivo']) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
+                                if ($c['so_apoio'] || !empty($c['exclusivo']) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
                                     continue;
                                 }
                                 $razao = ($c['carga'] + $fans) / $c['cap'];

@@ -98,6 +98,15 @@ foreach (explode(';', escV4Param('v4_sr_multipagina', '')) as $item) {
 foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_uma_pagina', '')))) as $rep) {
     $add($porRep, $rep, t('só trabalha com uma página (não acumula nem cobre)'));
 }
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_so_assistente', '')))) as $rep) {
+    $add($porRep, $rep, t('só entra como assistente, em qualquer página'));
+}
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_baixo_fluxo', '')))) as $rep) {
+    $add($porRep, $rep, t('só página de baixo fluxo (até {n} fãs/h) ou de assistente', ['n' => escV4Param('v4_baixo_fluxo_max', '12')]));
+}
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_baixo_fluxo_estrito', '')))) as $rep) {
+    $add($porRep, $rep, t('nunca em página acima de {n} fãs/h, nem de assistente', ['n' => escV4Param('v4_baixo_fluxo_max', '12')]));
+}
 foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_todos_os_dias', '')))) as $rep) {
     $add($porRep, $rep, t('trabalha todos os dias do turno, fora da rotação'));
 }
