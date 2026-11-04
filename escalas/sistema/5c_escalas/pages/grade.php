@@ -423,6 +423,8 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     $soPid = (int) ($_GET['pagina'] ?? 0);
     $overlapPdf = escV4Param('v4_overlap_pagina', '5C Schedule');
     $folhas = array_filter($porPagina, static fn($pg, $pid) => $soPid ? $pid === $soPid : $pg['nome'] !== $overlapPdf, ARRAY_FILTER_USE_BOTH);
+    // Página sem ninguém no período (ex.: saiu da operação antes do corte): fica de fora do PDF.
+    $folhas = array_filter($folhas, static fn($pg) => !empty($pg['cel']));
     // Ordem das folhas: da modelo que mais fatura para a que menos (30 dias, fechado + pendente),
     // e dentro da modelo a página que mais fatura (a mesma fila do motor).
     $recPdf = escV4ReceitaPaginas(array_column($folhas, 'nome'), (int) escV4Param('v4_receita_dias', '30'));
@@ -519,6 +521,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     // 60 e 90 dias antes da semana.
     $repsPag = [];
     foreach ($folhas as $pid => $pg) {
+        $repsPag[$pid] = [];
         foreach ($pg['cel'] as $quem) {
             foreach (array_keys($quem) as $rep) {
                 $repsPag[$pid][strtoupper((string) $rep)] = ($repsPag[$pid][strtoupper((string) $rep)] ?? 0) + 1;

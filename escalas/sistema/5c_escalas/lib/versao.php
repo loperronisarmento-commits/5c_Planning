@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.14', 'data' => '2026-11-04', 'titulo' => 'PDF da escala com página vazia no período', 'sql' => [], 'itens' => [
+    'Correção: o PDF da escala dava "Não deu para ler os dados agora" quando, com o corte do CSV, alguma página ficava sem ninguém no período (ex.: página que saiu). Essa página agora fica de fora do PDF.',
+    ]],
     ['versao' => '1.19.13', 'data' => '2026-11-04', 'titulo' => 'CSV: antes do corte igual ao site', 'sql' => ['ES_110_saida_matheus_ramos.sql'], 'itens' => [
     'CSV: no dia do corte ("CSV a partir de"), os blocos de antes dele saem sempre iguais ao site (5C Schedule), qualquer que seja a versão (gerada com ou sem "a partir de"). Ex.: corte em 05/11 T4/T5, o T1, o T2 e o T3 de 05/11 vão idênticos ao site.',
     'ES_110: Matheus de Castro Ramos fora a partir de 05/11 (pediu desligamento).',

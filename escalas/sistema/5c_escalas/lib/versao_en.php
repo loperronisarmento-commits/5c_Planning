@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.14' => ['titulo' => 'Schedule PDF with an empty page in the period', 'itens' => [
+    'Fix: the schedule PDF failed with "Could not read the data now" when, with the CSV cut, some page had no one in the period (e.g. a page that left). That page is now left out of the PDF.',
+    ]],
     '1.19.13' => ['titulo' => 'CSV: before the cut as on the site', 'itens' => [
     'CSV: on the cut day ("CSV from"), the blocks before the cut always come out as on the site (5C Schedule), whatever the version (generated with or without "from"). E.g. cut on 11/05 T4/T5, T1, T2 and T3 of 11/05 go exactly as on the site.',
     'ES_110: Matheus de Castro Ramos out from 11/05 (resigned).',
