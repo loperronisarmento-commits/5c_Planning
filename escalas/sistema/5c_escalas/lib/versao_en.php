@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.7' => ['titulo' => 'Waiting for the database instead of an error', 'itens' => [
+    'Database down: instead of "Database unavailable", the system retries for a few seconds and, if the database is not back, shows "Connecting to the database…" and keeps testing by itself (3 s, 5 s, 10 s… for up to 10 min); the screen opens as soon as it is back. For a submitted action (save, approve…), nothing is resent automatically: "Send again" appears with the same fields. If the database drops in the middle of a screen, it waits and reloads; in the middle of an action, the notice asks you to check whether the change was saved.',
+    ]],
     '1.19.6' => ['titulo' => 'Reading tags and mid-week changes', 'itens' => [
     'Employees: mid-week changes. "Effective from" accepts any date; the date picks the form (from 11/01 on, the new-structure form with the core; before that, the old setup) and, when it crosses over, the edit reopens on that date. Before, with the screen on a day before 11/01, the field only accepted up to 10/31.',
     'Saving a core, shift or level change in a week that already has a schedule takes you to Generate with "from" set to the first shift of that day that has not started: just use Recalculate all, publish and post. If the next week also has a schedule, the notice reminds you to recalculate it.',

@@ -106,18 +106,45 @@ if (!isset($telas[$p])) {
     $p = 'painel';
 }
 
+// Saúde do banco (?saude=1): a tela "Conectando ao banco…" pergunta aqui até ele voltar.
+if (isset($_GET['saude'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode(['ok' => escBancoNoAr()]);
+    exit;
+}
+
 // ---------- nível 2: cadastrado no módulo? ----------
+// O MySQL reinicia de vez em quando (some por alguns segundos ou minutos): antes de desistir, tenta
+// de novo aqui por alguns segundos; se não voltar, a tela espera por ele (escEsperaBancoHtml) em vez
+// de mostrar erro.
 $erroBanco = null;
+$esperaBanco = false;
 $usuario = null;
-if (!checarMysqlSaudavel((string) env('DB_HOST'), (int) env('DB_PORT', '3306'), 3)) {
-    $erroBanco = t('Não foi possível alcançar o banco de dados agora. Tente novamente em instantes.');
+if (!escBancoNoAr(3)) {
+    $esperaBanco = true;
 } else {
     try {
         $usuario = escCarregarPerfil($userId);
     } catch (Throwable $e) {
         appLog('error', 'Falha ao checar acesso', ['erro' => $e->getMessage()]);
-        $erroBanco = t('Não foi possível verificar suas permissões agora. Confira se o schema 5c_escalas foi criado (ES_01) e a permissão dada (ES_03).');
+        if (escErroConexao($e)) {
+            $esperaBanco = true;
+        } else {
+            $erroBanco = t('Não foi possível verificar suas permissões agora. Confira se o schema 5c_escalas foi criado (ES_01) e a permissão dada (ES_03).');
+        }
     }
+}
+if ($esperaBanco) {
+    appLog('warning', 'Banco fora do ar: tela de espera', ['p' => $p, 'post' => escPost()]);
+    http_response_code(503);
+    header('Retry-After: 5');
+    ?><!DOCTYPE html>
+<html lang="<?php echo h(escIdioma()); ?>" data-tema="<?php echo h($tema); ?>"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title><?php echo h(t('Conectando ao banco…')); ?> — 5C Escalas</title>
+<link rel="stylesheet" href="<?php echo h(MODULE_URL); ?>/assets/escalas.css?v=<?php echo h(ESC_VERSAO . '-' . (@filemtime(__DIR__ . '/assets/escalas.css') ?: 0)); ?>">
+</head><body class="bloqueio"><?php echo escEsperaBancoHtml(escPost()); ?></body></html><?php
+    exit;
 }
 if ($erroBanco !== null || $usuario === null) {
     http_response_code($erroBanco !== null ? 503 : 403);
@@ -183,6 +210,10 @@ if (escPost() || isset($_GET['baixar'])) {
         $ocorrencia = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         appLog('error', 'Erro em ação', ['ocorrencia' => $ocorrencia, 'p' => $p, 'erro' => $e->getMessage(), 'linha' => $e->getLine(), 'arquivo' => basename($e->getFile())]);
         $msg = $e instanceof RuntimeException ? $e->getMessage() : t('Não deu para concluir. Tente de novo; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]);
+        // O banco caiu no meio da ação: a volta para a tela espera ele voltar (porta de entrada).
+        if (escErroConexao($e)) {
+            $msg = t('O banco de dados caiu durante a ação. Antes de repetir, confira se a mudança foi gravada.');
+        }
         // Para o admin, o detalhe técnico já vai na mensagem (sem precisar abrir o log do servidor).
         if (!$e instanceof RuntimeException && escPodeReal('admin')) {
             $msg .= ' ' . t('Detalhe (só admin): {erro} ({arquivo}:{linha})', ['erro' => mb_substr($e->getMessage(), 0, 300), 'arquivo' => basename($e->getFile()), 'linha' => $e->getLine()]);
@@ -205,9 +236,16 @@ try {
     $p = $telaAtual;
     $ocorrencia = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
     appLog('error', 'Erro na tela', ['ocorrencia' => $ocorrencia, 'p' => $p, 'erro' => $e->getMessage(), 'linha' => $e->getLine(), 'arquivo' => basename($e->getFile())]);
-    echo '<section class="panel erro" role="alert"><h2>' . h(t('Não deu para carregar esta tela')) . '</h2><p class="muted">'
-        . h($e instanceof RuntimeException ? $e->getMessage() : t('Não deu para ler os dados agora. Tente de novo em instantes; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]))
-        . '</p><div class="acoes"><a class="botao primario" href="' . h($_SERVER['REQUEST_URI'] ?? link_tela($p)) . '">' . h(t('Tentar de novo')) . '</a><a class="botao" href="' . h(link_tela('painel')) . '">' . h(t('Ir para o Painel')) . '</a></div></section>';
+    if (escErroConexao($e)) {
+        // O banco caiu no meio da tela: em vez do erro, espera ele voltar e recarrega sozinha.
+        ob_clean();
+        echo escEsperaBancoHtml();
+        $bancoCaiu = true;
+    } else {
+        echo '<section class="panel erro" role="alert"><h2>' . h(t('Não deu para carregar esta tela')) . '</h2><p class="muted">'
+            . h($e instanceof RuntimeException ? $e->getMessage() : t('Não deu para ler os dados agora. Tente de novo em instantes; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]))
+            . '</p><div class="acoes"><a class="botao primario" href="' . h($_SERVER['REQUEST_URI'] ?? link_tela($p)) . '">' . h(t('Tentar de novo')) . '</a><a class="botao" href="' . h(link_tela('painel')) . '">' . h(t('Ir para o Painel')) . '</a></div></section>';
+    }
 }
 $conteudo = ob_get_clean();
 $p = $telaAtual;
@@ -245,7 +283,8 @@ $adminMenu = escPode('admin') ? ['acessos', 'parametros', 'diagnostico'] : [];
 // Estrutura antiga (times e parties): vale até a virada de 31/10 21:00.
 $legadoMenu = ['times'];
 $badges = [];
-try {
+// Com o banco fora (tela de espera), nem tenta: cada leitura esperaria a conexão por ~15 s.
+if (empty($bancoCaiu)) try {
     $b = escQ1('SELECT (SELECT COUNT(*) FROM ' . escT('esc_indisponibilidade') . " WHERE status = 'PENDENTE') AS indisp,
                        (SELECT COUNT(*) FROM " . escT('esc_sugestao') . " s JOIN " . escT('esc_plano') . " p ON p.id = s.plano_id WHERE s.status = 'ABERTA' AND p.status IN ('RASCUNHO','PUBLICADO') AND p.semana_fim >= CURDATE()) AS sug");
     $badges = ['aprovar' => (int) ($b['indisp'] ?? 0), 'sugestoes' => (int) ($b['sug'] ?? 0)];

@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.7', 'data' => '2026-11-04', 'titulo' => 'Espera pelo banco em vez de erro', 'sql' => [], 'itens' => [
+    'Banco fora do ar: em vez de "Banco indisponível", o sistema tenta de novo por alguns segundos e, se o banco não voltar, mostra "Conectando ao banco…" e testa sozinho (3 s, 5 s, 10 s… por até 10 min); a tela abre assim que ele volta. Numa ação enviada (salvar, aprovar…), nada é reenviado sozinho: aparece "Enviar de novo" com os mesmos campos. Se o banco cair no meio de uma tela, ela espera e recarrega; no meio de uma ação, o aviso pede para conferir se a mudança foi gravada.',
+    ]],
     ['versao' => '1.19.6', 'data' => '2026-11-04', 'titulo' => 'Tags de leitura e mudança no meio da semana', 'sql' => ['ES_94_mariana_vilela_afastada.sql'], 'itens' => [
     'Colaboradores: mudança no meio da semana. O "Vale a partir de" aceita qualquer data; a data escolhe o formulário (de 01/11 em diante o da estrutura nova, com núcleo; antes, o do cadastro antigo) e, ao passar para o outro lado, a edição reabre nessa data. Antes, com a tela num dia anterior a 01/11, o campo só aceitava até 31/10.',
     'Ao salvar uma mudança de núcleo, turno ou nível numa semana que já tem escala, a tela vai para o Gerar com o "a partir de" no primeiro turno desse dia que ainda não começou: é só usar Recalcular tudo, publicar e postar. Se a semana seguinte também já tiver escala, o aviso lembra de recalcular ela.',

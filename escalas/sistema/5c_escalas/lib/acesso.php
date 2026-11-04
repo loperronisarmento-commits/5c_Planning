@@ -217,3 +217,85 @@ function escLog(string $acao, string $entidade, $entidadeId, $antes = null, $dep
         substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45),
     ]);
 }
+
+// ---------- banco fora do ar (o MySQL do .11 reinicia de vez em quando) ----------
+
+// Erro de conexão com o MySQL (recusada, caiu ou sumiu no meio), e não erro de SQL.
+function escErroConexao(Throwable $e): bool {
+    for ($x = $e; $x !== null; $x = $x->getPrevious()) {
+        if ($x instanceof PDOException && preg_match('~\[(2002|2003|2006|2013)\]|server has gone away|Lost connection~i', $x->getMessage())) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// O banco responde? Até $tentativas checagens (TCP + leitura, 2 s cada), com 1 s e 2 s entre elas.
+function escBancoNoAr(int $tentativas = 1): bool {
+    for ($i = 0; $i < $tentativas; $i++) {
+        if ($i > 0) {
+            usleep($i * 1000000);
+        }
+        if (checarMysqlSaudavel((string) env('DB_HOST'), (int) env('DB_PORT', '3306'), 2)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Campos de um POST como inputs escondidos (para reenviar o formulário quando o banco voltar).
+function escCamposEscondidos(array $dados, string $prefixo = ''): string {
+    $out = '';
+    foreach ($dados as $k => $v) {
+        $nome = $prefixo === '' ? (string) $k : $prefixo . '[' . $k . ']';
+        $out .= is_array($v) ? escCamposEscondidos($v, $nome) : '<input type="hidden" name="' . h($nome) . '" value="' . h((string) $v) . '">';
+    }
+    return $out;
+}
+
+// Aviso "aguardando o banco": testa ?saude=1 sozinho, com espera crescente, e abre a tela quando o
+// banco volta. Num POST não reenvia sozinho: mostra o botão "Enviar de novo" com os mesmos campos.
+function escEsperaBancoHtml(bool $post = false): string {
+    $saude = MODULE_URL . '/index.php?saude=1';
+    $html = '<section class="panel espera-banco" role="status" aria-live="polite" data-espera-banco data-saude="' . h($saude) . '" data-post="' . ($post ? '1' : '0') . '">'
+        . '<div class="espera-banco-roda" aria-hidden="true"></div>'
+        . '<h1>' . h(t('Conectando ao banco…')) . '</h1>'
+        . '<p class="muted">' . h($post
+            ? t('O banco de dados está reiniciando ou demorando para responder, e a ação ainda não foi feita. Quando ele voltar, use "Enviar de novo".')
+            : t('O banco de dados está reiniciando ou demorando para responder. A tela abre sozinha assim que ele voltar.')) . '</p>'
+        . '<p class="small muted" data-espera-info></p>';
+    if ($post) {
+        $html .= '<form method="post" action="' . h($_SERVER['REQUEST_URI'] ?? MODULE_URL . '/index.php') . '" data-espera-reenviar hidden>'
+            . escCamposEscondidos($_POST) . '<button type="submit" class="botao primario">' . h(t('Enviar de novo')) . '</button></form>';
+    }
+    $html .= '<div class="acoes"><a class="botao" href="' . h($_SERVER['REQUEST_URI'] ?? MODULE_URL . '/index.php') . '" data-espera-agora' . ($post ? ' hidden' : '') . '>' . h(t('Tentar agora')) . '</a></div></section>';
+    $txt = ['testando' => t('Testando a conexão…'), 'proxima' => t('Nova tentativa em {s} s · aguardando há {t}.'), 'voltou' => t('O banco voltou.'),
+        'parou' => t('O banco segue fora depois de {t}. Tente de novo mais tarde ou avise o admin.')];
+    $html .= '<script>(function () {
+  var box = document.querySelector("[data-espera-banco]");
+  if (!box) { return; }
+  var T = ' . json_encode($txt, JSON_UNESCAPED_UNICODE) . ';
+  var info = box.querySelector("[data-espera-info]"), post = box.dataset.post === "1";
+  var esperas = [3, 3, 5, 5, 10, 10, 15, 15, 20, 30], i = 0, ini = Date.now(), limite = 10 * 60 * 1000;
+  function dur() { var s = Math.round((Date.now() - ini) / 1000); return s < 60 ? s + " s" : Math.floor(s / 60) + " min " + (s % 60) + " s"; }
+  function voltou() {
+    info.textContent = T.voltou;
+    if (post) { box.querySelector("[data-espera-reenviar]").hidden = false; box.querySelector(".espera-banco-roda").hidden = true; } else { location.reload(); }
+  }
+  function proxima() {
+    if (Date.now() - ini > limite) { info.textContent = T.parou.replace("{t}", dur()); box.querySelector(".espera-banco-roda").hidden = true; var a = box.querySelector("[data-espera-agora]"); if (a) { a.hidden = false; } return; }
+    var s = esperas[Math.min(i, esperas.length - 1)]; i++;
+    info.textContent = T.proxima.replace("{s}", s).replace("{t}", dur());
+    setTimeout(testar, s * 1000);
+  }
+  function testar() {
+    info.textContent = T.testando;
+    fetch(box.dataset.saude + "&_=" + Date.now(), { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) { return r.ok ? r.json() : { ok: false }; })
+      .catch(function () { return { ok: false }; })
+      .then(function (j) { if (j && j.ok) { voltou(); } else { proxima(); } });
+  }
+  proxima();
+})();</script>';
+    return $html;
+}

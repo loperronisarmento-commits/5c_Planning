@@ -1045,3 +1045,11 @@ label > .busca-select { order: 2; }
 @media print {
   .tag-sr { font-size: 8.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+/* Tela "Conectando ao banco…" (lib/acesso.php, escEsperaBancoHtml): roda girando e o texto da próxima tentativa. */
+.espera-banco { max-width: 520px; margin: 48px auto; text-align: center; }
+.espera-banco h1 { margin: 12px 0 6px; font-size: 22px; }
+.espera-banco .acoes { justify-content: center; }
+.espera-banco form { margin: 10px 0; }
+.espera-banco-roda { width: 36px; height: 36px; margin: 0 auto; border-radius: 50%; border: 4px solid color-mix(in srgb, var(--accent) 20%, transparent); border-top-color: var(--accent); animation: espera-banco-gira 0.9s linear infinite; }
+@keyframes espera-banco-gira { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .espera-banco-roda { animation-duration: 3s; } }
