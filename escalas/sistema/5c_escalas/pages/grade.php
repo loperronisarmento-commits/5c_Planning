@@ -204,6 +204,27 @@ foreach ($alocCsv as $a) {
         $porPagina[(int) $a['page_id']]['acima'][$slot][$a['rep_code']] = true; // só para o PDF (⚠)
     }
 }
+// No dia do corte do CSV, os blocos antes dele saem iguais ao site (5c_schedule.scheduleday), qualquer que
+// seja a versão (pedido de 04/11: "T1, T2 e T3 idênticos ao site"). Na 5C Schedule o sufixo vem da versão ou do cargo.
+if ($corteCsv !== '') {
+    $diaCorte = substr($corteCsv, 0, 10);
+    $antes = array_values(array_filter(array_map(static fn($h) => $diaCorte . 'T' . $h . ':00:00', array_keys(ESC_BLOCOS)), static fn($sl) => $sl < $corteCsv));
+    if ($antes) {
+        foreach ($porPagina as &$pgC) {
+            foreach ($antes as $sl) {
+                unset($pgC['cel'][$sl]);
+            }
+        }
+        unset($pgC);
+        $refAloc = array_map(static fn($a) => ['dia' => substr((string) $a['dia'], 0, 10)] + $a, $aloc);
+        foreach (escMotorPreCorteDoSite($seg, $corteCsv, $refAloc) as $a) {
+            if ($a['dia'] !== $diaCorte || strpos((string) $a['motivo'], 'igual ao site') !== 0 || !isset($porPagina[(int) $a['page_id']])) {
+                continue;
+            }
+            $porPagina[(int) $a['page_id']]['cel'][$a['dia'] . 'T' . escHoraDoBloco($a['bloco']) . ':00:00'][$a['rep_code']] = escMarcaCsv($a);
+        }
+    }
+}
 $arquivoDe = static fn(string $nome) => (escModoTreino() ? 'TREINO_' : '') . preg_replace('~[^A-Za-z0-9_-]+~', '_', $nome) . '_' . $seg . '.csv';
 if (isset($_GET['baixar'])) {
     if ($_GET['baixar'] === 'csv') {

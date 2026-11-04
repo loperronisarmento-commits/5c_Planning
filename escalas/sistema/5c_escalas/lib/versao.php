@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.13', 'data' => '2026-11-04', 'titulo' => 'CSV: antes do corte igual ao site', 'sql' => ['ES_110_saida_matheus_ramos.sql'], 'itens' => [
+    'CSV: no dia do corte ("CSV a partir de"), os blocos de antes dele saem sempre iguais ao site (5C Schedule), qualquer que seja a versão (gerada com ou sem "a partir de"). Ex.: corte em 05/11 T4/T5, o T1, o T2 e o T3 de 05/11 vão idênticos ao site.',
+    'ES_110: Matheus de Castro Ramos fora a partir de 05/11 (pediu desligamento).',
+    ]],
     ['versao' => '1.19.12', 'data' => '2026-11-04', 'titulo' => 'Antes do corte igual ao site', 'sql' => [], 'itens' => [
     'Gerar com "A partir de": nova opção "Antes do corte, igual ao site (5C Schedule)", marcada por padrão. As células de antes do corte vêm da escala oficial do site (5c_schedule.scheduleday), como estão, e não da versão publicada; na 5C Schedule, o sufixo (-2, -5, -6, -7, -8, -4) vem da versão publicada ou do cargo. O CSV do dia do corte passa a levar os blocos de antes dele (ex.: T1, T2 e T3 quando o corte é o T4/T5), iguais ao site.',
     ]],
