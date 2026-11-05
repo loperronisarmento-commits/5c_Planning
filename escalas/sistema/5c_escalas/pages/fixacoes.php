@@ -8,7 +8,8 @@
 // Fontes: alocação, cor e plataforma (esc_pagina_config), equipe fixa (esc_pagina_prioridade), só assistente
 // e proibido (esc_pagina_assistente), divisão (esc_sr_divisao), parâmetros v4_sr_uma_pagina,
 // v4_sr_multipagina, v4_nao_subordinado, v4_todos_os_dias, v4_sr_pref_assistente, v4_sr_so_paginas, v4_sr_tier_medio,
-// v4_sr_pref_masculinas, "não faz assistente" (pode_assistente = 0), inegociáveis (observação do cadastro) e
+// v4_sr_pref_masculinas, v4_sr_tier_medio_alto, v4_sr_solo, v4_sr_pref_paginas (05/11),
+// "não faz assistente" (pode_assistente = 0), inegociáveis (observação do cadastro) e
 // indisponibilidades aprovadas longas (sem o motivo).
 // ===============================================
 
@@ -141,6 +142,23 @@ foreach (explode(';', escV4Param('v4_sr_faixa_receita', '')) as $item) {
 }
 foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_pref_masculinas', '')))) as $rep) {
     $add($porRep, $rep, t('preferência em páginas masculinas ({lista})', ['lista' => implode(', ', array_filter(array_map('trim', explode('|', escV4Param('v4_paginas_masculinas', '')))))]));
+}
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_tier_medio_alto', '')))) as $rep) {
+    $add($porRep, $rep, t('só páginas de tier médio ou alto (tier {t})', ['t' => escV4Param('v4_tier_medio_alto', 'A,B,C,D')]));
+}
+foreach (array_filter(array_map('trim', explode(',', escV4Param('v4_sr_solo', '')))) as $item) {
+    [$rep, $ate] = array_pad(explode(':', $item, 2), 2, '');
+    $rep = strtoupper(trim($rep));
+    $ate = preg_match('~^\d{4}-\d{2}-\d{2}$~', trim($ate)) ? trim($ate) : '';
+    if ($rep !== '' && ($ate === '' || $ate >= $hoje)) {
+        $add($porRep, $rep, t('trabalha solo: nunca como assistente nem com assistente') . ($ate !== '' ? ' (' . t('até {d}', ['d' => dataBr($ate)]) . ')' : ''));
+    }
+}
+foreach (explode(';', escV4Param('v4_sr_pref_paginas', '')) as $item) {
+    $x = explode(':', $item, 2);
+    if (count($x) === 2 && trim($x[0]) !== '') {
+        $add($porRep, strtoupper(trim($x[0])), t('preferência nas páginas: {lista}', ['lista' => implode(', ', array_values(array_filter(array_map('trim', explode('|', $x[1])), 'strlen')))]));
+    }
 }
 foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_todos_os_dias', '')))) as $rep) {
     $add($porRep, $rep, t('trabalha todos os dias do turno, fora da rotação'));

@@ -202,7 +202,21 @@ function escMotorAlocarV4(array $in): array {
     // por pessoa. Valem na equipe fixa e no preenchimento (passos 1 a 7); não mudam as regras do motor
     // (P-01 a P-04): o melhor SR de cima para baixo (passo 0) segue igual.
     ['pref_assist' => $prefAssist, 'tier_medio' => $tierMedio, 'pref_masc' => $prefMasc, 'faixa' => $faixaRec,
-     'pode_pags' => $podePags, 'tem_masc' => $temMasc] = escOmRestricoes($est);
+     'pode_pags' => $podePags, 'tem_masc' => $temMasc, 'solo' => $solo, 'tem_pref' => $temPref] = escOmRestricoes($est);
+    // Solo (v4_sr_solo, 05/11): nem assistente nem titular de posto que tem assistente. Posto com assistente =
+    // titular ou double cuja página principal tem posto de assistente na mesma unidade e turno.
+    $comAssist = [];
+    $chaveAssist = [];
+    foreach ($est['postos'] as $q) {
+        if ($q['tipo'] === 'assistente') {
+            $chaveAssist[$q['unidade'] . '|' . $q['turno'] . '|' . escV4ChavePagina((string) $q['pagina_principal'])] = true;
+        }
+    }
+    foreach ($est['postos'] as $qid => $q) {
+        if (!in_array($q['tipo'], ['assistente', 'apoio'], true) && isset($chaveAssist[$q['unidade'] . '|' . $q['turno'] . '|' . escV4ChavePagina((string) $q['pagina_principal'])])) {
+            $comAssist[(int) $qid] = true;
+        }
+    }
     // P-02 Cor da página (regra do motor, validada em 03/11): vermelha só com quem a conhece (7 dias ou mais
     // nos últimos 90) ou é da equipe fixa dela; sem ninguém assim, fica em lacuna. Amarela: no máximo
     // v4_cor_amarela_novos (20%) dos turnos da semana, por página e turno, com quem não a conhece. Verde: livre.
@@ -379,11 +393,14 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec): bool {
+            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec, $solo, $comAssist, $dia): bool {
                 foreach ($p['paginas'] as $pg) {
                     if (isset($foraPag[$rep][$pg['pagina']])) {
                         return false; // fora desta página
                     }
+                }
+                if ($solo($rep, $dia) && (in_array($p['tipo'], ['assistente', 'apoio'], true) || isset($comAssist[(int) ($p['id'] ?? 0)]))) {
+                    return false; // trabalha solo: nem de assistente nem com assistente (restrição dos OM)
                 }
                 if (!$corOk($rep, $p['paginas'])) {
                     return false; // P-02 (cor da página)
@@ -419,7 +436,7 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc): ?string {
+            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc, $temPref): ?string {
                 $assistP = in_array($p['tipo'], ['assistente', 'apoio'], true);
                 $mascP = $prefMasc ? $temMasc($p) : false;
                 $melhor = null;
@@ -433,8 +450,9 @@ function escMotorAlocarV4(array $in): array {
                         $dias += min(28, $historico[$rep][$pg['pagina']] ?? 0);
                     }
                     // Restrições dos OM: quem serve como assistente vai antes no posto de assistente;
-                    // quem tem preferência por página masculina, antes no posto com ela.
-                    $pref = ($assistP && isset($prefAssist[$rep])) || ($mascP && isset($prefMasc[$rep])) ? 1 : 0;
+                    // quem tem preferência por página masculina, antes no posto com ela; quem tem preferência
+                    // por certas páginas (v4_sr_pref_paginas), antes no posto delas.
+                    $pref = ($assistP && isset($prefAssist[$rep])) || ($mascP && isset($prefMasc[$rep])) || (!$assistP && $temPref($rep, $p)) ? 1 : 0;
                     $k = [$pref, ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
                         round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $pessoas[$rep]['nivel'] ?? 0, $rep];
                     if ($chaveMelhor === null || $k > $chaveMelhor) {
@@ -1148,8 +1166,9 @@ function escMotorAlocarV4(array $in): array {
                                 if ($c['so_apoio'] || !empty($c['exclusivo']) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
                                     continue;
                                 }
-                                if (!$mesmaPlat($c['plats'] ?? [], escPlataformasPosto(['paginas' => $g['paginas']])) || !$podePags((string) $rep, $g['paginas']) || !$corOk((string) $rep, $g['paginas'])) {
-                                    continue; // plataformas diferentes, restrição do OM ou cor da página (P-02)
+                                if (!$mesmaPlat($c['plats'] ?? [], escPlataformasPosto(['paginas' => $g['paginas']])) || !$podePags((string) $rep, $g['paginas']) || !$corOk((string) $rep, $g['paginas'])
+                                    || ($solo((string) $rep, $dia) && isset($comAssist[(int) $alvo['id']]))) {
+                                    continue; // plataformas diferentes, restrição do OM (inclui solo) ou cor da página (P-02)
                                 }
                                 $razao = ($c['carga'] + $fans) / $c['cap'];
                                 if ($razao > 1 + $maxOver + 1e-9) {

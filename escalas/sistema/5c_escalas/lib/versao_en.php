@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.20' => ['titulo' => 'U1 OM restrictions: solo, mid or high tier and page preference', 'itens' => [
+    'New OM restrictions (U1 OM request on 11/05, ES_123): works solo (v4_sr_solo: never as assistant nor on a post that has an assistant; accepts an end date, "CODE:YYYY-MM-DD"), mid or high tier only (v4_sr_tier_medio_alto, tiers A to D from the page registry) and preference for certain pages (v4_sr_pref_paginas). They show on the OM restrictions screen and are removed automatically when the person leaves.',
+    'Solo also applies when covering a gap (step 7): a solo SR does not cover a post that has an assistant.',
+    'U1 (ES_123): Mikayla Paid with a main on C (Jonnas Silva or Rafaela Gaspar) and on D (Brian Kombe or Koi Adonis); Kulik, Victor Stangl and Julia Bonin banned from Mikayla Paid; Skye only as assistant on Mikayla Free and mid or high tier only (leaves Silvia Saige); Breno Moura mid or high tier only; Miranda Kyle small pages only; Bruno Castro and Susan Kamau solo until 11/30, preferring Diana Rider, Natasha Nice and Rebecca; Thallita Freitas and Flora-Vie Mancia always solo; Susan Kamau and Ana Giacomini prefer male pages; Rocket Reyna VIP and OFTV exclusive (the double only between them); Carolina Sousa on leave; Veronio stays in U2 D.',
+    ]],
     '1.19.19' => ['titulo' => 'Cover on the schedule PDF and OM restrictions history', 'itens' => [
     'Schedule PDF (U1, U2, U3, all and goals) with a cover: "Schedule", "From {weekday} DD/MM/YY to DD/MM/YY", the unit, the version (e.g. v37 · published · from Thu 11/05) and when it was generated. Each unit cover also shows the version.',
     'Fix: the first sheet of the schedule PDF came out blank, with only the logo. The unit index (pages in revenue order) did not fit on the first sheet and was pushed whole to the second; now it can continue on the next sheet.',

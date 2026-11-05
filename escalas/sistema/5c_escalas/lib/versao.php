@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.20', 'data' => '2026-11-05', 'titulo' => 'Restrições dos OM da U1: solo, tier médio ou alto e preferência por páginas', 'sql' => ['ES_123_restricoes_om_u1_0511.sql'], 'itens' => [
+    'Restrições dos OM novas (pedido do OM da U1 em 05/11, ES_123): trabalha solo (v4_sr_solo: nunca como assistente nem em posto que tem assistente; aceita data de fim, "CÓDIGO:AAAA-MM-DD"), só tier médio ou alto (v4_sr_tier_medio_alto, tiers A a D do cadastro de páginas) e preferência por certas páginas (v4_sr_pref_paginas). Aparecem na tela Restrições dos OM e saem sozinhas quando a pessoa é desligada.',
+    'O solo vale também na cobertura de lacuna (passo 7): quem trabalha solo não cobre posto que tem assistente.',
+    'U1 (ES_123): Mikayla Paid com main no C (Jonnas Silva ou Rafaela Gaspar) e no D (Brian Kombe ou Koi Adonis); Kulik, Victor Stangl e Julia Bonin proibidos na Mikayla Paid; Skye só de assistente na Mikayla Free e só tier médio ou alto (sai da Silvia Saige); Breno Moura só tier médio ou alto; Miranda Kyle só página pequena; Bruno Castro e Susan Kamau solo até 30/11, com preferência em Diana Rider, Natasha Nice e Rebecca; Thallita Freitas e Flora-Vie Mancia sempre solo; Susan Kamau e Ana Giacomini com preferência em página masculina; Rocket Reyna VIP e OFTV exclusivas (o double só entre elas); Carolina Sousa afastada; Veronio fica na U2 D.',
+    ]],
     ['versao' => '1.19.19', 'data' => '2026-11-04', 'titulo' => 'Capa no PDF da escala e histórico das Restrições dos OM', 'sql' => ['ES_122_documento_conteudo.sql'], 'itens' => [
     'PDF da escala (U1, U2, U3, todas e metas) com capa: "Schedule", "From {dia da semana} DD/MM/AA to DD/MM/AA", a unidade, a versão (ex.: v37 · publicada · a partir de qui 05/11) e quando foi gerado. A capa de cada unidade também mostra a versão.',
     'Correção: a 1ª folha do PDF da escala saía em branco, só com o logo. O índice da unidade (as páginas em ordem de faturamento) não cabia na 1ª folha e era empurrado inteiro para a 2ª; agora ele pode continuar na folha seguinte.',
