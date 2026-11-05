@@ -2,9 +2,9 @@
 // ===============================================
 // ARQUIVO: 5c_escalas/lib/overtime_pdf.php
 // PDF de anúncio do Overtime (pedido de 05/11), no modelo "5C Overtime Opportunities": A4 escuro, Lato,
-// destaque rosa; por semana ("WEEK OF"), dia do calendário, bloco de 4 h e unidade, com os buffers em
-// destaque no fim de cada unidade. Vai do turno escolhido ("a partir de": dia e turno) até o fim da
-// semana seguinte, nas semanas com escala gerada. A paginação é feita aqui (linhas de altura fixa), para
+// destaque rosa; por dia do calendário, bloco de 4 h e unidade, com os buffers em destaque no fim de cada
+// unidade. Vai do turno escolhido ("a partir de": dia e turno) até o fim da semana dessa data (o T1 da
+// segunda é o fim do turno D do domingo). A paginação é feita aqui (linhas de altura fixa), para
 // o "CONTINUED" e o número da folha saírem certos na impressão do navegador (Salvar como PDF).
 // Chamado por pages/horas.php com ?baixar=overtime&de=AAAA-MM-DD&turno=A|C|D (documento inteiro, sem o menu).
 // ===============================================
@@ -18,7 +18,7 @@ function escOvertimeItens(callable $vaziosDaSemana, callable $diaDoBloco, string
     $seg1 = segundaDaSemana($de);
     $out = [];
     $planos = [];
-    foreach ([$seg1, escMaisDias($seg1, 7)] as $seg) {
+    foreach ([$seg1] as $seg) { // só a semana da data escolhida (pedido de 05/11)
         [$plano, $postos, $buffers, $receita] = $vaziosDaSemana($seg);
         if (!$plano) {
             continue;

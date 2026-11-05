@@ -54,7 +54,7 @@ return [
     'PDF de Overtime a partir de' => 'Overtime PDF from',
     'Turno' => 'Shift',
     'turno {turno} ({hora})' => 'shift {turno} ({hora})',
-    'Anúncio para postar, no modelo 5C Overtime Opportunities: os blocos de 4 h vazios e os buffers que faltam, do turno escolhido até o fim da semana seguinte (nas semanas com escala gerada), por dia e unidade.' => 'Announcement to post, in the 5C Overtime Opportunities layout: empty 4-hour blocks and missing buffers, from the chosen shift to the end of the following week (weeks with a generated schedule), by day and unit.',
+    'Anúncio para postar, no modelo 5C Overtime Opportunities: os blocos de 4 h vazios e os buffers que faltam, do turno escolhido até o fim da semana dessa data, por dia e unidade.' => 'Announcement to post, in the 5C Overtime Opportunities layout: empty 4-hour blocks and missing buffers, from the chosen shift to the end of the week of that date, by day and unit.',
     'Baixar PDF de Overtime' => 'Download Overtime PDF',
     'Copiar' => 'Copy',
 

@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.23' => ['titulo' => 'Overtime PDF only for the chosen week', 'itens' => [
+    'Overtime announcement PDF: it runs from the chosen shift only to the end of the week of that date (before, it ran to the end of the following week). The Monday T1 stays, because it is the end of the Sunday D shift.',
+    ]],
     '1.19.22' => ['titulo' => 'Overtime announcement PDF from a chosen day and shift', 'itens' => [
     'Overtime announcement PDF (request of 11/05), in the 5C Overtime Opportunities layout: in Overtime, choose "from" (day and shift) and download the PDF with the empty 4-hour blocks and missing buffers, up to the end of the following week (weeks with a generated schedule), by day, block and unit. Dark A4 with pink accent, "CONTINUED" when a week or day runs onto the next sheet, sheet number and document version (lib/overtime_pdf.php).',
     'Data (ES_124 to ES_127): swaps requested by the supervisors for the C shift of 11/05 (U2 and Lily Lou OFTV) locked in draft v40.1; apart from them, v40.1 matches published v40.',

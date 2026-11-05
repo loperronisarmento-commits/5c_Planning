@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.23', 'data' => '2026-11-05', 'titulo' => 'PDF de Overtime só da semana escolhida', 'sql' => [], 'itens' => [
+    'PDF de anúncio do Overtime: vai do turno escolhido só até o fim da semana dessa data (antes ia até o fim da semana seguinte). O T1 da segunda continua, porque é o fim do turno D do domingo.',
+    ]],
     ['versao' => '1.19.22', 'data' => '2026-11-05', 'titulo' => 'PDF de anúncio do Overtime a partir de um dia e turno', 'sql' => ['ES_124_trocas_supervisores_0511_c.sql', 'ES_125_trocas_supervisores_0511_c_v40.sql', 'ES_126_v401_igual_v40_fora_das_trocas.sql', 'ES_127_v401_igual_v40_depois_de_hoje.sql'], 'itens' => [
     'PDF de anúncio do Overtime (pedido de 05/11), no modelo 5C Overtime Opportunities: em Horas extras, escolha "a partir de" (dia e turno) e baixe o PDF com os blocos de 4 h vazios e os buffers que faltam, até o fim da semana seguinte (nas semanas com escala gerada), por dia, bloco e unidade. A4 escuro com destaque rosa, "CONTINUED" quando a semana ou o dia passa de folha, número da folha e versão do documento (lib/overtime_pdf.php).',
     'Dados (ES_124 a ES_127): trocas dos supervisores no turno C de 05/11 (U2 e a Lily Lou OFTV) travadas no rascunho v40.1; fora delas, o v40.1 ficou igual à v40 publicada.',
