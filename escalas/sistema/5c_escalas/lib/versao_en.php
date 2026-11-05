@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.22' => ['titulo' => 'Overtime announcement PDF from a chosen day and shift', 'itens' => [
+    'Overtime announcement PDF (request of 11/05), in the 5C Overtime Opportunities layout: in Overtime, choose "from" (day and shift) and download the PDF with the empty 4-hour blocks and missing buffers, up to the end of the following week (weeks with a generated schedule), by day, block and unit. Dark A4 with pink accent, "CONTINUED" when a week or day runs onto the next sheet, sheet number and document version (lib/overtime_pdf.php).',
+    'Data (ES_124 to ES_127): swaps requested by the supervisors for the C shift of 11/05 (U2 and Lily Lou OFTV) locked in draft v40.1; apart from them, v40.1 matches published v40.',
+    ]],
     '1.19.21' => ['titulo' => 'Generate in steps: check, Capacity and schedule with a progress screen', 'itens' => [
     'Generate in steps (request of 11/05): Generate, Recalculate everything and Recalculate with minimal changes go through three steps, shown on a progress screen that covers the system until it finishes (the menu is blocked and leaving the page asks for confirmation): 1. Check; 2. Capacity, always recalculated with today\'s parameters (no 30-minute wait), with the restrictions of people who left switched off and the OM restrictions version saved; 3. Schedule.',
     'If a step does not pass, the screen says why and takes you where to fix it: a page exit "to check" for a page still in the structure blocks and goes to Page exits; an unavailability request for the week with no decision warns (you can continue) and goes to Unavailability; someone else generating at the same time blocks until they finish. Before, the schedule came out with the previous structure and only a note at the end.',

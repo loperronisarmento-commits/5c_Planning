@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.22', 'data' => '2026-11-05', 'titulo' => 'PDF de anúncio do Overtime a partir de um dia e turno', 'sql' => ['ES_124_trocas_supervisores_0511_c.sql', 'ES_125_trocas_supervisores_0511_c_v40.sql', 'ES_126_v401_igual_v40_fora_das_trocas.sql', 'ES_127_v401_igual_v40_depois_de_hoje.sql'], 'itens' => [
+    'PDF de anúncio do Overtime (pedido de 05/11), no modelo 5C Overtime Opportunities: em Horas extras, escolha "a partir de" (dia e turno) e baixe o PDF com os blocos de 4 h vazios e os buffers que faltam, até o fim da semana seguinte (nas semanas com escala gerada), por dia, bloco e unidade. A4 escuro com destaque rosa, "CONTINUED" quando a semana ou o dia passa de folha, número da folha e versão do documento (lib/overtime_pdf.php).',
+    'Dados (ES_124 a ES_127): trocas dos supervisores no turno C de 05/11 (U2 e a Lily Lou OFTV) travadas no rascunho v40.1; fora delas, o v40.1 ficou igual à v40 publicada.',
+    ]],
     ['versao' => '1.19.21', 'data' => '2026-11-05', 'titulo' => 'Gerar em etapas: verificação, Capacity e escala com tela de progresso', 'sql' => [], 'itens' => [
     'Gerar em etapas (pedido de 05/11): Gerar, Recalcular tudo e Recalcular com o mínimo de mudanças passam por três etapas, mostradas numa tela de progresso que cobre o sistema até terminar (o menu fica bloqueado e sair da página pede confirmação): 1. Verificação; 2. Capacity, recalculado sempre com os parâmetros de hoje (sem a espera de 30 minutos), com as restrições de quem saiu desativadas e a versão das Restrições dos OM guardada; 3. Escala.',
     'Se uma etapa não passa, a tela diz o motivo e leva para onde resolver: saída de página "a conferir" de página que ainda está na estrutura bloqueia e leva às Saídas de página; pedido de indisponibilidade da semana sem decisão avisa (dá para continuar) e leva à Indisponibilidade; outra pessoa gerando ao mesmo tempo bloqueia até ela terminar. Antes, a escala saía com a estrutura anterior e só um aviso no fim.',

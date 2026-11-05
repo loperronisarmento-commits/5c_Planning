@@ -146,8 +146,11 @@ if (escPost()) {
 }
 
 // ---------- dados da semana ----------
+// O que ficou vazio na escala atual de uma semana: postos sem ninguém (por bloco, da página de maior
+// faturamento para a de menor) e buffers que faltam para a necessidade do Capacity. Usado na tela e no
+// PDF de anúncio do Overtime (que pode juntar duas semanas).
+$vaziosDaSemana = static function (string $seg) use ($pagina5c): array {
 $plano = escPlanoAtual($seg);
-$nomes = escNomes();
 $postosVazios = [];
 $buffersVazios = [];
 $receita = [];
@@ -209,6 +212,20 @@ if ($plano) {
         }
     }
 }
+return [$plano, $postosVazios, $buffersVazios, $receita];
+};
+
+// ---------- PDF de anúncio do Overtime (?baixar=overtime&de=AAAA-MM-DD&turno=A|C|D) ----------
+// No modelo "5C Overtime Opportunities": do turno escolhido até o fim da semana seguinte (as semanas com
+// escala gerada), por dia do calendário, bloco de 4 h e unidade; buffers no fim de cada unidade.
+if (($_GET['baixar'] ?? '') === 'overtime') {
+    require __DIR__ . '/../lib/overtime_pdf.php';
+    escOvertimePdf($vaziosDaSemana, $diaDoBloco);
+    return;
+}
+
+[$plano, $postosVazios, $buffersVazios, $receita] = $vaziosDaSemana($seg);
+$nomes = escNomes();
 $interesses = [];
 foreach (escQ('SELECT * FROM ' . escT('esc_hora_extra') . " WHERE semana_inicio = ? AND status <> 'CANCELADO' ORDER BY id", [$seg]) as $l) {
     foreach (!empty($l['bloco']) ? [$l['bloco']] : ESC_TURNOS[$l['turno']] as $b) {
@@ -284,6 +301,23 @@ $listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho
       </select>
     </label>
     <span class="muted small"><?php echo h(t('Escala:')); ?> <strong><?php echo h($plano ? escPlanoRotulo($plano) . ' · ' . escRotulo('status_plano', $plano['status']) : t('nenhuma gerada')); ?></strong><?php if ($plano): ?> · <a href="<?php echo h(link_tela('grade', ['plano' => (int) $plano['id']])); ?>"><?php echo h(t('abrir na Grade')); ?></a><?php endif; ?></span>
+  </form>
+  <?php
+  // PDF de anúncio do Overtime: a partir do turno escolhido (padrão: o próximo turno a começar).
+  $hAgora = (int) date('G');
+  [$deOt, $turnoOt] = $hAgora < 5 ? [date('Y-m-d'), 'A'] : ($hAgora < 13 ? [date('Y-m-d'), 'C'] : ($hAgora < 21 ? [date('Y-m-d'), 'D'] : [escMaisDias(date('Y-m-d'), 1), 'A']));
+  ?>
+  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" target="_blank" class="acoes ot-form">
+    <input type="hidden" name="p" value="horas"><input type="hidden" name="baixar" value="overtime"><input type="hidden" name="imprimir" value="1">
+    <label class="filtros"><?php echo h(t('PDF de Overtime a partir de')); ?>
+      <input type="date" name="de" value="<?php echo h($deOt); ?>" required>
+    </label>
+    <label class="filtros"><?php echo h(t('Turno')); ?>
+      <select name="turno">
+        <?php foreach (['A' => '05h', 'C' => '13h', 'D' => '21h'] as $tOt => $hOt): ?><option value="<?php echo $tOt; ?>"<?php echo $tOt === $turnoOt ? ' selected' : ''; ?>><?php echo h(t('turno {turno} ({hora})', ['turno' => $tOt, 'hora' => $hOt])); ?></option><?php endforeach; ?>
+      </select>
+    </label>
+    <button type="submit" class="botao primario" title="<?php echo h(t('Anúncio para postar, no modelo 5C Overtime Opportunities: os blocos de 4 h vazios e os buffers que faltam, do turno escolhido até o fim da semana seguinte (nas semanas com escala gerada), por dia e unidade.')); ?>"><?php echo h(t('Baixar PDF de Overtime')); ?></button>
   </form>
   <?php if (!$plano): ?>
     <p class="muted"><?php echo h(t('Gere a escala desta semana para ver o que ficou vazio.')); ?></p>

@@ -51,6 +51,11 @@ return [
     'alocar ou recusar abaixo' => 'allocate or decline below',
     'escala publicada: crie um rascunho na Grade para alocar' => 'published schedule: create a draft in the Grid to allocate',
     'Texto para pedir hora extra' => 'Text to ask for overtime',
+    'PDF de Overtime a partir de' => 'Overtime PDF from',
+    'Turno' => 'Shift',
+    'turno {turno} ({hora})' => 'shift {turno} ({hora})',
+    'Anúncio para postar, no modelo 5C Overtime Opportunities: os blocos de 4 h vazios e os buffers que faltam, do turno escolhido até o fim da semana seguinte (nas semanas com escala gerada), por dia e unidade.' => 'Announcement to post, in the 5C Overtime Opportunities layout: empty 4-hour blocks and missing buffers, from the chosen shift to the end of the following week (weeks with a generated schedule), by day and unit.',
+    'Baixar PDF de Overtime' => 'Download Overtime PDF',
     'Copiar' => 'Copy',
 
     // tabelas
