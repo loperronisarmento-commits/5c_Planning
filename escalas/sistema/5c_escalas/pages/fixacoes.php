@@ -216,6 +216,35 @@ $tituloArq = $soPag !== '' ? t('Configuração {pagina} {d}', ['pagina' => $soPa
 $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de todos na página; quem é de outra unidade só entra em último caso, se sobrou sem posto no turno dele. Página exclusiva (solo): o SR dela não acumula nem cobre outra página. Página On demand não recebe ninguém no Gerar (alocação à mão, com a célula travada). Páginas da Privacy só com SR brasileiro. Uma plataforma por turno: quem faz Privacy, Fanvue ou PlayBoy não faz página de outra plataforma no mesmo turno (nem acumula nem cobre). No dia de treinamento (Overlap), quem é da equipe cobre primeiro a lacuna da própria página. Quem é desligado e página que sai perdem as restrições sozinhos.');
 ?>
 <header class="cabecalho nao-imprimir"><span class="eyebrow"><?php echo h(t('Páginas')); ?></span><h1><?php echo h(t('Restrições dos OM')); ?></h1></header>
+<?php
+// Histórico (pedido de 04/11): cada versão do documento fica guardada (esc_documento_versao, ES_122),
+// para saber que regra valia em cada data. ?versao=N mostra a versão N como ela foi.
+$escopoFix = $soPag !== '' ? 'pagina:' . (($paginas[$chave($soPag)] ?? null)['pagina'] ?? 'inexistente') : ($soU >= 1 && $soU <= 3 ? 'U' . $soU : 'todas');
+$verVersao = max(0, (int) ($_GET['versao'] ?? 0));
+$versoesFix = escDocVersoes('restricoes', $escopoFix);
+$linkFix = array_filter(['unidade' => $soU ?: null, 'pagina' => $soPag !== '' ? $soPag : null]);
+if ($verVersao > 0):
+    $vInfo = null;
+    foreach ($versoesFix as $x) {
+        if ($x['versao'] === $verVersao) {
+            $vInfo = $x;
+        }
+    }
+    $htmlAntigo = escDocConteudo('restricoes', $escopoFix, $verVersao);
+    $docFix = ['versao' => $verVersao, 'rotulo' => 'v' . $verVersao, 'desde' => $vInfo['desde'] ?? ''];
+?>
+<div class="aviso nao-imprimir" role="status">
+  <?php if ($htmlAntigo === null): ?>
+  <?php echo h(t('A versão v{n} deste documento não está guardada (as versões passaram a ser guardadas em 04/11/2026).', ['n' => $verVersao])); ?>
+  <?php else: ?>
+  <strong><?php echo h(t('Versão antiga: v{n}', ['n' => $verVersao])); ?></strong> · <?php echo h($vInfo && $vInfo['ate'] !== null
+      ? t('valeu de {de} até {ate}', ['de' => escDataHora($vInfo['desde'], true), 'ate' => escDataHora($vInfo['ate'], true)])
+      : t('vale desde {de} (é a atual)', ['de' => escDataHora($vInfo['desde'] ?? '', true)])); ?>
+  <?php endif; ?>
+  · <a href="<?php echo h(link_tela('fixacoes', $linkFix)); ?>"><?php echo h(t('Ver a versão de hoje')); ?></a>
+</div>
+<?php echo $htmlAntigo ?? ''; ?>
+<?php else: ?>
 <?php escDocIni(); ?>
 <div class="pag-pdf fix-pdf">
   <div class="acoes nao-imprimir">
@@ -294,12 +323,34 @@ $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de tod
   </section>
 <?php endforeach; endif; ?>
 </div>
-<?php $docFix = escDocFim('restricoes', $soPag !== '' ? 'pagina:' . (($paginas[$chave($soPag)] ?? null)['pagina'] ?? 'inexistente') : ($soU >= 1 && $soU <= 3 ? 'U' . $soU : 'todas')); ?>
+<?php $docFix = escDocFim('restricoes', $escopoFix, true); $versoesFix = escDocVersoes('restricoes', $escopoFix); ?>
+<?php endif; ?>
+<section class="panel nao-imprimir">
+  <h2><?php echo h(t('Versões deste documento')); ?></h2>
+  <p class="muted small"><?php echo h(t('Cada mudança nas restrições vira uma versão nova, guardada como estava. Uma versão vale da data dela até a data da seguinte. A versão de hoje é registrada também antes de cada Gerar.')); ?></p>
+  <?php if (!$versoesFix): ?>
+  <p class="muted"><?php echo h(t('Nenhuma versão registrada ainda.')); ?></p>
+  <?php else: ?>
+  <table class="tabela">
+    <thead><tr><th><?php echo h(t('Versão')); ?></th><th><?php echo h(t('Valeu de')); ?></th><th><?php echo h(t('Até')); ?></th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($versoesFix as $x): ?>
+      <tr<?php echo $x['versao'] === (int) ($docFix['versao'] ?? 0) ? ' class="ativo"' : ''; ?>>
+        <td><strong>v<?php echo (int) $x['versao']; ?></strong></td>
+        <td><?php echo h(escDataHora($x['desde'], true)); ?></td>
+        <td><?php echo $x['ate'] !== null ? h(escDataHora($x['ate'], true)) : '<span class="tag verde">' . h(t('vale hoje')) . '</span>'; ?></td>
+        <td><?php if (!$x['guardado']): ?><span class="muted small"><?php echo h(t('não guardada')); ?></span><?php elseif ($x['versao'] !== (int) ($docFix['versao'] ?? 0)): ?><a class="botao small" href="<?php echo h(link_tela('fixacoes', $linkFix + ['versao' => $x['versao']])); ?>"><?php echo h(t('Abrir')); ?></a><?php else: ?><span class="muted small"><?php echo h(t('aberta')); ?></span><?php endif; ?></td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  <?php endif; ?>
+</section>
 <script>
 (function () {
   var titulo = document.title, nome = <?php echo json_encode($tituloArq . escDocSufixo($docFix), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
   function imprimir() { document.title = nome; window.print(); }
-  document.getElementById('fix-pdf-baixar').addEventListener('click', imprimir);
+  var b = document.getElementById('fix-pdf-baixar'); if (b) { b.addEventListener('click', imprimir); }
   window.addEventListener('afterprint', function () { document.title = titulo; });
   <?php if (!empty($_GET['imprimir'])): ?>window.addEventListener('load', function () { setTimeout(imprimir, 300); });<?php endif; ?>
 })();

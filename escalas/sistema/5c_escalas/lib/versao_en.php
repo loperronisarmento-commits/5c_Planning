@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.19' => ['titulo' => 'Cover on the schedule PDF and OM restrictions history', 'itens' => [
+    'Schedule PDF (U1, U2, U3, all and goals) with a cover: "Schedule", "From {weekday} DD/MM/YY to DD/MM/YY", the unit, the version (e.g. v37 · published · from Thu 11/05) and when it was generated. Each unit cover also shows the version.',
+    'Fix: the first sheet of the schedule PDF came out blank, with only the logo. The unit index (pages in revenue order) did not fit on the first sheet and was pushed whole to the second; now it can continue on the next sheet.',
+    'OM restrictions with history (ES_122): every change becomes a new version, saved whole as it was. The screen lists the versions with "in force from … to …" and opens any old version. Today\'s version is recorded automatically before each Generate and at the end of each page exit, so the date is that of the change, not of when someone opened the screen. The other versioned documents (org chart, leadership, merit, rules, owners) also keep the content of each version.',
+    ]],
     '1.19.18' => ['titulo' => 'Engine split into files by topic (no change in behavior)', 'itens' => [
     'Code organization, with no change in behavior: the engine was split into files by topic. Out of lib/motor_v4.php and lib/motor.php came parametros.php, calendario.php, paginas_info.php, motor_v4_carga.php, motor_v3_legado.php, entradas.php, csv.php and grade_conflitos.php. All 70 functions and constants stayed identical, character by character, and the simulated schedule for the week of 11/02, the "before the cut, as on the site" copy and 16 screens came out the same before and after. motor_v4.php and motor.php load the parts themselves, so the server scripts keep working. The headers describe today\'s steps.',
     ]],

@@ -1,6 +1,19 @@
 <?php
 // Tela Fixações (pages/fixacoes.php) em inglês. O português é a chave. Ver lib/i18n.php.
 return [
+    'A versão v{n} deste documento não está guardada (as versões passaram a ser guardadas em 04/11/2026).' => 'Version v{n} of this document was not saved (versions have been saved since 11/04/2026).',
+    'Versão antiga: v{n}' => 'Old version: v{n}',
+    'valeu de {de} até {ate}' => 'in force from {de} to {ate}',
+    'vale desde {de} (é a atual)' => 'in force since {de} (current)',
+    'Ver a versão de hoje' => 'See today\'s version',
+    'Versões deste documento' => 'Versions of this document',
+    'Cada mudança nas restrições vira uma versão nova, guardada como estava. Uma versão vale da data dela até a data da seguinte. A versão de hoje é registrada também antes de cada Gerar.' => 'Every change in the restrictions becomes a new version, saved as it was. A version is in force from its date until the date of the next one. Today\'s version is also recorded before each Generate.',
+    'Nenhuma versão registrada ainda.' => 'No version recorded yet.',
+    'Valeu de' => 'In force from',
+    'Até' => 'Until',
+    'vale hoje' => 'in force today',
+    'não guardada' => 'not saved',
+    'aberta' => 'open',
     'Restrições dos OM' => 'OM restrictions',
     'Fixações' => 'OM restrictions',
     'sem cadastro ativo' => 'no active setup',

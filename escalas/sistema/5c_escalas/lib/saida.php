@@ -225,6 +225,7 @@ function escAplicarSaidasTravado(array $itens, string $desde, string $motivo, ar
         //     divisão, listas de páginas nos parâmetros) ficam desativadas antes de refazer a escala.
         $res['restricoes_encerradas'] = escOmEncerrarOrfas(date('Y-m-d'));
         $GLOBALS['ESC_OM_ORFAS'] = $res['restricoes_encerradas'];
+        escRestricoesRegistrarVersoes(); // histórico das Restrições dos OM depois da saída
 
         // 6. Escala de novo com o mínimo de mudanças sobre a publicada (mantém os ajustes travados).
         foreach (escQ("SELECT DISTINCT semana_inicio AS s FROM " . escT('esc_plano') . " WHERE estrutura = 'V4' AND status IN ('RASCUNHO','PUBLICADO') AND semana_fim >= ? ORDER BY semana_inicio", [$desde]) as $r) {

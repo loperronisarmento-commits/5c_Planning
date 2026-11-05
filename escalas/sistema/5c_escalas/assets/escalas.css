@@ -999,6 +999,12 @@ label > .busca-select { order: 2; }
 .pag-pdf-venda-abaixo { background: #fbe3d4; color: #9a3d0c; }
 .pag-pdf-unidade { font-size: 13px; font-weight: 700; color: #fff; background: #650637; border-radius: 4px; padding: 1px 6px; vertical-align: middle; }
 .pag-pdf-capa .pag-pdf-tabela { table-layout: auto; }
+/* Capa do PDF da escala: título, período e versão. */
+.pag-pdf-titulo { text-align: left; }
+.pag-pdf-titulo-marca { margin: 0 0 6px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--texto-2); }
+.pag-pdf-folha h1.pag-pdf-titulo-h { margin: 0; font-size: 40px; line-height: 1.1; color: var(--primaria, #650637); }
+.pag-pdf-titulo-datas { margin: 8px 0 0; font-size: 20px; font-weight: 600; }
+.pag-pdf-titulo-info { margin: 10px 0 0; font-size: 12px; color: var(--texto-2); }
 .pag-pdf-indice th, .pag-pdf-indice td { padding: 4px 6px; font-size: 10.5px; }
 .grade-baixar { white-space: nowrap; }
 /* PDF de metas (Grade › Baixar PDF das metas): a mesma folha, com uma linha por pessoa escalada. */
@@ -1019,6 +1025,10 @@ label > .busca-select { order: 2; }
   body:has(.pag-pdf) { page: escala-paginas; }
   .pag-pdf-folha { border: 0; border-radius: 0; padding: 0; margin: 0; break-inside: avoid; }
   .pag-pdf-folha + .pag-pdf-folha { break-before: page; }
+  .pag-pdf-capa { break-inside: auto; } /* o índice da unidade quebra em mais folhas em vez de pular a 1ª */
+  .pag-pdf-titulo { display: flex; flex-direction: column; justify-content: center; min-height: 150mm; }
+  .pag-pdf-folha h1.pag-pdf-titulo-h { font-size: 54px; color: #650637; }
+  .pag-pdf-titulo-datas { font-size: 24px; color: #1a171d; }
   .pag-pdf-folha h1 { font-size: 20px; color: #650637; }
   .pag-pdf-tabela { font-size: 11.5px; }
   .pag-pdf-tabela th, .pag-pdf-tabela td { padding: 9px 6px; border-color: #e6dce1; }

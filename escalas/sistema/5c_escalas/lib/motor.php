@@ -275,6 +275,8 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         if (!isset($GLOBALS['ESC_OM_ORFAS']) && !escDbW()->inTransaction()) {
             try {
                 $GLOBALS['ESC_OM_ORFAS'] = escOmEncerrarOrfas(date('Y-m-d'));
+                // Versão de hoje das Restrições dos OM guardada antes de gerar (histórico, ES_122).
+                escRestricoesRegistrarVersoes();
             } catch (Throwable $e) {
                 appLog('error', 'Restrições: falha ao desativar as de desligados e páginas que saíram', ['erro' => $e->getMessage()]);
                 $GLOBALS['ESC_OM_ORFAS'] = [];

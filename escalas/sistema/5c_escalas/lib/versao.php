@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.19', 'data' => '2026-11-04', 'titulo' => 'Capa no PDF da escala e histórico das Restrições dos OM', 'sql' => ['ES_122_documento_conteudo.sql'], 'itens' => [
+    'PDF da escala (U1, U2, U3, todas e metas) com capa: "Schedule", "From {dia da semana} DD/MM/AA to DD/MM/AA", a unidade, a versão (ex.: v37 · publicada · a partir de qui 05/11) e quando foi gerado. A capa de cada unidade também mostra a versão.',
+    'Correção: a 1ª folha do PDF da escala saía em branco, só com o logo. O índice da unidade (as páginas em ordem de faturamento) não cabia na 1ª folha e era empurrado inteiro para a 2ª; agora ele pode continuar na folha seguinte.',
+    'Restrições dos OM com histórico (ES_122): cada mudança vira uma versão nova, guardada inteira como estava. A tela mostra a lista de versões com "valeu de … até …" e abre qualquer versão antiga. A versão de hoje é registrada sozinha antes de cada Gerar e no fim de cada saída de página, então a data é a da mudança, não a de quando alguém abriu a tela. Os outros documentos versionados (organograma, liderança, mérito, regras, owners) também passam a guardar o conteúdo de cada versão.',
+    ]],
     ['versao' => '1.19.18', 'data' => '2026-11-04', 'titulo' => 'Motor dividido em arquivos por assunto (sem mudar o funcionamento)', 'sql' => [], 'itens' => [
     'Organização do código, sem mudar nada no funcionamento: o motor foi dividido em arquivos por assunto. Saíram do lib/motor_v4.php e do lib/motor.php: parametros.php, calendario.php, paginas_info.php, motor_v4_carga.php, motor_v3_legado.php, entradas.php, csv.php e grade_conflitos.php. As 70 funções e constantes ficaram idênticas, letra por letra, e a escala simulada da semana de 02/11, o "antes do corte, igual ao site" e 16 telas saíram iguais antes e depois. O motor_v4.php e o motor.php carregam as partes sozinhos, então os scripts do servidor seguem funcionando. Os cabeçalhos descrevem os passos de hoje.',
     ]],

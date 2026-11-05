@@ -1,6 +1,8 @@
 <?php
 // Textos em inglês da tela Grade da escala (pages/grade.php). O português é a chave.
 return [
+    'Histórico de meta das páginas' => 'Pages goal history',
+    'gerado em {gerado}' => 'generated on {gerado}',
     'Date Schedule = o dia escolhido. Nesse dia, os blocos antes do turno saem iguais à versão (gerada com "antes do corte, igual ao site", são os do site); os dias antes ficam fora do CSV. O passado não muda.' => 'Date Schedule = the chosen day. On that day, the blocks before the shift come out as in the version (generated with "before the cut, as on the site", they are the site ones); earlier days stay out of the CSV. The past does not change.',
     // erros e avisos das ações
     'Esta versão da escala não existe mais. Abra a versão atual em Gerar escala.' => 'This schedule version no longer exists. Open the current one in Generate schedule.',

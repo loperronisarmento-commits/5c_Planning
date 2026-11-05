@@ -379,6 +379,14 @@ if (($_GET['ver'] ?? '') === 'metas') {
     <button type="button" class="botao primario" id="pag-pdf-baixar"><?php echo h(t('Baixar PDF')); ?></button>
     <span class="muted small"><?php echo h(tn(count($folhas), '{n} página, uma por folha (A4 paisagem). Na impressão, escolha "Salvar como PDF".', '{n} páginas, uma por folha (A4 paisagem). Na impressão, escolha "Salvar como PDF".')); ?></span>
   </div>
+  <?php if (count($folhas) > 1): // Capa (pedido de 04/11): título, período e versão, na 1ª folha do PDF. ?>
+  <section class="pag-pdf-folha pag-pdf-titulo">
+    <p class="pag-pdf-titulo-marca">5C Company · 5C Escalas</p>
+    <h1 class="pag-pdf-titulo-h">Schedule · Goals</h1>
+    <p class="pag-pdf-titulo-datas"><?php echo h('From ' . date('l', strtotime($dias[0] ?? $seg)) . ' ' . date('d/m/y', strtotime($dias[0] ?? $seg)) . ' to ' . date('d/m/y', strtotime(escMaisDias($seg, 6)))); ?></p>
+    <p class="pag-pdf-titulo-info"><?php echo h(t('Histórico de meta das páginas') . ' · ' . t('versão {v}', ['v' => $versaoPdf]) . ' · ' . t('gerado em {gerado}', ['gerado' => date('d/m/Y H:i')])); ?></p>
+  </section>
+  <?php endif; ?>
   <?php foreach ($folhas as $pid => $pg): $daPagina = $ating[$pg['nome']] ?? []; ?>
   <section class="pag-pdf-folha">
     <h1><?php echo h($pg['nome']); ?></h1>
@@ -617,11 +625,19 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <button type="button" class="botao primario" id="pag-pdf-baixar"><?php echo h(t('Baixar PDF')); ?></button>
     <span class="muted small"><?php echo h(tn(count($folhas), '{n} página, uma por folha (A4 paisagem). Na impressão, escolha "Salvar como PDF".', '{n} páginas, uma por folha (A4 paisagem). Na impressão, escolha "Salvar como PDF".')); ?></span>
   </div>
+  <?php if (count($folhas) > 1): // Capa (pedido de 04/11): título, período e versão, na 1ª folha do PDF. ?>
+  <section class="pag-pdf-folha pag-pdf-titulo">
+    <p class="pag-pdf-titulo-marca">5C Company · 5C Escalas</p>
+    <h1 class="pag-pdf-titulo-h">Schedule</h1>
+    <p class="pag-pdf-titulo-datas"><?php echo h('From ' . date('l', strtotime($dias[0] ?? $seg)) . ' ' . date('d/m/y', strtotime($dias[0] ?? $seg)) . ' to ' . date('d/m/y', strtotime(escMaisDias($seg, 6)))); ?></p>
+    <p class="pag-pdf-titulo-info"><?php echo h(($soUnidade ? t('Unidade {u}', ['u' => $soUnidade]) : t('Todas as unidades')) . ' · ' . t('versão {v}', ['v' => $versaoPdf]) . ' · ' . t('gerado em {gerado}', ['gerado' => date('d/m/Y H:i')])); ?></p>
+  </section>
+  <?php endif; ?>
   <?php $uAtual = null; foreach ($folhas as $pid => $pg): $u = $unidadePdf($pid); ?>
   <?php if ($u !== $uAtual): $uAtual = $u; $listaU = $porUnidadePdf[$u]; $somaU = []; $modelosU = []; foreach ($listaU as $x) { $mU = escMoedaPagina($folhas[$x]['nome']); $somaU[$mU] = ($somaU[$mU] ?? 0.0) + (float) ($recPdf[$folhas[$x]['nome']]['total'] ?? 0); $modelosU[$modeloPdf[$folhas[$x]['nome']] ?? $folhas[$x]['nome']] = true; } ?>
   <section class="pag-pdf-folha pag-pdf-capa">
     <h1><?php echo h($u === 9 ? t('Sem unidade') : t('Unidade {u}', ['u' => $u])); ?></h1>
-    <p class="pag-pdf-sub"><?php echo h(t('Semana de {de} a {ate} · {n} páginas de {m} modelos · faturamento {d} dias {usd} · as folhas seguem esta ordem (da modelo que mais fatura para a que menos)', ['de' => $dePdf, 'ate' => $atePdf, 'n' => count($listaU), 'm' => count($modelosU), 'd' => $diasPdf, 'usd' => implode(' + ', array_map(static fn($m) => $usdPdf($somaU[$m], $m), array_keys($somaU))) ?: $usdPdf(0.0)])); ?></p>
+    <p class="pag-pdf-sub"><?php echo h(t('Semana de {de} a {ate} · {n} páginas de {m} modelos · faturamento {d} dias {usd} · as folhas seguem esta ordem (da modelo que mais fatura para a que menos)', ['de' => $dePdf, 'ate' => $atePdf, 'n' => count($listaU), 'm' => count($modelosU), 'd' => $diasPdf, 'usd' => implode(' + ', array_map(static fn($m) => $usdPdf($somaU[$m], $m), array_keys($somaU))) ?: $usdPdf(0.0)]) . ' · ' . t('versão {v}', ['v' => $versaoPdf])); ?></p>
     <table class="pag-pdf-tabela pag-pdf-indice">
       <thead><tr><th class="pag-pdf-num">#</th><th class="pag-pdf-num"><?php echo h(t('Fila geral')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="pag-pdf-num"><?php echo h(t('Página {d}d', ['d' => $diasPdf])); ?></th><th class="pag-pdf-num"><?php echo h(t('Modelo {d}d', ['d' => $diasPdf])); ?></th></tr></thead>
       <tbody>
