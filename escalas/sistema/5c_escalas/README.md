@@ -49,7 +49,7 @@ Tabela `5c_escalas.esc_acesso`. No primeiro acesso, se ela estiver vazia, o mód
 | Tela | O que faz | Grava em |
 |---|---|---|
 | Painel | Rascunhos das semanas, pendências; botão "Verificar mudanças" (recalcula só quando clicado) | `esc_entrada_*`, `esc_recalculo_evento`, `esc_plano*` |
-| Gerar escala | Nova versão, recálculo manual, verificar mudanças, histórico de versões e De→Para | `esc_plano*`, `esc_sugestao`, `esc_ciclo_estado` |
+| Gerar escala | Nova versão, recálculo manual, verificar mudanças, histórico de versões e De→Para. Gerar e recalcular passam por três etapas (verificação, Capacity, escala) numa tela de progresso que trava o sistema (lib/gerar_etapas.php) | `esc_plano*`, `esc_sugestao`, `esc_ciclo_estado` |
 | Grade da escala | Por página, por pessoa e De→Para; ajuste manual de célula (fica travado); publicar; CSV por página ou .zip; PDF da escala das páginas e PDF de metas (atingimento de cada pessoa escalada na página nas 4 semanas anteriores); abaixo da grade, **Postar no site**: um cartão por página com o CSV para copiar, Date Schedule/Date End, "1 · Apaguei" e "2 · Postei" e o aviso de quais páginas mudaram desde a versão já postada | `esc_plano_alocacao`, `esc_plano`, `esc_exportacao`, `esc_plano_postagem` |
 | Escala da liderança | OC e OS em 5x2 no ciclo de 21 dias (cada um num turno só), com o dia de Overlap em que os 3 do grupo estão no turno; OA numa semana fixa, 1 por turno todo dia; OM sem escala; CSV da semana | não grava |
 | Horas extras | Postos sem ninguém (por faturamento) e buffers que faltam (Capacity × plantão); texto para pedir hora extra; registrar quem se ofereceu e alocar no rascunho (trava turno repetido, mais de 12 h seguidas e mais de 52 h na semana) | `esc_hora_extra`, `esc_plano_alocacao` |
@@ -139,6 +139,7 @@ Toda semana a partir da virada (parâmetro `v4_virada`) é gerada pelo `lib/moto
 - Ajuste manual feito na grade fica **travado** e o recálculo mantém.
 - **Quem está na escala publicada não perde o dia sozinho.** Se o recálculo deixaria a pessoa sem trabalho no turno, ela é mantida e vira sugestão de workload. Se a sugestão for aplicada, o próximo recálculo não traz a pessoa de volta. Trocar de página no mesmo turno não conta como tirar o dia.
 - A verificação roda só pelo botão "Verificar mudanças" (Painel e Gerar escala): abrir uma tela não recalcula nada.
+- **Gerar em etapas (1.19.21, `lib/gerar_etapas.php`):** os botões Gerar, Recalcular tudo e Recalcular com o mínimo de mudanças chamam `pages/gerar.php` uma etapa por vez (campo `etapa`, resposta JSON) e o `escalas.js` mostra a sobreposição de progresso (`.ge-fundo`, `.app` inerte, `beforeunload`). Etapas: `verificar` (`escGerarPendencias`: saída "a conferir" de página aberta em `fc_pagina_carteira` bloqueia e leva a `saidas`; indisponibilidade PENDENTE na semana avisa e leva a `aprovar`; `IS_FREE_LOCK('5c_escalas.gerar')`), `capacity` (`escEstruturaAtualizar(true)`, sem a trava de `v4_estrutura_minutos`; órfãs e versão das restrições) e `escala` (`escGerarEscala`, com o flash e a URL da grade). Erro de conexão (`escErroConexao`, inclui 1160/08S01) devolve `repetir` e o JS repete até 2 vezes. Sem JavaScript, o mesmo POST roda as três em sequência.
 
 ## CSV para o site da 5C
 

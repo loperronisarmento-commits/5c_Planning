@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.21' => ['titulo' => 'Generate in steps: check, Capacity and schedule with a progress screen', 'itens' => [
+    'Generate in steps (request of 11/05): Generate, Recalculate everything and Recalculate with minimal changes go through three steps, shown on a progress screen that covers the system until it finishes (the menu is blocked and leaving the page asks for confirmation): 1. Check; 2. Capacity, always recalculated with today\'s parameters (no 30-minute wait), with the restrictions of people who left switched off and the OM restrictions version saved; 3. Schedule.',
+    'If a step does not pass, the screen says why and takes you where to fix it: a page exit "to check" for a page still in the structure blocks and goes to Page exits; an unavailability request for the week with no decision warns (you can continue) and goes to Unavailability; someone else generating at the same time blocks until they finish. Before, the schedule came out with the previous structure and only a note at the end.',
+    'A database connection dropped mid-way (e.g. error 1160 "Communication link failure") retries the step automatically, up to 2 times, with a new connection; the error now counts as a connection drop, and the Capacity update log records where it happened.',
+    ]],
     '1.19.20' => ['titulo' => 'U1 OM restrictions: solo, mid or high tier and page preference', 'itens' => [
     'New OM restrictions (U1 OM request on 11/05, ES_123): works solo (v4_sr_solo: never as assistant nor on a post that has an assistant; accepts an end date, "CODE:YYYY-MM-DD"), mid or high tier only (v4_sr_tier_medio_alto, tiers A to D from the page registry) and preference for certain pages (v4_sr_pref_paginas). They show on the OM restrictions screen and are removed automatically when the person leaves.',
     'Solo also applies when covering a gap (step 7): a solo SR does not cover a post that has an assistant.',

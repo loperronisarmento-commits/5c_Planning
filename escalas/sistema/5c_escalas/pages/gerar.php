@@ -23,30 +23,82 @@ if (escPost()) {
     $desde = escSlotDaSemana($segPost, (string) ($_POST['desde'] ?? ''));
     // Antes do corte igual ao site (5c_schedule.scheduleday) em vez da versão publicada (escMotorPreCorteDoSite).
     $GLOBALS['ESC_PRE_SITE'] = $desde !== '' && !empty($_POST['pre_site']);
-    $avisoDesde = $desde !== '' && escPlanoAtual($segPost) ? ' ' . ($GLOBALS['ESC_PRE_SITE']
-        ? t('Só mudou a partir de {quando}; antes disso ficou igual ao site (5C Schedule), e o CSV do dia leva os blocos de antes iguais ao site.', ['quando' => escSlotsDaSemana($segPost)[$desde]])
-        : t('Só mudou a partir de {quando}; antes disso ficou a versão publicada.', ['quando' => escSlotsDaSemana($segPost)[$desde]])) : '';
-    if ($acao === 'gerar') {
-        $id = escMotorGerar($segPost, 'NOVA', escUserId(), null, false, $desde);
-        escVoltar('grade', ['plano' => $id], t('Rascunho gerado para a semana de {dia}.', ['dia' => escData($segPost)]) . $avisoDesde . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
-    }
-    if ($acao === 'recalcular') {
-        if (!escPlanoAtual($segPost)) {
-            throw new RuntimeException(t('Não há versão desta semana para recalcular. Gere primeiro.'));
+    // Gerar em etapas (lib/gerar_etapas.php): a tela chama uma etapa por vez e recebe JSON.
+    $etapa = (string) ($_POST['etapa'] ?? '');
+    if ($etapa !== '' && in_array($acao, ESC_GERAR_ACOES, true)) {
+        $resp = ['ok' => false, 'etapa' => $etapa, 'msg' => '', 'avisos' => [], 'erro' => null, 'url_resolver' => null, 'rotulo_resolver' => null, 'repetir' => false, 'url' => null];
+        $comLink = static fn(array $x): array => $x + ['url' => $x['tela'] ? link_tela($x['tela'], $x['params']) : null];
+        try {
+            if ($etapa === 'verificar') {
+                $pend = escGerarPendencias($segPost);
+                if ($pend['bloqueios']) {
+                    $b = $comLink($pend['bloqueios'][0]);
+                    $resp['erro'] = implode(' ', array_column($pend['bloqueios'], 'msg'));
+                    $resp['url_resolver'] = $b['url'];
+                    $resp['rotulo_resolver'] = $b['tela'] ? $b['rotulo'] : null;
+                } else {
+                    $resp['ok'] = true;
+                    $resp['avisos'] = array_map($comLink, $pend['avisos']);
+                    $resp['msg'] = $pend['avisos'] ? '' : t('Nada pendente.');
+                }
+            } elseif ($etapa === 'capacity') {
+                if (!escGerarTravar()) {
+                    $resp['erro'] = t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.');
+                } else {
+                    $c = escGerarCapacity($segPost);
+                    $resp = array_merge($resp, ['ok' => $c['ok'], 'msg' => $c['msg'], 'erro' => $c['erro'], 'repetir' => $c['repetir']]);
+                    if (!$c['ok'] && !$c['repetir']) {
+                        // Erro que não é de conexão: a tela Páginas mostra a estrutura e as páginas fora dela.
+                        $resp['url_resolver'] = link_tela('paginas');
+                        $resp['rotulo_resolver'] = t('Configuração das páginas');
+                    }
+                }
+            } elseif ($etapa === 'escala') {
+                if (!escGerarTravar()) {
+                    $resp['erro'] = t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.');
+                } else {
+                    $g = escGerarEscala($acao, $segPost, $desde, true);
+                    escFlash($g['msg']);
+                    $resp['ok'] = true;
+                    $resp['msg'] = $g['msg'];
+                    $resp['url'] = link_tela('grade', ['plano' => $g['plano']]);
+                }
+            } else {
+                $resp['erro'] = t('Não deu para entender o pedido. Recarregue a tela e tente de novo.');
+            }
+        } catch (Throwable $e) {
+            $ocorrencia = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
+            appLog('error', 'Gerar em etapas: erro', ['ocorrencia' => $ocorrencia, 'etapa' => $etapa, 'erro' => $e->getMessage(), 'onde' => basename($e->getFile()) . ':' . $e->getLine()]);
+            $resp['ok'] = false;
+            $resp['repetir'] = escErroConexao($e);
+            $resp['erro'] = $e instanceof RuntimeException ? $e->getMessage()
+                : ($resp['repetir'] ? t('A conexão com o banco caiu nesta etapa.') : t('Não deu para concluir. Tente de novo; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]));
+            if (!$e instanceof RuntimeException && escPodeReal('admin')) {
+                $resp['erro'] .= ' ' . t('Detalhe (só admin): {erro} ({arquivo}:{linha})', ['erro' => mb_substr($e->getMessage(), 0, 300), 'arquivo' => basename($e->getFile()), 'linha' => $e->getLine()]);
+            }
         }
-        escW('INSERT INTO ' . escT('esc_recalculo_evento') . " (gatilho, descricao, semana_inicio, status) VALUES ('MANUAL', 'Recálculo pedido na tela', ?, 'DETECTADO')", [$segPost]);
-        $ev = escUltimoId();
-        $id = escMotorGerar($segPost, 'RECALCULO', escUserId(), $ev, false, $desde);
-        escVoltar('grade', ['plano' => $id], t('Recalculado. Veja o De→Para no fim da tela Gerar escala.') . $avisoDesde . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode($resp, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        exit;
     }
-    if ($acao === 'recalcular_minimo') {
-        if (!escPlanoAtual($segPost)) {
-            throw new RuntimeException(t('Não há versão desta semana para recalcular. Gere primeiro.'));
+    if (in_array($acao, ESC_GERAR_ACOES, true)) {
+        // Sem JavaScript: as mesmas etapas em sequência; pendência leva à tela que resolve.
+        $pend = escGerarPendencias($segPost);
+        if ($pend['bloqueios']) {
+            $b = $pend['bloqueios'][0];
+            $_POST = []; // a tela de destino não reabre formulário com os campos do Gerar
+            escVoltar($b['tela'] ?? 'gerar', $b['tela'] ? $b['params'] : ['semana' => $segPost], implode(' ', array_column($pend['bloqueios'], 'msg')), true);
         }
-        escW('INSERT INTO ' . escT('esc_recalculo_evento') . " (gatilho, descricao, semana_inicio, status) VALUES ('MANUAL', 'Recálculo com o mínimo de mudanças', ?, 'DETECTADO')", [$segPost]);
-        $ev = escUltimoId();
-        $id = escMotorGerar($segPost, 'RECALCULO', escUserId(), $ev, true, $desde);
-        escVoltar('grade', ['plano' => $id], t('Recalculado com o mínimo de mudanças.') . $avisoDesde . escMinimoAviso() . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($segPost));
+        if (!escGerarTravar()) {
+            throw new RuntimeException(t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.'));
+        }
+        $c = escGerarCapacity($segPost);
+        if (!$c['ok']) {
+            throw new RuntimeException($c['erro'] . ' ' . t('Nada foi gerado. Tente de novo em instantes.'));
+        }
+        $g = escGerarEscala($acao, $segPost, $desde, true);
+        escVoltar('grade', ['plano' => $g['plano']], $g['msg']);
     }
     if ($acao === 'verificar') {
         $r = escMotorVerificar(escUserId(), true);
@@ -221,16 +273,16 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php endif; ?>
   <div class="acoes">
     <?php if ($atual): ?>
-    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Recalculando… pode levar até 3 min.')); ?>">
+    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Recalculando… pode levar até 3 min.')); ?>" data-gerar-etapas="<?php echo h(t('Recalculando com o mínimo de mudanças')); ?>" data-semana="<?php echo h(t('Semana de {dia}', ['dia' => escData($seg)])); ?>">
       <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular_minimo"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao primario" title="<?php echo h(t('Parte da versão publicada (a postada) e muda só o necessário: página nova, quem saiu ou ficou indisponível. Quase todos os CSVs continuam iguais.')); ?>"><?php echo h(t('Recalcular com o mínimo de mudanças')); ?></button>
     </form>
-    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Recalculando… pode levar até 3 min.')); ?>" data-confirmar="<?php echo h(t('Recalcular tudo refaz a semana inteira com a estrutura de hoje: muitas páginas podem mudar e precisar ser postadas de novo. Os ajustes travados ficam. Recalcular tudo?')); ?>">
+    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Recalculando… pode levar até 3 min.')); ?>" data-gerar-etapas="<?php echo h(t('Recalculando a semana inteira')); ?>" data-semana="<?php echo h(t('Semana de {dia}', ['dia' => escData($seg)])); ?>" data-confirmar="<?php echo h(t('Recalcular tudo refaz a semana inteira com a estrutura de hoje: muitas páginas podem mudar e precisar ser postadas de novo. Os ajustes travados ficam. Recalcular tudo?')); ?>">
       <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao"><?php echo h(tn($travadasAtual, 'Recalcular tudo (mantém {n} ajuste travado)', 'Recalcular tudo (mantém {n} ajustes travados)')); ?></button>
     </form>
     <?php endif; ?>
-    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Gerando… pode levar até 3 min.')); ?>"<?php if ($atual && $travadasAtual): ?> data-confirmar="<?php echo h(tn($travadasAtual, 'Gerar do zero descarta o {n} ajuste manual travado da {versao}. Para manter, use Recalcular. Gerar do zero mesmo assim?', 'Gerar do zero descarta os {n} ajustes manuais travados da {versao}. Para manter, use Recalcular. Gerar do zero mesmo assim?', ['versao' => escPlanoRotulo($atual)])); ?>"<?php endif; ?>>
+    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Gerando… pode levar até 3 min.')); ?>" data-gerar-etapas="<?php echo h(t('Gerando a escala')); ?>" data-semana="<?php echo h(t('Semana de {dia}', ['dia' => escData($seg)])); ?>"<?php if ($atual && $travadasAtual): ?> data-confirmar="<?php echo h(tn($travadasAtual, 'Gerar do zero descarta o {n} ajuste manual travado da {versao}. Para manter, use Recalcular. Gerar do zero mesmo assim?', 'Gerar do zero descarta os {n} ajustes manuais travados da {versao}. Para manter, use Recalcular. Gerar do zero mesmo assim?', ['versao' => escPlanoRotulo($atual)])); ?>"<?php endif; ?>>
       <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="gerar"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao <?php echo $atual ? '' : 'primario'; ?>"><?php echo $atual ? h(t('Gerar do zero (nova versão)')) : h(t('Gerar rascunho')); ?></button>
     </form>
@@ -261,6 +313,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php if ($v4): ?>
   <ol class="roteiro muted small">
     <li><strong><?php echo h(t('Estrutura nova')); ?></strong> <?php echo h(t('(a partir de {dia} às {hora}): unidade → turno → 3 núcleos; todo dia 2 núcleos trabalham. Os times e parties atuais não entram.', ['dia' => dataBr(escV4DiaVirada()), 'hora' => substr(escV4Param('v4_virada', '2026-11-01 05:00'), 11, 5)])); ?></li>
+    <li><strong><?php echo h(t('Antes de gerar (tela de progresso):')); ?></strong> <?php echo h(t('1. Verificação: saída de página a conferir de página na estrutura para a geração e leva às Saídas de página; pedido de indisponibilidade sem decisão só avisa. 2. Capacity recalculado com os parâmetros de hoje e postos sincronizados; restrições de quem saiu desativadas. 3. Escala. O resto do sistema fica travado até terminar.')); ?></li>
     <li><strong><?php echo h(t('Ordem de preenchimento de cada vaga:')); ?></strong> <?php echo t('divisão do SR e várias páginas → equipe fixa da página (main, depois cover) → quem conhece a página vermelha → melhor SR de cima para baixo (P-01) → equipe fixa da vaga → outra pessoa do núcleo → buffer do outro núcleo do turno → Overlap → remanejamento → acúmulo → sobrecarga (até {over}% acima da capacidade, com ⚠) → lacuna. Valem sempre as travas: restrições dos OM, uma plataforma por turno, Privacy só com SR brasileiro, página vermelha só com quem a conhece. Quem fica sem vaga é buffer de plantão (página 5C Schedule, {codigo} no CSV).', ['codigo' => '<code>-2</code>', 'over' => round((float) str_replace(',', '.', escV4Param('v4_over_capacity_max', '0.30')) * 100)]); ?></li>
     <li><strong><?php echo h(t('Menos troca de gente:')); ?></strong> <?php echo h(t('para escolher quem cobre, vem primeiro quem estava no posto (inclusive na semana anterior), depois quem é da equipe de alguma página do posto, depois quem mais trabalhou nas páginas dele nas últimas 8 semanas. No empate, a nota de mérito do 5C George decide (tela Mérito dos SRs).')); ?></li>
     <li><strong><?php echo h(t('Recálculo:')); ?></strong> <?php echo h(t('qualquer mudança nas entradas gera uma nova subversão (v1.1). Ajuste feito na grade fica travado.')); ?></li>

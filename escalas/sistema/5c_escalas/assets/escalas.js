@@ -251,6 +251,9 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = ev.target;
     var botao = ev.submitter || null;
     var longo = (botao && botao.getAttribute('data-longo')) || form.getAttribute('data-longo');
+    if (form.hasAttribute('data-gerar-etapas') && window.fetch && window.FormData) {
+      return; // Gerar em etapas: a sobreposição de progresso cuida (abaixo)
+    }
     if (form.dataset.enviando === '1') {
       ev.preventDefault(); // segundo clique: já está enviando
       return;
@@ -657,5 +660,212 @@ document.addEventListener('click', function (ev) {
         if (i === t.passos.length - 1) { sair(true); location.href = t.fim; } else { ir(i + 1); }
       }
     });
+  });
+})();
+
+// Gerar em etapas (pedido de 05/11; lib/gerar_etapas.php): formulário com data-gerar-etapas="título".
+// Ao enviar (depois da confirmação, se houver), abre uma sobreposição que cobre a tela inteira e
+// chama as etapas uma por vez: Verificação → Capacity → Escala. Enquanto roda, o resto da tela
+// fica inerte e sair da página pede confirmação. Pendência ou erro: a etapa fica vermelha, com
+// o botão para a tela que resolve. Conexão caída: repete a etapa sozinha (até 2 vezes).
+(function () {
+  if (!window.fetch || !window.FormData) { return; } // sem fetch: o POST normal roda as etapas
+  var ETAPAS = [
+    { id: 'verificar', nome: 'Verificação', detalhe: 'pendências antes de gerar', peso: [0, 12] },
+    { id: 'capacity', nome: 'Capacity', detalhe: 'recalcula com os parâmetros de hoje', peso: [12, 48] },
+    { id: 'escala', nome: 'Escala', detalhe: 'gera a semana', peso: [48, 100] }
+  ];
+  var rodando = false;
+  function aoSair(ev) { if (rodando) { ev.preventDefault(); ev.returnValue = ''; return ''; } }
+
+  function el(tag, cls, txt) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (txt !== undefined) { e.textContent = txt; }
+    return e;
+  }
+
+  function abrir(form) {
+    var app = document.querySelector('.app');
+    var foco = document.activeElement;
+    var caixa = el('div', 'ge-fundo');
+    caixa.setAttribute('role', 'dialog');
+    caixa.setAttribute('aria-modal', 'true');
+    caixa.setAttribute('aria-labelledby', 'ge-titulo');
+    var painel = el('div', 'ge-caixa');
+    var titulo = el('h2', 'ge-titulo', form.getAttribute('data-gerar-etapas') || T('Gerando a escala'));
+    titulo.id = 'ge-titulo';
+    titulo.tabIndex = -1;
+    var sub = el('p', 'ge-sub muted', form.getAttribute('data-semana') || '');
+    var barra = el('div', 'ge-barra');
+    barra.setAttribute('role', 'progressbar');
+    barra.setAttribute('aria-valuemin', '0');
+    barra.setAttribute('aria-valuemax', '100');
+    barra.setAttribute('aria-label', T('Progresso'));
+    var preench = el('span');
+    barra.appendChild(preench);
+    var lista = el('ol', 'ge-lista');
+    var itens = {};
+    ETAPAS.forEach(function (et, i) {
+      var li = el('li');
+      li.dataset.estado = 'espera';
+      var icone = el('span', 'ge-icone', String(i + 1));
+      icone.setAttribute('aria-hidden', 'true');
+      var txt = el('div', 'ge-txt');
+      txt.appendChild(el('strong', '', T(et.nome)));
+      var det = el('span', 'ge-detalhe muted small', T(et.detalhe));
+      txt.appendChild(det);
+      var est = el('span', 'ge-estado', T('aguardando'));
+      li.appendChild(icone); li.appendChild(txt); li.appendChild(est);
+      lista.appendChild(li);
+      itens[et.id] = { li: li, icone: icone, det: det, estado: est, num: String(i + 1), padrao: T(et.detalhe) };
+    });
+    var msg = el('div', 'ge-msg');
+    msg.setAttribute('aria-live', 'polite');
+    var acoes = el('div', 'acoes ge-acoes');
+    var tempo = el('p', 'ge-tempo muted small');
+    painel.appendChild(titulo); painel.appendChild(sub); painel.appendChild(barra); painel.appendChild(lista);
+    painel.appendChild(msg); painel.appendChild(acoes); painel.appendChild(tempo);
+    caixa.appendChild(painel);
+    document.body.appendChild(caixa);
+    document.body.classList.add('ge-aberto');
+    if (app) { app.setAttribute('inert', ''); app.setAttribute('aria-hidden', 'true'); }
+    titulo.focus();
+
+    var inicio = Date.now();
+    var pct = 0;
+    var alvo = 0;
+    var relogio = setInterval(function () {
+      var s = Math.floor((Date.now() - inicio) / 1000);
+      var t = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+      tempo.textContent = rodando ? T('{tempo} · Não feche nem mude de tela até terminar.', { tempo: t }) : t;
+      if (rodando && pct < alvo - 0.5) { pct += (alvo - pct) * 0.03; } // anda devagar até o fim da etapa
+      desenhar();
+    }, 500);
+    function desenhar() {
+      preench.style.width = pct.toFixed(1) + '%';
+      barra.setAttribute('aria-valuenow', String(Math.round(pct)));
+    }
+    function estado(id, est, detalhe) {
+      var it = itens[id];
+      it.li.dataset.estado = est;
+      it.icone.textContent = { ok: '✓', erro: '!', aviso: '!' }[est] || it.num;
+      it.estado.textContent = T({ espera: 'aguardando', rodando: 'em andamento', ok: 'concluída', erro: 'com problema', aviso: 'com aviso' }[est]);
+      // Sem detalhe novo: volta ao texto da etapa (ex.: tira o "tentando de novo" no erro final).
+      it.det.textContent = (detalhe !== undefined && detalhe !== null && detalhe !== '') ? detalhe : it.padrao;
+    }
+    function botao(texto, cls, fn, href) {
+      var b = el(href ? 'a' : 'button', 'botao' + (cls ? ' ' + cls : ''), texto);
+      if (href) { b.href = href; } else { b.type = 'button'; }
+      b.addEventListener('click', function (ev) { if (fn) { fn(ev); } });
+      acoes.appendChild(b);
+      return b;
+    }
+    function limparAcoes() { acoes.textContent = ''; msg.textContent = ''; msg.className = 'ge-msg'; msg.removeAttribute('role'); }
+    function parar() {
+      rodando = false;
+      window.removeEventListener('beforeunload', aoSair);
+      var s = Math.floor((Date.now() - inicio) / 1000);
+      tempo.textContent = Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+    }
+    function fechar() {
+      parar();
+      clearInterval(relogio);
+      caixa.remove();
+      document.body.classList.remove('ge-aberto');
+      if (app) { app.removeAttribute('inert'); app.removeAttribute('aria-hidden'); }
+      if (foco && foco.focus) { foco.focus(); }
+    }
+    function mostrarMsg(texto, tipo) {
+      msg.textContent = texto;
+      msg.className = 'ge-msg aviso ' + (tipo || '');
+      msg.setAttribute('role', tipo === 'erro' ? 'alert' : 'status');
+    }
+    function focarAcao() {
+      var b = acoes.querySelector('.primario') || acoes.firstChild;
+      if (b && b.focus) { b.focus(); }
+    }
+
+    function etapa(i, tentativa) {
+      var et = ETAPAS[i];
+      rodando = true;
+      window.addEventListener('beforeunload', aoSair);
+      limparAcoes();
+      estado(et.id, 'rodando');
+      pct = Math.max(pct, et.peso[0]);
+      alvo = et.peso[1] - 1;
+      var dados = new FormData(form);
+      dados.set('etapa', et.id);
+      fetch(form.action, { method: 'POST', body: dados, credentials: 'same-origin', headers: { Accept: 'application/json' } })
+        .then(function (r) {
+          var tipo = r.headers.get('Content-Type') || '';
+          if (tipo.indexOf('application/json') === -1) {
+            return { ok: false, repetir: r.status === 503, recarregar: r.status !== 503,
+              erro: r.status === 503 ? T('O banco não respondeu.') : T('A resposta não veio como esperado. Recarregue a tela e tente de novo.') };
+          }
+          return r.json();
+        }, function () {
+          return { ok: false, repetir: true, erro: T('Sem resposta do servidor.') };
+        })
+        .then(function (r) {
+          if (r.ok) {
+            pct = et.peso[1];
+            desenhar();
+            if (et.id === 'verificar' && r.avisos && r.avisos.length) {
+              parar();
+              estado(et.id, 'aviso', T('{n} aviso(s)', { n: r.avisos.length }));
+              mostrarMsg(r.avisos.map(function (a) { return a.msg; }).join(' '), 'laranja');
+              botao(T('Continuar mesmo assim'), 'primario', function () { estado(et.id, 'ok'); etapa(i + 1, 0); });
+              r.avisos.forEach(function (a) { if (a.url) { botao(T('Resolver em {tela}', { tela: a.rotulo }), '', parar, a.url); } });
+              botao(T('Cancelar'), '', fechar);
+              focarAcao();
+              return;
+            }
+            estado(et.id, 'ok', r.msg || null);
+            if (i + 1 < ETAPAS.length) { etapa(i + 1, 0); return; }
+            parar();
+            mostrarMsg(T('Pronto. Abrindo a grade…'), 'ok');
+            location.href = r.url;
+            return;
+          }
+          if (r.repetir && tentativa < 2) {
+            estado(et.id, 'rodando', T('A conexão caiu; tentando de novo ({n} de 2)…', { n: tentativa + 1 }));
+            setTimeout(function () { etapa(i, tentativa + 1); }, 3000 * (tentativa + 1));
+            return;
+          }
+          parar();
+          estado(et.id, 'erro');
+          mostrarMsg(r.erro || T('Não deu para concluir esta etapa.'), 'erro');
+          if (r.url_resolver) { botao(T('Resolver em {tela}', { tela: r.rotulo_resolver || T('outra tela') }), 'primario', null, r.url_resolver); }
+          if (r.recarregar) {
+            botao(T('Recarregar a tela'), r.url_resolver ? '' : 'primario', function () { location.reload(); });
+          } else {
+            botao(T('Tentar de novo'), r.url_resolver ? '' : 'primario', function () { etapa(i, 0); });
+          }
+          botao(T('Fechar'), '', fechar);
+          focarAcao();
+        });
+    }
+    // Esc só fecha depois de parar; o foco fica dentro da caixa.
+    caixa.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && !rodando) { fechar(); return; }
+      if (ev.key === 'Tab') {
+        var focaveis = Array.prototype.slice.call(painel.querySelectorAll('a[href], button, [tabindex="-1"]'));
+        if (!focaveis.length) { return; }
+        var primeiro = focaveis[0];
+        var ultimo = focaveis[focaveis.length - 1];
+        if (ev.shiftKey && document.activeElement === primeiro) { ev.preventDefault(); ultimo.focus(); }
+        else if (!ev.shiftKey && document.activeElement === ultimo) { ev.preventDefault(); primeiro.focus(); }
+      }
+    });
+    etapa(0, 0);
+  }
+
+  document.addEventListener('submit', function (ev) {
+    var form = ev.target;
+    if (ev.defaultPrevented || !form.hasAttribute || !form.hasAttribute('data-gerar-etapas')) { return; }
+    ev.preventDefault();
+    if (rodando || document.querySelector('.ge-fundo')) { return; }
+    abrir(form);
   });
 })();

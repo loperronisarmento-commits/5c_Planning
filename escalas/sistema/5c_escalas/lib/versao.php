@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.21', 'data' => '2026-11-05', 'titulo' => 'Gerar em etapas: verificação, Capacity e escala com tela de progresso', 'sql' => [], 'itens' => [
+    'Gerar em etapas (pedido de 05/11): Gerar, Recalcular tudo e Recalcular com o mínimo de mudanças passam por três etapas, mostradas numa tela de progresso que cobre o sistema até terminar (o menu fica bloqueado e sair da página pede confirmação): 1. Verificação; 2. Capacity, recalculado sempre com os parâmetros de hoje (sem a espera de 30 minutos), com as restrições de quem saiu desativadas e a versão das Restrições dos OM guardada; 3. Escala.',
+    'Se uma etapa não passa, a tela diz o motivo e leva para onde resolver: saída de página "a conferir" de página que ainda está na estrutura bloqueia e leva às Saídas de página; pedido de indisponibilidade da semana sem decisão avisa (dá para continuar) e leva à Indisponibilidade; outra pessoa gerando ao mesmo tempo bloqueia até ela terminar. Antes, a escala saía com a estrutura anterior e só um aviso no fim.',
+    'Conexão com o banco caída no meio (ex.: erro 1160 "Communication link failure") repete a etapa sozinha, até 2 vezes, com conexão nova; o erro passa a contar como queda de conexão, e o log da atualização do Capacity guarda onde ele aconteceu.',
+    ]],
     ['versao' => '1.19.20', 'data' => '2026-11-05', 'titulo' => 'Restrições dos OM da U1: solo, tier médio ou alto e preferência por páginas', 'sql' => ['ES_123_restricoes_om_u1_0511.sql'], 'itens' => [
     'Restrições dos OM novas (pedido do OM da U1 em 05/11, ES_123): trabalha solo (v4_sr_solo: nunca como assistente nem em posto que tem assistente; aceita data de fim, "CÓDIGO:AAAA-MM-DD"), só tier médio ou alto (v4_sr_tier_medio_alto, tiers A a D do cadastro de páginas) e preferência por certas páginas (v4_sr_pref_paginas). Aparecem na tela Restrições dos OM e saem sozinhas quando a pessoa é desligada.',
     'O solo vale também na cobertura de lacuna (passo 7): quem trabalha solo não cobre posto que tem assistente.',

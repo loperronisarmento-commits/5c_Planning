@@ -634,7 +634,8 @@ function escEstruturaTrocasUnidade(string $desde): array {
 }
 
 // Passos 1 a 3, com a trava de tempo. Devolve o resumo, ou null se não rodou.
-function escEstruturaAtualizar(): ?array {
+// $forcar (Gerar em etapas, 05/11): roda sempre, sem a trava de v4_estrutura_minutos.
+function escEstruturaAtualizar(bool $forcar = false): ?array {
     if (escModoTreino() || escDbW()->inTransaction() || escV4Param('v4_estrutura_auto', '1') !== '1') {
         return null;
     }
@@ -643,7 +644,7 @@ function escEstruturaAtualizar(): ?array {
     $fora = escEstruturaPaginasFora($hoje);
     $min = max(0, (int) escV4Param('v4_estrutura_minutos', '30'));
     $ult = escQ1('SELECT MAX(quando) AS q FROM ' . escT('esc_log') . " WHERE acao = 'estrutura_atualizada'");
-    if (!$fora && $ult && $ult['q'] !== null && strtotime((string) $ult['q']) > time() - $min * 60 && !escEstruturaTrocasPendentes($desde)) {
+    if (!$forcar && !$fora && $ult && $ult['q'] !== null && strtotime((string) $ult['q']) > time() - $min * 60 && !escEstruturaTrocasPendentes($desde)) {
         return null;
     }
     $res = ['paginas' => [], 'erro' => null];
@@ -661,8 +662,11 @@ function escEstruturaAtualizar(): ?array {
         $res += escEstruturaSincronizar($hoje, $desde);
         $res['trocas_unidade'] = escEstruturaTrocasUnidade($desde);
     } catch (Throwable $e) {
-        appLog('error', 'Estrutura: falha ao atualizar antes de gerar', ['erro' => $e->getMessage()]);
+        // Onde caiu (arquivo:linha e o começo do trace), para achar a causa de erros soltos como o 1160.
+        appLog('error', 'Estrutura: falha ao atualizar antes de gerar', ['erro' => $e->getMessage(), 'onde' => basename($e->getFile()) . ':' . $e->getLine(),
+            'trace' => mb_substr($e->getTraceAsString(), 0, 1200)]);
         $res['erro'] = $e->getMessage();
+        $res['conexao'] = escErroConexao($e);
     }
     // Com erro, registra à parte: a trava de 30 minutos só conta atualização que deu certo.
     escLog($res['erro'] ? 'estrutura_erro' : 'estrutura_atualizada', 'esc_posto', null, null, ['desde' => $desde, 'paginas' => array_column($res['paginas'], 'pagina')] + array_diff_key($res, ['paginas' => 1]));
@@ -672,8 +676,8 @@ function escEstruturaAtualizar(): ?array {
 // Texto curto para a mensagem depois de gerar.
 function escEstruturaAviso(): string {
     $r = $GLOBALS['ESC_ESTRUTURA_AUTO'] ?? null;
-    if (!$r) {
-        return '';
+    if (!$r || !empty($r['ja_feito'])) {
+        return ''; // nada rodou, ou rodou na etapa do Capacity (o aviso já foi junto)
     }
     if ($r['erro']) {
         return ' ' . t('Não deu para atualizar o Capacity antes de gerar ({erro}): a escala usou a estrutura anterior.', ['erro' => mb_substr((string) $r['erro'], 0, 120)]);
@@ -683,6 +687,7 @@ function escEstruturaAviso(): string {
         $txt .= ' ' . t('Entraram no Capacity: {lista}.', ['lista' => implode(', ', array_column($r['paginas'], 'pagina'))]);
     }
     if (!empty($r['trocas_unidade'])) {
-        $txt .= ' ' . t('Postos levados para a unidade nova: {lista}.', ['lista' => implode(', ', array_map(static fn($x) => $x['pagina'] . ' (U' . $x['de'] . ' → U' . $x['para'] . ', ' . dataBr($x['desde']) . ')', $r['trocas_unidade']))]);    }
+        $txt .= ' ' . t('Postos levados para a unidade nova: {lista}.', ['lista' => implode(', ', array_map(static fn($x) => $x['pagina'] . ' (U' . $x['de'] . ' → U' . $x['para'] . ', ' . dataBr($x['desde']) . ')', $r['trocas_unidade']))]);
+    }
     return $txt;
 }

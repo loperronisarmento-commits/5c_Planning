@@ -157,6 +157,15 @@ function escSessao(callable $f) {
 // para o formulário reabrir preenchido (escalas.js).
 // $ancora (opcional): id de um elemento da tela para a volta cair nele (ex.: o cartão que acabou de mudar).
 function escVoltar(string $p, array $params, string $aviso, bool $erro = false, string $ancora = ''): void {
+    escFlash($aviso, $erro);
+    unset($params['ok'], $params['erro']);
+    header('Location: ' . link_tela($p, $params) . ($ancora !== '' && preg_match('~^[a-z0-9_-]+$~i', $ancora) ? '#' . $ancora : ''));
+    exit;
+}
+
+// Grava o aviso da próxima tela (flash), sem redirecionar: usado por escVoltar e pelas respostas
+// JSON (ex.: o Gerar em etapas, que manda o navegador para a grade depois).
+function escFlash(string $aviso, bool $erro = false): void {
     $flash = ['tipo' => $erro ? 'erro' : 'ok', 'msg' => $aviso];
     if ($erro && escPost()) {
         $post = $_POST;
@@ -168,9 +177,6 @@ function escVoltar(string $p, array $params, string $aviso, bool $erro = false, 
     escSessao(static function () use ($flash) {
         $_SESSION['esc_flash'] = $flash;
     });
-    unset($params['ok'], $params['erro']);
-    header('Location: ' . link_tela($p, $params) . ($ancora !== '' && preg_match('~^[a-z0-9_-]+$~i', $ancora) ? '#' . $ancora : ''));
-    exit;
 }
 
 // Lê e apaga o flash (uma vez por tela).
@@ -223,7 +229,7 @@ function escLog(string $acao, string $entidade, $entidadeId, $antes = null, $dep
 // Erro de conexão com o MySQL (recusada, caiu ou sumiu no meio), e não erro de SQL.
 function escErroConexao(Throwable $e): bool {
     for ($x = $e; $x !== null; $x = $x->getPrevious()) {
-        if ($x instanceof PDOException && preg_match('~\[(2002|2003|2006|2013)\]|server has gone away|Lost connection~i', $x->getMessage())) {
+        if ($x instanceof PDOException && preg_match('~\[(2002|2003|2006|2013)\]|server has gone away|Lost connection|Communication link failure|1160 Got an error~i', $x->getMessage())) {
             return true;
         }
     }
