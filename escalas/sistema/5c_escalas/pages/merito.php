@@ -107,7 +107,7 @@ $sinal = static fn($v): string => (int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 
 </header>
 
 <section class="panel regras merito">
-  <div class="acoes nao-imprimir"><button type="button" class="botao primario" onclick="window.print()"><?php echo h($L('Imprimir / PDF', 'Print / PDF')); ?></button> <a class="botao" href="<?php echo h(link_tela('regras')); ?>"><?php echo h($L('Todas as regras', 'All rules')); ?></a><?php if ($verMerito): ?> <a class="botao" href="<?php echo h(link_tela('tertius')); ?>"><?php echo h($L('Mérito de cada SR', 'Each SR\'s merit')); ?></a><?php endif; ?></div>
+  <div class="acoes nao-imprimir"><button type="button" class="botao primario" onclick="window.print()"><?php echo h($L('Imprimir / PDF', 'Print / PDF')); ?></button> <a class="botao" href="<?php echo h(link_tela('regras')); ?>"><?php echo h($L('Todas as regras', 'All rules')); ?></a><?php if ($verMerito): ?> <a class="botao" href="<?php echo h(link_tela('srs')); ?>"><?php echo h($L('Mérito de cada SR', 'Each SR\'s merit')); ?></a><?php endif; ?></div>
   <nav class="regras-indice" aria-label="<?php echo h($L('Índice', 'Contents')); ?>"><ol>
     <li><a href="#sr"><?php echo h($L('Mérito do SR', 'SR merit')); ?></a></li>
     <li><a href="#faixas"><?php echo h($L('Faixas e exemplos', 'Bands and examples')); ?></a></li>

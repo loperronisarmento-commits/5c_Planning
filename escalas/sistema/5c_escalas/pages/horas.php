@@ -27,7 +27,7 @@ $heTemBloco = (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE
 
 if (escPost()) {
     $acao = $_POST['acao'] ?? '';
-    $segPost = segundaDaSemana((string) ($_POST['semana'] ?? $seg));
+    $segPost = segundaDaSemana(escDataValida($_POST['semana'] ?? null) ?? $seg);
     if ($acao === 'interesse') {
         escExigir('cadastrar');
         $rep = strtoupper(trim((string) ($_POST['rep_code'] ?? '')));
@@ -142,7 +142,7 @@ if (escPost()) {
         });
         escVoltar('horas', ['semana' => $semanaHe], t('Hora extra de {rep} alocada na escala (travada). Confira na Grade.', ['rep' => $rep]));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 // ---------- dados da semana ----------
@@ -242,7 +242,7 @@ $formInteresse = static function (array $campos) use ($seg): string {
     foreach ($campos as $k => $v) {
         $html .= '<input type="hidden" name="' . h($k) . '" value="' . h((string) $v) . '">';
     }
-    return $html . '<input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="' . h(t('quem quer fazer (nome ou código)')) . '" required>'
+    return $html . '<input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="' . h(t('quem quer fazer (nome ou código)')) . '" aria-label="' . h(t('Quem quer fazer a hora extra (nome ou código)')) . '" required>'
         . '<button type="submit" class="botao">' . h(t('Registrar')) . '</button></form>';
 };
 $listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho): string {
@@ -260,7 +260,7 @@ $listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho
                 }
                 $html .= ' <form method="post" action="' . h(link_tela('horas', ['semana' => $seg])) . '" class="he-inline" data-manter-rolagem>' . campoCsrf()
                     . '<input type="hidden" name="acao" value="' . $acao . '"><input type="hidden" name="id" value="' . (int) $l['id'] . '"><input type="hidden" name="semana" value="' . h($seg) . '">'
-                    . '<button type="submit" class="' . $cls . '">' . $rot . '</button></form>';
+                    . '<button type="submit" class="' . $cls . '"' . ($acao === 'recusar' ? ' data-confirmar="' . h(t('Recusar o interesse de {nome} na hora extra?', ['nome' => nomeCurto($nomes[strtoupper((string) $l['rep_code'])] ?? (string) $l['rep_code'])])) . '"' : '') . '>' . $rot . '</button></form>';
             }
         }
         $html .= '</li>';

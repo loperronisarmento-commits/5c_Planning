@@ -1,4 +1,12 @@
 <?php
+// Data AAAA-MM-DD que existe no calendário, ou null (ex.: 2026-02-31 e texto qualquer).
+function escDataValida($s): ?string {
+    if (!is_string($s) || !preg_match('~^(\d{4})-(\d{2})-(\d{2})$~', $s, $m)) {
+        return null;
+    }
+    return checkdate((int) $m[2], (int) $m[3], (int) $m[1]) ? $s : null;
+}
+
 // ===============================================
 // ARQUIVO: 5c_escalas/lib/helpers.php
 // Funções pequenas de apresentação usadas pelas páginas.

@@ -70,7 +70,7 @@ if (escPost()) {
         escLog('pendencia.cancelar', 'esc_estrutura_pendencia', (int) ($_POST['id'] ?? 0));
         escVoltar('times', ['aba' => 'pend'], t('Pendência cancelada.'));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $parties = escFormacaoParties();
@@ -160,7 +160,7 @@ foreach ($pendencias as &$pd) {
         $novo = 'DIVERGENTE';
         $pd['divergencia'] = 'Planner tem ' . $e['party'] . ' (' . $e['role'] . ')';
     }
-    if ($novo !== $pd['status']) {
+    if ($novo !== $pd['status'] && escPode('cadastrar') && empty($somenteLeitura)) {
         escW('UPDATE ' . escT('esc_estrutura_pendencia') . ' SET status = ?, conferida_em = ' . ($novo === 'APLICADA' ? 'NOW()' : 'conferida_em') . ', divergencia = ? WHERE id = ?', [$novo, $novo === 'DIVERGENTE' ? $pd['divergencia'] : null, (int) $pd['id']]);
         $pd['status'] = $novo;
     }

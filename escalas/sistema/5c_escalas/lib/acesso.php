@@ -236,7 +236,8 @@ function escBancoNoAr(int $tentativas = 1): bool {
         if ($i > 0) {
             usleep($i * 1000000);
         }
-        if (checarMysqlSaudavel((string) env('DB_HOST'), (int) env('DB_PORT', '3306'), 2)) {
+        $end = escDbEndereco(); // o mesmo host e porta da conexão (ESC_DB_HOST/PORT ou DB_HOST/PORT)
+        if (checarMysqlSaudavel((string) $end['host'], (int) $end['porta'], 2)) {
             return true;
         }
     }

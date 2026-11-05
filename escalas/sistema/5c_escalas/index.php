@@ -73,7 +73,7 @@ $telas = [
     'lideranca'    => ['Escala da liderança', 'pages/lideranca.php'],
     'horas'        => ['Horas extras', 'pages/horas.php'],
     'analise'      => ['Análise', 'pages/analise.php'],
-    'tertius'      => ['Equilíbrio dos SRs', 'pages/tertius.php'],
+    'srs'          => ['Mérito dos SRs', 'pages/tertius.php'],
     'sugestoes'    => ['Sugestões de troca', 'pages/sugestoes.php'],
     'buffers'      => ['Buffers', 'pages/buffers.php'],
     'trocas'       => ['Trocas de página', 'pages/trocas.php'],
@@ -99,11 +99,13 @@ $telas = [
     'tutorial'     => ['Tutorial', 'pages/tutorial.php'],
     'regras'       => ['Regras', 'pages/regras.php'],
     'merito'       => ['Mérito', 'pages/merito.php'],
-    'treinamento'  => ['Treinamento', 'pages/treinamento.php'],
+    'treinamento'  => ['Treinamento de New Hires', 'pages/treinamento.php'],
     'casais'       => ['Folga juntos', 'pages/casais.php'],
     'dba'          => ['Documentação do DBA', 'pages/dba.php'],
 ];
-$p = $_GET['p'] ?? 'painel';
+$p = is_string($_GET['p'] ?? null) ? $_GET['p'] : 'painel';
+// Endereços antigos continuam valendo.
+$p = ['restricoes' => 'fixacoes', 'tertius' => 'srs'][$p] ?? $p;
 if (!isset($telas[$p])) {
     $p = 'painel';
 }
@@ -276,14 +278,14 @@ try {
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
-    'Análise' => ['analise', 'tertius', 'sugestoes', 'buffers'],
-    'Páginas' => ['owners', 'trocas', 'saidas', 'funil', 'equilibrio', 'paginas', 'fixacoes'],
-    'Pessoas' => ['organograma', 'roster', 'colaboradores', 'aprovar', 'solicitacoes', 'treinamento', 'casais', 'modelos'],
+    'Análise' => ['analise', 'srs', 'sugestoes', 'buffers'],
+    'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
+    'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais', 'treinamento'],
     'Ajuda' => array_merge(['tutorial', 'regras', 'merito', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
 ];
-$adminMenu = escPode('admin') ? ['acessos', 'parametros', 'diagnostico'] : [];
-// Estrutura antiga (times e parties): vale até a virada de 31/10 21:00.
-$legadoMenu = ['times'];
+$adminMenu = escPode('admin') ? ['acessos', 'parametros', 'modelos', 'diagnostico'] : [];
+// Estrutura antiga (times e parties, trocas do Planner): vale até a virada de 31/10 21:00. Só para o admin.
+$legadoMenu = escPode('admin') ? ['times', 'trocas'] : [];
 $badges = [];
 // Com o banco fora (tela de espera), nem tenta: cada leitura esperaria a conexão por ~15 s.
 if (empty($bancoCaiu)) try {
@@ -362,17 +364,19 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
     <?php endforeach; ?>
   </div>
   <?php endif; ?>
+  <?php if ($legadoMenu): ?>
   <div class="grupo legado"><span class="grupo-titulo"><?php echo h(t('Legado (até {dia})', ['dia' => escData(escV4DiaVirada())])); ?></span>
     <?php foreach ($legadoMenu as $it): ?>
     <a href="<?php echo h(link_tela($it)); ?>"<?php echo $p === $it ? ' class="ativo" aria-current="page"' : ''; ?>><?php echo h(t($telas[$it][0])); ?></a>
     <?php endforeach; ?>
   </div>
+  <?php endif; ?>
   </div>
 </nav>
 <main class="conteudo">
   <?php if (escModoTreino()): ?>
   <div class="faixa-treino" role="status"><strong><?php echo h(t('MODO TREINO')); ?></strong><span><?php echo h(t('Dados de treino: o que você fizer aqui não muda a escala real nem o site da 5C.')); ?></span>
-    <form method="post" action="<?php echo h(link_tela('tutorial')); ?>" data-confirmar="<?php echo h(t('Recomeçar o treino?') . "\n\n" . t('Apaga tudo o que foi feito no treino e copia de novo os cadastros do sistema real.')); ?>" data-longo="<?php echo h(t('Recomeçando o treino…')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="treino_recomecar"><button type="submit" class="botao"><?php echo h(t('Recomeçar o treino')); ?></button></form>
+    <?php if (escPodeReal('planejar')): ?><form method="post" action="<?php echo h(link_tela('tutorial')); ?>" data-confirmar="<?php echo h(t('Recomeçar o treino?') . "\n\n" . t('Apaga tudo o que foi feito no treino e copia de novo os cadastros do sistema real.')); ?>" data-longo="<?php echo h(t('Recomeçando o treino…')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="treino_recomecar"><button type="submit" class="botao"><?php echo h(t('Recomeçar o treino')); ?></button></form><?php endif; ?>
     <form method="post" action="<?php echo h(link_tela('tutorial')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="treino_sair"><button type="submit" class="botao primario"><?php echo h(t('Sair do treino')); ?></button></form>
   </div>
   <?php endif; ?>

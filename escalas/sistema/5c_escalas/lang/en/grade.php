@@ -3,10 +3,10 @@
 return [
     'Date Schedule = o dia escolhido. Nesse dia, os blocos antes do turno saem iguais à versão (gerada com "antes do corte, igual ao site", são os do site); os dias antes ficam fora do CSV. O passado não muda.' => 'Date Schedule = the chosen day. On that day, the blocks before the shift come out as in the version (generated with "before the cut, as on the site", they are the site ones); earlier days stay out of the CSV. The past does not change.',
     // erros e avisos das ações
-    'Plano não encontrado.' => 'Plan not found.',
+    'Esta versão da escala não existe mais. Abra a versão atual em Gerar escala.' => 'This schedule version no longer exists. Open the current one in Generate schedule.',
     'Só dá para ajustar um rascunho. Para mexer na versão publicada, use "Criar rascunho a partir desta".' => 'Only a draft can be adjusted. To change the published version, use "Create draft from this one".',
     'Esta versão foi substituída. Abra a versão atual da semana (aviso no topo da grade) para ajustar.' => 'This version was superseded. Open the week\'s current version (notice at the top of the grid) to adjust it.',
-    'Célula inválida.' => 'Invalid cell.',
+    'Essa célula não existe mais nesta versão. Recarregue a grade.' => 'That cell no longer exists in this version. Reload the grid.',
     'Código inválido: {codigo} (formato letra + 6 números).' => 'Invalid code: {codigo} (format: letter + 6 digits).',
     'Confira antes de salvar: {alertas}. Para salvar assim, marque "salvar mesmo assim".' => 'Check before saving: {alertas}. To save anyway, tick "save anyway".',
     'Célula ajustada e travada (recálculos mantêm).' => 'Cell adjusted and locked (recalculations keep it).',
@@ -136,7 +136,7 @@ return [
     '{n} de {total} páginas prontas' => '{n} of {total} pages ready',
     'Rascunho: os CSVs abaixo servem para conferir. Publique antes de postar.' => 'Draft: the CSVs below are for checking. Publish before posting.',
     'Versão substituída: os CSVs abaixo servem para conferir. Publique antes de postar.' => 'Superseded version: the CSVs below are for checking. Publish before posting.',
-    'Falta rodar o ES_23 para marcar "Apaguei" e "Postei".' => 'ES_23 must be run to mark "Deleted" and "Posted".',
+    'As marcações "Apaguei" e "Postei" ainda não estão ativadas. Peça ao admin.' => 'The "Deleted" and "Posted" marks are not enabled yet. Ask the admin.',
     '{acao} de {de} a {ate} nas {n} páginas que já têm escala na semana (marcadas "no site"), antes de postar qualquer uma.' => '{acao} from {de} to {ate} on the {n} pages that already have a schedule this week (marked "on website"), before posting any of them.',
     'Inclui {n} página fora deste plano: só apagar.' => 'Includes {n} page outside this plan: delete only.',
     'Inclui {n} páginas fora deste plano: só apagar.' => 'Includes {n} pages outside this plan: delete only.',

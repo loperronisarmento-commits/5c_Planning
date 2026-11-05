@@ -1,10 +1,10 @@
 <?php
-// Textos em inglês da tela Equilíbrio dos SRs (pages/tertius.php). O português é a chave.
+// Textos em inglês da tela Mérito dos SRs (pages/tertius.php). O português é a chave.
 return [
     'Mérito recalculado.' => 'Merit recalculated.',
     'Gere um rascunho para ver o equilíbrio.' => 'Generate a draft to see the balance.',
-    'Esta escala é da estrutura antiga (antes de {dia}). O equilíbrio dos SRs vale para as escalas da estrutura nova.' => 'This schedule uses the old structure (before {dia}). SR balance applies to schedules in the new structure.',
-    'Equilíbrio dos SRs · {versao}' => 'SR balance · {versao}',
+    'Esta escala é da estrutura antiga (antes de {dia}). O mérito dos SRs vale para as escalas da estrutura nova.' => 'This schedule uses the old structure (before {dia}). SR merit applies to schedules in the new structure.',
+    'Mérito dos SRs · {versao}' => 'SR merit · {versao}',
     'Turnos de cada SR na escala e o mérito do 5C George. O motor mexe o mínimo nas pessoas: primeiro fica quem já estava no posto e quem conhece a página; no empate, o SR de nota maior fica com o posto e o de nota menor fica de buffer.' => 'Each SR\'s shifts in the schedule and their 5C George merit. The engine moves people as little as possible: whoever was already on the post and whoever knows the page stays first; on a tie, the SR with the higher score keeps the post and the one with the lower score goes to buffer.',
 
     // faixas e KPIs

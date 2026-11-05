@@ -266,6 +266,9 @@ function escCasalAplicar(int $parId, int $indice, string $desde): array {
     $x = $e['pessoas'][$op['rep']];
     $com = $op['com'] ? $e['pessoas'][$op['com']] : null;
     $obs = 'Folga juntos a partir de ' . date('d/m/Y', strtotime($desde)); // gravado no banco: em português
+    if ($op['tipo'] === 'SR' && ($proibido = escSubordinacaoProibida((string) $x['rep'], (int) $op['nucleo_id'], $desde)) !== '') {
+        throw new RuntimeException($proibido);
+    }
     escTx(static function () use ($op, $x, $com, $desde, $obs) {
         if ($op['tipo'] === 'SR') {
             escCasalVersionar('esc_colaborador_config', $x['linha'], ['nucleo_id' => $op['nucleo_id'], 'observacao' => $obs, 'origem' => 'TELA'], $desde, ESC_CASAL_COLS_CONFIG);

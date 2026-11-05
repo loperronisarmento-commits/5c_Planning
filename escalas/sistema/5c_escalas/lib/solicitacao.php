@@ -187,6 +187,11 @@ function escSolTrocar(string $a, string $b, string $desde, string $motivo): arra
     foreach ($cfg as $r => $c) {
         $nucleo[$r] = escQW('SELECT id, unidade, turno FROM ' . escT('esc_nucleo') . ' WHERE id = ?', [(int) $c['nucleo_id']])[0];
     }
+    foreach ([[$a, $b], [$b, $a]] as [$quem, $par]) {
+        if (($proibido = escSubordinacaoProibida($quem, (int) $nucleo[$par]['id'], $desde)) !== '') {
+            throw new RuntimeException($proibido);
+        }
+    }
     $resumo = ['desde' => $desde, 'nucleo' => [$a => (int) $nucleo[$b]['id'], $b => (int) $nucleo[$a]['id']], 'vagas' => []];
 
     // 1. Configuração: cada um no núcleo do outro (mesmo núcleo: nada muda).

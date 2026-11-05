@@ -44,7 +44,7 @@ return [
     'Par não encontrado. Recarregue a tela.' => 'Pair not found. Reload the screen.',
     'Par encerrado: as folgas seguem o ciclo de cada um a partir do próximo recálculo.' => 'Pair ended: days off follow each person\'s cycle from the next recalculation.',
     '{ajuste}, a partir de {dia}. Recalcule as semanas a partir dessa data (Gerar escala › Recalcular com o mínimo de mudanças).' => '{ajuste}, from {dia}. Recalculate the weeks from that date (Generate schedule › Recalc With Minimum Changes).',
-    'Ação desconhecida.' => 'Unknown action.',
+    'Não deu para entender o pedido. Recarregue a tela e tente de novo.' => 'Could not understand the request. Reload the screen and try again.',
     'No Modo Treino o ajuste da Folga juntos não é aplicado.' => 'In Training Mode the Days off together adjustment is not applied.',
     'O ajuste vale a partir de hoje ou de uma data futura.' => 'The adjustment applies from today or a future date.',
     'Esse ajuste não vale mais (a estrutura mudou). Recarregue a tela.' => 'This adjustment is no longer valid (the structure changed). Reload the screen.',

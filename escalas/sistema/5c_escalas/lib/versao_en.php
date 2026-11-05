@@ -6,6 +6,14 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.17' => ['titulo' => 'Page flag in Generate and general refinement (security, menu, texts)', 'itens' => [
+    'Page flag (P-02) in Generate (ES_121): a red page only gets people who know it (7 days or more in the last 90) or are on its fixed team; with no one like that, it stays as a gap. Before the best SR top-down, whoever knows red pages (then yellow ones) is reserved for them. The 20% cap of new people on yellow pages is ready but off (v4_cor_amarela_ativa), as decided on 11/04: in the simulation, the week\'s gaps would go from 538 to 964.',
+    'Security: individual merit on the Unit balance screen only shows for Planning, WFM and Admin; opening Team setup no longer writes anything for users who do not register; only Planning restarts Training Mode; publishing, suggestions and unavailability check the status in the write itself (double clicks or a new version in between do not get through); cell adjustment rejects pages outside the plan; dates in Generate and Overtime are validated; an odd URL parameter no longer breaks the screen.',
+    'Fixes: the database health check uses the same address as the connection; "several pages at once" compares page names ignoring case and spaces; "cannot report to" also applies in Requests, Roster and Days off together; document versions do not go up through URL filters and handle two simultaneous accesses.',
+    'Menu: Page swaps and Team setup under Legacy (admin only); Schedule models under Administration; Pages in the order Setup, OM restrictions, Owners, Balance, Exits and Funnel. New addresses ?p=srs (the SR balance screen is now SR merit) and ?p=restricoes (old ones still work). "New Hire training" in the menu, as on the screen.',
+    'Texts: clear error messages, without script or table names; confirmation before declining overtime, applying a suggestion, discarding an owner suggestion and undoing "Deleted/Posted"; screen reader labels on unlabeled fields; Changelog without OUM and CEO, with scripts only for admin; old grid reasons without old role names; OM restrictions with a screen header; Generate fill order updated.',
+    'Help, Rules and README updated with what came in 1.19.x (OM restrictions, main and cover, split, one platform per shift, page flag, block after exit, document versions, automatic deactivation). The schema removal script becomes ES_999_desfazer.sql (number 99 was used by another script).',
+    ]],
     '1.19.16' => ['titulo' => 'Restrictions of whoever leaves switched off automatically, and restriction review', 'itens' => [
     'New rule: when a page leaves or a rep is dismissed, their restrictions are switched off automatically (escOmEncerrarOrfas, lib/restricoes_om.php). The person leaves the fixed team row (the rest of the team stays), and the assistant-only/barred and split rows close; restriction parameters (single page, only these pages, several pages, tier, revenue band, preferences, not subordinate, every day) drop whoever is past their last day and pages that already left. Runs at the end of a page exit and before every Generate, logged. Leadership (OS, OM, OC, OA) does not count as dismissed.',
     'Cross review of restrictions (ES_120): no case of fixed team and barred at the same time. The most recent decision (U3 OM sheet) won over old 11/09 moves: Krizel Dejaro stays in U3 D, João Vitor Sousa in U3 A and Aline Sodré in shift A. Liv left: her team and Jose Feliciano\'s bar were closed. Lucas Moraes left "every day" and goes back to the 5x2.',
@@ -119,7 +127,7 @@ const ESC_PATCH_NOTES_EN = [
     '1.18.10' => ['titulo' => 'OS3 with 15% to 20% of revenue, fixed Holly Jane team and the OM name', 'itens' => [
         'OS split (Unit balance): OS3 gets 15% to 20% of the shift revenue (v4_os3_parte_min and v4_os3_parte_max). The order is still OS1, OS1, OS2 at the top and OS2, OS3, OS3 at the bottom; the cut between the parts moves from the middle to where OS3 falls in the range. OS3 used to get 9% to 15%.',
         'Holly Jane with a fixed team from 11/09 (ES_75): Alan Ramsay, João Beber, Stephen, Krizel and Angeline Butal. Other people only come in if nobody on the team is available. The four who were in other units move to U1 in the same shift, with 4 compensating moves; the page owners and backups were updated.',
-        'Roles: OM shows as Operational Unit Manager on every screen. In Capacity, leadership goes from OUM and OM to OM (unit) and OC (unit and shift), as in 5C Escalas (script 29).',
+        'Roles: OM shows as Operational Unit Manager on every screen. In Capacity, leadership becomes OM (unit) and OC (unit and shift), as in 5C Escalas (script 29).',
     ]],
     '1.18.9' => ['titulo' => 'Page knowledge in Unit balance and Haven Free without a duplicate', 'itens' => [
         'Unit balance: knowing the page now counts. An SR knows a page after 3 days or more on it in the last 8 weeks (v4_conhece_dias). A unit move is only suggested where the model has at least 2 SRs who know it (v4_conhece_min), and each suggestion shows how many know it at the destination.',
@@ -213,7 +221,7 @@ const ESC_PATCH_NOTES_EN = [
     ]],
     '1.14.1' => ['titulo' => 'Structure update fixes, leadership schedule and org chart PDF', 'itens' => [
         'Leadership schedule: "Download PDF" button in A4 landscape on 5C letterhead — title with the period and version time, legend, one shift per sheet (name and code on the same line) and the OMs at the end; no buttons or "≠ grid" marks. The file name already has the period. Org chart: "Download PDF" fills the A3 sheet (a quarter used to be blank), shows the structure date and saves with the date in the name.',
-        'Org chart: Marcus V. Silva shows as COO again (the label had gone back to CEO).',
+        'Org chart: Marcus V. Silva shows as COO.',
         'Structure update: the post of a page that only starts after the date Capacity calculates (e.g. Andressa Urach from 11/02) stays as it is instead of closing; that page does not count in the page check either. Script ES_43 reopens the Andressa posts and marks Maddie active in the Capacity page snapshot.',
         'New posts from the structure update find the website page code regardless of case and spaces (e.g. "Mandi CAT" in Capacity and "Mandi Cat" on the website). Before, the page had no CSV and posting said to only delete. Script ES_42 fills the posts already created.',
         'A page added automatically to Capacity with a start before the structure start is fixed automatically before the recalculation; a new page always enters at the structure start. A failed update no longer holds the next one for 30 minutes. Script ES_41 cleans what the old zip wrote at 23:52.',
@@ -277,7 +285,7 @@ const ESC_PATCH_NOTES_EN = [
         'Overtime by 4-hour block (T1 to T6): the list, the interest, the allocation and the request text are per block. The check counts the real hours in a row (up to 12 h) and 52 h a week, so someone on an 8-hour shift can take the neighbouring block. Needs ES_38.',
     ]],
     '1.12.0' => ['titulo' => 'Org chart in the roster look and Oct 30 leadership', 'itens' => [
-        'Org chart in the 5C roster look: black and gold, CEO and Director at the top, each OM with shifts T6/T1, T2/T3 and T4/T5 (OC highlighted and the 3 OS, with the SRs on click). Full names, same look in both themes and "Print / PDF" on one portrait A3 sheet, as shown on screen.',
+        'Org chart in the 5C roster look: black and gold, COO and Director at the top, each OM with shifts T6/T1, T2/T3 and T4/T5 (OC highlighted and the 3 OS, with the SRs on click). Full names, same look in both themes and "Print / PDF" on one portrait A3 sheet, as shown on screen.',
         'Leadership from the Oct 30 roster (needs ES_29): Raphael Estevam is OC of U1 · T2/T3; OS changes in U2 and U3 · T6/T1 and in U3 · T4/T5.',
     ]],
     '1.11.0' => ['titulo' => 'UX review · Phase B part 2, Phase C (language) and Phase D (Help center)', 'itens' => [

@@ -93,7 +93,7 @@ if (escPost()) {
         }
         $temRep = (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_solicitacao' AND COLUMN_NAME = 'destino_rep'", [ESC_SCHEMA]);
         if ($dRep !== null && !$temRep) {
-            throw new RuntimeException(t('Para guardar a pessoa da dupla ou da assistência falta rodar o script ES_34. Por enquanto, escolha só o núcleo.'));
+            throw new RuntimeException(t('Guardar a pessoa da dupla ou da assistência ainda não está ativado. Por enquanto, escolha só o núcleo.'));
         }
         escTx(function () use ($tab, $rep, $tipo, $dUnidade, $dTurno, $dNucleo, $dRep, $temRep, $aPartir, $texto) {
             escW('INSERT INTO ' . $tab . ' (rep_code, tipo, destino_unidade, destino_turno, destino_nucleo_id, ' . ($temRep ? 'destino_rep, ' : '') . 'a_partir, texto, canal, solicitado_por, solicitado_por_nome) VALUES (?, ?, ?, ?, ?, ' . ($temRep ? '?, ' : '') . '?, ?, ?, ?, ?)',
@@ -211,7 +211,7 @@ if (escPost()) {
         escLog('solicitacao.legado', 'esc_colaborador_config', null, null, ['desde' => $desde, 'pares' => $pares]);
         escVoltar('solicitacoes', [], t('{n} trocas aplicadas a partir de {dia}: os times legados ficaram juntos. Recalcule as semanas a partir dessa data.', ['n' => count($pares), 'dia' => dataBr($desde)]) . escConfigCanceladasAviso());
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $STATUS = ['PENDENTE' => t('Pendentes'), 'APROVADO' => t('Aprovadas · esperando troca'), 'APLICADO' => t('Aplicadas'), 'RECUSADO' => t('Recusadas'), 'CANCELADO' => t('Canceladas'), 'TODOS' => t('Todas')];

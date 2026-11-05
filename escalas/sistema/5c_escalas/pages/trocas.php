@@ -449,7 +449,7 @@ $nomePessoa = static function (string $code) use (&$estrutura, &$nomes): string 
           <?php echo campoCsrf(); ?><input type="hidden" name="pagina" value="<?php echo (int) $pid; ?>"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
           <?php if (!$pp || !$pp['apagado_em']): ?><button type="submit" name="passo" value="apagado" class="botao"><?php echo h(t('1 · Apaguei')); ?></button><?php endif; ?>
           <?php if (!$pp || !$pp['postado_em'] || $mudou): ?><button type="submit" name="passo" value="postado" class="botao"><?php echo h($mudou ? t('2 · Postei de novo') : t('2 · Postei')); ?></button><?php endif; ?>
-          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao"><?php echo h(t('Desfazer')); ?></button><?php endif; ?>
+          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao" data-confirmar="<?php echo h(t('Desmarcar "Apaguei" e "Postei" desta página?')); ?>"><?php echo h(t('Desfazer')); ?></button><?php endif; ?>
         </form>
         <?php endif; ?>
       </div>

@@ -159,6 +159,23 @@ function escPaginaConfig(): array {
     return $cache;
 }
 
+// Cor (sensibilidade) da página na tela Páginas (esc_pagina_config.sensibilidade, ES_85):
+// VERDE, AMARELA ou VERMELHA; '' quando não tem. Regra P-02 (validada em 03/11).
+function escCorDe(string $pagina): string {
+    static $mapa = null;
+    if ($mapa === null) {
+        $mapa = [];
+        try {
+            foreach (escQ('SELECT pagina, sensibilidade FROM ' . escT('esc_pagina_config') . " WHERE sensibilidade IS NOT NULL AND sensibilidade <> ''") as $r) {
+                $mapa[escV4ChavePagina((string) $r['pagina'])] = strtoupper(trim((string) $r['sensibilidade']));
+            }
+        } catch (Throwable $e) {
+            // coluna ainda não criada (ES_85)
+        }
+    }
+    return $mapa[escV4ChavePagina($pagina)] ?? '';
+}
+
 // Páginas que vendem em reais (BRL): as das plataformas de v4_plataforma_brl (padrão Privacy), pela
 // plataforma da tela Páginas (esc_pagina_config.plataforma, ES_85) ou, sem ela, a do cadastro
 // (5c_pages.pages.platform). Devolve [chave da página => true]. Só muda a exibição (R$ no lugar de US$).
@@ -374,7 +391,7 @@ function escV4Carregar(string $dia): array {
     $vig = ' vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)';
     $modelo = escQ1('SELECT ciclo, max_seguidos FROM ' . escT('esc_modelo_escala') . " WHERE nome = '5x2 rotativo 21 dias'");
     if (!$modelo) {
-        throw new RuntimeException(t('Falta o modelo "5x2 rotativo 21 dias". Rode o ES_04.'));
+        throw new RuntimeException(t('Falta o modelo "5x2 rotativo 21 dias". Peça ao admin para cadastrá-lo.'));
     }
     $nucleos = [];
     foreach (escQ('SELECT id, unidade, turno, numero, decurio_code, decurio_nome, deslocamento FROM ' . escT('esc_nucleo') . ' WHERE' . $vig, [$dia, $dia]) as $n) {
@@ -652,8 +669,22 @@ function escV4Carregar(string $dia): array {
             }
         }
     }
+    // P-02: quem conhece a página = v4_cor_conhece_dias (7) dias ou mais nela nos últimos v4_cor_janela_dias (90).
+    $conheceCor = [];
+    if ($pessoas && $nomes) {
+        $jan = max(7, (int) escV4Param('v4_cor_janela_dias', '90'));
+        $minDias = max(1, (int) escV4Param('v4_cor_conhece_dias', '7'));
+        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS dias
+                         FROM `5c_schedule`.`scheduleday`
+                        WHERE codigo IN (' . escIn(array_keys($pessoas)) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
+                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escMaisDias($dia, -$jan - 7) . 'T00:00:00', $dia . 'T00:00:00'])) as $r) {
+            if (isset($nomes[$r['pagina']]) && (int) $r['dias'] >= $minDias) {
+                $conheceCor[$r['rep']][$r['pagina']] = true;
+            }
+        }
+    }
     $overlap = escV4Param('v4_overlap_posicao_ciclo', '');
-    return ['modelo' => $modelo, 'nucleos' => $nucleos, 'pessoas' => $pessoas, 'postos' => $postos, 'equipes' => $equipes,
+    return ['modelo' => $modelo, 'conhece_cor' => $conheceCor, 'nucleos' => $nucleos, 'pessoas' => $pessoas, 'postos' => $postos, 'equipes' => $equipes,
         'historico' => $historico, 'merito' => $mer['nota'], 'faixa' => $mer['faixa'], 'anos' => $mer['anos'], 'prioritaria' => $prioritaria,
         'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02'),
         'overlap_posicoes' => array_map('intval', array_filter(array_map('trim', explode(',', $overlap)), 'strlen')),
@@ -918,10 +949,12 @@ function escMotorAlocarV4(array $in): array {
         $baixoFluxo[$c] = 'estrito';
     }
     $multiPag = [];
+    $multiPagChave = []; // as mesmas listas, com o nome da página normalizado (escV4ChavePagina) para comparar
     foreach (explode(';', escV4Param('v4_sr_multipagina', '')) as $item) {
         $x = explode(':', $item, 2);
         if (count($x) === 2 && trim($x[0]) !== '') {
             $multiPag[strtoupper(trim($x[0]))] = array_values(array_filter(array_map('trim', explode('|', $x[1])), 'strlen'));
+            $multiPagChave[strtoupper(trim($x[0]))] = array_map('escV4ChavePagina', $multiPag[strtoupper(trim($x[0]))]);
         }
     }
     // Uma plataforma por turno (v4_uma_plataforma_turno, padrão 1; pedido de 04/11): quem faz Privacy,
@@ -935,6 +968,23 @@ function escMotorAlocarV4(array $in): array {
     // (P-01 a P-04): o melhor SR de cima para baixo (passo 0) segue igual.
     ['pref_assist' => $prefAssist, 'tier_medio' => $tierMedio, 'pref_masc' => $prefMasc, 'faixa' => $faixaRec,
      'pode_pags' => $podePags, 'tem_masc' => $temMasc] = escOmRestricoes($est);
+    // P-02 Cor da página (regra do motor, validada em 03/11): vermelha só com quem a conhece (7 dias ou mais
+    // nos últimos 90) ou é da equipe fixa dela; sem ninguém assim, fica em lacuna. Amarela: no máximo
+    // v4_cor_amarela_novos (20%) dos turnos da semana, por página e turno, com quem não a conhece. Verde: livre.
+    $corAtiva = escV4Param('v4_cor_ativa', '1') !== '0';
+    // A cota da amarela fica desligada por enquanto (decisão de 04/11): liga com v4_cor_amarela_ativa = 1.
+    $amarelaCota = escV4Param('v4_cor_amarela_ativa', '0') === '1';
+    $conheceCor = $est['conhece_cor'] ?? [];
+    $quotaAmarela = max(1, (int) floor((float) str_replace(',', '.', escV4Param('v4_cor_amarela_novos', '0.20')) * count($dias) + 1e-9));
+    $novatosAmarela = []; // [página|turno] = turnos da semana com quem não conhece
+    $fixoNaPag = static function (string $rep, string $pag, string $dia) use ($est): bool {
+        foreach ($est['prioridade'][$pag] ?? [] as $pr) {
+            if ($pr['rep'] === $rep && $pr['de'] <= $dia && ($pr['ate'] === null || $pr['ate'] >= $dia)) {
+                return true;
+            }
+        }
+        return false;
+    };
     $limiteTodoDia = max(1, (int) escV4Param('v4_todos_os_dias_seguidos', '14'));
     $realizado = $in['realizado'] ?? [];
     $inicioPlano = max($dias[0], $virada);
@@ -1076,11 +1126,32 @@ function escMotorAlocarV4(array $in): array {
             $anosRep = $est['anos'] ?? [];
             $soAssist = $est['so_assist'] ?? [];
             $foraPag = $est['fora'] ?? [];
-            $pode = static function (string $rep, array $p) use ($pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec): bool {
+            $corOk = static function (string $rep, array $paginas) use ($corAtiva, $amarelaCota, $conheceCor, &$novatosAmarela, $quotaAmarela, $fixoNaPag, $dia, $turno): bool {
+                if (!$corAtiva) {
+                    return true;
+                }
+                foreach ($paginas as $pg) {
+                    if (!empty($pg['apoio'])) {
+                        continue;
+                    }
+                    $cor = escCorDe((string) $pg['pagina']);
+                    if (($cor !== 'VERMELHA' && ($cor !== 'AMARELA' || !$amarelaCota)) || isset($conheceCor[$rep][$pg['pagina']]) || $fixoNaPag($rep, (string) $pg['pagina'], $dia)) {
+                        continue;
+                    }
+                    if ($cor === 'VERMELHA' || ($novatosAmarela[$pg['pagina'] . '|' . $turno] ?? 0) >= $quotaAmarela) {
+                        return false; // P-02: vermelha só com quem conhece; amarela com a cota de gente nova cheia
+                    }
+                }
+                return true;
+            };
+            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec): bool {
                 foreach ($p['paginas'] as $pg) {
                     if (isset($foraPag[$rep][$pg['pagina']])) {
                         return false; // fora desta página
                     }
+                }
+                if (!$corOk($rep, $p['paginas'])) {
+                    return false; // P-02 (cor da página)
                 }
                 if (!$podePags($rep, $p['paginas'], in_array($p['tipo'], ['assistente', 'apoio'], true))) {
                     return false; // só certas páginas, ou só tier médio (restrições dos OM)
@@ -1215,7 +1286,7 @@ function escMotorAlocarV4(array $in): array {
                 foreach ($estadoUT[$uRep]['vagas'] as $iv => $v) {
                     $p = $est['postos'][$v['pid']];
                     $nomesP = array_column(array_filter($p['paginas'], static fn($pg) => !$pg['apoio']), 'pagina');
-                    if ($v['rep'] !== null || $p['tipo'] === 'assistente' || !$nomesP || array_diff($nomesP, $pagsMulti) || !$pode($rep, $p)) {
+                    if ($v['rep'] !== null || $p['tipo'] === 'assistente' || !$nomesP || array_diff(array_map('escV4ChavePagina', $nomesP), $multiPagChave[$rep] ?? []) || !$pode($rep, $p)) {
                         continue;
                     }
                     $estadoUT[$uRep]['vagas'][$iv]['rep'] = $rep;
@@ -1284,6 +1355,59 @@ function escMotorAlocarV4(array $in): array {
                     }
                 }
                 unset($v, $st);
+            }
+
+            // P-02 Reserva de quem conhece (vermelhas e depois amarelas): antes do melhor SR de cima para baixo,
+            // cada vaga vazia de posto com página vermelha (depois amarela), da que mais fatura para a que menos,
+            // fica com quem conhece a página (7 dias ou mais em 90, ou equipe fixa). Assim quem conhece a
+            // vermelha não é gasto antes numa verde. A escolha entre eles é a de sempre ($escolher).
+            if ($corAtiva && !$transicao) {
+                $conhecePosto = static function (string $rep, array $p, string $cor) use ($conheceCor, $fixoNaPag, $dia): bool {
+                    foreach ($p['paginas'] as $pg) {
+                        if (empty($pg['apoio']) && escCorDe((string) $pg['pagina']) === $cor
+                            && !isset($conheceCor[$rep][$pg['pagina']]) && !$fixoNaPag($rep, (string) $pg['pagina'], $dia)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                };
+                foreach (['VERMELHA', 'AMARELA'] as $corR) {
+                    $listaR = [];
+                    foreach ($estadoUT as $uR => $stR) {
+                        foreach ($stR['vagas'] as $ivR => $vR) {
+                            if ($vR['rep'] !== null) {
+                                continue;
+                            }
+                            $recR = null;
+                            foreach ($est['postos'][$vR['pid']]['paginas'] as $pg) {
+                                if (empty($pg['apoio']) && escCorDe((string) $pg['pagina']) === $corR) {
+                                    $recR = max($recR ?? 0.0, (float) ($est['receita'][$pg['pagina']]['total'] ?? 0));
+                                }
+                            }
+                            if ($recR !== null) {
+                                $listaR[] = [$uR, $ivR, $recR];
+                            }
+                        }
+                    }
+                    usort($listaR, static fn($a, $b) => $b[2] <=> $a[2]);
+                    foreach ($listaR as [$uR, $ivR]) {
+                        $vR = $estadoUT[$uR]['vagas'][$ivR];
+                        if ($vR['rep'] !== null) {
+                            continue;
+                        }
+                        $pR = $est['postos'][$vR['pid']];
+                        $cands = array_values(array_filter(array_keys($estadoUT[$uR]['disp']), static fn($r) => !isset($usado[$r]) && $conhecePosto((string) $r, $pR, $corR)));
+                        $rep = $cands ? $escolher($cands, $pR) : null;
+                        if ($rep === null) {
+                            continue;
+                        }
+                        $estadoUT[$uR]['vagas'][$ivR]['rep'] = $rep;
+                        $estadoUT[$uR]['vagas'][$ivR]['origem'] = isset($vR['equipe'][$rep]) ? ($vR['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
+                        $estadoUT[$uR]['vagas'][$ivR]['motivo'] = 'conhece a página ' . ($corR === 'VERMELHA' ? 'vermelha' : 'amarela') . ' ' . $pR['pagina_principal'] . ' (P-02: 7 dias ou mais em 90)';
+                        $estadoUT[$uR]['vagas'][$ivR]['fixa'] = $corR === 'VERMELHA';
+                        $usado[$rep] = true;
+                    }
+                }
             }
 
             // 0. Páginas das modelos de v4_melhores_receita_min ou mais (0 = todas, P-01): o melhor SR do turno
@@ -1512,7 +1636,7 @@ function escMotorAlocarV4(array $in): array {
                         }
                     }
                     foreach ($multiPag as $rm => $pagsM) {
-                        if ($nomesP && !array_diff($nomesP, $pagsM) && $p['tipo'] !== 'assistente') {
+                        if ($nomesP && !array_diff(array_map('escV4ChavePagina', $nomesP), $multiPagChave[$rm] ?? []) && $p['tipo'] !== 'assistente') {
                             $membros[$rm] = implode(', ', $pagsM);
                         }
                     }
@@ -1789,8 +1913,8 @@ function escMotorAlocarV4(array $in): array {
                                 if ($c['so_apoio'] || !empty($c['exclusivo']) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
                                     continue;
                                 }
-                                if (!$mesmaPlat($c['plats'] ?? [], escPlataformasPosto(['paginas' => $g['paginas']])) || !$podePags((string) $rep, $g['paginas'])) {
-                                    continue; // plataformas diferentes no mesmo turno, ou página que a restrição do OM não deixa
+                                if (!$mesmaPlat($c['plats'] ?? [], escPlataformasPosto(['paginas' => $g['paginas']])) || !$podePags((string) $rep, $g['paginas']) || !$corOk((string) $rep, $g['paginas'])) {
+                                    continue; // plataformas diferentes, restrição do OM ou cor da página (P-02)
                                 }
                                 $razao = ($c['carga'] + $fans) / $c['cap'];
                                 if ($razao > 1 + $maxOver + 1e-9) {
@@ -1870,6 +1994,34 @@ function escMotorAlocarV4(array $in): array {
                             $usado[$rep] = true;
                         }
                     }
+                }
+            }
+
+            // P-02: turnos do dia em que a página amarela ficou com quem não a conhece (uma vez por página).
+            if ($corAtiva) {
+                $novoHoje = [];
+                foreach ($estadoUT as $stC) {
+                    foreach ($stC['vagas'] as $vC) {
+                        $pares = [];
+                        if ($vC['rep'] !== null) {
+                            foreach ($est['postos'][$vC['pid']]['paginas'] as $pgC) {
+                                if (empty($pgC['apoio'])) {
+                                    $pares[] = [$vC['rep'], (string) $pgC['pagina']];
+                                }
+                            }
+                        }
+                        foreach ($vC['cobre'] ?? [] as $pgN => $cb) {
+                            $pares[] = [(string) $cb['rep'], (string) $pgN];
+                        }
+                        foreach ($pares as [$rC, $pgN]) {
+                            if (escCorDe($pgN) === 'AMARELA' && !isset($conheceCor[$rC][$pgN]) && !$fixoNaPag($rC, $pgN, $dia)) {
+                                $novoHoje[$pgN . '|' . $turno] = true;
+                            }
+                        }
+                    }
+                }
+                foreach (array_keys($novoHoje) as $kC) {
+                    $novatosAmarela[$kC] = ($novatosAmarela[$kC] ?? 0) + 1;
                 }
             }
 

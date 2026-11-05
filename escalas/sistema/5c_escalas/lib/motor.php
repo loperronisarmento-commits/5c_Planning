@@ -432,7 +432,7 @@ function escMotorAlocar(array $in): array {
                             }
                         }
                         if ($alvo) {
-                            $extras[] = ['nome' => $alvo['nome'], 'pg' => $alvo['pg'], 'papel' => 'ASSISTENTE', 'rep' => $rep, 'origem' => 'TERTIUS_ASSISTENTE', 'motivo' => 'Tertius sem página livre no turno: assistente na maior página do time'];
+                            $extras[] = ['nome' => $alvo['nome'], 'pg' => $alvo['pg'], 'papel' => 'ASSISTENTE', 'rep' => $rep, 'origem' => 'TERTIUS_ASSISTENTE', 'motivo' => 'SR do rodízio sem página livre no turno: assistente na maior página do time'];
                             $merito[$rep][1] = ($merito[$rep][1] ?? 0) + 1;
                             $cap[$rep] = 0;
                         } else {
@@ -514,8 +514,8 @@ function escMotivoOrigem(string $origem, array $s): string {
     switch ($origem) {
         case 'PARTY_DONA': return 'titular da party dona (' . $party . ')';
         case 'OUTRA_PARTY': return 'cobertura de outra party do time ' . $s['pg']['time'];
-        case 'TERTIUS': return 'Tertius do time como regular';
-        case 'TERTIUS_ASSISTENTE': return 'Tertius do time como assistente';
+        case 'TERTIUS': return 'SR do rodízio como regular';
+        case 'TERTIUS_ASSISTENTE': return 'SR do rodízio como assistente';
         case 'BUFFER': return 'Buffer do turno';
         default: return 'ninguém disponível no turno';
     }
@@ -975,7 +975,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                 'descricao' => implode(', ', array_slice(array_unique($itens), 0, 30)),
                 'efeito' => $estruturaPlano === 'V4'
                     ? 'Cobrir na grade (ajuste manual) com um buffer de plantão do turno, ou aceitar a lacuna.'
-                    : 'Cobrir na grade (ajuste manual) com Tertius ou Buffer de folga, ou aceitar a lacuna.',
+                    : 'Cobrir na grade (ajuste manual) com um SR do rodízio ou Buffer de folga, ou aceitar a lacuna.',
                 'dados' => json_encode(['dia' => $dia, 'turno' => $turno]), 'status' => 'ABERTA'];
         }
         escInserirLote('esc_sugestao', ['plano_id', 'recalculo_id', 'tipo', 'titulo', 'descricao', 'efeito', 'dados', 'status'], $sugs);

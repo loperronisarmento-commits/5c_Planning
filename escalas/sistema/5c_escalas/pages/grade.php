@@ -17,7 +17,7 @@ $plano = $planoId ? escQ1('SELECT * FROM ' . escT('esc_plano') . ' WHERE id = ?'
 if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
     escExigir('planejar');
     if (!$plano) {
-        throw new RuntimeException(t('Plano não encontrado.'));
+        throw new RuntimeException(t('Esta versão da escala não existe mais. Abra a versão atual em Gerar escala.'));
     }
     $acao = $_POST['acao'] ?? '';
     if ($acao === 'editar') {
@@ -26,13 +26,16 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
                 ? t('Só dá para ajustar um rascunho. Para mexer na versão publicada, use "Criar rascunho a partir desta".')
                 : t('Esta versão foi substituída. Abra a versão atual da semana (aviso no topo da grade) para ajustar.'));
         }
-        $pid = (int) $_POST['page_id'];
-        $dia = (string) $_POST['dia'];
-        $turno = (string) $_POST['turno'];
+        $pid = (int) ($_POST['page_id'] ?? 0);
+        $dia = (string) ($_POST['dia'] ?? '');
+        $turno = (string) ($_POST['turno'] ?? '');
         if (!isset(ESC_TURNOS[$turno]) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $dia)) {
-            throw new RuntimeException(t('Célula inválida.'));
+            throw new RuntimeException(t('Essa célula não existe mais nesta versão. Recarregue a grade.'));
         }
         $pagina = escQ1('SELECT pagina FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id = ? LIMIT 1', [$planoId, $pid]);
+        if (!$pagina) {
+            throw new RuntimeException(t('Essa célula não existe mais nesta versão. Recarregue a grade.'));
+        }
         // A busca manda "Nome (CÓDIGO)"; também vale o código puro.
         $codigo = static function (string $v): string {
             $v = strtoupper(trim($v));
@@ -50,7 +53,7 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
             throw new RuntimeException(t('Este turno é de antes da virada: vale a escala já postada no site da 5C, e a célula não muda por aqui.'));
         }
         if ($dia < substr($plano['semana_inicio'], 0, 10) || $dia > substr($plano['semana_fim'], 0, 10)) {
-            throw new RuntimeException(t('Célula inválida.'));
+            throw new RuntimeException(t('Essa célula não existe mais nesta versão. Recarregue a grade.'));
         }
         [$b0, $b1] = ESC_TURNOS[$turno];
         $celulas = [[$dia, $b0], [$turno === 'D' ? escMaisDias($dia, 1) : $dia, $b1]];
@@ -110,8 +113,10 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
             throw new RuntimeException(tn((int) $resumo['anomalias'], 'Há {n} anomalia programada. Marque "estou ciente" para publicar assim.', 'Há {n} anomalias programadas. Marque "estou ciente" para publicar assim.'));
         }
         escTx(function () use ($plano, $planoId) {
+            if (escW('UPDATE ' . escT('esc_plano') . " SET status = 'PUBLICADO', publicado_em = NOW(), publicado_por = ? WHERE id = ? AND status = 'RASCUNHO'", [escUserId(), $planoId]) !== 1) {
+                throw new RuntimeException(t('Este rascunho mudou enquanto você olhava (outro recálculo ou publicação). Abra a versão mais recente em Gerar escala.'));
+            }
             escW('UPDATE ' . escT('esc_plano') . " SET status = 'SUBSTITUIDO' WHERE semana_inicio = ? AND time_nome = '' AND status = 'PUBLICADO' AND id <> ?", [substr($plano['semana_inicio'], 0, 10), $planoId]);
-            escW('UPDATE ' . escT('esc_plano') . " SET status = 'PUBLICADO', publicado_em = NOW(), publicado_por = ? WHERE id = ?", [escUserId(), $planoId]);
             escLog('plano.publicar', 'esc_plano', $planoId, ['status' => $plano['status']], ['status' => 'PUBLICADO']);
         });
         escVoltar('grade', ['plano' => $planoId], t('Versão {versao} publicada. Baixe os CSVs e poste no site da 5C.', ['versao' => escPlanoRotulo($plano)]));
@@ -125,7 +130,7 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
         $novo = escMotorGerar(substr($plano['semana_inicio'], 0, 10), 'RECALCULO', escUserId(), escUltimoId(), true);
         escVoltar('grade', ['plano' => $novo], t('Rascunho criado a partir da versão publicada, com o mínimo de mudanças.') . escMinimoAviso());
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 if (!$plano) {
@@ -1188,7 +1193,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <span class="muted small"><?php echo t('{n} de {total} páginas prontas', ['n' => '<strong>' . ($conta['postado'] + $conta['igual']) . '</strong>', 'total' => count($cartoes)]); ?></span>
   </div>
   <?php if (!$publicado): ?><p class="laranja small"><?php echo h($plano['status'] === 'RASCUNHO' ? t('Rascunho: os CSVs abaixo servem para conferir. Publique antes de postar.') : t('Versão substituída: os CSVs abaixo servem para conferir. Publique antes de postar.')); ?></p><?php endif; ?>
-  <?php if (!$temControle): ?><p class="laranja small"><?php echo h(t('Falta rodar o ES_23 para marcar "Apaguei" e "Postei".')); ?></p><?php endif; ?>
+  <?php if (!$temControle): ?><p class="laranja small"><?php echo h(t('As marcações "Apaguei" e "Postei" ainda não estão ativadas. Peça ao admin.')); ?></p><?php endif; ?>
   <ol class="roteiro">
     <?php if ($comSite || $soApagar): ?>
     <?php if ($corte !== ''): ?>
@@ -1250,7 +1255,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
           <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="postagem"><input type="hidden" name="pagina" value="<?php echo (int) $c['id']; ?>">
           <?php if ($c['site'] && (!$pp || !$pp['apagado_em'])): ?><button type="submit" name="passo" value="apagado" class="botao">1 · <?php echo h(t('Apaguei')); ?></button><?php endif; ?>
           <?php if (!$pp || !$pp['postado_em']): ?><button type="submit" name="passo" value="postado" class="botao"><?php echo $c['site'] ? '2 · ' : ''; ?><?php echo h(t('Postei')); ?></button><?php endif; ?>
-          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao"><?php echo h(t('Desfazer')); ?></button><?php endif; ?>
+          <?php if ($pp && ($pp['apagado_em'] || $pp['postado_em'])): ?><button type="submit" name="passo" value="desfazer" class="botao" data-confirmar="<?php echo h(t('Desmarcar "Apaguei" e "Postei" desta página?')); ?>"><?php echo h(t('Desfazer')); ?></button><?php endif; ?>
         </form>
         <?php endif; ?>
       </div>

@@ -46,6 +46,9 @@ function escRosterFecharConfig(array $c, string $desde): void {
 // Põe a pessoa num núcleo a partir de $desde: fecha a configuração que ela tem e abre outra
 // copiando $modelo (modelo de escala, tipo...) com o núcleo, a função e o nível dados.
 function escRosterNovaConfig(string $rep, array $modelo, int $nucleoId, string $funcao, ?int $nivel, string $desde, string $obs): void {
+    if ($funcao === 'EQUITE' && ($proibido = escSubordinacaoProibida($rep, $nucleoId, $desde)) !== '') {
+        throw new RuntimeException($proibido);
+    }
     unset($GLOBALS['ESC_OS_DO_DIA']);
     $atual = escRosterConfig($rep, $desde);
     if ($atual) {

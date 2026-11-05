@@ -17,7 +17,7 @@
 
 **Mantido de propósito:**
 - Todos os outros scripts SQL. Eles formam a cadeia de instalação: mesmo os só de dados gravam parâmetros e regras que o motor lê.
-- `ES_99_desfazer.sql`, que é a desinstalação do schema.
+- `ES_999_desfazer.sql` (antes `ES_99_desfazer.sql`), que é a desinstalação do schema. Fica fora da sequência de instalação.
 
 **Código PHP:**
 - não há função sem uso;

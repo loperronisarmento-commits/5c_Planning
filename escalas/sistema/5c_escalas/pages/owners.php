@@ -61,7 +61,7 @@ if (escPost()) {
             'pagina' => $pagina, 'de' => $r['de'], 'para' => $r['para'], 'dia' => dataBr($desde), 'fechados' => count($r['postos_fechados']), 'refeitos' => count($r['postos_refeitos']),
             'novos' => count($r['postos_novos']), 'planos' => count($r['planos'])]));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $av = escPolAvaliar($hoje);
@@ -186,7 +186,7 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
         <button type="submit" class="botao primario" data-confirmar="<?php echo h(t('Aplicar a troca de owner em {pagina}? Para desfazer, é preciso outra troca.', ['pagina' => $s['pagina']])); ?>"><?php echo h(t('Aplicar')); ?></button>
       </form>
       <?php endif; ?>
-      <form method="post" action="<?php echo h(link_tela('owners')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="descartar"><input type="hidden" name="tipo" value="<?php echo h($s['tipo']); ?>"><input type="hidden" name="pagina" value="<?php echo h($s['pagina']); ?>"><input type="hidden" name="turno" value="<?php echo h((string) $s['turno']); ?>"><button type="submit" class="botao"><?php echo h(t('Descartar por 7 dias')); ?></button></form>
+      <form method="post" action="<?php echo h(link_tela('owners')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="descartar"><input type="hidden" name="tipo" value="<?php echo h($s['tipo']); ?>"><input type="hidden" name="pagina" value="<?php echo h($s['pagina']); ?>"><input type="hidden" name="turno" value="<?php echo h((string) $s['turno']); ?>"><button type="submit" class="botao" data-confirmar="<?php echo h(t('Esconder esta sugestão por 7 dias?')); ?>"><?php echo h(t('Descartar por 7 dias')); ?></button></form>
     </div>
     <?php endif; ?>
   </article>
@@ -227,7 +227,7 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
   </table></div>
   <?php if ($av['destaque']): ?><p class="small"><?php echo h(t('Núcleos em destaque (candidatos a página maior): {lista}.', ['lista' => implode(', ', array_map(static fn($id, $n) => 'U' . ($nucleos[$id]['unidade'] ?? '?') . ' ' . ($nucleos[$id]['turno'] ?? '') . ' ' . $nucTexto($id) . ' (' . $n . ')', array_keys($av['destaque']), $av['destaque']))])); ?></p><?php endif; ?>
 </section>
-<?php $docOwn = escDocFim('owners', http_build_query(array_diff_key($_GET, ['p' => 1, 'lang' => 1]))); echo escDocTituloJs(t('Owners e backups') . ' ' . date('d-m-Y') . escDocSufixo($docOwn)); ?>
+<?php $docOwn = escDocFim('owners', 'U' . max(0, $filtroU) . ($filtroS !== '' ? '|' . preg_replace('~[^A-Za-z_]~', '', $filtroS) : '')); echo escDocTituloJs(t('Owners e backups') . ' ' . date('d-m-Y') . escDocSufixo($docOwn)); ?>
 <script>
 (function () {
   var b = document.getElementById('owners-busca');

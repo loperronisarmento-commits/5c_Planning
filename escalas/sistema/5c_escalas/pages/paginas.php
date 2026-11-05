@@ -158,7 +158,7 @@ $baseTxt = static function (array $r) use ($dias): string {
   <p class="muted"><?php echo h(t('A escala é preenchida da modelo que mais fatura para a que menos fatura: as páginas da mesma modelo (VIP, Free, OFTV) contam juntas. O faturamento é o dos últimos {n} dias, com as vendas fechadas e as pendentes. Página com menos dias de venda tem a média emulada para {n} dias; sem venda nenhuma, vale o meio da faixa do tier.', ['n' => $dias])); ?></p>
   <p class="muted"><?php echo h(t('Página desconsiderada não tem SLA a cumprir: a carga dela fica zero no posto e ela é a última a receber gente. No automático, é a página com cara de OFTV (OFTV no nome ou código terminado em t) que faturou menos de {min} em {n} dias.', ['min' => $usd($minimo), 'n' => $dias])); ?></p>
   <?php if ($comAlocacao): ?><p class="muted"><?php echo h(t('Página sob demanda (On demand) não recebe ninguém no "Gerar". Quando alguém pede, a alocação é feita à mão na Grade, com a célula travada.')); ?> <?php echo h(t('Página exclusiva (solo): o SR dela fica só nela, sem acumular nem cobrir outra página, e ela não vai para o SR de outra página. O assistente vem do posto fixo do Capacity (2 pessoas).')); ?></p><?php endif; ?>
-  <?php if ($comFlags): ?><p class="muted"><?php echo h(t('Cor (sensibilidade): vermelha só recebe quem já trabalhou nela (7 dias ou mais em 90) ou é da equipe fixa dela, e fica em lacuna se não houver ninguém; amarela aceita no máximo 20% dos turnos da semana com quem não a conhece; verde segue o mérito. Plataforma: o SR não mistura plataformas no turno.')); ?> <strong><?php echo h(t('Por enquanto a cor e a plataforma ficam só registradas: o "Gerar" ainda não as usa.')); ?></strong></p><?php endif; ?>
+  <?php if ($comFlags): ?><p class="muted"><?php echo h(t('Cor (sensibilidade): vermelha só recebe quem já trabalhou nela (7 dias ou mais em 90) ou é da equipe fixa dela, e fica em lacuna se não houver ninguém; amarela dá preferência a quem a conhece; verde segue o mérito. Plataforma: o SR não mistura plataformas no turno.')); ?> <strong><?php echo h(t('O Gerar usa as duas: a plataforma desde a 1.19.15 e a cor desde a 1.19.17. A cota de 20% de gente nova na amarela ainda está desligada.')); ?></strong></p><?php endif; ?>
 </header>
 
 <?php if (!$instalada): ?>
@@ -178,7 +178,7 @@ $baseTxt = static function (array $r) use ($dias): string {
 
 <section class="panel">
   <div class="acoes nao-imprimir">
-    <span class="muted small"><?php echo h(t('Restrições dos OM (fixações e restrições feitas à mão), para mandar às equipes:')); ?></span>
+    <span class="muted small"><?php echo h(t('Restrições dos OM, para mandar às equipes:')); ?></span>
     <?php foreach ([1, 2, 3] as $uFix): ?><a class="botao" href="<?php echo h(link_tela('fixacoes', ['unidade' => $uFix, 'imprimir' => 1])); ?>" target="_blank" rel="noopener"><?php echo h(t('PDF das restrições U{u}', ['u' => $uFix])); ?></a><?php endforeach; ?>
   </div>
   <nav class="acoes" aria-label="<?php echo h(t('Filtro')); ?>">

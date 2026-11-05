@@ -20,7 +20,7 @@ return [
     '{rep} passaria de {max} h na semana ({horas} h)' => '{rep} would go over {max} h in the week ({horas} h)',
 
     // lib/motor_v4.php e lib/lideranca.php
-    'Falta o modelo "5x2 rotativo 21 dias". Rode o ES_04.' => 'The "5x2 rotativo 21 dias" schedule model is missing. Run ES_04.',
+    'Falta o modelo "5x2 rotativo 21 dias". Peça ao admin para cadastrá-lo.' => 'The "5x2 rotativo 21 dias" model is missing. Ask the admin to set it up.',
 
     // lib/saida.php
     'Gravação no Capacity não permitida: {acao}' => 'Write to Capacity not allowed: {acao}',

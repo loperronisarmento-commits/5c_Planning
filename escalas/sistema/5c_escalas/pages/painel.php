@@ -9,7 +9,7 @@ if (escPost()) {
     // Verificar mudanças só pelo botão (sem recálculo sozinho ao abrir a tela).
     escExigir('planejar');
     if (($_POST['acao'] ?? '') !== 'verificar') {
-        throw new RuntimeException(t('Ação desconhecida.'));
+        throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
     }
     $r = escMotorVerificar(escUserId(), true);
     escVoltar('painel', [], $r['recalculados']
@@ -117,11 +117,13 @@ $pend = escQ1('SELECT (SELECT COUNT(*) FROM ' . escT('esc_indisponibilidade') . 
     <span class="muted small"><?php echo h(t('{n} bloqueiam a geração (sem líder ou sem página)', ['n' => count($bloqueantes)])); ?></span>
   </a>
   <?php endif; ?>
+  <?php if ($legado || escPode('admin')): // Trocas de página do Planner: estrutura antiga (menu Legado) ?>
   <a class="kpi" href="<?php echo h(link_tela('trocas')); ?>">
     <span class="muted"><?php echo h(t('Trocas de página previstas')); ?></span>
     <strong><?php echo (int) ($trocas['n'] ?? 0); ?></strong>
     <span class="muted small"><?php echo !empty($trocas['proxima']) ? h(t('próxima: {dia} {hora}', ['dia' => dataBr($trocas['proxima'], true), 'hora' => substr($trocas['proxima'], 11, 5)])) : h(t('nenhuma ainda não aplicada no Planner')); ?></span>
   </a>
+  <?php endif; ?>
   <a class="kpi" href="<?php echo h(link_tela('saidas')); ?>">
     <span class="muted"><?php echo h(t('Saídas de página (7 dias)')); ?></span>
     <strong class="azul"><?php echo (int) ($saidas['n'] ?? 0); ?></strong>

@@ -40,7 +40,7 @@ $lista = escQ('SELECT * FROM ' . escT('esc_parametro') . " WHERE grupo <> 'motor
         <td class="small"><?php echo h($p['descricao']); ?></td>
         <td>
           <?php if (escPode('admin')): ?>
-          <form method="post" action="<?php echo h(link_tela('parametros')); ?>" class="acoes"><?php echo campoCsrf(); ?><input type="hidden" name="chave" value="<?php echo h($p['chave']); ?>"><input type="text" name="valor" value="<?php echo h($p['valor']); ?>" size="8"><button type="submit" class="botao"><?php echo h(t('Salvar')); ?></button></form>
+          <form method="post" action="<?php echo h(link_tela('parametros')); ?>" class="acoes"><?php echo campoCsrf(); ?><input type="hidden" name="chave" value="<?php echo h($p['chave']); ?>"><input type="text" name="valor" aria-label="<?php echo h(t('Valor de {chave}', ['chave' => $p['chave']])); ?>" value="<?php echo h($p['valor']); ?>" size="8"><button type="submit" class="botao"><?php echo h(t('Salvar')); ?></button></form>
           <?php else: ?><?php echo h($p['valor']); ?><?php endif; ?>
         </td>
       </tr>

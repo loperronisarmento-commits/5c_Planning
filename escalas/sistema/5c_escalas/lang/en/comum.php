@@ -2,6 +2,15 @@
 // Textos comuns em inglês: menu, títulos das telas, rótulos dos valores do banco,
 // avisos gerais (index.php, lib/i18n.php, lib/acesso.php). O português é a chave.
 return [
+    'Só o Planejamento recomeça o treino: ele apaga o que todos fizeram no Modo Treino.' => 'Only Planning can restart training: it erases what everyone did in Training Mode.',
+    'Este rascunho mudou enquanto você olhava (outro recálculo ou publicação). Abra a versão mais recente em Gerar escala.' => 'This draft changed while you were looking (another recalculation or publication). Open the latest version in Generate schedule.',
+    'Valor de {chave}' => 'Value of {chave}',
+    'Observação para as selecionadas' => 'Note for the selected ones',
+    'Quem quer fazer a hora extra (nome ou código)' => 'Who wants the overtime (name or code)',
+    'Desmarcar "Apaguei" e "Postei" desta página?' => 'Clear "Deleted" and "Posted" for this page?',
+    'Esconder esta sugestão por 7 dias?' => 'Hide this suggestion for 7 days?',
+    'Aplicar esta sugestão no rascunho?' => 'Apply this suggestion to the draft?',
+    'Recusar o interesse de {nome} na hora extra?' => 'Decline {nome}\'s interest in the overtime?',
     'versão {v}' => 'version {v}',
     // menu e títulos
     'Painel' => 'Dashboard',
@@ -10,7 +19,8 @@ return [
     'Escala da liderança' => 'Leadership schedule',
     'Horas extras' => 'Overtime',
     'Análise' => 'Analysis',
-    'Equilíbrio dos SRs' => 'SR balance',
+    'Mérito dos SRs' => 'SR merit',
+    'Equilíbrio dos SRs' => 'SR merit',
     'Sugestões de troca' => 'Swap suggestions',
     'Buffers' => 'Buffers',
     'Trocas de página' => 'Page swaps',
@@ -74,7 +84,7 @@ return [
     'Ir para o Painel' => 'Go to the Dashboard',
     'Bloqueado: seu perfil não pode fazer isso.' => 'Blocked: your profile cannot do this.',
     'Bloqueado: formulário expirado. Recarregue a página e tente de novo.' => 'Blocked: the form expired. Reload the page and try again.',
-    'Ação desconhecida.' => 'Unknown action.',
+    'Não deu para entender o pedido. Recarregue a tela e tente de novo.' => 'Could not understand the request. Reload the screen and try again.',
 
     // rótulos dos valores do banco (lib/i18n.php · ESC_ROTULOS)
     'Rascunho' => 'Draft',

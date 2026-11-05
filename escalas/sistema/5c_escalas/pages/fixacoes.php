@@ -215,6 +215,7 @@ $tituloArq = $soPag !== '' ? t('Configuração {pagina} {d}', ['pagina' => $soPa
     : ($soU ? t('Restrições dos OM U{u} {d}', ['u' => $soU, 'd' => date('d-m-Y')]) : t('Restrições dos OM {d}', ['d' => date('d-m-Y')]));
 $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de todos na página; quem é de outra unidade só entra em último caso, se sobrou sem posto no turno dele. Página exclusiva (solo): o SR dela não acumula nem cobre outra página. Página On demand não recebe ninguém no Gerar (alocação à mão, com a célula travada). Páginas da Privacy só com SR brasileiro. Uma plataforma por turno: quem faz Privacy, Fanvue ou PlayBoy não faz página de outra plataforma no mesmo turno (nem acumula nem cobre). No dia de treinamento (Overlap), quem é da equipe cobre primeiro a lacuna da própria página. Quem é desligado e página que sai perdem as restrições sozinhos.');
 ?>
+<header class="cabecalho nao-imprimir"><span class="eyebrow"><?php echo h(t('Páginas')); ?></span><h1><?php echo h(t('Restrições dos OM')); ?></h1></header>
 <?php escDocIni(); ?>
 <div class="pag-pdf fix-pdf">
   <div class="acoes nao-imprimir">
@@ -261,7 +262,7 @@ $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de tod
         uasort($repsU, static fn($a, $b) => [strpos('ACD', (string) $a['turno']), (int) $a['numero']] <=> [strpos('ACD', (string) $b['turno']), (int) $b['numero']]); ?>
   <section class="pag-pdf-folha">
     <h1><?php echo h(t('Restrições dos OM · Unidade {u}', ['u' => $u])); ?></h1>
-    <p class="pag-pdf-sub"><?php echo h(t('Feitas à mão pelo Planejamento, valendo em {d} (e as já marcadas para depois) · {p} páginas e {n} pessoas com regra', ['d' => date('d/m/Y H:i'), 'p' => count($pagsU), 'n' => count($repsU)])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
+    <p class="pag-pdf-sub"><?php echo h(t('Pedidas pelos OM e lançadas pelo Planejamento, valendo em {d} (e as já marcadas para depois) · {p} páginas e {n} pessoas com regra', ['d' => date('d/m/Y H:i'), 'p' => count($pagsU), 'n' => count($repsU)])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
     <h2 class="fix-h2"><?php echo h(t('Páginas')); ?></h2>
     <table class="pag-pdf-tabela fix-tabela">
       <thead><tr><th class="fix-col-pag"><?php echo h(t('Página')); ?></th><?php foreach ($TURNOS as $rot): ?><th><?php echo h(t('Equipe fixa · {t}', ['t' => $rot])); ?></th><?php endforeach; ?><th><?php echo h(t('Outras regras')); ?></th></tr></thead>
@@ -293,10 +294,10 @@ $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de tod
   </section>
 <?php endforeach; endif; ?>
 </div>
-<?php $docFix = escDocFim('restricoes', $soPag !== '' ? 'pagina:' . $soPag : ($soU ? 'U' . $soU : 'todas')); ?>
+<?php $docFix = escDocFim('restricoes', $soPag !== '' ? 'pagina:' . (($paginas[$chave($soPag)] ?? null)['pagina'] ?? 'inexistente') : ($soU >= 1 && $soU <= 3 ? 'U' . $soU : 'todas')); ?>
 <script>
 (function () {
-  var titulo = document.title, nome = <?php echo json_encode($tituloArq . escDocSufixo($docFix)); ?>;
+  var titulo = document.title, nome = <?php echo json_encode($tituloArq . escDocSufixo($docFix), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE); ?>;
   function imprimir() { document.title = nome; window.print(); }
   document.getElementById('fix-pdf-baixar').addEventListener('click', imprimir);
   window.addEventListener('afterprint', function () { document.title = titulo; });

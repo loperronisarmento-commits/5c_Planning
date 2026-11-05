@@ -89,7 +89,7 @@ if (escPost()) {
         escTx(function () use ($id, $pendentes, $aprovadas, $comentario, $datas) {
             foreach ($pendentes as $d) {
                 $ok = in_array((int) $d['id'], $aprovadas, true);
-                escW('UPDATE ' . escT('esc_indisponibilidade_data') . ' SET status = ?, decidido_em = NOW(), decidido_por = ?, comentario = ? WHERE id = ?', [$ok ? 'APROVADO' : 'RECUSADO', escUserId(), $comentario ?: null, (int) $d['id']]);
+                escW('UPDATE ' . escT('esc_indisponibilidade_data') . " SET status = ?, decidido_em = NOW(), decidido_por = ?, comentario = ? WHERE id = ? AND status = 'PENDENTE'", [$ok ? 'APROVADO' : 'RECUSADO', escUserId(), $comentario ?: null, (int) $d['id']]);
             }
             $final = escQW('SELECT SUM(status = \'APROVADO\') AS ap, SUM(status = \'RECUSADO\') AS re, SUM(status = \'CANCELADO\') AS ca, COUNT(*) AS n FROM ' . escT('esc_indisponibilidade_data') . ' WHERE indisponibilidade_id = ?', [$id])[0];
             $validas = (int) $final['n'] - (int) ($final['ca'] ?? 0);
@@ -109,7 +109,7 @@ if (escPost()) {
         });
         escVoltar('aprovar', [], t('Pedido cancelado.'));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $status = $_GET['status'] ?? 'PENDENTE';

@@ -29,10 +29,13 @@ if (escPost()) {
         escVoltar('tutorial', [], t('Você saiu do Modo Treino e voltou para o sistema real.'));
     }
     if ($acao === 'treino_recomecar') {
+        if (!escPodeReal('planejar')) {
+            throw new RuntimeException(t('Só o Planejamento recomeça o treino: ele apaga o que todos fizeram no Modo Treino.'));
+        }
         $copiadas = escTreinoResetar();
         escVoltar('painel', [], t('Treino recomeçado: cadastros copiados de novo ({n} tabelas) e 3 pedidos fictícios para praticar.', ['n' => count($copiadas)]));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $passos = escTourPassos();

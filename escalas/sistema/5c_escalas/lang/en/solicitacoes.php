@@ -112,7 +112,7 @@ return [
     'Escolha outra pessoa (não a própria).' => 'Choose another person (not the requester).',
     '{pessoa} está em {lugar}: escolha esse núcleo ou deixe o núcleo em branco.' => '{pessoa} is in {lugar}: choose that core or leave the core blank.',
     'Diga com quem ou onde a pessoa vai ficar: escolha o núcleo (unidade, turno e OS) ou a pessoa.' => 'Say with whom or where the person will be: choose the core (unit, shift and OS) or the person.',
-    'Para guardar a pessoa da dupla ou da assistência falta rodar o script ES_34. Por enquanto, escolha só o núcleo.' => 'To store the pair or assisted person, script ES_34 must be run. For now, choose only the core.',
+    'Guardar a pessoa da dupla ou da assistência ainda não está ativado. Por enquanto, escolha só o núcleo.' => 'Saving the pair or assistance person is not enabled yet. For now, choose only the core.',
     'já trabalha com {pessoa}' => 'already works with {pessoa}',
     'no núcleo pedido' => 'in the requested core',
     'Assistente e dupla: diga onde a pessoa fica fixa (núcleo: unidade, turno e OS) e, se já souber, com quem (o titular que vai assistir ou o par da dupla). Assistente fica em posto de assistente ou de apoio; dupla também vale página de dupla. A troca só acontece quando o Planejamento aprova e escolhe o par.' => 'Assistant and pair: say where the person will be fixed (core: unit, shift and OS) and, if known, with whom (the owner to assist or the pair partner). Assistants work on assistant or support posts; pairs also on pair pages. The swap only happens when Planning approves and picks the partner.',

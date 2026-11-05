@@ -177,7 +177,7 @@ if (escPost()) {
         });
         escVoltar('roster', [], $msg . escConfigCanceladasAviso() . ' ' . t('Recalcule as semanas a partir dessa data em Gerar escala.'));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $dia = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_GET['dia'] ?? '')) ? $_GET['dia'] : max(date('Y-m-d'), escV4DiaEstrutura());

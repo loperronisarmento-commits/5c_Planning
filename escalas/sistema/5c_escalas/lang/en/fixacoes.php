@@ -21,6 +21,10 @@ return [
     'preferência em páginas masculinas ({lista})' => 'preference for male pages ({lista})',
     'só assistente ou página de {de} a {ate} mil em 30 dias' => 'assistant only, or pages with {de}k to {ate}k in 30 days',
     'não faz assistente (faz solo)' => 'does not work as assistant (solo)',
+    'equipe da {pagina} encerrada (a página saiu)' => 'team of {pagina} closed (the page left)',
+    '{quem} sai da equipe da {pagina} (desligado)' => '{quem} leaves the team of {pagina} (dismissed)',
+    '{rot} de {quem} na {pagina} encerrada' => '{rot} of {quem} on {pagina} closed',
+    '{chave}: tirado quem foi desligado ou a página que saiu' => '{chave}: dismissed reps and pages that left removed',
     'main' => 'main',
     'cover' => 'cover',
     '{papel} da {pagina}' => '{papel} of {pagina}',
@@ -62,7 +66,7 @@ return [
     'De outra unidade (último caso)' => 'From another unit (last resort)',
     'Outras regras' => 'Other rules',
     'Restrições dos OM · Unidade {u}' => 'OM restrictions · Unit {u}',
-    'Feitas à mão pelo Planejamento, valendo em {d} (e as já marcadas para depois) · {p} páginas e {n} pessoas com regra' => 'Set by hand by Planning, in force on {d} (and those already scheduled) · {p} pages and {n} people with a rule',
+    'Pedidas pelos OM e lançadas pelo Planejamento, valendo em {d} (e as já marcadas para depois) · {p} páginas e {n} pessoas com regra' => 'Requested by the OMs and entered by Planning, in force on {d} (and those already scheduled) · {p} pages and {n} people with a rule',
     'Páginas' => 'Pages',
     'Página' => 'Page',
     'Equipe fixa · {t}' => 'Fixed team · {t}',
@@ -74,6 +78,6 @@ return [
     'Ninguém com regra.' => 'No one with a rule.',
     // tela Páginas
     'PDF da configuração de {pagina}' => 'Setup PDF for {pagina}',
-    'Restrições dos OM (fixações e restrições feitas à mão), para mandar às equipes:' => 'OM restrictions (fixed assignments and restrictions set by hand), to send to the teams:',
+    'Restrições dos OM, para mandar às equipes:' => 'OM restrictions, to send to the teams:',
     'PDF das restrições U{u}' => 'Restrictions PDF U{u}',
 ];

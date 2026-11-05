@@ -91,6 +91,7 @@ $totalU = static function (array $fat): array {
 $unidHoje = $totalU($eq['fat']);
 $unidDepois = $totalU($fatDepois);
 $podeDecidir = escPode('decidir');
+$verMerito = escPodeReal('planejar'); // mérito em número só para Planejamento, WFM e Admin
 $treino = escModoTreino();
 $nomes = escNomes();
 // Nomes do OC de cada unidade e turno e do OS de cada núcleo (escala da liderança do dia).
@@ -268,7 +269,7 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
     <?php if ($mudaS): ?>
     <h3 class="small"><?php echo h(t('SRs que mudam de núcleo')); ?></h3>
     <ul class="regras small">
-      <?php foreach ($mudaS as $rep => $s): ?><li><strong><?php echo h(nomeCurto($nomes[$rep] ?? $rep)); ?></strong> <span class="mono muted"><?php echo h($rep); ?></span> · SR <?php echo (int) $s['nivel']; ?><?php echo $s['nota'] !== null ? ' · ' . h(t('mérito {n}', ['n' => num($s['nota'], 2)])) : ''; ?> · OS<?php echo (int) $s['num']; ?> → <strong>OS<?php echo (int) $s['novo']; ?></strong></li><?php endforeach; ?>
+      <?php foreach ($mudaS as $rep => $s): ?><li><strong><?php echo h(nomeCurto($nomes[$rep] ?? $rep)); ?></strong> <span class="mono muted"><?php echo h($rep); ?></span> · SR <?php echo (int) $s['nivel']; ?><?php echo $verMerito && $s['nota'] !== null ? ' · ' . h(t('mérito {n}', ['n' => num($s['nota'], 2)])) : ''; ?> · OS<?php echo (int) $s['num']; ?> → <strong>OS<?php echo (int) $s['novo']; ?></strong></li><?php endforeach; ?>
     </ul>
     <?php endif; ?>
     <?php if (!$tem3): ?><p class="aviso small"><?php echo h(t('A U{u} não tem os 3 núcleos no turno {turno}.', ['u' => $u, 'turno' => $t])); ?></p><?php endif; ?>

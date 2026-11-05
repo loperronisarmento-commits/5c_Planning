@@ -65,7 +65,7 @@ if (escPost()) {
         escLog('treinamento.ajustar', 'treinamento', $id, null, $datas + ['turno' => $turno, 'paginas' => $n]);
         escVoltar('treinamento', [], t('Turma ajustada.'));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $podePlanejar = escPode('planejar');

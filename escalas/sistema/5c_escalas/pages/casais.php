@@ -68,7 +68,7 @@ if (escPost()) {
         escVoltar('casais', [], t('{ajuste}, a partir de {dia}. Recalcule as semanas a partir dessa data (Gerar escala › Recalcular com o mínimo de mudanças).', [
             'ajuste' => escCasalTextoOpcao($op, $nomes), 'dia' => date('d/m/Y', strtotime($desde))]));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 $sit = escCasaisSituacao($base);

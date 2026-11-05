@@ -441,7 +441,7 @@ foreach ($saidas as $s) {
     <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="lote">
     <span class="small"><strong id="lote-n">0</strong> <?php echo h(t('selecionada(s)')); ?></span>
     <button type="button" class="botao" id="lote-pendentes"><?php echo h(t('Selecionar as "a conferir"')); ?></button>
-    <input type="text" name="observacao" placeholder="<?php echo h(t('observação (vale para todas)')); ?>" size="24" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
+    <input type="text" name="observacao" aria-label="<?php echo h(t('Observação para as selecionadas')); ?>" placeholder="<?php echo h(t('observação (vale para todas)')); ?>" size="24" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
     <button type="submit" name="decisao" value="CONFIRMADA" class="botao" data-lote disabled><?php echo h(t('Confirmar')); ?></button>
     <button type="submit" name="decisao" value="NAO_SAIU" class="botao" data-lote disabled><?php echo h(t('Não saiu')); ?></button>
     <?php if (escPode('planejar')): ?><span class="separador" aria-hidden="true">·</span><button type="submit" name="decisao" value="APLICAR" class="botao perigo" data-lote data-longo="<?php echo h(t('Aplicando as saídas… recalcula o Capacity e a escala uma vez, pode levar alguns minutos.')); ?>" disabled><?php echo h(t('Confirmar e aplicar…')); ?></button><?php endif; ?>
@@ -471,7 +471,7 @@ foreach ($saidas as $s) {
           <?php if (escPode('decidir')): ?>
           <form method="post" action="<?php echo h(link_tela('saidas', ['dias' => $dias])); ?>" class="acoes">
             <?php echo campoCsrf(); ?><input type="hidden" name="evento_id" value="<?php echo (int) $s['id']; ?>">
-            <input type="text" name="observacao" placeholder="<?php echo h(t('observação')); ?>" size="12" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
+            <input type="text" name="observacao" aria-label="<?php echo h(t('Observação')); ?>" placeholder="<?php echo h(t('observação')); ?>" size="12" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }">
             <?php if ($dec !== 'CONFIRMADA'): ?><button type="submit" name="decisao" value="CONFIRMADA" class="botao"><?php echo h(t('Confirmar')); ?></button><?php endif; ?>
             <?php if ($dec !== 'NAO_SAIU' && !$jaAplicada): ?><button type="submit" name="decisao" value="NAO_SAIU" class="botao"><?php echo h(t('Não saiu')); ?></button><?php endif; ?>
             <?php if ($dec !== 'PENDENTE' && !$jaAplicada): ?><button type="submit" name="decisao" value="PENDENTE" class="botao" title="<?php echo h(t('Só a checagem volta; a escala não muda.')); ?>"><?php echo h(t('Voltar para "a conferir"')); ?></button><?php endif; ?>

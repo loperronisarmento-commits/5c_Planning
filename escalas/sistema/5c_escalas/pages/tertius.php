@@ -1,7 +1,7 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/tertius.php
-// Equilíbrio dos SRs: turnos de cada SR no rascunho (em posto,
+// Mérito dos SRs (antes "Equilíbrio dos SRs"): turnos de cada SR no rascunho (em posto,
 // assistente, buffer de plantão, Overlap) × a fatia do nível, e o mérito em
 // pontos (M-01 a M-09, lib/merito.php): a soma dos componentes e a faixa.
 // No Gerar (1.19.0) a faixa e a nota escolhem o SR do passo 0 (depois de quem
@@ -13,7 +13,7 @@ if (escPost()) {
         throw new RuntimeException(t('Bloqueado: seu perfil não pode fazer isso.'));
     }
     escMeritoCarregar(true);
-    escVoltar('tertius', array_filter(['plano' => $_GET['plano'] ?? null, 'u' => $_GET['u'] ?? null, 't' => $_GET['t'] ?? null]), t('Mérito recalculado.'));
+    escVoltar('srs', array_filter(['plano' => $_GET['plano'] ?? null, 'u' => $_GET['u'] ?? null, 't' => $_GET['t'] ?? null]), t('Mérito recalculado.'));
 }
 
 $planoId = (int) ($_GET['plano'] ?? 0);
@@ -23,7 +23,7 @@ if (!$planoId) {
 }
 $plano = $planoId ? escQ1('SELECT * FROM ' . escT('esc_plano') . ' WHERE id = ?', [$planoId]) : null;
 if (!$plano) {
-    echo '<header class="cabecalho"><span class="eyebrow">' . h(t('Análise')) . '</span><h1>' . h(t('Equilíbrio dos SRs')) . '</h1></header><section class="panel"><p class="muted">' . h(t('Gere um rascunho para ver o equilíbrio.')) . '</p></section>';
+    echo '<header class="cabecalho"><span class="eyebrow">' . h(t('Análise')) . '</span><h1>' . h(t('Mérito dos SRs')) . '</h1></header><section class="panel"><p class="muted">' . h(t('Gere um rascunho para ver o equilíbrio.')) . '</p></section>';
     return;
 }
 $seg = substr($plano['semana_inicio'], 0, 10);
@@ -31,7 +31,7 @@ $fim = substr($plano['semana_fim'], 0, 10);
 $nomes = escNomes();
 
 if (($plano['estrutura'] ?? '') !== 'V4') {
-    echo '<header class="cabecalho"><span class="eyebrow">' . h(t('Análise')) . '</span><h1>' . h(t('Equilíbrio dos SRs')) . '</h1></header><section class="panel"><p class="muted">' . h(t('Esta escala é da estrutura antiga (antes de {dia}). O equilíbrio dos SRs vale para as escalas da estrutura nova.', ['dia' => escData('2026-11-01')])) . '</p></section>';
+    echo '<header class="cabecalho"><span class="eyebrow">' . h(t('Análise')) . '</span><h1>' . h(t('Mérito dos SRs')) . '</h1></header><section class="panel"><p class="muted">' . h(t('Esta escala é da estrutura antiga (antes de {dia}). O mérito dos SRs vale para as escalas da estrutura nova.', ['dia' => escData('2026-11-01')])) . '</p></section>';
     return;
 }
 
@@ -82,7 +82,7 @@ $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : 
 ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Análise')); ?></span>
-  <h1><?php echo h(t('Equilíbrio dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
+  <h1><?php echo h(t('Mérito dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
   <p class="muted"><?php echo h(t('Turnos de cada SR na escala e o mérito em pontos. No Gerar, quem bateu a meta na página vem primeiro; depois a faixa do mérito, a nota e o tempo de casa. Quem estava no posto fica, a não ser que apareça um SR de faixa acima ou que ele esteja abaixo da meta mínima na página.')); ?></p>
 </header>
 
@@ -122,7 +122,7 @@ $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : 
     <select name="t" onchange="this.form.submit()" aria-label="<?php echo h(t('Turno')); ?>" data-sem-busca><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $t === $tSel ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
   </form>
   <?php if (escPodeReal('planejar')): ?>
-  <form method="post" action="<?php echo h(link_tela('tertius', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]))); ?>" class="acoes">
+  <form method="post" action="<?php echo h(link_tela('srs', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]))); ?>" class="acoes">
     <?php echo campoCsrf(); ?><button type="submit" class="botao" data-longo="<?php echo h(t('Recalculando o mérito… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular mérito agora')); ?></button>
     <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) escV4Param('merito_cache_horas', '20')])) : h(t('Ainda não calculado (rode o ES_16).')); ?></span>
   </form>

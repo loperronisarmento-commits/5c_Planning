@@ -25,7 +25,9 @@ if (escPost()) {
         if ($motivo === '') {
             throw new RuntimeException(t('Diga o motivo para descartar.'));
         }
-        escW('UPDATE ' . escT('esc_sugestao') . " SET status = 'DESCARTADA', motivo_descarte = ?, decidido_em = NOW(), decidido_por = ? WHERE id = ?", [mb_substr($motivo, 0, 500), escUserId(), $id]);
+        if (escW('UPDATE ' . escT('esc_sugestao') . " SET status = 'DESCARTADA', motivo_descarte = ?, decidido_em = NOW(), decidido_por = ? WHERE id = ? AND status = 'ABERTA'", [mb_substr($motivo, 0, 500), escUserId(), $id]) !== 1) {
+            throw new RuntimeException(t('Sugestão não encontrada ou já decidida.'));
+        }
         escLog('sugestao.descartar', 'esc_sugestao', $id, ['status' => 'ABERTA'], ['status' => 'DESCARTADA', 'motivo' => $motivo]);
         escVoltar('sugestoes', ['plano' => $s['plano_id']], t('Sugestão descartada.'));
     }
@@ -42,12 +44,14 @@ if (escPost()) {
             } elseif ($s['tipo'] === 'WORKLOAD' && !empty($d['celulas'])) {
                 throw new RuntimeException(t('Esta versão não é rascunho. Crie um rascunho a partir dela e aplique lá.'));
             }
-            escW('UPDATE ' . escT('esc_sugestao') . " SET status = 'APLICADA', decidido_em = NOW(), decidido_por = ? WHERE id = ?", [escUserId(), $id]);
+            if (escW('UPDATE ' . escT('esc_sugestao') . " SET status = 'APLICADA', decidido_em = NOW(), decidido_por = ? WHERE id = ? AND status = 'ABERTA'", [escUserId(), $id]) !== 1) {
+                throw new RuntimeException(t('Sugestão não encontrada ou já decidida.'));
+            }
             escLog('sugestao.aplicar', 'esc_sugestao', $id, ['status' => 'ABERTA'], ['status' => 'APLICADA', 'dados' => $d]);
         });
         escVoltar('sugestoes', ['plano' => $s['plano_id']], t('Sugestão aplicada.'));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 if (!$plano) {
@@ -102,7 +106,7 @@ $rotTipo = ['WORKLOAD' => t('workload'), 'COBERTURA' => t('cobertura')];
     <?php if ($s['status'] === 'ABERTA' && escPode('decidir')): ?>
     <div class="acoes">
       <?php if ($s['tipo'] === 'WORKLOAD'): ?>
-      <form method="post" action="<?php echo h(link_tela('sugestoes', $params)); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="aplicar"><input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>"><button type="submit" class="botao primario"><?php echo h(t('Aplicar')); ?></button></form>
+      <form method="post" action="<?php echo h(link_tela('sugestoes', $params)); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="aplicar"><input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>"><button type="submit" class="botao primario" data-confirmar="<?php echo h(t('Aplicar esta sugestão no rascunho?') . ' ' . $s['efeito']); ?>"><?php echo h(t('Aplicar')); ?></button></form>
       <?php else: ?>
       <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'turno' => $d['turno'] ?? 'C'])); ?>"><?php echo h(t('Cobrir na grade')); ?></a>
       <?php endif; ?>

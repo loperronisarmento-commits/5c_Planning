@@ -96,7 +96,7 @@ function escLiderancaSemana(string $seg): array {
     $dias = escDiasDaSemana($seg);
     $modelo = escQ1('SELECT ciclo FROM ' . escT('esc_modelo_escala') . " WHERE nome = '5x2 rotativo 21 dias'");
     if (!$modelo) {
-        throw new RuntimeException(t('Falta o modelo "5x2 rotativo 21 dias". Rode o ES_04.'));
+        throw new RuntimeException(t('Falta o modelo "5x2 rotativo 21 dias". Peça ao admin para cadastrá-lo.'));
     }
     $ciclo = $modelo['ciclo'];
     $ancora = escV4Param('v4_rotacao_ancora', '2026-11-02');

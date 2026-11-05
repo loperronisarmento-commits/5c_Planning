@@ -18,7 +18,7 @@ $seg = segundaDaSemana($seg);
 if (escPost()) {
     escExigir('planejar');
     $acao = $_POST['acao'] ?? '';
-    $segPost = segundaDaSemana((string) ($_POST['semana'] ?? $seg));
+    $segPost = segundaDaSemana(escDataValida($_POST['semana'] ?? null) ?? $seg);
     // "A partir de" (início de um turno da semana): antes dele fica a versão publicada como está.
     $desde = escSlotDaSemana($segPost, (string) ($_POST['desde'] ?? ''));
     // Antes do corte igual ao site (5c_schedule.scheduleday) em vez da versão publicada (escMotorPreCorteDoSite).
@@ -124,7 +124,7 @@ if (escPost()) {
         escVoltar('gerar', ['semana' => $segPost], ($apagar ? tn(count($apagar), '{n} versão excluída: {lista}.', '{n} versões excluídas: {lista}.', ['lista' => implode(', ', array_map('escPlanoRotulo', $apagar))]) : t('Nenhuma versão excluída.'))
             . ($pulados ? ' ' . t('Ficaram: {lista}.', ['lista' => implode(', ', $pulados)]) : ''));
     }
-    throw new RuntimeException(t('Ação desconhecida.'));
+    throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
 // Semana na estrutura de 01/11: o motor v4 não usa times nem parties.
@@ -261,8 +261,8 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php if ($v4): ?>
   <ol class="roteiro muted small">
     <li><strong><?php echo h(t('Estrutura nova')); ?></strong> <?php echo h(t('(a partir de {dia} às {hora}): unidade → turno → 3 núcleos; todo dia 2 núcleos trabalham. Os times e parties atuais não entram.', ['dia' => dataBr(escV4DiaVirada()), 'hora' => substr(escV4Param('v4_virada', '2026-11-01 05:00'), 11, 5)])); ?></li>
-    <li><strong><?php echo h(t('Ordem de preenchimento de cada vaga:')); ?></strong> <?php echo t('melhor SR nas páginas SS/A/B → equipe fixa da vaga → outra pessoa do núcleo → buffer do outro núcleo do turno → Overlap → remanejamento → acúmulo (até 15% acima da capacidade, com ⚠) → lacuna. Quem fica sem vaga é buffer de plantão (página 5C Schedule, {codigo} no CSV).', ['codigo' => '<code>-2</code>']); ?></li>
-    <li><strong><?php echo h(t('Menos troca de gente:')); ?></strong> <?php echo h(t('para escolher quem cobre, vem primeiro quem estava no posto (inclusive na semana anterior), depois quem é da equipe de alguma página do posto, depois quem mais trabalhou nas páginas dele nas últimas 8 semanas. No empate, a nota de mérito do 5C George decide (tela Equilíbrio dos SRs).')); ?></li>
+    <li><strong><?php echo h(t('Ordem de preenchimento de cada vaga:')); ?></strong> <?php echo t('divisão do SR e várias páginas → equipe fixa da página (main, depois cover) → quem conhece a página vermelha → melhor SR de cima para baixo (P-01) → equipe fixa da vaga → outra pessoa do núcleo → buffer do outro núcleo do turno → Overlap → remanejamento → acúmulo → sobrecarga (até {over}% acima da capacidade, com ⚠) → lacuna. Valem sempre as travas: restrições dos OM, uma plataforma por turno, Privacy só com SR brasileiro, página vermelha só com quem a conhece. Quem fica sem vaga é buffer de plantão (página 5C Schedule, {codigo} no CSV).', ['codigo' => '<code>-2</code>', 'over' => round((float) str_replace(',', '.', escV4Param('v4_over_capacity_max', '0.30')) * 100)]); ?></li>
+    <li><strong><?php echo h(t('Menos troca de gente:')); ?></strong> <?php echo h(t('para escolher quem cobre, vem primeiro quem estava no posto (inclusive na semana anterior), depois quem é da equipe de alguma página do posto, depois quem mais trabalhou nas páginas dele nas últimas 8 semanas. No empate, a nota de mérito do 5C George decide (tela Mérito dos SRs).')); ?></li>
     <li><strong><?php echo h(t('Recálculo:')); ?></strong> <?php echo h(t('qualquer mudança nas entradas gera uma nova subversão (v1.1). Ajuste feito na grade fica travado.')); ?></li>
   </ol>
   <?php else: ?>

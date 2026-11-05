@@ -40,18 +40,32 @@ function escDocAssinatura(string $conteudo): string {
 // ['versao' => n, 'rotulo' => 'vN', 'desde' => 'Y-m-d H:i:s']; sem a tabela (ES_115), rótulo vazio.
 function escDocVersao(string $tipo, string $escopo, string $conteudo): array {
     static $cache = [];
+    $escopo = mb_substr($escopo, 0, 160);
     $ass = escDocAssinatura($conteudo);
     $k = $tipo . '|' . $escopo . '|' . $ass;
     if (isset($cache[$k])) {
         return $cache[$k];
     }
     try {
-        $ja = escQ1('SELECT versao, criado_em FROM ' . escT('esc_documento_versao') . ' WHERE tipo = ? AND escopo = ? AND assinatura = ? ORDER BY versao LIMIT 1', [$tipo, $escopo, $ass]);
-        if (!$ja) {
+        $busca = static fn() => escQ1('SELECT versao, criado_em FROM ' . escT('esc_documento_versao') . ' WHERE tipo = ? AND escopo = ? AND assinatura = ? ORDER BY versao LIMIT 1', [$tipo, $escopo, $ass]);
+        $ja = $busca();
+        // Duas pessoas abrindo o mesmo documento novo ao mesmo tempo: quem perder a corrida (chave
+        // duplicada) lê de novo e usa o número que o outro gravou.
+        for ($tent = 0; !$ja && $tent < 3; $tent++) {
             $max = (int) (escQ1('SELECT MAX(versao) AS m FROM ' . escT('esc_documento_versao') . ' WHERE tipo = ? AND escopo = ?', [$tipo, $escopo])['m'] ?? 0);
-            escW('INSERT INTO ' . escT('esc_documento_versao') . ' (tipo, escopo, versao, assinatura, criado_por) VALUES (?, ?, ?, ?, ?)',
-                [$tipo, $escopo, $max + 1, $ass, function_exists('escUserId') ? escUserId() : null]);
-            $ja = ['versao' => $max + 1, 'criado_em' => date('Y-m-d H:i:s')];
+            try {
+                escW('INSERT INTO ' . escT('esc_documento_versao') . ' (tipo, escopo, versao, assinatura, criado_por) VALUES (?, ?, ?, ?, ?)',
+                    [$tipo, $escopo, $max + 1, $ass, function_exists('escUserId') ? escUserId() : null]);
+                $ja = ['versao' => $max + 1, 'criado_em' => date('Y-m-d H:i:s')];
+            } catch (Throwable $e) {
+                if (strpos($e->getMessage(), '1062') === false && stripos($e->getMessage(), 'Duplicate') === false) {
+                    throw $e;
+                }
+                $ja = $busca();
+            }
+        }
+        if (!$ja) {
+            throw new RuntimeException('versão do documento não gravada');
         }
         return $cache[$k] = ['versao' => (int) $ja['versao'], 'rotulo' => 'v' . (int) $ja['versao'], 'desde' => (string) $ja['criado_em']];
     } catch (Throwable $e) {
@@ -74,7 +88,7 @@ function escDocFim(string $tipo, string $escopo = ''): array {
 
 // Script que põe o nome do arquivo (com a versão) no título só durante a impressão (Salvar como PDF).
 function escDocTituloJs(string $nome): string {
-    return '<script>(function () { var t0 = document.title, n = ' . json_encode($nome, JSON_UNESCAPED_UNICODE) . ';'
+    return '<script>(function () { var t0 = document.title, n = ' . json_encode($nome, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE) . ';'
         . " window.addEventListener('beforeprint', function () { if (document.title === t0) { document.title = n; } });"
         . " window.addEventListener('afterprint', function () { document.title = t0; }); })();</script>";
 }
