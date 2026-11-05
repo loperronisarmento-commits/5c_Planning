@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.18' => ['titulo' => 'Engine split into files by topic (no change in behavior)', 'itens' => [
+    'Code organization, with no change in behavior: the engine was split into files by topic. Out of lib/motor_v4.php and lib/motor.php came parametros.php, calendario.php, paginas_info.php, motor_v4_carga.php, motor_v3_legado.php, entradas.php, csv.php and grade_conflitos.php. All 70 functions and constants stayed identical, character by character, and the simulated schedule for the week of 11/02, the "before the cut, as on the site" copy and 16 screens came out the same before and after. motor_v4.php and motor.php load the parts themselves, so the server scripts keep working. The headers describe today\'s steps.',
+    ]],
     '1.19.17' => ['titulo' => 'Page flag in Generate and general refinement (security, menu, texts)', 'itens' => [
     'Page flag (P-02) in Generate (ES_121): a red page only gets people who know it (7 days or more in the last 90) or are on its fixed team; with no one like that, it stays as a gap. Before the best SR top-down, whoever knows red pages (then yellow ones) is reserved for them. The 20% cap of new people on yellow pages is ready but off (v4_cor_amarela_ativa), as decided on 11/04: in the simulation, the week\'s gaps would go from 538 to 964.',
     'Security: individual merit on the Unit balance screen only shows for Planning, WFM and Admin; opening Team setup no longer writes anything for users who do not register; only Planning restarts Training Mode; publishing, suggestions and unavailability check the status in the write itself (double clicks or a new version in between do not get through); cell adjustment rejects pages outside the plan; dates in Generate and Overtime are validated; an odd URL parameter no longer breaks the screen.',
