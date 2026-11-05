@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.16' => ['titulo' => 'Restrictions of whoever leaves switched off automatically, and restriction review', 'itens' => [
+    'New rule: when a page leaves or a rep is dismissed, their restrictions are switched off automatically (escOmEncerrarOrfas, lib/restricoes_om.php). The person leaves the fixed team row (the rest of the team stays), and the assistant-only/barred and split rows close; restriction parameters (single page, only these pages, several pages, tier, revenue band, preferences, not subordinate, every day) drop whoever is past their last day and pages that already left. Runs at the end of a page exit and before every Generate, logged. Leadership (OS, OM, OC, OA) does not count as dismissed.',
+    'Cross review of restrictions (ES_120): no case of fixed team and barred at the same time. The most recent decision (U3 OM sheet) won over old 11/09 moves: Krizel Dejaro stays in U3 D, João Vitor Sousa in U3 A and Aline Sodré in shift A. Liv left: her team and Jose Feliciano\'s bar were closed. Lucas Moraes left "every day" and goes back to the 5x2.',
+    'U3 (ES_116 to ES_119 and Capacity 32 and 33): Liam in the Mario Adrion and Blake post (U3C2) from 11/04, with the same main/cover team; Blake among male pages; Luan, Donerio and Guilherme Ribeiro non-negotiable in U3 (Luan returns to U3 D); Léo Castro returns to U3 A; Juliana Simões (J557703, social name) main of Goddess D and cover of Ivy D; Penellopy stays in U3 C.',
+    ]],
     '1.19.15' => ['titulo' => 'One platform per shift, OM restrictions and document versions', 'itens' => [
     'One platform per shift (v4_uma_plataforma_turno, ES_111): whoever works Privacy, Fanvue or PlayBoy does not stack or cover a page of another platform in the same shift. Applies to Generate (steps 6 and 7) and to Recalculate with minimum changes, which no longer keeps the mix from the published version (the Privacy, Fanvue or PlayBoy page stays).',
     '50/50 split fix (esc_sr_divisao): the page fixed team no longer takes the slot the split already gave the SR. Before, on the other page day, the SR was left with nothing (Vanderson, Luan, Bruno).',

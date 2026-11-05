@@ -721,6 +721,15 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         // Capacity recalculado e postos atualizados antes de gerar (lib/estrutura.php), para a
         // escala não sair com a estrutura defasada; depois nenhum posto sem equipe (lib/equipes.php).
         $GLOBALS['ESC_ESTRUTURA_AUTO'] = $GLOBALS['ESC_ESTRUTURA_AUTO'] ?? escEstruturaAtualizar();
+        // Regra de 04/11: restrições de quem foi desligado e de página que saiu ficam desativadas.
+        if (!isset($GLOBALS['ESC_OM_ORFAS']) && !escDbW()->inTransaction()) {
+            try {
+                $GLOBALS['ESC_OM_ORFAS'] = escOmEncerrarOrfas(date('Y-m-d'));
+            } catch (Throwable $e) {
+                appLog('error', 'Restrições: falha ao desativar as de desligados e páginas que saíram', ['erro' => $e->getMessage()]);
+                $GLOBALS['ESC_OM_ORFAS'] = [];
+            }
+        }
         $GLOBALS['ESC_EQUIPES_AUTO'] = escEquipesCompletar($inicio, $dias[count($dias) - 1]);
         $est = escV4Carregar(end($dias));
         // New Hires (lib/treinamento.php): fora da escala normal até o dia em que ficam

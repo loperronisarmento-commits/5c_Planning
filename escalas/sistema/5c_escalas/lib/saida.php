@@ -221,6 +221,11 @@ function escAplicarSaidasTravado(array $itens, string $desde, string $motivo, ar
             escSaidaAplicarEntrada($planoEntrada, $saidaId, $res);
         }
 
+        // 5b. Regra de 04/11: as restrições da página que saiu (equipe fixa, só assistente/proibido,
+        //     divisão, listas de páginas nos parâmetros) ficam desativadas antes de refazer a escala.
+        $res['restricoes_encerradas'] = escOmEncerrarOrfas(date('Y-m-d'));
+        $GLOBALS['ESC_OM_ORFAS'] = $res['restricoes_encerradas'];
+
         // 6. Escala de novo com o mínimo de mudanças sobre a publicada (mantém os ajustes travados).
         foreach (escQ("SELECT DISTINCT semana_inicio AS s FROM " . escT('esc_plano') . " WHERE estrutura = 'V4' AND status IN ('RASCUNHO','PUBLICADO') AND semana_fim >= ? ORDER BY semana_inicio", [$desde]) as $r) {
             $seg = substr((string) $r['s'], 0, 10);

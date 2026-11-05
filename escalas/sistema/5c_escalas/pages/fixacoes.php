@@ -213,7 +213,7 @@ $outrasRegras = static function (array $pg) use ($porPag, $chave, $nomes): array
 };
 $tituloArq = $soPag !== '' ? t('Configuração {pagina} {d}', ['pagina' => $soPag, 'd' => date('d-m-Y')])
     : ($soU ? t('Restrições dos OM U{u} {d}', ['u' => $soU, 'd' => date('d-m-Y')]) : t('Restrições dos OM {d}', ['d' => date('d-m-Y')]));
-$regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de todos na página; quem é de outra unidade só entra em último caso, se sobrou sem posto no turno dele. Página exclusiva (solo): o SR dela não acumula nem cobre outra página. Página On demand não recebe ninguém no Gerar (alocação à mão, com a célula travada). Páginas da Privacy só com SR brasileiro. Uma plataforma por turno: quem faz Privacy, Fanvue ou PlayBoy não faz página de outra plataforma no mesmo turno (nem acumula nem cobre). No dia de treinamento (Overlap), quem é da equipe cobre primeiro a lacuna da própria página.');
+$regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de todos na página; quem é de outra unidade só entra em último caso, se sobrou sem posto no turno dele. Página exclusiva (solo): o SR dela não acumula nem cobre outra página. Página On demand não recebe ninguém no Gerar (alocação à mão, com a célula travada). Páginas da Privacy só com SR brasileiro. Uma plataforma por turno: quem faz Privacy, Fanvue ou PlayBoy não faz página de outra plataforma no mesmo turno (nem acumula nem cobre). No dia de treinamento (Overlap), quem é da equipe cobre primeiro a lacuna da própria página. Quem é desligado e página que sai perdem as restrições sozinhos.');
 ?>
 <?php escDocIni(); ?>
 <div class="pag-pdf fix-pdf">
