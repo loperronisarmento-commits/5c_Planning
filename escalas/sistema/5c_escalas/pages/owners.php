@@ -113,9 +113,11 @@ $previa = isset($_GET['previa']) ? ($av['paginas'][(string) $_GET['previa']] ?? 
 $desdePadrao = max($primeiroDia, segundaDaSemana(escMaisDias($hoje, 7)));
 $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCurto($nomes[$rep] ?? $rep)) . '</span>';
 ?>
+<?php escDocIni(); ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Páginas')); ?></span>
   <h1><?php echo h(t('Owners e backups')); ?></h1>
+  <p class="muted small"><?php echo ESC_DOC_TOKEN; ?></p>
   <p class="muted"><?php echo h(t('Quem é owner (vaga de dono) e backup (vaga de cobertura) de cada página em cada turno, o atingimento da meta 5CReps e a situação na política de páginas por mérito. Abaixo de {corte}% o prazo corre ({min} a {max} dias, conforme o atingimento); entre {corte}% e a meta, acompanhamento de {acomp} dias.', [
       'corte' => num($p['pol_corte_acomp'] * 100, 0), 'min' => (int) $p['pol_prazo_min'], 'max' => (int) $p['pol_prazo_max'], 'acomp' => (int) $p['pol_prazo_acomp']])); ?> <a href="<?php echo h(link_tela('regras')); ?>#politica"><?php echo h(t('Ver as regras')); ?></a></p>
 </header>
@@ -225,6 +227,7 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
   </table></div>
   <?php if ($av['destaque']): ?><p class="small"><?php echo h(t('Núcleos em destaque (candidatos a página maior): {lista}.', ['lista' => implode(', ', array_map(static fn($id, $n) => 'U' . ($nucleos[$id]['unidade'] ?? '?') . ' ' . ($nucleos[$id]['turno'] ?? '') . ' ' . $nucTexto($id) . ' (' . $n . ')', array_keys($av['destaque']), $av['destaque']))])); ?></p><?php endif; ?>
 </section>
+<?php $docOwn = escDocFim('owners', http_build_query(array_diff_key($_GET, ['p' => 1, 'lang' => 1]))); echo escDocTituloJs(t('Owners e backups') . ' ' . date('d-m-Y') . escDocSufixo($docOwn)); ?>
 <script>
 (function () {
   var b = document.getElementById('owners-busca');

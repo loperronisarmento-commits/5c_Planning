@@ -2,6 +2,7 @@
 // Textos comuns em inglês: menu, títulos das telas, rótulos dos valores do banco,
 // avisos gerais (index.php, lib/i18n.php, lib/acesso.php). O português é a chave.
 return [
+    'versão {v}' => 'version {v}',
     // menu e títulos
     'Painel' => 'Dashboard',
     'Gerar escala' => 'Generate schedule',

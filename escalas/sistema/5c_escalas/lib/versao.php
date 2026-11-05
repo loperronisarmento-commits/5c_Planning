@@ -8,6 +8,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.19.15', 'data' => '2026-11-04', 'titulo' => 'Uma plataforma por turno, restrições dos OM e versão dos documentos', 'sql' => ['ES_111_restricoes_om_u1_plataforma.sql', 'ES_112_restricoes_om_u2_maximus.sql', 'ES_113_thiago_larsen_so_assist.sql', 'ES_114_u3_main_cover.sql', 'ES_115_versao_documentos.sql'], 'itens' => [
+    'Uma plataforma por turno (v4_uma_plataforma_turno, ES_111): quem faz Privacy, Fanvue ou PlayBoy não acumula nem cobre página de outra plataforma no mesmo turno. Vale no Gerar (passos 6 e 7) e no Recalcular com o mínimo de mudanças, que deixa de manter a mistura da versão publicada (fica a página da Privacy, Fanvue ou PlayBoy).',
+    'Correção na divisão 50/50 (esc_sr_divisao): a equipe fixa da página não toma mais a vaga que a divisão já deu ao SR. Antes, no dia da outra página, ele ficava sem nada (Vanderson, Luan, Bruno).',
+    'Restrições dos OM numa camada à parte (lib/restricoes_om.php), sem mudar as regras P-01 a P-04 do motor: serve como assistente (v4_sr_pref_assistente), só estas páginas (v4_sr_so_paginas), só tier médio (v4_sr_tier_medio, tier C ou D), faixa de faturamento (v4_sr_faixa_receita) e preferência por página masculina (v4_sr_pref_masculinas). Valem na equipe fixa e no preenchimento; o melhor SR de cima para baixo (passo 0) não muda. A página da divisão vale sempre para quem divide.',
+    'Equipe fixa com main e cover (esc_pagina_prioridade.papel, ES_114): primeiro entram os titulares (main) de todas as páginas, depois quem cobre (cover) e por último o resto da equipe. Feito para a planilha do OM da U3 (Cynthia, Elly Clutch, Madison Moore, Britt, Ms Red, Janet, Ivy Vale, Jessie, Lexis Star, Goddess Sylvanas, Mario Adrion e Blake). A tela Restrições dos OM mostra MAIN e COVER.',
+    'Versão em todos os documentos (ES_115, lib/documentos.php): organograma, escala da liderança (PDF e CSV), mérito, regras, owners e restrições dos OM mostram "versão vN" no cabeçalho e no nome do arquivo. O número só sobe quando o conteúdo impresso muda. Os PDFs e os CSVs da escala levam a versão do plano (ex.: v32.1) no nome.',
+    'A tela Fixações passa a se chamar Restrições dos OM e mostra as regras novas, além de quem não faz assistente.',
+    'ES_111 (OM da U1), ES_112 (OM da U2, saída do Maximus, João Pedro Caetano inegociável na U1), ES_113 (Thiago Larsen só assistente), ES_114 (OM da U3, main e cover) e ES_115 (versão dos documentos). O valor dos parâmetros vai a 2000 caracteres.',
+    ]],
     ['versao' => '1.19.14', 'data' => '2026-11-04', 'titulo' => 'PDF da escala com página vazia no período', 'sql' => [], 'itens' => [
     'Correção: o PDF da escala dava "Não deu para ler os dados agora" quando, com o corte do CSV, alguma página ficava sem ninguém no período (ex.: página que saiu). Essa página agora fica de fora do PDF.',
     ]],

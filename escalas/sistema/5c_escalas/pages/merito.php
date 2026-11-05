@@ -98,9 +98,11 @@ $faixaDe = static function (float $nota) use ($pts, $L): array {
 };
 $sinal = static fn($v): string => (int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 ? '−' . abs((int) $v) : '0');
 ?>
+<?php escDocIni(); ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h($L('Ajuda', 'Help')); ?></span>
   <h1><?php echo h($L('Mérito do SR e da unidade', 'SR and unit merit')); ?></h1>
+  <p class="muted small"><?php echo ESC_DOC_TOKEN; ?></p>
   <p class="muted"><?php echo h($L('Como o 5C Escalas mede o mérito de cada representante e de cada unidade, e onde isso pesa. Os números são os dos Parâmetros de hoje.', 'How 5C Escalas measures the merit of each representative and each unit, and where it counts. Numbers are today\'s Parameters.')); ?> <?php echo h($L('Versão', 'Version')); ?> <?php echo h(ESC_VERSAO); ?> · <?php echo h(dataBr(date('Y-m-d'))); ?></p>
 </header>
 
@@ -233,6 +235,7 @@ $sinal = static fn($v): string => (int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 
     <p class="muted small"><?php echo h($L('Os números de cada pessoa ficam só para Planejamento e Admin. Os parâmetros ficam em Parâmetros: grupo "merito" (prefixo merito_pts_) para a nota e grupo "v4" (v4_merito_*) para o Gerar.', 'Each person\'s numbers are shown only to Planning and Admin. The parameters are in Parameters: group "merito" (prefix merito_pts_) for the score and group "v4" (v4_merito_*) for Generate.')); ?></p>
   </section>
 </section>
+<?php $docMer = escDocFim('merito'); echo escDocTituloJs($L('Mérito do SR e da unidade', 'SR and unit merit') . ' ' . date('d-m-Y') . escDocSufixo($docMer)); ?>
 <script>
 (function () {
   var f = document.querySelector('[data-merito-sim]');

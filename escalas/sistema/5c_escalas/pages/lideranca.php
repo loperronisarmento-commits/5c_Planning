@@ -13,8 +13,10 @@ $escala = escLiderancaSemana($seg);
 
 if (($_GET['baixar'] ?? '') === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="escala_lideranca_' . $seg . '.csv"');
-    echo escLiderancaCsv($escala);
+    $csvLid = escLiderancaCsv($escala);
+    $vCsv = escDocVersao('lideranca_csv', 'semana:' . $seg, $csvLid);
+    header('Content-Disposition: attachment; filename="escala_lideranca_' . $seg . ($vCsv['rotulo'] !== '' ? '_' . $vCsv['rotulo'] : '') . '.csv"');
+    echo $csvLid;
     return;
 }
 
@@ -60,11 +62,12 @@ foreach ($escala['presentes'] as $grupos) {
     }
 }
 ?>
+<?php escDocIni(); ?>
 <div class="lid">
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Escala')); ?></span>
   <h1><?php echo h(t('Escala da liderança · semana de {dia}', ['dia' => dataBr($seg)])); ?></h1>
-  <p class="lid-so-pdf"><?php echo h(t('Leadership schedule · {de} a {ate} · versão de {gerado}', ['de' => date('d/m/Y', strtotime($dias[0])), 'ate' => date('d/m/Y', strtotime(end($dias))), 'gerado' => date('d/m/Y H:i')])); ?></p>
+  <p class="lid-so-pdf"><?php echo h(t('Leadership schedule · {de} a {ate} · gerada em {gerado}', ['de' => date('d/m/Y', strtotime($dias[0])), 'ate' => date('d/m/Y', strtotime(end($dias))), 'gerado' => date('d/m/Y H:i')])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
   <p class="muted nao-imprimir"><?php echo h(t('Operational Coordinator (3 por turno) e Operational Supervisor (3 por unidade e turno) em 5x2, no mesmo ciclo de 21 dias dos SRs, cada um num turno só; o OS segue o núcleo dele. Operational Assistant: 1 por turno todo dia (24/7), numa semana fixa em que quem faz dois turnos sempre muda para o mais tarde. Não há dia de treinamento separado: no dia de Overlap os 3 do grupo estão no turno; nos outros dias, 2 de 3 (OA: ao menos 1). O Operational Unit Manager não segue escala.')); ?></p>
 </header>
 
@@ -152,12 +155,13 @@ foreach ($escala['presentes'] as $grupos) {
   <p class="muted small"><?php echo h(t('Ausência aprovada em Indisponibilidade aparece como "ausente". Antes da virada ({dia} às {hora}) vale a escala postada.', ['dia' => dataBr(escV4DiaVirada()), 'hora' => substr(escV4Param('v4_virada', '2026-11-01 05:00'), 11, 5)])); ?></p>
 </section>
 </div>
+<?php $docLid = escDocFim('lideranca', 'semana:' . $seg); ?>
 <script>
 (function () {
   // PDF pela impressão do navegador; o título vira o nome do arquivo sugerido ao salvar.
   var titulo = document.title;
   document.getElementById('lid-pdf').addEventListener('click', function () {
-    document.title = <?php echo json_encode(t('Escala da liderança {de} a {ate}', ['de' => date('d-m-Y', strtotime($dias[0])), 'ate' => date('d-m-Y', strtotime(end($dias)))])); ?>;
+    document.title = <?php echo json_encode(t('Escala da liderança {de} a {ate}', ['de' => date('d-m-Y', strtotime($dias[0])), 'ate' => date('d-m-Y', strtotime(end($dias)))]) . escDocSufixo($docLid)); ?>;
     window.print();
   });
   window.addEventListener('afterprint', function () { document.title = titulo; });

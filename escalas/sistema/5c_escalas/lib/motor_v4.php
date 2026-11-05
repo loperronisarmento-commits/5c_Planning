@@ -190,6 +190,62 @@ function escPaginasBrl(): array {
     return $cache = array_filter($definida);
 }
 
+require_once __DIR__ . '/restricoes_om.php';
+
+// Plataforma de cada página (OnlyFans, Privacy, Fanvue, PlayBoy...): a da tela Páginas
+// (esc_pagina_config.plataforma) ou, sem ela, a do cadastro (5c_pages.pages.platform).
+// Devolve '' quando não se sabe (ex.: 5C Schedule). Pedido de 04/11: o SR não faz páginas de
+// plataformas diferentes no mesmo turno (v4_uma_plataforma_turno, padrão 1).
+function escPlataformaDe(string $pagina): string {
+    static $mapa = null;
+    if ($mapa === null) {
+        $mapa = [];
+        try {
+            foreach (escQ('SELECT name, platform FROM `5c_pages`.`pages` WHERE platform IS NOT NULL AND platform <> \'\'') as $r) {
+                $mapa[escV4ChavePagina((string) $r['name'])] = trim((string) $r['platform']);
+            }
+        } catch (Throwable $e) {
+            appLog('warning', 'Plataforma das páginas: cadastro indisponível', ['erro' => $e->getMessage()]);
+        }
+        try {
+            foreach (escQ('SELECT pagina, plataforma FROM ' . escT('esc_pagina_config') . " WHERE plataforma IS NOT NULL AND plataforma <> ''") as $r) {
+                $mapa[escV4ChavePagina((string) $r['pagina'])] = trim((string) $r['plataforma']);
+            }
+        } catch (Throwable $e) {
+            // coluna ainda não criada (ES_85)
+        }
+    }
+    return $mapa[escV4ChavePagina($pagina)] ?? '';
+}
+
+// Tier da página no cadastro (5c_pages.pages.tier: A a F; '' quando não tem).
+function escTierDe(string $pagina): string {
+    static $mapa = null;
+    if ($mapa === null) {
+        $mapa = [];
+        try {
+            foreach (escQ('SELECT name, tier FROM `5c_pages`.`pages` WHERE tier IS NOT NULL AND tier <> \'\'') as $r) {
+                $mapa[escV4ChavePagina((string) $r['name'])] = strtoupper(trim((string) $r['tier']));
+            }
+        } catch (Throwable $e) {
+            appLog('warning', 'Tier das páginas: cadastro indisponível', ['erro' => $e->getMessage()]);
+        }
+    }
+    return $mapa[escV4ChavePagina($pagina)] ?? '';
+}
+
+// Plataformas das páginas de um posto do motor ([plataforma => true]; vazio se nenhuma é conhecida).
+function escPlataformasPosto(array $p): array {
+    $out = [];
+    foreach ($p['paginas'] ?? [] as $pg) {
+        $pl = escPlataformaDe((string) $pg['pagina']);
+        if ($pl !== '') {
+            $out[$pl] = true;
+        }
+    }
+    return $out;
+}
+
 // Símbolo da moeda da página: R$ (Privacy) ou US$.
 function escMoedaPagina(string $pagina): string {
     return isset(escPaginasBrl()[escV4ChavePagina($pagina)]) ? 'R$' : 'US$';
@@ -538,11 +594,15 @@ function escV4Carregar(string $dia): array {
     // página só como assistente, nunca no posto titular dela nem como regular; FORA (ES_67) = não entra nela.
     // Vale por dia: a linha pode cobrir só alguns dias da semana (ex.: quem cobre um SR que saiu).
     $prioridade = [];
-    foreach (escQ('SELECT pagina, rep_codes, vigente_desde, vigente_ate FROM ' . escT('esc_pagina_prioridade')
+    // Papel na equipe (ES_114, pedido do OM da U3): MAIN (titular da página no turno) entra antes, COVER
+    // (cobre o titular) depois, EQUIPE (os demais) por último.
+    $comPapelEq = (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_prioridade' AND COLUMN_NAME = 'papel'", [ESC_SCHEMA]);
+    foreach (escQ('SELECT pagina, rep_codes, vigente_desde, vigente_ate' . ($comPapelEq ? ', papel' : '') . ' FROM ' . escT('esc_pagina_prioridade')
         . ' WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$dia, escMaisDias($dia, -6)]) as $l) {
         foreach (array_filter(array_map('trim', explode(',', strtoupper((string) $l['rep_codes'])))) as $rep) {
             $prioridade[$l['pagina']][] = ['rep' => $rep, 'de' => substr((string) $l['vigente_desde'], 0, 10),
-                'ate' => $l['vigente_ate'] !== null ? substr((string) $l['vigente_ate'], 0, 10) : null];
+                'ate' => $l['vigente_ate'] !== null ? substr((string) $l['vigente_ate'], 0, 10) : null,
+                'papel' => (string) ($l['papel'] ?? 'EQUIPE') ?: 'EQUIPE'];
         }
     }
     // Divisão do SR entre páginas (esc_sr_divisao, ES_98): [rep] = [['pagina', 'parte', 'de', 'ate'], ...].
@@ -864,6 +924,17 @@ function escMotorAlocarV4(array $in): array {
             $multiPag[strtoupper(trim($x[0]))] = array_values(array_filter(array_map('trim', explode('|', $x[1])), 'strlen'));
         }
     }
+    // Uma plataforma por turno (v4_uma_plataforma_turno, padrão 1; pedido de 04/11): quem faz Privacy,
+    // Fanvue ou PlayBoy não acumula nem cobre página de outra plataforma no mesmo turno, e vice-versa.
+    $umaPlat = escV4Param('v4_uma_plataforma_turno', '1') !== '0';
+    $mesmaPlat = static function (array $a, array $b) use ($umaPlat): bool {
+        return !$umaPlat || count($a + $b) <= 1;
+    };
+    // Restrições dos OM (camada à parte, lib/restricoes_om.php): travas e preferências que os OM ditam
+    // por pessoa. Valem na equipe fixa e no preenchimento (passos 1 a 7); não mudam as regras do motor
+    // (P-01 a P-04): o melhor SR de cima para baixo (passo 0) segue igual.
+    ['pref_assist' => $prefAssist, 'tier_medio' => $tierMedio, 'pref_masc' => $prefMasc, 'faixa' => $faixaRec,
+     'pode_pags' => $podePags, 'tem_masc' => $temMasc] = escOmRestricoes($est);
     $limiteTodoDia = max(1, (int) escV4Param('v4_todos_os_dias_seguidos', '14'));
     $realizado = $in['realizado'] ?? [];
     $inicioPlano = max($dias[0], $virada);
@@ -1005,11 +1076,14 @@ function escMotorAlocarV4(array $in): array {
             $anosRep = $est['anos'] ?? [];
             $soAssist = $est['so_assist'] ?? [];
             $foraPag = $est['fora'] ?? [];
-            $pode = static function (string $rep, array $p) use ($pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax): bool {
+            $pode = static function (string $rep, array $p) use ($pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec): bool {
                 foreach ($p['paginas'] as $pg) {
                     if (isset($foraPag[$rep][$pg['pagina']])) {
                         return false; // fora desta página
                     }
+                }
+                if (!$podePags($rep, $p['paginas'], in_array($p['tipo'], ['assistente', 'apoio'], true))) {
+                    return false; // só certas páginas, ou só tier médio (restrições dos OM)
                 }
                 if (isset($umaPag[$rep]) && count(array_filter($p['paginas'], static fn($pg) => !$pg['apoio'])) > 1) {
                     return false; // só trabalha com uma página
@@ -1021,7 +1095,7 @@ function escMotorAlocarV4(array $in): array {
                 if (isset($baixoFluxo[$rep]) && ($baixoFluxo[$rep] === 'estrito' || !$postoAssist) && (float) $p['carga'] > $baixoFluxoMax + 1e-9) {
                     return false; // só página de baixo fluxo (no estrito, nem de assistente)
                 }
-                if ((isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep])) && $postoAssist) {
+                if ((isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep]) || isset($prefAssist[$rep]) || isset($faixaRec[$rep])) && $postoAssist) {
                     return true; // de assistente, mesmo acima do nível máximo de assistente
                 }
                 if (in_array($p['tipo'], ['assistente', 'apoio'], true)) {
@@ -1039,7 +1113,9 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $anosRep, $pode): ?string {
+            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc): ?string {
+                $assistP = in_array($p['tipo'], ['assistente', 'apoio'], true);
+                $mascP = $prefMasc ? $temMasc($p) : false;
                 $melhor = null;
                 $chaveMelhor = null;
                 foreach ($cands as $rep) {
@@ -1050,7 +1126,10 @@ function escMotorAlocarV4(array $in): array {
                     foreach ($p['paginas'] as $pg) {
                         $dias += min(28, $historico[$rep][$pg['pagina']] ?? 0);
                     }
-                    $k = [($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
+                    // Restrições dos OM: quem serve como assistente vai antes no posto de assistente;
+                    // quem tem preferência por página masculina, antes no posto com ela.
+                    $pref = ($assistP && isset($prefAssist[$rep])) || ($mascP && isset($prefMasc[$rep])) ? 1 : 0;
+                    $k = [$pref, ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
                         round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $pessoas[$rep]['nivel'] ?? 0, $rep];
                     if ($chaveMelhor === null || $k > $chaveMelhor) {
                         $melhor = $rep;
@@ -1155,27 +1234,40 @@ function escMotorAlocarV4(array $in): array {
 
             // Equipe fixa da página (esc_pagina_prioridade): quem é da equipe e está na unidade e turno fica
             // com a página antes do melhor SR; quem estava no posto e quem mais conhece a página primeiro.
+            // Em três rodadas (ES_114): primeiro os titulares (MAIN) de todas as páginas, depois quem cobre
+            // (COVER) e por último o resto da equipe. Assim quem é titular de uma página e cover de outra fica
+            // na dele quando o titular da outra está no turno.
+            $ordemPapel = ['MAIN' => 2, 'COVER' => 1, 'EQUIPE' => 0];
             foreach (empty($est['prioridade']) ? [] : array_keys($estadoUT) as $u) {
                 $st = &$estadoUT[$u];
+                foreach (['MAIN', 'COVER', 'EQUIPE'] as $rodada)
                 foreach ($st['vagas'] as &$v) {
+                    if ($v['rep'] !== null) {
+                        continue; // já preenchida pela divisão, pelas várias páginas ou na rodada anterior (não sobrescreve)
+                    }
                     $p = $est['postos'][$v['pid']];
                     $equipe = [];
+                    $papelEq = [];
                     foreach ($p['paginas'] as $pg) {
                         foreach ($pg['apoio'] ? [] : ($est['prioridade'][$pg['pagina']] ?? []) as $pr) {
                             if ($pr['de'] <= $dia && ($pr['ate'] === null || $pr['ate'] >= $dia)) {
-                                $equipe[$pr['rep']] = $pg['pagina'];
+                                $pp = $pr['papel'] ?? 'EQUIPE';
+                                if (!isset($papelEq[$pr['rep']]) || ($ordemPapel[$pp] ?? 0) > ($ordemPapel[$papelEq[$pr['rep']]] ?? 0)) {
+                                    $papelEq[$pr['rep']] = $pp;
+                                    $equipe[$pr['rep']] = $pg['pagina'];
+                                }
                             }
                         }
                     }
                     $melhor = null;
                     $kMelhor = null;
                     foreach ($equipe as $rep => $pag) {
-                        if (!isset($st['disp'][$rep]) || isset($usado[$rep]) || !$pode($rep, $p)) {
+                        if (($papelEq[$rep] ?? 'EQUIPE') !== $rodada || !isset($st['disp'][$rep]) || isset($usado[$rep]) || !$pode($rep, $p)) {
                             continue;
                         }
                         // No posto de assistente, quem o manager marcou como assistente da página vem antes
                         // (fica sempre o mesmo nome; pedido de 04/11 para a Mikayla Free).
-                        $k = [$p['tipo'] === 'assistente' && isset($soAssist[$rep][$pag]) ? 1 : 0,
+                        $k = [$p['tipo'] === 'assistente' ? (isset($soAssist[$rep][$pag]) ? 2 : (isset($prefAssist[$rep]) ? 1 : 0)) : 0,
                             ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, isset($v['equipe'][$rep]) ? 1 : 0, $historico[$rep][$pag] ?? 0, $rep];
                         if ($kMelhor === null || $k > $kMelhor) {
                             $kMelhor = $k;
@@ -1185,7 +1277,8 @@ function escMotorAlocarV4(array $in): array {
                     if ($melhor !== null) {
                         $v['rep'] = $melhor;
                         $v['origem'] = $transicao ? 'TRANSICAO' : (isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO');
-                        $v['motivo'] = 'equipe fixa da página ' . $equipe[$melhor];
+                        $v['motivo'] = ['MAIN' => 'titular (main) da página ', 'COVER' => 'cover da página '][$rodada] ?? 'equipe fixa da página ';
+                        $v['motivo'] .= $equipe[$melhor];
                         $v['fixa'] = true; // não sai da página para remanejar (A-04)
                         $usado[$melhor] = true;
                     }
@@ -1598,6 +1691,9 @@ function escMotorAlocarV4(array $in): array {
                         if (isset($semAcumular[$base['tipo']]) || !empty($base['exclusivo'])) {
                             continue;
                         }
+                        if (!$mesmaPlat(escPlataformasPosto($base), escPlataformasPosto($alvo))) {
+                            continue; // plataformas diferentes no mesmo turno (ex.: Privacy com OnlyFans)
+                        }
                         $cap = escV4CapacidadeJunta($base, $alvo, $est['modelo_pagina'] ?? [], $est['desconsiderada'] ?? []);
                         $carga = (float) $base['carga'] + (float) $alvo['carga'];
                         if ($cap === null || $carga > $cap + 1e-9) {
@@ -1650,6 +1746,7 @@ function escMotorAlocarV4(array $in): array {
                             $c['cap'] = max($c['cap'], (float) ($base['capacidade'] ?? 0) > 0 ? (float) $base['capacidade'] : 28.0);
                             $c['so_apoio'] = $c['so_apoio'] && isset($semAcumular[$base['tipo']]);
                             $c['exclusivo'] = ($c['exclusivo'] ?? false) || !empty($base['exclusivo']);
+                            $c['plats'] = ($c['plats'] ?? []) + escPlataformasPosto($base);
                             foreach ($base['paginas'] as $pg) {
                                 if (!isset($est['desconsiderada'][$pg['pagina']])) {
                                     $c['agencias'][$agPag[$pg['pagina']] ?? ('?' . $pg['pagina'])] = true;
@@ -1692,6 +1789,9 @@ function escMotorAlocarV4(array $in): array {
                                 if ($c['so_apoio'] || !empty($c['exclusivo']) || isset($todoDia[$rep]) || isset($umaPag[$rep]) || isset($multiPag[$rep]) || isset($soAssistGeral[$rep]) || isset($baixoFluxo[$rep]) || !isset($c['agencias'][$ag]) || array_intersect_key($foraPag[$rep] ?? [], array_column($g['paginas'], null, 'pagina'))) {
                                     continue;
                                 }
+                                if (!$mesmaPlat($c['plats'] ?? [], escPlataformasPosto(['paginas' => $g['paginas']])) || !$podePags((string) $rep, $g['paginas'])) {
+                                    continue; // plataformas diferentes no mesmo turno, ou página que a restrição do OM não deixa
+                                }
                                 $razao = ($c['carga'] + $fans) / $c['cap'];
                                 if ($razao > 1 + $maxOver + 1e-9) {
                                     continue;
@@ -1720,6 +1820,7 @@ function escMotorAlocarV4(array $in): array {
                             }
                             $carregado[$u][$rep]['carga'] += $fans;
                             $carregado[$u][$rep]['n']++;
+                            $carregado[$u][$rep]['plats'] = ($carregado[$u][$rep]['plats'] ?? []) + escPlataformasPosto(['paginas' => $g['paginas']]);
                             $sobrecargas += $acima ? 1 : 0;
                         }
                     }

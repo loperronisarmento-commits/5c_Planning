@@ -178,8 +178,8 @@ $baseTxt = static function (array $r) use ($dias): string {
 
 <section class="panel">
   <div class="acoes nao-imprimir">
-    <span class="muted small"><?php echo h(t('Fixações e restrições feitas à mão, para mandar às equipes:')); ?></span>
-    <?php foreach ([1, 2, 3] as $uFix): ?><a class="botao" href="<?php echo h(link_tela('fixacoes', ['unidade' => $uFix, 'imprimir' => 1])); ?>" target="_blank" rel="noopener"><?php echo h(t('PDF das fixações U{u}', ['u' => $uFix])); ?></a><?php endforeach; ?>
+    <span class="muted small"><?php echo h(t('Restrições dos OM (fixações e restrições feitas à mão), para mandar às equipes:')); ?></span>
+    <?php foreach ([1, 2, 3] as $uFix): ?><a class="botao" href="<?php echo h(link_tela('fixacoes', ['unidade' => $uFix, 'imprimir' => 1])); ?>" target="_blank" rel="noopener"><?php echo h(t('PDF das restrições U{u}', ['u' => $uFix])); ?></a><?php endforeach; ?>
   </div>
   <nav class="acoes" aria-label="<?php echo h(t('Filtro')); ?>">
     <?php foreach ($filtros as $k => $rot): ?>

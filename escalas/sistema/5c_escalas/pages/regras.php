@@ -96,9 +96,11 @@ $R = [
     ]],
 ];
 ?>
+<?php escDocIni(); ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Ajuda')); ?></span>
   <h1><?php echo h(t('Regras')); ?></h1>
+  <p class="muted small"><?php echo ESC_DOC_TOKEN; ?></p>
   <p class="muted"><?php echo h(t('As regras de alocação, mérito e trocas do 5C Escalas, com os valores que valem hoje (Parâmetros). Versão {v} · {dia}.', ['v' => ESC_VERSAO, 'dia' => dataBr(date('Y-m-d'))])); ?></p>
 </header>
 <section class="panel regras">
@@ -113,3 +115,4 @@ $R = [
   </section>
   <?php endforeach; ?>
 </section>
+<?php $docReg = escDocFim('regras'); echo escDocTituloJs(t('Regras') . ' 5C Escalas ' . date('d-m-Y') . escDocSufixo($docReg)); ?>

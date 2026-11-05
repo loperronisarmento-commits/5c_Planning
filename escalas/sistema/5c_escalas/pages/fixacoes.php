@@ -1,13 +1,14 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/fixacoes.php
-// Fixações e restrições feitas à mão (pedido de 04/11), lidas do banco na hora, para mandar às equipes:
+// Restrições dos OM (antes "Fixações"): fixações e restrições feitas à mão (pedidos de 04/11), lidas do banco na hora, para mandar às equipes:
 //   ?unidade=N            → as da unidade N (páginas com regra e pessoas com regra);
 //   ?pagina=<nome>        → a configuração completa de uma página;
 //   &imprimir=1           → abre a impressão (Salvar como PDF), no papel timbrado da 5C.
 // Fontes: alocação, cor e plataforma (esc_pagina_config), equipe fixa (esc_pagina_prioridade), só assistente
 // e proibido (esc_pagina_assistente), divisão (esc_sr_divisao), parâmetros v4_sr_uma_pagina,
-// v4_sr_multipagina, v4_nao_subordinado e v4_todos_os_dias, inegociáveis (observação do cadastro) e
+// v4_sr_multipagina, v4_nao_subordinado, v4_todos_os_dias, v4_sr_pref_assistente, v4_sr_so_paginas, v4_sr_tier_medio,
+// v4_sr_pref_masculinas, "não faz assistente" (pode_assistente = 0), inegociáveis (observação do cadastro) e
 // indisponibilidades aprovadas longas (sem o motivo).
 // ===============================================
 
@@ -36,7 +37,7 @@ try {
 
 // Cadastro de cada pessoa, de hoje em diante (a que vale hoje e as marcadas para depois)
 $cad = [];
-foreach (escQ('SELECT UPPER(c.rep_code) AS rep, c.unidade, c.turno, c.nivel, c.funcao, c.observacao, c.vigente_desde, c.vigente_ate, n.numero FROM ' . escT('esc_colaborador_config')
+foreach (escQ('SELECT UPPER(c.rep_code) AS rep, c.unidade, c.turno, c.nivel, c.funcao, c.observacao, c.pode_assistente, c.vigente_desde, c.vigente_ate, n.numero FROM ' . escT('esc_colaborador_config')
     . ' c LEFT JOIN ' . escT('esc_nucleo') . ' n ON n.id = c.nucleo_id WHERE (c.vigente_ate IS NULL OR c.vigente_ate >= ?) ORDER BY c.vigente_desde', [$hoje]) as $l) {
     $cad[$l['rep']][] = $l;
 }
@@ -59,19 +60,27 @@ $porRep = [];   // [rep] => [texto, ...]
 $add = static function (array &$porRep, string $rep, string $txt): void {
     $porRep[$rep][] = $txt;
 };
-foreach (escQ('SELECT pagina, rep_codes, vigente_desde, vigente_ate FROM ' . escT('esc_pagina_prioridade') . ' WHERE vigente_ate IS NULL OR vigente_ate >= ? ORDER BY vigente_desde', [$hoje]) as $l) {
+// Papel na equipe (ES_114): MAIN (titular no turno), COVER (cobre o titular) ou EQUIPE.
+$comPapelEq = (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_prioridade' AND COLUMN_NAME = 'papel'", [ESC_SCHEMA]);
+$rotPapelEq = ['MAIN' => t('main'), 'COVER' => t('cover'), 'EQUIPE' => ''];
+foreach (escQ('SELECT pagina, rep_codes, vigente_desde, vigente_ate' . ($comPapelEq ? ', papel' : '') . ' FROM ' . escT('esc_pagina_prioridade') . ' WHERE vigente_ate IS NULL OR vigente_ate >= ? ORDER BY vigente_desde', [$hoje]) as $l) {
+    $papel = (string) ($l['papel'] ?? 'EQUIPE') ?: 'EQUIPE';
     foreach (array_filter(array_map(static fn($r) => strtoupper(trim($r)), explode(',', (string) $l['rep_codes']))) as $rep) {
         $de = substr((string) $l['vigente_desde'], 0, 10);
         $ate = $l['vigente_ate'] !== null ? substr((string) $l['vigente_ate'], 0, 10) : null;
-        $porPag[$chave($l['pagina'])]['equipe'][] = [$rep, $de, $ate];
-        $add($porRep, $rep, t('equipe fixa da {pagina}', ['pagina' => $l['pagina']]) . ($de > $hoje || $ate ? ' (' . ($de > $hoje ? t('de {d}', ['d' => dataBr($de)]) : '') . ($ate ? ' ' . t('até {d}', ['d' => dataBr($ate)]) : '') . ')' : ''));
+        $porPag[$chave($l['pagina'])]['equipe'][] = [$rep, $de, $ate, $papel];
+        $add($porRep, $rep, ($papel === 'EQUIPE' ? t('equipe fixa da {pagina}', ['pagina' => $l['pagina']]) : t('{papel} da {pagina}', ['papel' => $rotPapelEq[$papel], 'pagina' => $l['pagina']]))
+            . ($de > $hoje || $ate ? ' (' . trim(($de > $hoje ? t('de {d}', ['d' => dataBr($de)]) : '') . ($ate ? ' ' . t('até {d}', ['d' => dataBr($ate)]) : '')) . ')' : ''));
     }
 }
 try {
-    foreach (escQ('SELECT pagina, UPPER(rep_code) AS rep, papel FROM ' . escT('esc_pagina_assistente') . ' WHERE vigente_ate IS NULL OR vigente_ate >= ?', [$hoje]) as $l) {
+    foreach (escQ('SELECT pagina, UPPER(rep_code) AS rep, papel, vigente_desde, vigente_ate FROM ' . escT('esc_pagina_assistente') . ' WHERE vigente_ate IS NULL OR vigente_ate >= ?', [$hoje]) as $l) {
         $tipo = $l['papel'] === 'FORA' ? 'fora' : 'assist';
+        $de = substr((string) $l['vigente_desde'], 0, 10);
+        $ate = $l['vigente_ate'] !== null ? substr((string) $l['vigente_ate'], 0, 10) : null;
         $porPag[$chave($l['pagina'])][$tipo][] = $l['rep'];
-        $add($porRep, $l['rep'], $tipo === 'fora' ? t('proibido na {pagina}', ['pagina' => $l['pagina']]) : t('só assistente na {pagina}', ['pagina' => $l['pagina']]));
+        $add($porRep, $l['rep'], ($tipo === 'fora' ? t('proibido na {pagina}', ['pagina' => $l['pagina']]) : t('só assistente na {pagina}', ['pagina' => $l['pagina']]))
+            . ($de > $hoje || $ate ? ' (' . trim(($de > $hoje ? t('de {d}', ['d' => dataBr($de)]) : '') . ($ate ? ' ' . t('até {d}', ['d' => dataBr($ate)]) : '')) . ')' : ''));
     }
 } catch (Throwable $e) {
     // tabela ainda não criada (ES_65)
@@ -107,6 +116,32 @@ foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode('
 foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_baixo_fluxo_estrito', '')))) as $rep) {
     $add($porRep, $rep, t('nunca em página acima de {n} fãs/h, nem de assistente', ['n' => escV4Param('v4_baixo_fluxo_max', '12')]));
 }
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_pref_assistente', '')))) as $rep) {
+    $add($porRep, $rep, t('serve como assistente (vai antes no posto de assistente)'));
+}
+foreach (explode(';', escV4Param('v4_sr_so_paginas', '')) as $item) {
+    $x = explode(':', $item, 2);
+    if (count($x) === 2 && trim($x[0]) !== '') {
+        $rep = strtoupper(trim($x[0]));
+        $lista = array_values(array_filter(array_map('trim', explode('|', $x[1])), 'strlen'));
+        foreach ($lista as $pg) {
+            $porPag[$chave($pg)]['so'][] = $rep;
+        }
+        $add($porRep, $rep, t('só nestas páginas, nenhuma outra: {lista}', ['lista' => implode(', ', $lista)]));
+    }
+}
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_tier_medio', '')))) as $rep) {
+    $add($porRep, $rep, t('só páginas de tier médio (tier {t})', ['t' => escV4Param('v4_tier_medio', 'C,D')]));
+}
+foreach (explode(';', escV4Param('v4_sr_faixa_receita', '')) as $item) {
+    $x = explode(':', $item, 2);
+    if (count($x) === 2 && trim($x[0]) !== '' && preg_match('~^\s*(\d+)\s*-\s*(\d+)\s*$~', $x[1], $m)) {
+        $add($porRep, strtoupper(trim($x[0])), t('só assistente ou página de {de} a {ate} mil em 30 dias', ['de' => round((int) $m[1] / 1000), 'ate' => round((int) $m[2] / 1000)]));
+    }
+}
+foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_pref_masculinas', '')))) as $rep) {
+    $add($porRep, $rep, t('preferência em páginas masculinas ({lista})', ['lista' => implode(', ', array_filter(array_map('trim', explode('|', escV4Param('v4_paginas_masculinas', '')))))]));
+}
 foreach (array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_todos_os_dias', '')))) as $rep) {
     $add($porRep, $rep, t('trabalha todos os dias do turno, fora da rotação'));
 }
@@ -118,6 +153,9 @@ foreach (explode(',', escV4Param('v4_nao_subordinado', '')) as $par) {
 }
 foreach ($cad as $rep => $cs) {
     $c = $cadEm($rep, $hoje);
+    if ($c && (int) ($c['pode_assistente'] ?? 1) === 0) {
+        $add($porRep, $rep, t('não faz assistente (faz solo)'));
+    }
     if ($c && preg_match('~Inegociável na U(\d)~u', (string) $c['observacao'], $m)) {
         $add($porRep, $rep, t('inegociável na U{u} (não sai da unidade)', ['u' => $m[1]]));
     }
@@ -135,17 +173,22 @@ foreach (escQ("SELECT UPPER(i.rep_code) AS rep, MIN(d.dia) AS de, MAX(d.dia) AS 
 $rotAloc = ['EQUIPE' => t('Active team'), 'SOB_DEMANDA' => t('On demand'), 'EXCLUSIVA' => t('Exclusiva (solo)')];
 $rotCor = ['VERDE' => t('verde'), 'AMARELA' => t('amarela'), 'VERMELHA' => t('vermelha')];
 // Equipe da página por turno (na data de hoje ou na de início); quem é de outra unidade é "último caso".
-$equipeTurnos = static function (array $pg) use ($porPag, $chave, $cadEm, $pessoaTxt, $hoje): array {
+$equipeTurnos = static function (array $pg) use ($porPag, $chave, $cadEm, $pessoaTxt, $hoje, $rotPapelEq): array {
     $out = ['A' => [], 'C' => [], 'D' => [], 'outra' => []];
-    foreach ($porPag[$chave($pg['pagina'])]['equipe'] ?? [] as [$rep, $de, $ate]) {
+    $ordem = [];
+    foreach ($porPag[$chave($pg['pagina'])]['equipe'] ?? [] as [$rep, $de, $ate, $papel]) {
         $c = $cadEm($rep, max($hoje, $de));
-        $txt = $pessoaTxt($rep, $c) . ($de > $hoje ? ' · ' . t('de {d}', ['d' => dataBr($de)]) : '') . ($ate ? ' · ' . t('até {d}', ['d' => dataBr($ate)]) : '');
-        if ($c && (int) $c['unidade'] === $pg['unidade'] && isset($out[$c['turno']])) {
-            $out[$c['turno']][$rep] = $txt;
-        } else {
-            $out['outra'][$rep] = $txt;
-        }
+        $txt = ($rotPapelEq[$papel] ?? '' ? mb_strtoupper($rotPapelEq[$papel], 'UTF-8') . ' · ' : '') . $pessoaTxt($rep, $c)
+            . ($de > $hoje ? ' · ' . t('de {d}', ['d' => dataBr($de)]) : '') . ($ate ? ' · ' . t('até {d}', ['d' => dataBr($ate)]) : '');
+        $onde = $c && (int) $c['unidade'] === $pg['unidade'] && isset($out[$c['turno']]) ? $c['turno'] : 'outra';
+        $out[$onde][$rep] = $txt;
+        $ordem[$rep] = [$ate !== null && $ate <= $hoje ? 1 : 0, ['MAIN' => 0, 'COVER' => 1][$papel] ?? 2];
     }
+    // Primeiro quem vale daqui para a frente; dentro disso, main, cover e o resto da equipe.
+    foreach ($out as &$lista) {
+        uksort($lista, static fn($a, $b) => $ordem[$a] <=> $ordem[$b]);
+    }
+    unset($lista);
     return $out;
 };
 $outrasRegras = static function (array $pg) use ($porPag, $chave, $nomes): array {
@@ -160,15 +203,19 @@ $outrasRegras = static function (array $pg) use ($porPag, $chave, $nomes): array
     foreach ($r['divisao'] ?? [] as [$rep, $parte]) {
         $l[] = t('{n}: {p}% dos turnos', ['n' => nomeCurto($nomes[$rep] ?? $rep), 'p' => round($parte * 100)]);
     }
+    foreach (array_unique($r['so'] ?? []) as $rep) {
+        $l[] = t('{n}: só esta página (e as outras da lista dele)', ['n' => nomeCurto($nomes[$rep] ?? $rep)]);
+    }
     foreach (array_unique($r['multi'] ?? []) as $rep) {
         $l[] = t('{n}: fixo junto com as outras páginas dele, sem assistente', ['n' => nomeCurto($nomes[$rep] ?? $rep)]);
     }
     return $l;
 };
 $tituloArq = $soPag !== '' ? t('Configuração {pagina} {d}', ['pagina' => $soPag, 'd' => date('d-m-Y')])
-    : ($soU ? t('Fixações U{u} {d}', ['u' => $soU, 'd' => date('d-m-Y')]) : t('Fixações {d}', ['d' => date('d-m-Y')]));
-$regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de todos na página; quem é de outra unidade só entra em último caso, se sobrou sem posto no turno dele. Página exclusiva (solo): o SR dela não acumula nem cobre outra página. Página On demand não recebe ninguém no Gerar (alocação à mão, com a célula travada). Páginas da Privacy só com SR brasileiro. No dia de treinamento (Overlap), quem é da equipe cobre primeiro a lacuna da própria página.');
+    : ($soU ? t('Restrições dos OM U{u} {d}', ['u' => $soU, 'd' => date('d-m-Y')]) : t('Restrições dos OM {d}', ['d' => date('d-m-Y')]));
+$regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de todos na página; quem é de outra unidade só entra em último caso, se sobrou sem posto no turno dele. Página exclusiva (solo): o SR dela não acumula nem cobre outra página. Página On demand não recebe ninguém no Gerar (alocação à mão, com a célula travada). Páginas da Privacy só com SR brasileiro. Uma plataforma por turno: quem faz Privacy, Fanvue ou PlayBoy não faz página de outra plataforma no mesmo turno (nem acumula nem cobre). No dia de treinamento (Overlap), quem é da equipe cobre primeiro a lacuna da própria página.');
 ?>
+<?php escDocIni(); ?>
 <div class="pag-pdf fix-pdf">
   <div class="acoes nao-imprimir">
     <?php foreach ([1, 2, 3] as $u): ?><a class="botao<?php echo $soU === $u && $soPag === '' ? ' primario' : ''; ?>" href="<?php echo h(link_tela('fixacoes', ['unidade' => $u])); ?>"><?php echo h(t('U{u}', ['u' => $u])); ?></a><?php endforeach; ?>
@@ -184,7 +231,7 @@ $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de tod
     <p class="muted"><?php echo h(t('Página fora da estrutura: {p}.', ['p' => $soPag])); ?></p>
   <?php else: $eq = $equipeTurnos($pg); $outras = $outrasRegras($pg); ?>
     <h1><?php echo h($pg['pagina']); ?> <span class="pag-pdf-unidade">U<?php echo (int) $pg['unidade']; ?></span></h1>
-    <p class="pag-pdf-sub"><?php echo h(t('Configuração da página em {d} · carteira {c} · modelo {m}', ['d' => date('d/m/Y H:i'), 'c' => $pg['carteira'], 'm' => $pg['modelo']])); ?></p>
+    <p class="pag-pdf-sub"><?php echo h(t('Configuração da página em {d} · carteira {c} · modelo {m}', ['d' => date('d/m/Y H:i'), 'c' => $pg['carteira'], 'm' => $pg['modelo']])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
     <table class="pag-pdf-tabela fix-tabela">
       <tbody>
         <tr><th><?php echo h(t('Alocação')); ?></th><td><?php echo h($rotAloc[$pg['aloc']] ?? $pg['aloc']); ?></td></tr>
@@ -213,8 +260,8 @@ $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de tod
         }
         uasort($repsU, static fn($a, $b) => [strpos('ACD', (string) $a['turno']), (int) $a['numero']] <=> [strpos('ACD', (string) $b['turno']), (int) $b['numero']]); ?>
   <section class="pag-pdf-folha">
-    <h1><?php echo h(t('Fixações e restrições · Unidade {u}', ['u' => $u])); ?></h1>
-    <p class="pag-pdf-sub"><?php echo h(t('Feitas à mão pelo Planejamento, valendo em {d} (e as já marcadas para depois) · {p} páginas e {n} pessoas com regra', ['d' => date('d/m/Y H:i'), 'p' => count($pagsU), 'n' => count($repsU)])); ?></p>
+    <h1><?php echo h(t('Restrições dos OM · Unidade {u}', ['u' => $u])); ?></h1>
+    <p class="pag-pdf-sub"><?php echo h(t('Feitas à mão pelo Planejamento, valendo em {d} (e as já marcadas para depois) · {p} páginas e {n} pessoas com regra', ['d' => date('d/m/Y H:i'), 'p' => count($pagsU), 'n' => count($repsU)])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
     <h2 class="fix-h2"><?php echo h(t('Páginas')); ?></h2>
     <table class="pag-pdf-tabela fix-tabela">
       <thead><tr><th class="fix-col-pag"><?php echo h(t('Página')); ?></th><?php foreach ($TURNOS as $rot): ?><th><?php echo h(t('Equipe fixa · {t}', ['t' => $rot])); ?></th><?php endforeach; ?><th><?php echo h(t('Outras regras')); ?></th></tr></thead>
@@ -246,9 +293,10 @@ $regrasGerais = t('Regras que valem para todas: a equipe fixa entra antes de tod
   </section>
 <?php endforeach; endif; ?>
 </div>
+<?php $docFix = escDocFim('restricoes', $soPag !== '' ? 'pagina:' . $soPag : ($soU ? 'U' . $soU : 'todas')); ?>
 <script>
 (function () {
-  var titulo = document.title, nome = <?php echo json_encode($tituloArq); ?>;
+  var titulo = document.title, nome = <?php echo json_encode($tituloArq . escDocSufixo($docFix)); ?>;
   function imprimir() { document.title = nome; window.print(); }
   document.getElementById('fix-pdf-baixar').addEventListener('click', imprimir);
   window.addEventListener('afterprint', function () { document.title = titulo; });

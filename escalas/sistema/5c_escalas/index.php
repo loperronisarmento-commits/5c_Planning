@@ -38,6 +38,7 @@ require_once __DIR__ . '/lib/minimo.php';
 require_once __DIR__ . '/lib/lideranca.php';
 require_once __DIR__ . '/lib/versao.php';
 require_once __DIR__ . '/lib/versao_en.php';
+require_once __DIR__ . '/lib/documentos.php';
 require_once __DIR__ . '/lib/treino.php';
 require_once __DIR__ . '/lib/ajuda.php';
 require_once __DIR__ . '/lib/solicitacao.php';
@@ -80,7 +81,7 @@ $telas = [
     'funil'        => ['Funil de entrada', 'pages/funil.php'],
     'equilibrio'   => ['Equilíbrio das unidades', 'pages/equilibrio.php'],
     'paginas'      => ['Configuração das páginas', 'pages/paginas.php'],
-    'fixacoes'     => ['Fixações', 'pages/fixacoes.php'],
+    'fixacoes'     => ['Restrições dos OM', 'pages/fixacoes.php'],
     'owners'       => ['Owners e backups', 'pages/owners.php'],
     'organograma'  => ['Organograma', 'pages/organograma.php'],
     'times'        => ['Configuração dos times', 'pages/times.php'],

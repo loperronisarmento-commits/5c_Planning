@@ -113,6 +113,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
   <span class="muted small" id="org-achados" aria-live="polite"></span>
 </section>
 
+<?php escDocIni(); ?>
 <section class="org" aria-label="<?php echo h(t('Organograma')); ?>">
   <header class="org-marca">
     <?php if ($logo): ?>
@@ -130,7 +131,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
     <?php endif; ?>
     <h2 class="org-titulo"><?php echo h(t('Nova estrutura operacional')); ?></h2>
     <p class="org-sub"><?php echo h(t('Estrutura de liderança')); ?></p>
-    <p class="org-data"><?php echo h(t('Vigente em {dia}', ['dia' => date('d/m/Y', strtotime($dia))])); ?></p>
+    <p class="org-data"><?php echo h(t('Vigente em {dia}', ['dia' => date('d/m/Y', strtotime($dia))])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
   </header>
 
   <div class="org-topo">
@@ -185,6 +186,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
     <?php endforeach; ?>
   </div>
 </section>
+<?php $docOrg = escDocFim('organograma', $verPaginas ? 'paginas' : 'lideranca'); ?>
 
 <script>
 (function () {
@@ -214,7 +216,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
   // da página vira o nome do arquivo sugerido ao salvar.
   var tituloTela = document.title;
   document.getElementById('org-imprimir').addEventListener('click', function () {
-    document.title = <?php echo json_encode(t('Organograma 5C {dia}', ['dia' => date('d-m-Y', strtotime($dia))])); ?> + (unidade.value ? ' U' + unidade.value : '');
+    document.title = <?php echo json_encode(t('Organograma 5C {dia}', ['dia' => date('d-m-Y', strtotime($dia))]) . escDocSufixo($docOrg)); ?> + (unidade.value ? ' U' + unidade.value : '');
     window.print();
   });
   // PDF completo, em duas folhas do tamanho do conteúdo (medido aqui), com os 3 turnos lado a lado
@@ -245,7 +247,7 @@ $logo = is_file(__DIR__ . '/../assets/org_logo.png') ? MODULE_URL . '/assets/org
       folha.textContent = folhas.map(function (f, i) {
         return '@page org-' + ['pessoas', 'paginas'][i] + ' { size: ' + mm(f.scrollWidth) + 'mm ' + Math.ceil(mm(f.scrollHeight) * 1.05) + 'mm; margin: 0; }';
       }).join('\n');
-      document.title = <?php echo json_encode(t('Organograma completo 5C {dia}', ['dia' => date('d-m-Y', strtotime($dia))])); ?>;
+      document.title = <?php echo json_encode(t('Organograma completo 5C {dia}', ['dia' => date('d-m-Y', strtotime($dia))]) . escDocSufixo($docOrg)); ?>;
       window.print();
     });
   }

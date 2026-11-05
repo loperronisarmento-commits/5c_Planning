@@ -225,7 +225,7 @@ if ($corteCsv !== '') {
         }
     }
 }
-$arquivoDe = static fn(string $nome) => (escModoTreino() ? 'TREINO_' : '') . preg_replace('~[^A-Za-z0-9_-]+~', '_', $nome) . '_' . $seg . '.csv';
+$arquivoDe = static fn(string $nome) => (escModoTreino() ? 'TREINO_' : '') . preg_replace('~[^A-Za-z0-9_-]+~', '_', $nome) . '_' . $seg . '_' . preg_replace('~[^A-Za-z0-9.]+~', '', escPlanoRotulo($plano)) . '.csv';
 if (isset($_GET['baixar'])) {
     if ($_GET['baixar'] === 'csv') {
         $pid = (int) ($_GET['pagina'] ?? 0);
@@ -366,6 +366,7 @@ if (($_GET['ver'] ?? '') === 'metas') {
         . ($rotCortePdf !== '' ? ' · ' . t('a partir de {quando}', ['quando' => $rotCortePdf]) : '');
     $arquivoPdf = count($folhas) === 1 ? t('Metas {pagina} {de} a {ate}', ['pagina' => reset($folhas)['nome'], 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
         : t('Metas das páginas {de} a {ate}', ['de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))]);
+    $arquivoPdf .= ' ' . escPlanoRotulo($plano);
     ?>
 <div class="pag-pdf">
   <div class="acoes nao-imprimir">
@@ -603,6 +604,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     $arquivoPdf = $soPid && count($folhas) === 1 ? t('Escala {pagina} {de} a {ate}', ['pagina' => reset($folhas)['nome'], 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
         : ($soUnidade ? t('Escala U{u} {de} a {ate}', ['u' => $soUnidade, 'de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))])
         : t('Escala das páginas {de} a {ate}', ['de' => date('d-m-Y', strtotime($seg)), 'ate' => date('d-m-Y', strtotime(escMaisDias($seg, 6)))]));
+    $arquivoPdf .= ' ' . escPlanoRotulo($plano);
     ?>
 <div class="pag-pdf">
   <div class="acoes nao-imprimir">

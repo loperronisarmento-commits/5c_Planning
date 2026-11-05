@@ -6,6 +6,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.19.15' => ['titulo' => 'One platform per shift, OM restrictions and document versions', 'itens' => [
+    'One platform per shift (v4_uma_plataforma_turno, ES_111): whoever works Privacy, Fanvue or PlayBoy does not stack or cover a page of another platform in the same shift. Applies to Generate (steps 6 and 7) and to Recalculate with minimum changes, which no longer keeps the mix from the published version (the Privacy, Fanvue or PlayBoy page stays).',
+    '50/50 split fix (esc_sr_divisao): the page fixed team no longer takes the slot the split already gave the SR. Before, on the other page day, the SR was left with nothing (Vanderson, Luan, Bruno).',
+    'OM restrictions in a separate layer (lib/restricoes_om.php), without changing engine rules P-01 to P-04: works as assistant (v4_sr_pref_assistente), only these pages (v4_sr_so_paginas), mid tier only (v4_sr_tier_medio, tier C or D), revenue band (v4_sr_faixa_receita) and preference for male pages (v4_sr_pref_masculinas). They apply to the fixed team and to filling; the best SR top-down (step 0) is unchanged. The split page always counts for whoever splits.',
+    'Fixed team with main and cover (esc_pagina_prioridade.papel, ES_114): first the mains of all pages, then the covers, then the rest of the team. Built for the U3 OM sheet (Cynthia, Elly Clutch, Madison Moore, Britt, Ms Red, Janet, Ivy Vale, Jessie, Lexis Star, Goddess Sylvanas, Mario Adrion and Blake). The OM restrictions screen shows MAIN and COVER.',
+    'Version on every document (ES_115, lib/documentos.php): organization chart, leadership schedule (PDF and CSV), merit, rules, owners and OM restrictions show "version vN" in the header and in the file name. The number only goes up when the printed content changes. Schedule PDFs and CSVs carry the plan version (e.g. v32.1) in the name.',
+    'The Fixed assignments screen is now OM restrictions and shows the new rules, plus who does not work as assistant.',
+    'ES_111 (U1 OM), ES_112 (U2 OM, Maximus leaving, João Pedro Caetano non-negotiable in U1), ES_113 (Thiago Larsen assistant only), ES_114 (U3 OM, main and cover) and ES_115 (document versions). Parameter values go up to 2000 characters.',
+    ]],
     '1.19.14' => ['titulo' => 'Schedule PDF with an empty page in the period', 'itens' => [
     'Fix: the schedule PDF failed with "Could not read the data now" when, with the CSV cut, some page had no one in the period (e.g. a page that left). That page is now left out of the PDF.',
     ]],

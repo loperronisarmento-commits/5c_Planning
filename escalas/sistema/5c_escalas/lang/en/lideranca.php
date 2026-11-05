@@ -38,6 +38,6 @@ return [
     'Abre a impressão: escolha "Salvar como PDF". A4 paisagem, um turno por página.' => 'Opens printing: choose "Save as PDF". A4 landscape, one shift per page.',
     'Baixar PDF' => 'Download PDF',
     'Escala da liderança {de} a {ate}' => 'Leadership schedule {de} to {ate}',
-    'Leadership schedule · {de} a {ate} · versão de {gerado}' => 'Leadership schedule · {de} to {ate} · version of {gerado}',
+    'Leadership schedule · {de} a {ate} · gerada em {gerado}' => 'Leadership schedule · {de} to {ate} · generated on {gerado}',
     'Trabalha · Overlap (os 3 do grupo no turno) · folga · ausente (indisponibilidade aprovada) · — antes da virada. "no turno" = quantos do grupo estão no dia.' => 'Works · Overlap (all 3 of the group on the shift) · off · absent (approved unavailability) · — before the switch-over. "on shift" = how many of the group are on that day.',
 ];

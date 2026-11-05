@@ -46,9 +46,23 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
     $ocup = [];      // [rep][dia|bloco] = true
     $turnoDia = [];  // [rep][diaTurno] = turno
     $carga = [];     // [rep][dia|bloco] = fãs/h
-    $marcar = static function (array $r) use (&$ocup, &$turnoDia, &$carga, $bloc, $diaTurno, $info): void {
+    // Uma plataforma por turno (v4_uma_plataforma_turno, pedido de 04/11): quem já tem página de uma
+    // plataforma no turno (ex.: Privacy) não fica nem entra em página de outra (ex.: OnlyFans).
+    $umaPlat = function_exists('escPlataformaDe') && escV4Param('v4_uma_plataforma_turno', '1') !== '0';
+    $platDe = static fn(array $r): string => $umaPlat ? escPlataformaDe((string) ($r['pagina'] ?? '')) : '';
+    $platTurno = []; // [rep][diaTurno] = plataforma
+    $platOk = static function (string $rep, array $r) use (&$platTurno, $platDe, $diaTurno): bool {
+        $pl = $platDe($r);
+        $ja = $platTurno[$rep][$diaTurno($r)] ?? '';
+        return $pl === '' || $ja === '' || $ja === $pl;
+    };
+    $marcar = static function (array $r) use (&$ocup, &$turnoDia, &$carga, &$platTurno, $bloc, $diaTurno, $info, $platDe): void {
         if ($r['rep_code'] === null) {
             return;
+        }
+        $pl = $platDe($r);
+        if ($pl !== '' && !isset($platTurno[$r['rep_code']][$diaTurno($r)])) {
+            $platTurno[$r['rep_code']][$diaTurno($r)] = $pl;
         }
         $ocup[$r['rep_code']][$bloc($r)] = true;
         $turnoDia[$r['rep_code']][$diaTurno($r)] = $r['turno'];
@@ -77,7 +91,19 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
             $marcar($r);
         }
     }
-    // 2. Quem fica onde estava
+    // 2. Quem fica onde estava. Se a referência tinha plataformas misturadas no turno da pessoa, fica
+    //    a que não é OnlyFans (Privacy, Fanvue, PlayBoy: equipes próprias) e o resto vai para o passo 3.
+    $platRef = []; // [rep|diaTurno][plataforma] = células
+    foreach ($ref as $r) {
+        if ($r['rep_code'] !== null && isset($escopo[$bloc($r)]) && !$especial($r) && !$plantao($r) && ($pl = $platDe($r)) !== '') {
+            $platRef[$r['rep_code'] . '|' . $diaTurno($r)][$pl] = ($platRef[$r['rep_code'] . '|' . $diaTurno($r)][$pl] ?? 0) + 1;
+        }
+    }
+    $platFica = [];
+    foreach ($platRef as $k => $pls) {
+        uksort($pls, static fn($a, $b) => [$b !== 'OnlyFans', $pls[$b]] <=> [$a !== 'OnlyFans', $pls[$a]]);
+        $platFica[$k] = array_key_first($pls);
+    }
     $preenchida = [];
     $mantidas = 0;
     foreach ($ref as $r) {
@@ -88,7 +114,9 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
         $i = count($preenchida[$c] ?? []);
         $rep = $r['rep_code'];
         $td = $turnoDia[$rep][$diaTurno($r)] ?? null;
-        if ($i >= count($precisa[$c]) || in_array($rep, $preenchida[$c] ?? [], true) || !$pode($rep, $r) || ($td !== null && $td !== $r['turno'])) {
+        $pl = $platDe($r);
+        if ($i >= count($precisa[$c]) || in_array($rep, $preenchida[$c] ?? [], true) || !$pode($rep, $r) || ($td !== null && $td !== $r['turno'])
+            || ($pl !== '' && ($platFica[$rep . '|' . $diaTurno($r)] ?? $pl) !== $pl) || !$platOk($rep, $r)) {
             continue;
         }
         $linha = ['rep_code' => $rep, 'papel' => $r['papel'], 'origem' => $r['origem'], 'travada' => 0, 'motivo' => 'mantido da versão publicada (mínimo de mudanças)'] + $precisa[$c][$i];
@@ -126,8 +154,8 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
             $pg = (int) $n['page_id'];
             $inf = $info[$pg . '|' . $n['turno']] ?? ['fans' => 0, 'unidade' => null, 'modelo' => null];
             $ja = $preenchida[$c] ?? [];
-            $livre = static fn(string $rep): bool => !isset($ocup[$rep][$b]) && (($turnoDia[$rep][$diaTurno($n)] ?? $n['turno']) === $n['turno']) && !in_array($rep, $ja, true);
-            $cabe = static fn(string $rep): bool => isset($ocup[$rep][$b]) && ($carga[$rep][$b] ?? 0) + $inf['fans'] <= $limite && !in_array($rep, $ja, true);
+            $livre = static fn(string $rep): bool => !isset($ocup[$rep][$b]) && (($turnoDia[$rep][$diaTurno($n)] ?? $n['turno']) === $n['turno']) && !in_array($rep, $ja, true) && $platOk($rep, $n);
+            $cabe = static fn(string $rep): bool => isset($ocup[$rep][$b]) && ($carga[$rep][$b] ?? 0) + $inf['fans'] <= $limite && !in_array($rep, $ja, true) && $platOk($rep, $n);
             $chaveTurno = $pg . '|' . $diaTurno($n) . '|' . $n['turno'];
             $rep = null;
             $como = null;
