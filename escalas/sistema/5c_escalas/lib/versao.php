@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.20.0', 'data' => '2026-11-08', 'titulo' => 'Gestão das Restrições dos OM e PDF de Overtime no padrão 5C', 'sql' => ['ES_128_escala_om_u2_0911.sql', 'ES_129_restricoes_om_inativas.sql', 'ES_130_escala_om_u3_0911.sql', 'ES_131_corrige_barras_restricoes.sql', 'ES_132_escala_om_u1_0911.sql', 'ES_133_trocas_u2_d_veronio.sql', 'ES_134_posto_nas_vazias_0911.sql'], 'itens' => [
+    'Restrições dos OM: painel "Gerenciar as restrições" abaixo do documento (Planejamento, WFM e admin). Cada restrição aparece numa linha (equipe fixa por pessoa, só assistente ou proibido, divisão, parâmetros por pessoa, não faz assistente e inegociável), com Desativar, Editar e Apagar, uma por uma ou em lote (selecionar todas da unidade). Vale a partir do próximo Gerar ou Recalcular.',
+    'Desativar tira a restrição do Gerar e do documento e a guarda na lista "Desativadas" (esc_restricao_om_inativa, ES_129), de onde Ativar devolve como estava. Apagar tira de vez, e o log guarda o que era. Editar: papel e datas da equipe fixa e do só assistente ou proibido, partes da divisão, páginas ou faixa dos parâmetros por pessoa e o "até" do solo (lib/restricoes_om_gestao.php).',
+    'PDF de anúncio do Overtime no padrão 5C: papel timbrado claro, faixa marsala, logo e águia da 5C, Open Sans, unidade em selo marsala, buffers em destaque e rodapé com o número da folha e www.5ccompany.com (antes era A4 escuro com rosa).',
+    'Dados (ES_128 a ES_134), semana de 09/11, rascunho v3.6: U1, U2 e U3 travadas como os OM montaram; restrições da U1 desativadas a pedido da OM; trocas da U2 D (Veronio) e buffers; células vazias ligadas ao posto, para aparecerem em Horas extras.',
+    ]],
     ['versao' => '1.19.23', 'data' => '2026-11-05', 'titulo' => 'PDF de Overtime só da semana escolhida', 'sql' => [], 'itens' => [
     'PDF de anúncio do Overtime: vai do turno escolhido só até o fim da semana dessa data (antes ia até o fim da semana seguinte). O T1 da segunda continua, porque é o fim do turno D do domingo.',
     ]],

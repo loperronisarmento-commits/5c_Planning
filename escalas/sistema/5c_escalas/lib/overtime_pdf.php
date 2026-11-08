@@ -1,8 +1,8 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/lib/overtime_pdf.php
-// PDF de anúncio do Overtime (pedido de 05/11), no modelo "5C Overtime Opportunities": A4 escuro, Lato,
-// destaque rosa; por dia do calendário, bloco de 4 h e unidade, com os buffers em destaque no fim de cada
+// PDF de anúncio do Overtime (pedido de 05/11), no padrão visual 5C (pedido de 08/11): papel timbrado claro,
+// faixa marsala, águia e logo da 5C, Open Sans, como o PDF da Grade; por dia do calendário, bloco de 4 h e unidade, com os buffers em destaque no fim de cada
 // unidade. Vai do turno escolhido ("a partir de": dia e turno) até o fim da semana dessa data (o T1 da
 // segunda é o fim do turno D do domingo). A paginação é feita aqui (linhas de altura fixa), para
 // o "CONTINUED" e o número da folha saírem certos na impressão do navegador (Salvar como PDF).
@@ -107,59 +107,65 @@ function escOvertimePdf(callable $vaziosDaSemana, callable $diaDoBloco): void {
     $periodo = $up(date('d M', strtotime($ini))) . ' - ' . $up(date('d M Y', strtotime($fim)));
     $versoesEscala = implode(', ', array_map('escPlanoRotulo', $planos));
     $nomeArq = '5C_Overtime_Opportunities_' . date('d-m', strtotime($ini)) . '_a_' . date('d-m', strtotime($fim));
-    $logo = '<div class="ot-selo">5C</div>';
-    $rodape = static fn(int $n): string => '<footer class="ot-rodape"><span>4-hour blocks &nbsp;•&nbsp; Up to 12 consecutive hours including the regular schedule</span><strong>5C / ' . sprintf('%02d', $n) . '</strong></footer>';
+    $logo = '<img class="ot-logo" src="assets/marca/logo_5c_marsala.png" alt="5C">';
+    $total = max(1, count($folhas));
+    $rodape = static fn(int $n): string => '<footer class="ot-rodape"><span class="ot-num">' . $n . ' / ' . $total . '</span><span class="ot-regra">4-hour blocks &nbsp;•&nbsp; Up to 12 consecutive hours including the regular schedule</span><span class="ot-site">www.<strong>5ccompany</strong>.com</span></footer>';
+    $timbre = '<span class="ot-faixa"></span><img class="ot-aguia" src="assets/marca/aguia_timbrado.png" alt="">';
 
     header('Content-Type: text/html; charset=utf-8');
     ?><!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>5C Overtime Opportunities</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&amp;display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap">
 <style>
 @page { size: A4 portrait; margin: 0; }
-:root { --ot-fundo: #141118; --ot-painel: #2a2230; --ot-painel-2: #221c27; --ot-rosa: #e9a3c3; --ot-texto: #ece8ef; --ot-suave: #a59fab; --ot-z1: #1b171f; --ot-z2: #221d27; }
+:root { --ot-marsala: #650637; --ot-marsala-2: #970250; --ot-claro: #f8f3f5; --ot-linha: #e6dce1; --ot-texto: #1a171d; --ot-suave: #67636d; --ot-z: #fbf8fa; }
 * { box-sizing: border-box; }
-html, body { margin: 0; background: #5a5560; }
-body { font-family: Lato, Arial, sans-serif; color: var(--ot-texto); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.ot-folha { position: relative; width: 210mm; height: 297mm; margin: 6mm auto; background: var(--ot-fundo); overflow: hidden; padding: 10mm 14mm 0; break-after: page; }
+html, body { margin: 0; background: #d9d4dc; }
+body { font-family: "Open Sans", Arial, sans-serif; color: var(--ot-texto); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.ot-folha { position: relative; width: 210mm; height: 297mm; margin: 6mm auto; background: #fff; overflow: hidden; padding: 12mm 14mm 0 24mm; break-after: page; }
 .ot-folha:last-child { break-after: auto; }
-.ot-folha::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 2.2mm; background: var(--ot-rosa); }
-.ot-topo { border-top: .2mm solid #3a3340; padding-top: 3mm; display: flex; gap: 7mm; align-items: flex-start; }
-.ot-selo { width: 21mm; height: 13mm; border-radius: 3mm; background: var(--ot-rosa); color: #241c27; font-weight: 900; font-size: 7.4mm; display: flex; align-items: center; justify-content: center; margin-top: 1mm; }
-.ot-topo h1 { margin: 0; font-size: 7.2mm; font-weight: 900; letter-spacing: .1mm; }
-.ot-topo p { margin: 1.4mm 0 0; font-size: 3.1mm; color: var(--ot-suave); letter-spacing: .15mm; }
-.ot-semana { margin-top: 9mm; background: linear-gradient(90deg, var(--ot-painel), #3a2b36); border-radius: 2.4mm; padding: 4.2mm 5mm; }
-.ot-semana h2 { margin: 0; font-size: 4.6mm; font-weight: 900; color: var(--ot-rosa); }
-.ot-semana p { margin: 1.4mm 0 0; font-size: 3mm; color: var(--ot-texto); }
-.ot-dia { margin-top: 3.5mm; }
-.ot-dia-barra { background: var(--ot-painel-2); border-left: 1.2mm solid var(--ot-rosa); border-radius: 0 2mm 2mm 0; padding: 2.4mm 4mm; font-weight: 700; font-size: 3.3mm; letter-spacing: .1mm; }
-.ot-cols, .ot-linha { display: grid; grid-template-columns: 61mm 29mm 1fr; padding: 0 4mm; }
-.ot-cols { font-size: 2.9mm; font-weight: 700; color: var(--ot-suave); padding-top: 2.6mm; padding-bottom: 1.6mm; }
-.ot-linha { height: 4.2mm; line-height: 4.2mm; font-size: 3.05mm; }
-.ot-linha:nth-child(odd) { background: var(--ot-z2); }
-.ot-linha:nth-child(even) { background: var(--ot-z1); }
-.ot-bloco { color: var(--ot-suave); letter-spacing: .1mm; }
-.ot-u { font-weight: 900; }
-.ot-u.u3 { color: var(--ot-rosa); }
+.ot-faixa { position: absolute; left: 0; top: 0; bottom: 0; width: 9mm; background: var(--ot-marsala); }
+.ot-aguia { position: absolute; right: -12mm; top: -6mm; width: 70mm; opacity: .55; pointer-events: none; }
+.ot-topo { position: relative; display: flex; gap: 7mm; align-items: center; }
+.ot-logo { width: 30mm; height: auto; display: block; }
+.ot-topo h1 { margin: 0; font-size: 7mm; font-weight: 800; color: var(--ot-marsala); letter-spacing: .1mm; }
+.ot-topo p { margin: 1.2mm 0 0; font-size: 3mm; color: var(--ot-suave); letter-spacing: .1mm; }
+.ot-semana { position: relative; margin-top: 7mm; background: var(--ot-claro); border-left: 1.4mm solid var(--ot-marsala); border-radius: 0 2mm 2mm 0; padding: 3.6mm 5mm; }
+.ot-semana h2 { margin: 0; font-size: 4.4mm; font-weight: 800; color: var(--ot-marsala); }
+.ot-semana p { margin: 1.2mm 0 0; font-size: 3mm; color: var(--ot-suave); }
+.ot-dia { position: relative; margin-top: 3.5mm; }
+.ot-dia-barra { background: var(--ot-marsala); color: #fff; border-radius: 1.6mm 1.6mm 0 0; padding: 2.2mm 4mm; font-weight: 700; font-size: 3.3mm; letter-spacing: .15mm; }
+.ot-cols, .ot-linha { display: grid; grid-template-columns: 52mm 24mm 1fr; padding: 0 4mm; }
+.ot-cols { font-size: 2.8mm; font-weight: 700; color: var(--ot-marsala); background: var(--ot-claro); padding-top: 1.8mm; padding-bottom: 1.6mm; border: .2mm solid var(--ot-linha); border-top: 0; }
+.ot-linhas { border: .2mm solid var(--ot-linha); border-top: 0; }
+.ot-linha { height: 4.2mm; line-height: 4.2mm; font-size: 3.05mm; border-bottom: .2mm solid var(--ot-linha); }
+.ot-linha:last-child { border-bottom: 0; }
+.ot-linha:nth-child(even) { background: var(--ot-z); }
+.ot-linha:nth-child(odd) { background: #fff; }
+.ot-bloco { color: var(--ot-suave); }
+.ot-u { font-weight: 700; }
+.ot-u span { display: inline-block; line-height: 3.2mm; padding: 0 1.4mm; border-radius: .8mm; background: var(--ot-marsala); color: #fff; font-size: 2.6mm; }
 .ot-pag { padding-left: 3mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ot-linha.buf .ot-pag { color: var(--ot-rosa); font-weight: 900; position: relative; }
-.ot-linha.buf .ot-pag::before { content: ''; position: absolute; left: 0; top: 1.1mm; width: .9mm; height: 2mm; border-radius: .4mm; background: var(--ot-rosa); }
-.ot-rodape { position: absolute; left: 14mm; right: 14mm; bottom: 9mm; display: flex; justify-content: space-between; font-size: 2.8mm; color: var(--ot-suave); }
-.ot-rodape strong { color: var(--ot-rosa); font-weight: 900; letter-spacing: .2mm; }
-.ot-vazio { margin-top: 10mm; font-size: 4mm; color: var(--ot-suave); }
-@media print { html, body { background: var(--ot-fundo); } .ot-folha { margin: 0; } }
+.ot-linha.buf .ot-pag { color: var(--ot-marsala-2); font-weight: 700; position: relative; }
+.ot-linha.buf .ot-pag::before { content: ''; position: absolute; left: 0; top: 1.1mm; width: .9mm; height: 2mm; border-radius: .4mm; background: var(--ot-marsala-2); }
+.ot-rodape { position: absolute; left: 24mm; right: 14mm; bottom: 8mm; display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; font-size: 2.6mm; color: var(--ot-suave); }
+.ot-regra { flex: 1; text-align: center; }
+.ot-site { color: var(--ot-marsala); font-weight: 600; font-size: 2.8mm; }
+.ot-vazio { position: relative; margin-top: 10mm; font-size: 4mm; color: var(--ot-suave); }
+@media print { html, body { background: #fff; } .ot-folha { margin: 0; } }
 </style></head><body>
 <?php ob_start(); ?>
 <?php if (!$folhas): ?>
-<section class="ot-folha">
+<section class="ot-folha"><?php echo $timbre; ?>
   <div class="ot-topo"><?php echo $logo; ?><div><h1>OVERTIME OPPORTUNITIES</h1><p>SCHEDULE &nbsp;|&nbsp; <?php echo h($periodo); ?><?php echo ESC_DOC_TOKEN; ?></p></div></div>
   <p class="ot-vazio"><?php echo h('No open blocks from ' . date('D d/m/Y', strtotime($de)) . ' ' . ESC_OT_TURNO_HORA[$turno] . 'h' . ($planos ? '' : ': no schedule generated for this period yet') . '.'); ?></p>
   <?php echo $rodape(1); ?>
 </section>
 <?php endif; ?>
 <?php foreach ($folhas as $n => $f): ?>
-<section class="ot-folha">
+<section class="ot-folha"><?php echo $timbre; ?>
   <div class="ot-topo"><?php echo $logo; ?><div><h1>OVERTIME OPPORTUNITIES</h1>
     <p>SCHEDULE &nbsp;|&nbsp; <?php echo h($periodo); ?> &nbsp;|&nbsp; <?php echo h('PLAN ' . $versoesEscala); ?><?php echo ESC_DOC_TOKEN; ?></p></div></div>
   <div class="ot-semana">
@@ -170,9 +176,9 @@ body { font-family: Lato, Arial, sans-serif; color: var(--ot-texto); -webkit-pri
   <div class="ot-dia">
     <div class="ot-dia-barra"><?php echo h($up(date('D', strtotime($d['dia']))) . ' · ' . $up(date('d M Y', strtotime($d['dia'])))); ?><?php echo $d['cont'] ? ' &nbsp;/&nbsp; CONTINUED' : ''; ?></div>
     <div class="ot-cols"><span>BLOCK</span><span>UNIT</span><span>PAGE / COVERAGE</span></div>
-    <div>
+    <div class="ot-linhas">
     <?php foreach ($d['linhas'] as $l): ?>
-      <div class="ot-linha<?php echo $l['buf'] ? ' buf' : ''; ?>"><span class="ot-bloco"><?php echo h($l['bloco'] . ' ' . ESC_OT_BLOCO_HORA[$l['bloco']][1]); ?></span><span class="ot-u u<?php echo (int) $l['u']; ?>">U<?php echo (int) $l['u']; ?></span><span class="ot-pag"><?php echo h($l['txt']); ?></span></div>
+      <div class="ot-linha<?php echo $l['buf'] ? ' buf' : ''; ?>"><span class="ot-bloco"><?php echo h($l['bloco'] . ' ' . ESC_OT_BLOCO_HORA[$l['bloco']][1]); ?></span><span class="ot-u u<?php echo (int) $l['u']; ?>"><span>U<?php echo (int) $l['u']; ?></span></span><span class="ot-pag"><?php echo h($l['txt']); ?></span></div>
     <?php endforeach; ?>
     </div>
   </div>

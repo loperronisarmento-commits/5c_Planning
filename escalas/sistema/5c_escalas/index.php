@@ -49,6 +49,7 @@ require_once __DIR__ . '/lib/equilibrio.php';
 require_once __DIR__ . '/lib/treinamento.php';
 require_once __DIR__ . '/lib/casais.php';
 require_once __DIR__ . '/lib/gerar_etapas.php';
+require_once __DIR__ . '/lib/restricoes_om_gestao.php';
 
 // ---------- nível 1: logado no MIS Portal? ----------
 startSecureSession();

@@ -16,6 +16,49 @@
 $hoje = date('Y-m-d');
 $soU = (int) ($_GET['unidade'] ?? 0);
 $soPag = trim((string) ($_GET['pagina'] ?? ''));
+
+// Gestão (pedido de 07/11, lib/restricoes_om_gestao.php): editar, apagar, ativar e desativar, uma por uma ou em lote.
+if (escPost()) {
+    escExigir('planejar');
+    $voltaFix = array_filter(['unidade' => $soU ?: null]);
+    $ativasSel = array_values(array_filter((array) ($_POST['itens'] ?? []), 'is_string'));
+    $inativasSel = array_map('intval', (array) ($_POST['inativas'] ?? []));
+    $acaoOm = (string) ($_POST['acao'] ?? '');
+    $um = (string) ($_POST['um'] ?? '');
+    if ($um !== '') {
+        [$acaoOm, $alvo] = array_pad(explode(':', $um, 2), 2, '');
+        $acaoOm = 'om_' . $acaoOm;
+        $ativasSel = $acaoOm === 'om_ativar' || ($acaoOm === 'om_apagar' && ctype_digit($alvo)) ? [] : [$alvo];
+        $inativasSel = $acaoOm === 'om_ativar' || ($acaoOm === 'om_apagar' && ctype_digit($alvo)) ? [(int) $alvo] : [];
+    }
+    if ($acaoOm === 'om_editar') {
+        $chaveEd = $ativasSel[0] ?? '';
+        $o = escOmEditar($chaveEd, (array) ($_POST['ed'][$chaveEd] ?? []), $hoje);
+        escVoltar('fixacoes', $voltaFix, t('Restrição editada: {o}. Vale a partir do próximo Gerar.', ['o' => $o]), false, 'gestao-om');
+    }
+    if (!$ativasSel && !$inativasSel) {
+        escVoltar('fixacoes', $voltaFix, t('Nenhuma restrição selecionada.'), true, 'gestao-om');
+    }
+    if ($acaoOm === 'om_desativar') {
+        if (!$ativasSel) {
+            escVoltar('fixacoes', $voltaFix, t('Selecione restrições ativas para desativar.'), true, 'gestao-om');
+        }
+        $n = escOmDesativar($ativasSel, $hoje);
+        escVoltar('fixacoes', $voltaFix, tn($n, '{n} restrição desativada. Vale a partir do próximo Gerar; para voltar, use Ativar.', '{n} restrições desativadas. Valem a partir do próximo Gerar; para voltar, use Ativar.'), false, 'gestao-om');
+    }
+    if ($acaoOm === 'om_ativar') {
+        if (!$inativasSel) {
+            escVoltar('fixacoes', $voltaFix, t('Selecione restrições desativadas para ativar.'), true, 'gestao-om');
+        }
+        $n = escOmAtivar($inativasSel);
+        escVoltar('fixacoes', $voltaFix, tn($n, '{n} restrição ativada de novo. Vale a partir do próximo Gerar.', '{n} restrições ativadas de novo. Valem a partir do próximo Gerar.'), false, 'gestao-om');
+    }
+    if ($acaoOm === 'om_apagar') {
+        $n = escOmApagar($ativasSel, $inativasSel, $hoje);
+        escVoltar('fixacoes', $voltaFix, tn($n, '{n} restrição apagada (fica no log).', '{n} restrições apagadas (ficam no log).'), false, 'gestao-om');
+    }
+    escVoltar('fixacoes', $voltaFix, t('Ação desconhecida.'), true, 'gestao-om');
+}
 $nomes = escNomes();
 $chave = static fn(string $p): string => mb_strtolower(preg_replace('~\s+~u', ' ', trim($p)), 'UTF-8');
 $TURNOS = ['A' => 'A · T2/T3', 'C' => 'C · T4/T5', 'D' => 'D · T6/T1'];
@@ -342,6 +385,127 @@ if ($verVersao > 0):
 <?php endforeach; endif; ?>
 </div>
 <?php $docFix = escDocFim('restricoes', $escopoFix, true); $versoesFix = escDocVersoes('restricoes', $escopoFix); ?>
+<?php endif; ?>
+<?php if ($verVersao === 0 && $soPag === '' && escPode('planejar')):
+    $omItens = array_values(array_filter(escOmItens($hoje), static fn($i) => !$soU || (int) $i['unidade'] === $soU));
+    $omInativas = array_values(array_filter(escOmInativas(), static fn($i) => !$soU || (int) $i['unidade'] === $soU));
+    $omUnid = static fn($u) => (int) $u ? 'U' . (int) $u : '—';
+    $rotPapelPrio = ['EQUIPE' => t('equipe'), 'MAIN' => t('main'), 'COVER' => t('cover')]; ?>
+<section class="panel nao-imprimir" id="gestao-om">
+  <h2><?php echo h($soU ? t('Gerenciar as restrições da U{u}', ['u' => $soU]) : t('Gerenciar as restrições')); ?></h2>
+  <p class="muted small"><?php echo h(t('Desativar tira a restrição do Gerar e do documento acima, e ela fica guardada aqui embaixo para ativar de novo como estava. Apagar tira de vez (o log guarda o que era). Tudo vale a partir do próximo Gerar ou Recalcular. A alocação da página (Active team, On demand, Exclusiva) fica na tela Configuração das páginas.')); ?></p>
+  <?php if (!escOmGestaoInstalada()): ?><p class="aviso"><?php echo h(t('Desativar e ativar precisam da lista das restrições desativadas (script ES_129). Editar e apagar já funcionam.')); ?></p><?php endif; ?>
+  <form method="post" action="<?php echo h(link_tela('fixacoes', array_filter(['unidade' => $soU ?: null]))); ?>" id="om-gestao">
+    <?php echo campoCsrf(); ?>
+    <div class="acoes lote-barra">
+      <span class="small"><strong id="om-n">0</strong> <?php echo h(t('selecionada(s)')); ?></span>
+      <button type="submit" name="acao" value="om_desativar" class="botao" data-om-lote disabled data-confirmar="<?php echo h(t('Desativar as restrições ativas selecionadas? Elas saem do próximo Gerar e ficam guardadas para ativar de novo.')); ?>"><?php echo h(t('Desativar')); ?></button>
+      <button type="submit" name="acao" value="om_ativar" class="botao" data-om-lote disabled><?php echo h(t('Ativar')); ?></button>
+      <button type="submit" name="acao" value="om_apagar" class="botao perigo" data-om-lote disabled data-confirmar="<?php echo h(t('Apagar de vez as restrições selecionadas? Não dá para ativar de novo (o log guarda o que eram).')); ?>"><?php echo h(t('Apagar…')); ?></button>
+    </div>
+    <h3><?php echo h(t('Ativas ({n})', ['n' => count($omItens)])); ?></h3>
+    <div class="tabela-rolagem">
+    <table>
+      <thead><tr><th data-sem-ordem class="col-sel"><input type="checkbox" class="om-todas" data-alvo="om-ativa" aria-label="<?php echo h(t('Selecionar todas as ativas')); ?>"></th><th><?php echo h(t('Unidade')); ?></th><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Restrição')); ?></th><th><?php echo h(t('Detalhe')); ?></th><th data-sem-ordem></th></tr></thead>
+      <tbody>
+      <?php foreach ($omItens as $i): $k = $i['chave']; $ed = $i['editar']; ?>
+        <tr>
+          <td class="col-sel"><input type="checkbox" name="itens[]" value="<?php echo h($k); ?>" class="om-sel om-ativa" aria-label="<?php echo h(t('Selecionar {o}', ['o' => $i['nome'] . ' · ' . $i['tipo']])); ?>"></td>
+          <td><?php echo h($omUnid($i['unidade'])); ?></td>
+          <td><?php echo h($i['nome']); ?> <span class="mono small"><?php echo h($i['rep']); ?></span></td>
+          <td><?php echo h($i['tipo']); ?></td>
+          <td class="small"><?php echo h($i['texto'] !== '' ? $i['texto'] : '—'); ?></td>
+          <td class="nowrap">
+            <?php if (escOmGestaoInstalada()): ?><button type="submit" name="um" value="<?php echo h('desativar:' . $k); ?>" class="botao small"><?php echo h(t('Desativar')); ?></button><?php endif; ?>
+            <button type="submit" name="um" value="<?php echo h('apagar:' . $k); ?>" class="botao small perigo" data-confirmar="<?php echo h(t('Apagar de vez: {o}? Não dá para ativar de novo (o log guarda o que era).', ['o' => $i['nome'] . ' · ' . $i['tipo'] . ($i['texto'] !== '' ? ' · ' . $i['texto'] : '')])); ?>"><?php echo h(t('Apagar')); ?></button>
+            <?php if ($ed): ?>
+            <details class="om-editar"><summary class="botao small"><?php echo h(t('Editar')); ?></summary>
+              <div class="filtros">
+              <?php $nmCampo = static fn(string $c) => 'ed[' . $k . '][' . $c . ']'; ?>
+              <?php if (isset($ed['papel'])): ?>
+                <label><?php echo h(t('Papel')); ?> <select name="<?php echo h($nmCampo('papel')); ?>"><?php foreach ($rotPapelPrio as $v => $r): ?><option value="<?php echo h($v); ?>"<?php echo $ed['papel'] === $v ? ' selected' : ''; ?>><?php echo h($r); ?></option><?php endforeach; ?></select></label>
+              <?php endif; ?>
+              <?php if (isset($ed['papel_assist'])): ?>
+                <label><?php echo h(t('Papel')); ?> <select name="<?php echo h($nmCampo('papel_assist')); ?>"><option value="ASSISTENTE"<?php echo $ed['papel_assist'] === 'ASSISTENTE' ? ' selected' : ''; ?>><?php echo h(t('só assistente')); ?></option><option value="FORA"<?php echo $ed['papel_assist'] === 'FORA' ? ' selected' : ''; ?>><?php echo h(t('proibido')); ?></option></select></label>
+              <?php endif; ?>
+              <?php if (isset($ed['de'])): ?>
+                <label><?php echo h(t('De')); ?> <input type="date" name="<?php echo h($nmCampo('de')); ?>" value="<?php echo h($ed['de']); ?>" required></label>
+                <label><?php echo h(t('Até (vazio = sem fim)')); ?> <input type="date" name="<?php echo h($nmCampo('ate')); ?>" value="<?php echo h($ed['ate']); ?>"></label>
+              <?php endif; ?>
+              <?php if (isset($ed['partes'])): foreach ($ed['partes'] as $id => [$pg, $p]): ?>
+                <label><?php echo h($pg); ?> <input type="number" min="1" max="100" step="1" name="<?php echo h('ed[' . $k . '][parte][' . (int) $id . ']'); ?>" value="<?php echo h((string) $p); ?>" size="4"> %</label>
+              <?php endforeach; endif; ?>
+              <?php if (array_key_exists('ate_solo', $ed)): ?>
+                <label><?php echo h(t('Até (vazio = sem fim)')); ?> <input type="date" name="<?php echo h($nmCampo('ate_solo')); ?>" value="<?php echo h($ed['ate_solo']); ?>"></label>
+              <?php endif; ?>
+              <?php if (isset($ed['paginas'])): ?>
+                <label><?php echo h(t('Páginas (separadas por vírgula)')); ?> <input type="text" name="<?php echo h($nmCampo('paginas')); ?>" value="<?php echo h($ed['paginas']); ?>" size="50"></label>
+              <?php endif; ?>
+              <?php if (isset($ed['faixa'])): ?>
+                <label><?php echo h(t('Faixa em US$ (mínimo-máximo)')); ?> <input type="text" name="<?php echo h($nmCampo('faixa')); ?>" value="<?php echo h($ed['faixa']); ?>" size="14"></label>
+              <?php endif; ?>
+                <button type="submit" name="um" value="<?php echo h('editar:' . $k); ?>" class="botao small primario"><?php echo h(t('Salvar')); ?></button>
+              </div>
+            </details>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      <?php if (!$omItens): ?><tr><td colspan="6" class="muted"><?php echo h(t('Nenhuma restrição ativa.')); ?></td></tr><?php endif; ?>
+      </tbody>
+    </table>
+    </div>
+    <h3><?php echo h(t('Desativadas ({n})', ['n' => count($omInativas)])); ?></h3>
+    <div class="tabela-rolagem">
+    <table>
+      <thead><tr><th data-sem-ordem class="col-sel"><input type="checkbox" class="om-todas" data-alvo="om-inativa" aria-label="<?php echo h(t('Selecionar todas as desativadas')); ?>"></th><th><?php echo h(t('Unidade')); ?></th><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Restrição')); ?></th><th><?php echo h(t('Detalhe')); ?></th><th><?php echo h(t('Desativada em')); ?></th><th data-sem-ordem></th></tr></thead>
+      <tbody>
+      <?php foreach ($omInativas as $i): ?>
+        <tr>
+          <td class="col-sel"><input type="checkbox" name="inativas[]" value="<?php echo (int) $i['id']; ?>" class="om-sel om-inativa" aria-label="<?php echo h(t('Selecionar {o}', ['o' => $i['nome'] . ' · ' . $i['tipo']])); ?>"></td>
+          <td><?php echo h($omUnid($i['unidade'])); ?></td>
+          <td><?php echo h($i['nome']); ?> <span class="mono small"><?php echo h((string) $i['rep_code']); ?></span></td>
+          <td><?php echo h((string) $i['tipo']); ?></td>
+          <td class="small"><?php echo h((string) $i['texto'] !== '' ? (string) $i['texto'] : (string) ($i['pagina'] ?: '—')); ?></td>
+          <td class="small"><?php echo h(escDataHora((string) $i['desativada_em'], true)); ?></td>
+          <td class="nowrap">
+            <button type="submit" name="um" value="<?php echo h('ativar:' . (int) $i['id']); ?>" class="botao small primario"><?php echo h(t('Ativar')); ?></button>
+            <button type="submit" name="um" value="<?php echo h('apagar:' . (int) $i['id']); ?>" class="botao small perigo" data-confirmar="<?php echo h(t('Apagar de vez: {o}? Não dá para ativar de novo (o log guarda o que era).', ['o' => $i['nome'] . ' · ' . $i['tipo']])); ?>"><?php echo h(t('Apagar')); ?></button>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+      <?php if (!$omInativas): ?><tr><td colspan="7" class="muted"><?php echo h(t('Nenhuma restrição desativada.')); ?></td></tr><?php endif; ?>
+      </tbody>
+    </table>
+    </div>
+  </form>
+</section>
+<script>
+(function () {
+  var form = document.getElementById('om-gestao');
+  if (!form) { return; }
+  function contar() {
+    var n = form.querySelectorAll('.om-sel:checked').length;
+    document.getElementById('om-n').textContent = n;
+    form.querySelectorAll('[data-om-lote]').forEach(function (b) { b.disabled = n === 0; });
+  }
+  form.addEventListener('change', function (ev) {
+    var c = ev.target;
+    if (c.classList.contains('om-todas')) {
+      form.querySelectorAll('.' + c.getAttribute('data-alvo')).forEach(function (x) { x.checked = c.checked; });
+    }
+    if (c.type === 'checkbox') { contar(); }
+  });
+  // Só vão no envio os campos da edição que está aberta (limite de campos do PHP, max_input_vars).
+  form.addEventListener('submit', function (ev) {
+    if (ev.defaultPrevented) { return; }
+    form.querySelectorAll('details.om-editar:not([open]) input, details.om-editar:not([open]) select').forEach(function (x) { x.disabled = true; });
+  });
+  // Enter num campo de edição não envia o formulário inteiro.
+  form.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && ev.target.tagName === 'INPUT') { ev.preventDefault(); } });
+  contar();
+})();
+</script>
 <?php endif; ?>
 <section class="panel nao-imprimir">
   <h2><?php echo h(t('Versões deste documento')); ?></h2>

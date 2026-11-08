@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.20.0' => ['titulo' => 'Managing OM restrictions and Overtime PDF in the 5C standard', 'itens' => [
+    'OM restrictions: "Manage restrictions" panel below the document (Planning, WFM and admin). Each restriction is one row (fixed team per person, assistant only or barred, split, per-person parameters, does not work as assistant and non-negotiable), with Deactivate, Edit and Delete, one by one or in batches (select all of the unit). Applies from the next Generate or Recalculate.',
+    'Deactivate removes the restriction from Generate and from the document and keeps it in the "Deactivated" list (esc_restricao_om_inativa, ES_129), from where Activate puts it back as it was. Delete removes it for good, and the log keeps what it was. Edit: role and dates of the fixed team and of assistant only or barred, split shares, pages or revenue band of per-person parameters and the solo end date (lib/restricoes_om_gestao.php).',
+    'Overtime announcement PDF in the 5C standard: light letterhead, marsala band, 5C logo and eagle, Open Sans, unit in a marsala badge, highlighted buffers and a footer with the sheet number and www.5ccompany.com (before it was dark A4 with pink).',
+    'Data (ES_128 to ES_134), week of 11/09, draft v3.6: U1, U2 and U3 locked as the OMs built them; U1 restrictions deactivated at the OM request; U2 D swaps (Veronio) and buffers; empty cells linked to their post so they show in Overtime.',
+    ]],
     '1.19.23' => ['titulo' => 'Overtime PDF only for the chosen week', 'itens' => [
     'Overtime announcement PDF: it runs from the chosen shift only to the end of the week of that date (before, it ran to the end of the following week). The Monday T1 stays, because it is the end of the Sunday D shift.',
     ]],
