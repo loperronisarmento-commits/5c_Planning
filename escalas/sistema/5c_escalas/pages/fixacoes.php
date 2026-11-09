@@ -18,7 +18,7 @@ $soU = (int) ($_GET['unidade'] ?? 0);
 $soPag = trim((string) ($_GET['pagina'] ?? ''));
 
 // Gestão (pedido de 07/11, lib/restricoes_om_gestao.php): editar, apagar, ativar e desativar, uma por uma ou em lote.
-if (escPost()) {
+if (escPost() && empty($GLOBALS['ESC_DOC_SO_MONTAR'])) {
     escExigir('planejar');
     $voltaFix = array_filter(['unidade' => $soU ?: null]);
     $ativasSel = array_values(array_filter((array) ($_POST['itens'] ?? []), 'is_string'));

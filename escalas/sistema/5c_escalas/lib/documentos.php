@@ -157,6 +157,8 @@ function escRestricoesRegistrarVersoes(): void {
         return;
     }
     $get = $_GET;
+    // Chamada dentro de um POST (Gerar, saída de página): a tela só monta o documento, sem rodar as ações dela.
+    $GLOBALS['ESC_DOC_SO_MONTAR'] = true;
     try {
         foreach ([1, 2, 3, 0] as $u) {
             $_GET = $u ? ['p' => 'fixacoes', 'unidade' => (string) $u] : ['p' => 'fixacoes'];
@@ -173,6 +175,7 @@ function escRestricoesRegistrarVersoes(): void {
         appLog('warning', 'Restrições dos OM: versão não registrada antes de gerar', ['erro' => $e->getMessage()]);
     } finally {
         $_GET = $get;
+        unset($GLOBALS['ESC_DOC_SO_MONTAR']);
     }
 }
 
