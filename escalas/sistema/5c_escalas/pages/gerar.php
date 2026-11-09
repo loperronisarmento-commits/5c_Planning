@@ -341,6 +341,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
     <li><strong><?php echo h(t('Releitura:')); ?></strong> <?php echo h(t('lê as últimas 4 semanas do scheduleday e descobre onde cada pessoa está no ciclo e quantos dias seguidos já trabalhou.')); ?></li>
     <li><strong><?php echo h(t('Ordem de preenchimento:')); ?></strong> <?php echo h(t('party dona → outras parties do time → SR regular → SR assistente → Buffers → lacuna.')); ?></li>
     <li><strong><?php echo h(t('Recálculo:')); ?></strong> <?php echo h(t('qualquer mudança no Capacity, estrutura, páginas, colaboradores, pedidos aprovados ou modelos gera uma nova subversão (v3.1). Quem já está na escala publicada não sai sozinho: vira sugestão.')); ?></li>
+    <li><strong><?php echo h(t('Travas:')); ?></strong> <?php echo h(t('quem está travado num turno não entra em outra célula dele; posto todo travado não gasta ninguém. Semana encerrada não gera.')); ?></li>
   </ol>
   <?php endif; ?>
 </section>

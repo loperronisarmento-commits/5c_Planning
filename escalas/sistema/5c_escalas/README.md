@@ -172,6 +172,10 @@ Era o motor da estrutura antiga (`lib/motor.php`); as semanas a partir da virada
 
 Apague a pasta e a linha do `.htaccess`. Os dados ficam no `5c_escalas` (o `ES_999_desfazer.sql` apaga o schema).
 
+## Acesso restrito (1.21.0)
+
+`escPodeVerRestrito()` (perfil real ADMIN, PLANEJAMENTO ou WFM, também no Modo Treino) controla a Política de mérito (telas `owners` e `merito`, seções de mérito e política em Regras), as tags individuais, o motivo da indisponibilidade, Folga juntos, venda por hora, faturamento e valor de contrato. Telas `times`, `trocas` e `modelos` só para admin. Este README não é servido pela web (`.htaccess`).
+
 ## Requisitos
 
 PHP 7.4 ou mais novo, com `pdo_mysql` (e ZipArchive para o .zip). MySQL 8.0.19 ou mais novo (usa `INSERT ... AS n ON DUPLICATE KEY UPDATE`); o servidor .11 está no 9.5.

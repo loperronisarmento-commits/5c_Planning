@@ -1,6 +1,8 @@
 <?php
 // Textos em inglês da tela Gerar escala (pages/gerar.php). O português é a chave.
 return [
+    'quem está travado num turno não entra em outra célula dele; posto todo travado não gasta ninguém. Semana encerrada não gera.' => 'whoever is locked in a shift does not go to another cell of it; a fully locked post uses nobody. A finished week cannot be generated.',
+    'Travas:' => 'Locks:',
     'Só mudou a partir de {quando}; antes disso ficou igual ao site (5C Schedule), e o CSV do dia leva os blocos de antes iguais ao site.' => 'Only changed from {quando}; before that it stayed as on the site (5C Schedule), and the CSV for that day carries the earlier blocks as on the site.',
     'Antes do corte, igual ao site (5C Schedule): as células de antes vêm da escala oficial, não da versão publicada' => 'Before the cut, as on the site (5C Schedule): earlier cells come from the official schedule, not the published version',
     // avisos e erros das ações
