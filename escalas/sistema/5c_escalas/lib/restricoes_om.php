@@ -28,6 +28,10 @@
 // só assistente/proibido, divisão; e tira dos parâmetros de restrição quem já passou do último dia.
 // Roda no fim da saída de página e antes de cada Gerar. $gravar = false só lista o que faria.
 function escOmEncerrarOrfas(string $hoje, bool $gravar = true): array {
+    return $gravar ? escTx(static fn() => escOmEncerrarOrfasFazer($hoje, true)) : escOmEncerrarOrfasFazer($hoje, false);
+}
+
+function escOmEncerrarOrfasFazer(string $hoje, bool $gravar): array {
     $feito = [];
     $chave = static fn(string $p): string => mb_strtolower(trim((string) preg_replace('~\s+~u', ' ', $p)), 'UTF-8');
     $fimRep = [];

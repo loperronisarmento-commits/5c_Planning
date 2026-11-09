@@ -1346,7 +1346,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   busca.addEventListener('input', aplicar);
   document.querySelectorAll('[data-postar-estado]').forEach(function (b) {
     b.addEventListener('click', function () {
-      document.querySelectorAll('[data-postar-estado]').forEach(function (x) { x.classList.toggle('ativo', x === b); });
+      document.querySelectorAll('[data-postar-estado]').forEach(function (x) { x.classList.toggle('ativo', x === b); x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
       estado = b.dataset.postarEstado;
       aplicar();
     });

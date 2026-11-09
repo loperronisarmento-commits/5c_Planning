@@ -34,28 +34,30 @@ if (escPost()) {
     if (!escQ1('SELECT 1 AS ok FROM `5c_pages`.`pages` WHERE active = 1 AND name = ?', [$pagina])) {
         throw new RuntimeException(t('Página não encontrada entre as ativas do site. Recarregue a tela.'));
     }
-    if ($comAlocacao) {
-        $antes = escQ1('SELECT pagina, sla_modo, alocacao FROM ' . escT('esc_pagina_config') . ' WHERE pagina = ?', [$pagina]);
-        escW('INSERT INTO ' . escT('esc_pagina_config') . ' (pagina, sla_modo, alocacao, atualizado_por) VALUES (?, ?, ?, ?)
-              ON DUPLICATE KEY UPDATE sla_modo = VALUES(sla_modo), alocacao = VALUES(alocacao), atualizado_por = VALUES(atualizado_por)', [$pagina, $modo, $aloc, escUserId() ?: null]);
-    } else {
-        $antes = escQ1('SELECT pagina, sla_modo FROM ' . escT('esc_pagina_config') . ' WHERE pagina = ?', [$pagina]);
-        escW('INSERT INTO ' . escT('esc_pagina_config') . ' (pagina, sla_modo, atualizado_por) VALUES (?, ?, ?)
-              ON DUPLICATE KEY UPDATE sla_modo = VALUES(sla_modo), atualizado_por = VALUES(atualizado_por)', [$pagina, $modo, escUserId() ?: null]);
-    }
-    $depois = ['sla_modo' => $modo] + ($comAlocacao ? ['alocacao' => $aloc] : []);
-    if ($comFlags) {
-        // A origem só muda quando o valor muda (fica a do Telegram, do cadastro ou do site até alguém trocar).
-        $flagsAntes = escQ1('SELECT sensibilidade, plataforma FROM ' . escT('esc_pagina_config') . ' WHERE pagina = ?', [$pagina]) ?: [];
-        $antes = ($antes ?: []) + $flagsAntes;
-        $origem = mb_substr('manual: ' . ($GLOBALS['ESC_USUARIO']['nome'] ?? t('usuário')) . ' ' . date('d/m'), 0, 60);
-        escW('UPDATE ' . escT('esc_pagina_config') . '
-                 SET sensibilidade_origem = IF(IFNULL(sensibilidade = ?, 0), sensibilidade_origem, ?), sensibilidade = ?,
-                     plataforma_origem = IF(IFNULL(plataforma = ?, 0), plataforma_origem, ?), plataforma = ?
-               WHERE pagina = ?', [$cor, $origem, $cor, $plat, $origem, $plat, $pagina]);
-        $depois += ['sensibilidade' => $cor, 'plataforma' => $plat];
-    }
-    escLog('pagina.config', 'esc_pagina_config', $pagina, $antes, $depois);
+    escTx(function () use ($comAlocacao, $comFlags, $pagina, $modo, $aloc, $cor, $plat) {
+        if ($comAlocacao) {
+            $antes = escQ1('SELECT pagina, sla_modo, alocacao FROM ' . escT('esc_pagina_config') . ' WHERE pagina = ?', [$pagina]);
+            escW('INSERT INTO ' . escT('esc_pagina_config') . ' (pagina, sla_modo, alocacao, atualizado_por) VALUES (?, ?, ?, ?)
+                  ON DUPLICATE KEY UPDATE sla_modo = VALUES(sla_modo), alocacao = VALUES(alocacao), atualizado_por = VALUES(atualizado_por)', [$pagina, $modo, $aloc, escUserId() ?: null]);
+        } else {
+            $antes = escQ1('SELECT pagina, sla_modo FROM ' . escT('esc_pagina_config') . ' WHERE pagina = ?', [$pagina]);
+            escW('INSERT INTO ' . escT('esc_pagina_config') . ' (pagina, sla_modo, atualizado_por) VALUES (?, ?, ?)
+                  ON DUPLICATE KEY UPDATE sla_modo = VALUES(sla_modo), atualizado_por = VALUES(atualizado_por)', [$pagina, $modo, escUserId() ?: null]);
+        }
+        $depois = ['sla_modo' => $modo] + ($comAlocacao ? ['alocacao' => $aloc] : []);
+        if ($comFlags) {
+            // A origem só muda quando o valor muda (fica a do Telegram, do cadastro ou do site até alguém trocar).
+            $flagsAntes = escQ1('SELECT sensibilidade, plataforma FROM ' . escT('esc_pagina_config') . ' WHERE pagina = ?', [$pagina]) ?: [];
+            $antes = ($antes ?: []) + $flagsAntes;
+            $origem = mb_substr('manual: ' . ($GLOBALS['ESC_USUARIO']['nome'] ?? t('usuário')) . ' ' . date('d/m'), 0, 60);
+            escW('UPDATE ' . escT('esc_pagina_config') . '
+                     SET sensibilidade_origem = IF(IFNULL(sensibilidade = ?, 0), sensibilidade_origem, ?), sensibilidade = ?,
+                         plataforma_origem = IF(IFNULL(plataforma = ?, 0), plataforma_origem, ?), plataforma = ?
+                   WHERE pagina = ?', [$cor, $origem, $cor, $plat, $origem, $plat, $pagina]);
+            $depois += ['sensibilidade' => $cor, 'plataforma' => $plat];
+        }
+        escLog('pagina.config', 'esc_pagina_config', $pagina, $antes, $depois);
+    });
     escVoltar('paginas', array_intersect_key($_GET, ['f' => 1]), t('{pagina}: {modo}. Vale a partir do próximo "Gerar" e do próximo cálculo do Capacity.', ['pagina' => $pagina, 'modo' => $modos[$modo] . ($comAlocacao ? ' · ' . $alocacoes[$aloc] : '')])
         . ($comFlags ? ' ' . t('Cor {cor} e plataforma {plat} registradas.', ['cor' => $cores[$cor], 'plat' => $plat]) : ''));
 }
