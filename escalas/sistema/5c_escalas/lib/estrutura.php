@@ -76,12 +76,20 @@ function escEstruturaSemEscala(): callable {
 function escEstruturaPaginasFora(string $hoje): array {
     $de = escMaisDias($hoje, -max(1, (int) escV4Param('v4_estrutura_movimento_dias', '14')));
     $novaDe = escMaisDias($hoje, -max(0, (int) escV4Param('v4_estrutura_nova_dias', '7')));
-    $lista = escQ('SELECT g.id, g.name AS pagina, g.tier, g.imported_at,
-                          (SELECT COUNT(*) FROM `5c_schedule`.`scheduleday` s WHERE s.modeloNome = g.name AND s.shiftDateAndHour >= ?) AS escala,
-                          (SELECT SUM(i.`5CReps`) FROM `5c_wfm_db_mis`.`tab_intraday_base` i WHERE i.Page = g.name AND i.`Date` >= ?) AS venda
-                     FROM `5c_pages`.`pages` g
-                    WHERE g.active = 1 AND g.name <> ?',
-        [$de . 'T00:00:00', $de, escV4Param('v4_overlap_pagina', '5C Schedule')]);
+    // Duas somas de uma vez, juntadas aqui (uma subconsulta por página lia milhões de linhas).
+    $chaveNome = static fn($p) => mb_strtolower(trim((string) $p));
+    $escalaDe = [];
+    foreach (escQ('SELECT modeloNome AS p, COUNT(*) AS n FROM `5c_schedule`.`scheduleday` WHERE shiftDateAndHour >= ? GROUP BY modeloNome', [$de . 'T00:00:00']) as $l) {
+        $escalaDe[$chaveNome($l['p'])] = ($escalaDe[$chaveNome($l['p'])] ?? 0) + (int) $l['n'];
+    }
+    $vendaDe = [];
+    foreach (escQ('SELECT Page AS p, SUM(`5CReps`) AS v FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE `Date` >= ? GROUP BY Page', [$de]) as $l) {
+        $vendaDe[$chaveNome($l['p'])] = ($vendaDe[$chaveNome($l['p'])] ?? 0) + (float) $l['v'];
+    }
+    $lista = [];
+    foreach (escQ('SELECT g.id, g.name AS pagina, g.tier, g.imported_at FROM `5c_pages`.`pages` g WHERE g.active = 1 AND g.name <> ?', [escV4Param('v4_overlap_pagina', '5C Schedule')]) as $l) {
+        $lista[] = $l + ['escala' => $escalaDe[$chaveNome($l['pagina'])] ?? 0, 'venda' => $vendaDe[$chaveNome($l['pagina'])] ?? 0];
+    }
     // Já com carteira (comparando sem espaços e sem caixa): no PHP, porque a trava de leitura (escQ)
     // bloqueia a palavra REPLACE no SQL.
     $semEspaco = static fn($p) => mb_strtolower(str_replace(' ', '', trim((string) $p)));

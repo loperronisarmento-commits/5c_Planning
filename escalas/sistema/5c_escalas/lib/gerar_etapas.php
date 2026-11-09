@@ -125,14 +125,11 @@ function escGerarEscala(string $acao, string $seg, string $desde, bool $capacity
     ignore_user_abort(true); // fechar a aba no meio não deixa a geração pela metade
     $resumoCap = '';
     if ($capacityFeito) {
-        $GLOBALS['ESC_ESTRUTURA_AUTO'] = ['erro' => null, 'paginas' => [], 'ja_feito' => true];
-        $GLOBALS['ESC_OM_ORFAS'] = [];
-        $c = escSessao(static function () {
-            $c = $_SESSION['esc_gerar_capacity'] ?? null;
-            unset($_SESSION['esc_gerar_capacity']);
-            return $c;
-        });
+        // Fica na sessão até a geração dar certo: uma repetição por queda de conexão ainda aproveita a etapa 2.
+        $c = escSessao(static fn() => $_SESSION['esc_gerar_capacity'] ?? null);
         if (is_array($c) && ($c['seg'] ?? '') === $seg && (int) ($c['quando'] ?? 0) > time() - 1800) {
+            $GLOBALS['ESC_ESTRUTURA_AUTO'] = ['erro' => null, 'paginas' => [], 'ja_feito' => true];
+            $GLOBALS['ESC_OM_ORFAS'] = [];
             $resumoCap = $c['msg'] !== '' ? ' ' . $c['msg'] : '';
         }
     }
@@ -147,7 +144,12 @@ function escGerarEscala(string $acao, string $seg, string $desde, bool $capacity
         escW('INSERT INTO ' . escT('esc_recalculo_evento') . " (gatilho, descricao, semana_inicio, status) VALUES ('MANUAL', ?, ?, 'DETECTADO')",
             [$minimo ? 'Recálculo com o mínimo de mudanças' : 'Recálculo pedido na tela', $seg]);
         $ev = escUltimoId();
-        $id = escMotorGerar($seg, 'RECALCULO', escUserId(), $ev, $minimo, $desde);
+        try {
+            $id = escMotorGerar($seg, 'RECALCULO', escUserId(), $ev, $minimo, $desde);
+        } catch (Throwable $e) {
+            escEventoErro($ev, $e);
+            throw $e;
+        }
         $msg = $minimo ? t('Recalculado com o mínimo de mudanças.') : t('Recalculado. Veja o De→Para no fim da tela Gerar escala.');
     }
     $msg .= $avisoDesde . ($acao === 'recalcular_minimo' ? escMinimoAviso() : '') . $resumoCap . escEstruturaAviso() . escEquipesAviso() . escCasaisAviso($seg);

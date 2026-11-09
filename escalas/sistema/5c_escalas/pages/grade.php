@@ -43,7 +43,7 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
         };
         $regular = $codigo((string) ($_POST['regular'] ?? ''));
         $brutos = is_array($_POST['assistentes'] ?? null) ? $_POST['assistentes'] : explode(',', (string) ($_POST['assistentes'] ?? ''));
-        $assist = array_values(array_unique(array_filter(array_map(static fn($x) => $codigo((string) $x), $brutos))));
+        $assist = array_values(array_diff(array_unique(array_filter(array_map(static fn($x) => $codigo((string) $x), $brutos))), [$regular]));
         foreach (array_merge([$regular], $assist) as $c) {
             if ($c !== '' && !preg_match('~^[A-Z]\d{6}$~', $c)) {
                 throw new RuntimeException(t('Código inválido: {codigo} (formato letra + 6 números).', ['codigo' => $c]));
@@ -76,9 +76,13 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
             $lideres[$l['r']] = 'LIDER_' . $l['nivel'];
         }
         escTx(function () use ($planoId, $pid, $turno, $celulas, $regular, $assist, $pagina, $lideres) {
+            // Fecha a corrida com o Gerar: a versão continua rascunho até o fim do ajuste.
+            if ((escQW('SELECT status FROM ' . escT('esc_plano') . ' WHERE id = ? FOR UPDATE', [$planoId])[0]['status'] ?? '') !== 'RASCUNHO') {
+                throw new RuntimeException(t('Esta versão foi substituída. Abra a versão atual da semana (aviso no topo da grade) para ajustar.'));
+            }
             $antes = [];
             foreach ($celulas as [$d, $b]) {
-                $antes[$d . ' ' . $b] = escQW('SELECT rep_code, papel, origem FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id = ? AND dia = ? AND bloco = ?', [$planoId, $pid, $d, $b]);
+                $antes[$d . ' ' . $b] = escQW('SELECT rep_code, papel, origem, posto_id, vaga FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id = ? AND dia = ? AND bloco = ?', [$planoId, $pid, $d, $b]);
                 $origemAntes = array_column(array_filter($antes[$d . ' ' . $b], static fn($x) => $x['rep_code'] !== null), 'origem', 'rep_code');
                 escW('DELETE FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id = ? AND dia = ? AND bloco = ?', [$planoId, $pid, $d, $b]);
                 $linhas = [];
@@ -95,9 +99,23 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
                 foreach ($assist as $a) {
                     $linhas[] = ['rep' => $a, 'papel' => $na5c ? 'REGULAR' : 'ASSISTENTE', 'origem' => $origemDe($a)];
                 }
+                // A célula continua no mesmo posto: o regular (ou a lacuna) herda o posto e a vaga; quem já estava mantém os seus.
+                $postoCelula = null;
+                $postoDe = [];
+                foreach ($antes[$d . ' ' . $b] as $x) {
+                    if ($x['posto_id'] !== null) {
+                        if ($postoCelula === null || $x['papel'] === 'REGULAR') {
+                            $postoCelula = $x;
+                        }
+                        if ($x['rep_code'] !== null) {
+                            $postoDe[$x['rep_code']] = $x;
+                        }
+                    }
+                }
                 foreach ($linhas as $l) {
-                    escW('INSERT INTO ' . escT('esc_plano_alocacao') . ' (plano_id, dia, bloco, turno, page_id, pagina, rep_code, papel, origem, travada, motivo, alterado_em, alterado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), ?)',
-                        [$planoId, $d, $b, $turno, $pid, $pagina['pagina'] ?? '', $l['rep'], $l['papel'], $l['origem'], 'ajuste manual na grade (travado)', escUserId()]);
+                    $pv = $l['papel'] === 'REGULAR' ? ($postoDe[$l['rep'] ?? ''] ?? $postoCelula) : ($postoDe[$l['rep'] ?? ''] ?? null);
+                    escW('INSERT INTO ' . escT('esc_plano_alocacao') . ' (plano_id, dia, bloco, turno, page_id, pagina, posto_id, vaga, rep_code, papel, origem, travada, motivo, alterado_em, alterado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, NOW(), ?)',
+                        [$planoId, $d, $b, $turno, $pid, $pagina['pagina'] ?? '', $pv['posto_id'] ?? null, $pv['vaga'] ?? null, $l['rep'], $l['papel'], $l['origem'], 'ajuste manual na grade (travado)', escUserId()]);
                 }
             }
             escLog('grade.ajustar', 'esc_plano_alocacao', $planoId . ':' . $pid . ':' . $celulas[0][0] . ':' . $turno, $antes, ['regular' => $regular, 'assistentes' => array_values($assist)]);
@@ -127,8 +145,14 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
             throw new RuntimeException(t('Já existe uma versão mais nova desta semana ({versao}). Abra a versão atual para ajustar.', ['versao' => $atualSem ? escPlanoRotulo($atualSem) : '—']));
         }
         escW('INSERT INTO ' . escT('esc_recalculo_evento') . " (gatilho, descricao, semana_inicio, status) VALUES ('MANUAL', 'Rascunho a partir da versão publicada', ?, 'DETECTADO')", [substr($plano['semana_inicio'], 0, 10)]);
-        $novo = escMotorGerar(substr($plano['semana_inicio'], 0, 10), 'RECALCULO', escUserId(), escUltimoId(), true);
-        escVoltar('grade', ['plano' => $novo], t('Rascunho criado a partir da versão publicada, com o mínimo de mudanças.') . escMinimoAviso());
+        $eventoRascunho = escUltimoId();
+        try {
+            $novo = escMotorGerar(substr($plano['semana_inicio'], 0, 10), 'RECALCULO', escUserId(), $eventoRascunho, true);
+        } catch (Throwable $e) {
+            escEventoErro($eventoRascunho, $e);
+            throw $e;
+        }
+        escVoltar('grade', ['plano' => $novo], t('Rascunho criado a partir da versão publicada, com o mínimo de mudanças.') . escMinimoAviso() . escEstruturaAviso());
     }
     throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }

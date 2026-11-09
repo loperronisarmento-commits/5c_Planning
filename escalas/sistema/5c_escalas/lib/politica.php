@@ -395,6 +395,9 @@ function escPolAplicarUnidade(array $pg, int $destino, string $desde, string $mo
     if (escModoTreino()) {
         throw new RuntimeException(t('No Modo Treino a troca de unidade não mexe no Capacity. Use a prévia para ver o efeito.'));
     }
+    if (!escGerarTravar()) {
+        throw new RuntimeException(t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.'));
+    }
     if ((int) escDbW()->query("SELECT GET_LOCK('5c_escalas.saida_pagina', 0)")->fetchColumn() !== 1) {
         throw new RuntimeException(t('Já tem uma saída ou troca sendo aplicada (Capacity e escala recalculando). Espere terminar.'));
     }
@@ -415,6 +418,8 @@ function escPolAplicarUnidade(array $pg, int $destino, string $desde, string $mo
         escTx(static function () use ($pg, $plano, $destino, $desde, &$res) {
             escPolUnidadeEscala($pg, $plano, $destino, $desde, $res);
         });
+        // O Capacity já foi recalculado acima: o motor não repete.
+        $GLOBALS['ESC_ESTRUTURA_AUTO'] = ['erro' => null, 'paginas' => [], 'ja_feito' => true];
         // 3. Escala de novo a partir da data.
         foreach (escQ("SELECT DISTINCT semana_inicio AS s FROM " . escT('esc_plano') . " WHERE estrutura = 'V4' AND status IN ('RASCUNHO','PUBLICADO') AND semana_fim >= ? ORDER BY semana_inicio", [$desde]) as $r) {
             $seg = substr((string) $r['s'], 0, 10);

@@ -79,7 +79,7 @@ function escTrnLerEmail(string $email, string $contratados = ''): array {
 
     // 1) Cabeçalho de cada turma ("Turma: NH45A2026" ... até a próxima ou o quadro).
     preg_match_all('~Turma:\s*([A-Z0-9][A-Z0-9-]{3,})~iu', $txt, $ms, PREG_OFFSET_CAPTURE);
-    $fimCab = mb_strlen($txt);
+    $fimCab = strlen($txt); // os offsets do preg_match e o stripos são em bytes
     foreach (['New Hire Onboarding', 'GROUP ID', 'NESTING'] as $marca) {
         $pos = stripos($txt, $marca);
         if ($pos !== false) {

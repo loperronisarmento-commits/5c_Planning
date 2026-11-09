@@ -281,10 +281,10 @@ function escV4Carregar(string $dia): array {
     $historico = [];
     if ($pessoas && $nomes) {
         $hd = max(7, (int) escV4Param('v4_historico_dias', '56'));
-        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS dias
+        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT DATE(DATE_SUB(STR_TO_DATE(shiftDateAndHour, \'%Y-%m-%dT%H:%i:%s\'), INTERVAL 5 HOUR))) AS dias
                          FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn(array_keys($pessoas)) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
-                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escMaisDias($dia, -$hd - 7) . 'T00:00:00', $dia . 'T00:00:00'])) as $r) {
+                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escMaisDias($dia, -$hd - 7) . 'T00:00:00', segundaDaSemana($dia) . 'T00:00:00'])) as $r) {
             if (isset($nomes[$r['pagina']])) {
                 $historico[$r['rep']][$r['pagina']] = (int) $r['dias'];
             }
@@ -295,10 +295,10 @@ function escV4Carregar(string $dia): array {
     if ($pessoas && $nomes) {
         $jan = max(7, (int) escV4Param('v4_cor_janela_dias', '90'));
         $minDias = max(1, (int) escV4Param('v4_cor_conhece_dias', '7'));
-        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS dias
+        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT DATE(DATE_SUB(STR_TO_DATE(shiftDateAndHour, \'%Y-%m-%dT%H:%i:%s\'), INTERVAL 5 HOUR))) AS dias
                          FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn(array_keys($pessoas)) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
-                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escMaisDias($dia, -$jan - 7) . 'T00:00:00', $dia . 'T00:00:00'])) as $r) {
+                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escMaisDias($dia, -$jan - 7) . 'T00:00:00', segundaDaSemana($dia) . 'T00:00:00'])) as $r) {
             if (isset($nomes[$r['pagina']]) && (int) $r['dias'] >= $minDias) {
                 $conheceCor[$r['rep']][$r['pagina']] = true;
             }

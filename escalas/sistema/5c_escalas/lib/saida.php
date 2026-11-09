@@ -150,6 +150,9 @@ function escAplicarSaidasPaginas(array $itens, string $desde, string $motivo, ?a
     if ((int) escDbW()->query("SELECT GET_LOCK('5c_escalas.saida_pagina', 0)")->fetchColumn() !== 1) {
         throw new RuntimeException(t('Já tem uma saída sendo aplicada (Capacity e escala recalculando). Espere terminar e confira em "Saídas aplicadas".'));
     }
+    if (!escGerarTravar()) {
+        throw new RuntimeException(t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.'));
+    }
     try {
         $val = escSaidaValidar(array_values($porPagina), $desde); // dentro da trava: dois cliques não passam juntos
         return escAplicarSaidasTravado(array_values($porPagina), $desde, $motivo, $val['inativas'], $entra);
@@ -227,6 +230,8 @@ function escAplicarSaidasTravado(array $itens, string $desde, string $motivo, ar
         $GLOBALS['ESC_OM_ORFAS'] = $res['restricoes_encerradas'];
         escRestricoesRegistrarVersoes(); // histórico das Restrições dos OM depois da saída
 
+        // O Capacity já foi recalculado acima: o motor não repete (e não traz de volta a página que está saindo).
+        $GLOBALS['ESC_ESTRUTURA_AUTO'] = ['erro' => null, 'paginas' => [], 'ja_feito' => true];
         // 6. Escala de novo com o mínimo de mudanças sobre a publicada (mantém os ajustes travados).
         foreach (escQ("SELECT DISTINCT semana_inicio AS s FROM " . escT('esc_plano') . " WHERE estrutura = 'V4' AND status IN ('RASCUNHO','PUBLICADO') AND semana_fim >= ? ORDER BY semana_inicio", [$desde]) as $r) {
             $seg = substr((string) $r['s'], 0, 10);

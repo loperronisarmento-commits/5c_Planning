@@ -214,7 +214,7 @@ function escOmTirar(string $chave, string $hoje): array {
         if (!in_array($ch, array_merge(ESC_OM_LISTA, ESC_OM_MAPA, ['v4_nao_subordinado']), true)) {
             throw new RuntimeException(t('Restrição inválida.'));
         }
-        $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ?', [$ch])[0]['valor'] ?? '');
+        $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ? FOR UPDATE', [$ch])[0]['valor'] ?? '');
         $sep = in_array($ch, ESC_OM_MAPA, true) ? ';' : ',';
         $fica = [];
         $sai = [];
@@ -234,7 +234,7 @@ function escOmTirar(string $chave, string $hoje): array {
     }
     if ($fonte === 'prio') {
         [, $id, $rep] = array_pad($x, 3, '');
-        $l = escQW('SELECT id, pagina, rep_codes, papel, motivo, vigente_desde, vigente_ate FROM ' . escT('esc_pagina_prioridade') . ' WHERE id = ?', [(int) $id])[0] ?? null;
+        $l = escQW('SELECT id, pagina, rep_codes, papel, motivo, vigente_desde, vigente_ate FROM ' . escT('esc_pagina_prioridade') . ' WHERE id = ? FOR UPDATE', [(int) $id])[0] ?? null;
         $reps = $l ? array_values(array_filter(array_map(static fn($r) => strtoupper(trim($r)), explode(',', (string) $l['rep_codes'])))) : [];
         if (!in_array($rep, $reps, true)) {
             throw $sumiu();
@@ -301,7 +301,7 @@ function escOmDevolver(array $g): void {
     if ($g['fonte'] === 'param') {
         $ch = (string) $g['chave'];
         $sep = in_array($ch, ESC_OM_MAPA, true) ? ';' : ',';
-        $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ?', [$ch])[0]['valor'] ?? '');
+        $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ? FOR UPDATE', [$ch])[0]['valor'] ?? '');
         $itens = escOmLinhasPar($valor, $sep);
         foreach ($g['itens'] as $item) {
             if (!in_array($item, $itens, true)) {
@@ -435,7 +435,10 @@ function escOmEditar(string $chave, array $c, string $hoje): string {
             if ($ate !== null && $ate < $de) {
                 throw new RuntimeException(t('O fim não pode ser antes do início.'));
             }
-            $l = escQW('SELECT rep_codes, motivo FROM ' . escT('esc_pagina_prioridade') . ' WHERE id = ?', [(int) $x[1]])[0];
+            $l = escQW('SELECT rep_codes, motivo FROM ' . escT('esc_pagina_prioridade') . ' WHERE id = ? FOR UPDATE', [(int) $x[1]])[0] ?? null;
+            if (!$l) {
+                throw new RuntimeException(t('Essa restrição não existe mais. Recarregue a tela.'));
+            }
             $reps = array_values(array_filter(array_map(static fn($r) => strtoupper(trim($r)), explode(',', (string) $l['rep_codes']))));
             if (count($reps) === 1) {
                 escW('UPDATE ' . escT('esc_pagina_prioridade') . ' SET papel = ?, vigente_desde = ?, vigente_ate = ? WHERE id = ?', [$papel, $de, $ate, (int) $x[1]]);
@@ -470,7 +473,7 @@ function escOmEditar(string $chave, array $c, string $hoje): string {
             }
         } elseif ($i['fonte'] === 'param' && $x[1] === 'v4_sr_solo') {
             $ate = escOmData((string) ($c['ate_solo'] ?? ''), false);
-            $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ?', ['v4_sr_solo'])[0]['valor'] ?? '');
+            $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ? FOR UPDATE', ['v4_sr_solo'])[0]['valor'] ?? '');
             $novo = array_map(static fn($it) => strtoupper(trim(explode(':', $it, 2)[0])) === $i['rep'] ? $i['rep'] . ($ate ? ':' . $ate : '') : $it, escOmLinhasPar($valor, ','));
             escOmParGravar('v4_sr_solo', implode(',', $novo));
             $depois = ['ate' => $ate];
@@ -487,7 +490,7 @@ function escOmEditar(string $chave, array $c, string $hoje): string {
                 }
                 $v = implode('|', $pags);
             }
-            $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ?', [$x[1]])[0]['valor'] ?? '');
+            $valor = (string) (escQW('SELECT valor FROM ' . escT('esc_parametro') . ' WHERE chave = ? FOR UPDATE', [$x[1]])[0]['valor'] ?? '');
             $novo = array_map(static fn($it) => strtoupper(trim(explode(':', $it, 2)[0])) === $i['rep'] ? $i['rep'] . ':' . $v : $it, escOmLinhasPar($valor, ';'));
             escOmParGravar($x[1], implode(';', $novo));
             $depois = ['valor' => $v];

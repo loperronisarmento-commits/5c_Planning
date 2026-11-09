@@ -118,6 +118,15 @@ function escHashEntradas(array $ids): string {
 
 // Compara as entradas atuais com as usadas no plano de cada semana em
 // aberto. Se mudou, registra o evento e recalcula (nova subversão).
+// Recálculo que falhou: o evento não fica "detectado" para sempre.
+function escEventoErro(int $eventoId, Throwable $e): void {
+    try {
+        escW('UPDATE ' . escT('esc_recalculo_evento') . " SET status = 'ERRO', erro = ?, processado_em = NOW() WHERE id = ?", [mb_substr($e->getMessage(), 0, 500), $eventoId]);
+    } catch (Throwable $e2) {
+        appLog('error', 'Evento de recálculo sem registro do erro', ['evento' => $eventoId, 'erro' => $e2->getMessage()]);
+    }
+}
+
 function escMotorVerificar(?int $userId, bool $forcar = false): array {
     $ultima = escQ1("SELECT valor FROM " . escT('esc_parametro') . " WHERE chave = 'motor_ultima_verificacao'");
     if (!$forcar && $ultima && strtotime($ultima['valor']) > time() - 15 * 60) {
@@ -131,6 +140,7 @@ function escMotorVerificar(?int $userId, bool $forcar = false): array {
                      WHERE p.time_nome = '' AND p.status IN ('RASCUNHO','PUBLICADO') AND p.semana_fim >= CURDATE()
                        AND NOT EXISTS (SELECT 1 FROM " . escT('esc_plano') . " q WHERE q.semana_inicio = p.semana_inicio AND q.time_nome = '' AND q.status IN ('RASCUNHO','PUBLICADO') AND (q.versao > p.versao OR (q.versao = p.versao AND q.subversao > p.subversao)))");
     $recalculados = [];
+    $falhas = [];
     foreach ($planos as $p) {
         $usadas = json_decode((string) $p['parametros'], true)['fotos'] ?? [];
         $diferentes = [];
@@ -151,11 +161,12 @@ function escMotorVerificar(?int $userId, bool $forcar = false): array {
             $novo = escMotorGerar(substr($p['semana_inicio'], 0, 10), 'RECALCULO', $userId, $eventoId);
             $recalculados[] = ['semana' => substr($p['semana_inicio'], 0, 10), 'plano' => $novo, 'fontes' => $diferentes];
         } catch (Throwable $e) {
-            escW('UPDATE ' . escT('esc_recalculo_evento') . " SET status = 'ERRO', erro = ?, processado_em = NOW() WHERE id = ?", [mb_substr($e->getMessage(), 0, 500), $eventoId]);
+            escEventoErro($eventoId, $e);
             appLog('error', 'Recálculo automático falhou', ['erro' => $e->getMessage()]);
+            $falhas[] = ['semana' => substr($p['semana_inicio'], 0, 10), 'erro' => mb_substr($e->getMessage(), 0, 160)];
         }
     }
-    return ['verificado' => true, 'recalculados' => $recalculados, 'mudaram' => array_keys($mudaram)];
+    return ['verificado' => true, 'recalculados' => $recalculados, 'falhas' => $falhas, 'mudaram' => array_keys($mudaram)];
 }
 
 function escGatilhoDaFonte(string $fonte): string {

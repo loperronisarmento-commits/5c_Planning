@@ -143,6 +143,13 @@ function escMotorAlocarV4(array $in): array {
     foreach ($in['travadas'] ?? [] as $t) {
         $travadasPorCelula[$t['dia'] . '|' . $t['bloco'] . '|' . $t['page_id']][] = $t;
     }
+    // Quem está travado num turno já tem lugar nele: não entra na disponibilidade (dia do turno: o T1 é do dia anterior).
+    $travadoTurno = [];
+    foreach ($in['travadas'] ?? [] as $t) {
+        if ($t['rep_code'] !== null) {
+            $travadoTurno[strtoupper((string) $t['rep_code'])][$t['turno'] === 'D' && $t['bloco'] === 'T1' ? escMaisDias($t['dia'], -1) : $t['dia']][$t['turno']] = true;
+        }
+    }
 
     $alocacoes = [];
     $folgas = [];
@@ -255,6 +262,11 @@ function escMotorAlocarV4(array $in): array {
             continue;
         }
         $transicao = in_array($dia, $diasTransicao, true);
+        foreach ($travadoTurno as $repTravado => $diasTravado) {
+            if (isset($diasTravado[$dia])) {
+                $trabalhou[$repTravado][$dia] = true;
+            }
+        }
         $presentes = $transicao ? ($presentesDia[$dia] ?? []) : [];
         $rotuloTransicao = 'transição ' . date('d/m', strtotime($dia));
         foreach (ESC_TURNOS as $turno => $blocos) {
@@ -300,7 +312,7 @@ function escMotorAlocarV4(array $in): array {
                             }
                             continue;
                         }
-                        if (!empty($presentes[$rep][$turno])) {
+                        if (!empty($presentes[$rep][$turno]) && !isset($travadoTurno[$rep][$dia][$turno])) {
                             $disp[$rep] = $p;
                         }
                         continue;
@@ -315,7 +327,9 @@ function escMotorAlocarV4(array $in): array {
                             $emendas[] = ['rep_code' => $rep, 'dia' => $dia, 'turno' => $turno, 'seguidos' => $seguidosAntes($rep, $dia)];
                             $emFolga[$rep][$dia] = true;
                         } elseif ($diaOverlap) {
-                            $overlapUT[$u][$rep] = $p;
+                            if (!isset($travadoTurno[$rep][$dia][$turno])) {
+                                $overlapUT[$u][$rep] = $p;
+                            }
                         } else {
                             $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'ROTACAO', 'ref_id' => null];
                         }
@@ -326,7 +340,9 @@ function escMotorAlocarV4(array $in): array {
                         $folgas[] = ['rep_code' => $rep, 'dia' => $dia, 'tipo' => 'INDISPONIBILIDADE', 'ref_id' => $ind['id']];
                         continue;
                     }
-                    $disp[$rep] = $p;
+                    if (!isset($travadoTurno[$rep][$dia][$turno])) {
+                        $disp[$rep] = $p;
+                    }
                 }
                 // Vagas do dia
                 $vagas = [];
@@ -337,6 +353,18 @@ function escMotorAlocarV4(array $in): array {
                         continue; // treinamento usa a página: ninguém da escala normal vai para lá
                     }
                     $p = $est['postos'][$pid];
+                    // Posto com todas as células travadas: não abre vaga (não gasta ninguém).
+                    $todoTravado = (bool) $p['paginas'];
+                    foreach ($p['paginas'] as $pgTv) {
+                        foreach ($blocos as $bTv) {
+                            if (!isset($travadasPorCelula[$diaBloco[$bTv] . '|' . $bTv . '|' . $pgTv['page_id']])) {
+                                $todoTravado = false;
+                            }
+                        }
+                    }
+                    if ($todoTravado) {
+                        continue;
+                    }
                     $dono = (int) $p['nucleo_dono_id'];
                     $cob = $p['nucleo_cobertura_id'] !== null ? (int) $p['nucleo_cobertura_id'] : null;
                     if ($transicao) {
@@ -698,8 +726,8 @@ function escMotorAlocarV4(array $in): array {
                             if ($faixaPasso0) {
                                 // A-01 com a P-01: depois quem já fez a página em 30 dias (tem meta nela, 03/11),
                                 // a faixa do mérito, a nota em pontos e o tempo de casa.
-                                $conhece = isset($mel['meta'][$pag][$rep]) ? 1 : 0;
-                                $k = [$bateu, $conhece, $faixaRep[$rep] ?? 1, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
+                                $fezPagina = isset($mel['meta'][$pag][$rep]) ? 1 : 0;
+                                $k = [$bateu, $fezPagina, $faixaRep[$rep] ?? 1, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
                             } else {
                                 // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
                                 $naPag = $mel['pagina'][$pag][$rep] ?? null;
@@ -949,6 +977,9 @@ function escMotorAlocarV4(array $in): array {
                 // 4. Quem está de Overlap (dia de treinamento) e sobra cobre a lacuna no posto,
                 //    dentro da capacidade dele: primeiro da mesma unidade, depois das outras do turno.
                 foreach ($lacunas as [$u, $i]) {
+                    if ($estadoUT[$u]['vagas'][$i]['rep'] !== null) {
+                        continue; // o passo 4a já preencheu
+                    }
                     $cands = array_keys($overlapUT[$u] ?? []);
                     if (!$cands) {
                         foreach ($overlapUT as $u2 => $rs) {
@@ -1412,7 +1443,7 @@ function escMotorAlocarV4(array $in): array {
     foreach ($in['travadas'] ?? [] as $t) {
         $alocacoes[] = [
             'dia' => $t['dia'], 'bloco' => $t['bloco'], 'turno' => $t['turno'],
-            'page_id' => (int) $t['page_id'], 'pagina' => $t['pagina'], 'posto_id' => null, 'vaga' => null,
+            'page_id' => (int) $t['page_id'], 'pagina' => $t['pagina'], 'posto_id' => $t['posto_id'] ?? null, 'vaga' => $t['vaga'] ?? null,
             'rep_code' => $t['rep_code'], 'papel' => $t['papel'], 'origem' => $t['origem'],
             'travada' => 1, 'motivo' => $t['motivo'],
         ];

@@ -208,9 +208,18 @@ function escPlanoRotulo(array $p): string {
 // as células e as folgas são as da versão publicada (sem ela, a atual), como estão; o cálculo novo
 // só vale dali em diante. Quem trabalha antes do corte só volta com 11 h de descanso.
 function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoId = null, bool $minimo = false, string $desde = ''): int {
-    @set_time_limit(180);
+    // Reinicia o relógio sem encurtar o limite de quem chamou (Gerar 600 s, Saída 900 s).
+    $limiteTempo = (int) ini_get('max_execution_time');
+    if ($limiteTempo !== 0) {
+        @set_time_limit(max(180, $limiteTempo));
+    }
+    // Uma geração por vez, em qualquer caminho (Gerar, Criar rascunho, Verificar, Saída, Troca de unidade).
+    if (function_exists('escGerarTravar') && !escGerarTravar()) {
+        throw new RuntimeException(t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.'));
+    }
     $dias = escDiasDaSemana($seg);
     $base = escPlanoAtual($seg);
+    $travasBase = $base ? escQ1('SELECT COUNT(*) AS n, MAX(alterado_em) AS m FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND travada = 1', [(int) $base['id']]) : null;
     $desde = escSlotDaSemana($seg, $desde);
     $refDesde = $desde !== '' ? (escPlanoPublicado($seg) ?? $base) : null;
     $refPre = [];
@@ -240,7 +249,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
     $cap = escMotorCapacity($dias);
     $travadas = [];
     if ($modo === 'RECALCULO' && $base) {
-        $travadas = escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel, origem, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND travada = 1', [(int) $base['id']]);
+        $travadas = escQ('SELECT dia, bloco, turno, page_id, pagina, posto_id, vaga, rep_code, papel, origem, motivo FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND travada = 1', [(int) $base['id']]);
         foreach ($travadas as &$t) {
             $t['dia'] = substr($t['dia'], 0, 10);
         }
@@ -387,7 +396,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         $diaCorte = substr($desde, 0, 10);
         $saida['folgas'] = array_merge($refFolgas, array_values(array_filter($saida['folgas'] ?? [], static fn($f) => substr((string) $f['dia'], 0, 10) >= $diaCorte)));
     }
-    return escTx(function () use ($seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo, $est, $desde, $refPre, $refDesde) {
+    return escTx(function () use ($travasBase, $seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo, $est, $desde, $refPre, $refDesde) {
         // Releitura do realizado.
         $linhasEstado = [];
         foreach ($estado as $rep => $e) {
@@ -402,6 +411,15 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
             escW('INSERT INTO ' . escT('esc_ciclo_estado') . ' (rep_code, ate_dia, dias_seguidos, ultima_folga, trilha_calculada, divergente_config) VALUES '
                 . implode(',', array_fill(0, count($lote), '(?, ?, ?, ?, ?, ?)'))
                 . ' AS n ON DUPLICATE KEY UPDATE dias_seguidos = n.dias_seguidos, ultima_folga = n.ultima_folga, trilha_calculada = n.trilha_calculada, divergente_config = n.divergente_config, lido_em = CURRENT_TIMESTAMP', $params);
+        }
+
+        // A versão de partida não pode ter mudado enquanto o motor calculava (publicação ou ajuste na Grade).
+        if ($base) {
+            $statusBase = escQW('SELECT status FROM ' . escT('esc_plano') . ' WHERE id = ? FOR UPDATE', [(int) $base['id']])[0]['status'] ?? null;
+            $travasAgora = escQW('SELECT COUNT(*) AS n, MAX(alterado_em) AS m FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND travada = 1', [(int) $base['id']])[0];
+            if ($statusBase !== $base['status'] || (int) $travasAgora['n'] !== (int) $travasBase['n'] || (string) $travasAgora['m'] !== (string) $travasBase['m']) {
+                throw new RuntimeException(t('A versão mudou enquanto o sistema calculava (publicação ou ajuste na grade). Gere de novo para levar a mudança em conta.'));
+            }
         }
 
         $ult = escQW('SELECT COALESCE(MAX(versao), 0) AS v FROM ' . escT('esc_plano') . " WHERE semana_inicio = ? AND time_nome = ''", [$seg]);
@@ -552,7 +570,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
             unset($d);
             escInserirLote('esc_plano_diferenca', ['recalculo_id', 'plano_de_id', 'plano_para_id', 'dia', 'bloco', 'page_id', 'pagina', 'tipo', 'rep_de', 'rep_para', 'papel_de', 'papel_para', 'motivo', 'aplicado', 'sugestao_id'], $diferencas);
             if ($base['status'] === 'RASCUNHO') {
-                escW('UPDATE ' . escT('esc_plano') . " SET status = 'SUBSTITUIDO' WHERE id = ?", [(int) $base['id']]);
+                escW('UPDATE ' . escT('esc_plano') . " SET status = 'SUBSTITUIDO' WHERE id = ? AND status = 'RASCUNHO'", [(int) $base['id']]);
             }
         }
         if ($recalculoId) {
