@@ -3,6 +3,10 @@
 // em inglês. O português é a chave. O que é gravado no banco (motivos, descrições de
 // recálculo, CSV) fica em português e não passa por aqui.
 return [
+    'Esta semana já terminou: não dá para gerar nem recalcular.' => 'This week is over: it cannot be generated or recalculated.',
+    'Não deu para recalcular: {lista}.' => 'Could not recalculate: {lista}.',
+    'Essa restrição não existe mais. Recarregue a tela.' => 'This restriction no longer exists. Reload the screen.',
+    'A versão mudou enquanto o sistema calculava (publicação ou ajuste na grade). Gere de novo para levar a mudança em conta.' => 'The version changed while the system was calculating (publication or grid adjustment). Generate again to take the change into account.',
     // lib/motor.php · escNomeFonte (fontes de entrada mostradas na tela)
     'estrutura/membros' => 'structure/members',
     'páginas' => 'pages',

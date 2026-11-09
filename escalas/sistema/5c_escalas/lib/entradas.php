@@ -118,6 +118,27 @@ function escHashEntradas(array $ids): string {
 
 // Compara as entradas atuais com as usadas no plano de cada semana em
 // aberto. Se mudou, registra o evento e recalcula (nova subversão).
+// Blocos e lacunas como estão gravados agora: o resumo é da geração e não acompanha ajuste manual nem hora extra.
+function escResumosVivos(array $planoIds): array {
+    $out = [];
+    if ($planoIds) {
+        foreach (escQ('SELECT plano_id, SUM(rep_code IS NOT NULL) AS blocos, SUM(rep_code IS NULL AND origem <> \'TREINO\') AS lacunas FROM ' . escT('esc_plano_alocacao')
+            . ' WHERE plano_id IN (' . escIn($planoIds) . ') GROUP BY plano_id', array_values($planoIds)) as $l) {
+            $out[(int) $l['plano_id']] = ['blocos' => (int) $l['blocos'], 'lacunas' => (int) $l['lacunas']];
+        }
+    }
+    return $out;
+}
+
+// Semanas que o Verificar não conseguiu recalcular (texto para a tela; vazio se deu tudo certo).
+function escVerificarFalhas(array $r): string {
+    $falhas = $r['falhas'] ?? [];
+    if (!$falhas) {
+        return '';
+    }
+    return ' ' . t('Não deu para recalcular: {lista}.', ['lista' => implode('; ', array_map(static fn($f) => dataBr($f['semana']) . ' (' . $f['erro'] . ')', $falhas))]);
+}
+
 // Recálculo que falhou: o evento não fica "detectado" para sempre.
 function escEventoErro(int $eventoId, Throwable $e): void {
     try {

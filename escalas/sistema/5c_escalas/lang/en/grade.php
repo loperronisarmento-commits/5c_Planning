@@ -1,6 +1,7 @@
 <?php
 // Textos em inglês da tela Grade da escala (pages/grade.php). O português é a chave.
 return [
+    'Mostrando {n} de {total} diferenças. Escolha um dia para ver o resto.' => 'Showing {n} of {total} differences. Choose a day to see the rest.',
     'Histórico de meta das páginas' => 'Pages goal history',
     'gerado em {gerado}' => 'generated on {gerado}',
     'Date Schedule = o dia escolhido. Nesse dia, os blocos antes do turno saem iguais à versão (gerada com "antes do corte, igual ao site", são os do site); os dias antes ficam fora do CSV. O passado não muda.' => 'Date Schedule = the chosen day. On that day, the blocks before the shift come out as in the version (generated with "before the cut, as on the site", they are the site ones); earlier days stay out of the CSV. The past does not change.',

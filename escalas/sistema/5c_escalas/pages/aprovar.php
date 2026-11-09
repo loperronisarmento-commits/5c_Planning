@@ -104,7 +104,9 @@ if (escPost()) {
         $id = (int) ($_POST['id'] ?? 0);
         escTx(function () use ($id) {
             escW('UPDATE ' . escT('esc_indisponibilidade_data') . " SET status = 'CANCELADO' WHERE indisponibilidade_id = ? AND status = 'PENDENTE'", [$id]);
-            escW('UPDATE ' . escT('esc_indisponibilidade') . " SET status = 'CANCELADO' WHERE id = ? AND status = 'PENDENTE'", [$id]);
+            if (escW('UPDATE ' . escT('esc_indisponibilidade') . " SET status = 'CANCELADO' WHERE id = ? AND status = 'PENDENTE'", [$id]) === 0) {
+                throw new RuntimeException(t('Este pedido já foi decidido ou cancelado. Recarregue a tela.'));
+            }
             escLog('indisp.cancelar', 'esc_indisponibilidade', $id);
         });
         escVoltar('aprovar', [], t('Pedido cancelado.'));

@@ -1,6 +1,8 @@
 <?php
 // Textos da tela Saídas de página (pages/saidas.php) em inglês. O português é a chave.
 return [
+    'Parte das saídas já foi aplicada ({feito}). A de {dia} falhou: {erro}' => 'Some exits were already applied ({feito}). The one for {dia} failed: {erro}',
+    '{pagina}: esta saída já foi aplicada. Não dá para marcar outra decisão.' => '{pagina}: this exit was already applied. Another decision cannot be recorded.',
     // avisos e erros
     '{pagina}: saída aplicada a partir de {dia}. {fechados} posto(s) fechado(s), {refeitos} refeito(s) sem a página, {vagas} SR(s) com vaga nova, {livres} livre(s) para o motor; {planos} escala(s) gerada(s) de novo.' => '{pagina}: exit applied from {dia}. {fechados} post(s) closed, {refeitos} rebuilt without the page, {vagas} SR(s) with a new slot, {livres} left free for the engine; {planos} schedule(s) generated again.',
     'Decisão inválida.' => 'Invalid decision.',

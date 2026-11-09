@@ -786,6 +786,7 @@ document.addEventListener('click', function (ev) {
       if (b && b.focus) { b.focus(); }
     }
 
+    var idGeracao = '';
     function etapa(i, tentativa) {
       var et = ETAPAS[i];
       rodando = true;
@@ -796,6 +797,9 @@ document.addEventListener('click', function (ev) {
       alvo = et.peso[1] - 1;
       var dados = new FormData(form);
       dados.set('etapa', et.id);
+      if (i === 0 && !tentativa) { idGeracao = Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+      dados.set('id_geracao', idGeracao);
+      if (tentativa) { dados.set('repeticao', '1'); }
       fetch(form.action, { method: 'POST', body: dados, credentials: 'same-origin', headers: { Accept: 'application/json' } })
         .then(function (r) {
           var tipo = r.headers.get('Content-Type') || '';
@@ -828,9 +832,10 @@ document.addEventListener('click', function (ev) {
             location.href = r.url;
             return;
           }
-          if (r.repetir && tentativa < 2) {
-            estado(et.id, 'rodando', T('A conexão caiu; tentando de novo ({n} de 2)…', { n: tentativa + 1 }));
-            setTimeout(function () { etapa(i, tentativa + 1); }, 3000 * (tentativa + 1));
+          var maxRepetir = et.id === 'escala' ? 8 : 2;
+          if (r.repetir && tentativa < maxRepetir) {
+            estado(et.id, 'rodando', T('A conexão caiu; tentando de novo ({n} de {m})…', { n: tentativa + 1, m: maxRepetir }));
+            setTimeout(function () { etapa(i, tentativa + 1); }, et.id === 'escala' ? 15000 : 3000 * (tentativa + 1));
             return;
           }
           parar();

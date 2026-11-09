@@ -53,6 +53,9 @@ $decidir = static function (int $evento, string $decisao, string $obs): array {
     if (!$e) {
         throw new RuntimeException(t('Saída não encontrada.'));
     }
+    if ($decisao !== 'CONFIRMADA' && escQ1('SELECT 1 AS ok FROM ' . escT('esc_saida_pagina') . " WHERE evento_id = ? AND status = 'APLICADA' LIMIT 1", [$evento])) {
+        throw new RuntimeException(t('{pagina}: esta saída já foi aplicada. Não dá para marcar outra decisão.', ['pagina' => $e['pagina']]));
+    }
     $efeito = $e['reps_h_a'] === null ? null : round(((float) $e['reps_h_a'] + (float) $e['reps_h_c'] + (float) $e['reps_h_d']) / 3, 2);
     $dias = (int) (escQ1('SELECT valor FROM ' . escT('esc_parametro') . " WHERE chave = 'saida_rechecar_d'")['valor'] ?? 3);
     escW('INSERT INTO ' . escT('esc_saida_checagem') . ' (evento_id, page_id, pagina, data_evento, efeito_reps_turno, efeito_pessoas, decisao, observacao, rechecar_em, decidido_em, decidido_por)
@@ -70,7 +73,7 @@ $decidir = static function (int $evento, string $decisao, string $obs): array {
 $previa = null;
 if (!escPost() && !empty($_GET['previa']) && escPode('planejar')) {
     $pgPrevia = trim((string) ($_GET['pagina'] ?? ''));
-    $desdePrevia = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_GET['desde'] ?? '')) ? (string) $_GET['desde'] : '';
+    $desdePrevia = escDataValida($_GET['desde'] ?? null) ?? '';
     if ($pgPrevia !== '' && $desdePrevia !== '') {
         $previa = ['pagina' => $pgPrevia, 'desde' => $desdePrevia, 'evento' => (int) ($_GET['evento'] ?? 0) ?: null,
                    'motivo' => mb_substr(trim((string) ($_GET['motivo'] ?? '')), 0, 255), 'r' => escSaidaPrevia([$pgPrevia], $desdePrevia),
@@ -152,7 +155,14 @@ if (escPost() && ($_POST['acao'] ?? '') === 'lote') {
         $msg = [];
         $inativasTotal = [];
         foreach ($porData as $desde => $evs) {
-            $r = escAplicarSaidasPaginas(array_map(static fn($ev) => ['pagina' => $ev['pagina'], 'evento_id' => (int) $ev['id']], $evs), $desde, trim($obs));
+            try {
+                $r = escAplicarSaidasPaginas(array_map(static fn($ev) => ['pagina' => $ev['pagina'], 'evento_id' => (int) $ev['id']], $evs), $desde, trim($obs));
+            } catch (Throwable $e) {
+                if (!$msg) {
+                    throw $e; // nada foi aplicado ainda: mensagem normal
+                }
+                throw new RuntimeException(t('Parte das saídas já foi aplicada ({feito}). A de {dia} falhou: {erro}', ['feito' => implode(' · ', $msg), 'dia' => dataBr($desde), 'erro' => mb_substr($e->getMessage(), 0, 200)]));
+            }
             $inativasTotal = array_merge($inativasTotal, $r['ja_inativas_no_capacity'] ?? []);
             foreach ($evs as $ev) {
                 escW('INSERT INTO ' . escT('esc_saida_checagem') . " (evento_id, page_id, pagina, data_evento, decisao, observacao, decidido_em, decidido_por)

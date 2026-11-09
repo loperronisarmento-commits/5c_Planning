@@ -1,6 +1,8 @@
 <?php
 // Textos em inglês da tela Painel (pages/painel.php). O português é a chave.
 return [
+    'Se alguma entrada mudou, as semanas em aberto são recalculadas e ganham nova subversão. O que foi ajustado à mão fica.' => 'If any input changed, the open weeks are recalculated and get a new subversion. What was adjusted by hand stays.',
+    'Verificar mudanças agora?' => 'Check for changes now?',
     'Mudanças nas entradas: {lista}. O rascunho foi recalculado; veja o De→Para na grade.' => 'Input changes: {lista}. The draft was recalculated; see the Before→After in the grid.',
     'semana de {dia} ({fontes})' => 'week of {dia} ({fontes})',
     'Nada mudou nas entradas desde a última versão.' => 'No input changed since the last version.',

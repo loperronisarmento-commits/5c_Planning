@@ -1,6 +1,8 @@
 <?php
 // Textos da tela Horas extras (pages/horas.php) em inglês. O português é a chave.
 return [
+    'alocar mesmo assim (tem indisponibilidade)' => 'allocate anyway (has unavailability)',
+    '{rep} tem indisponibilidade aprovada neste turno. Para alocar assim, marque "alocar mesmo assim".' => '{rep} has approved unavailability in this shift. To allocate anyway, check "allocate anyway".',
     // avisos e erros
     'Escolha o colaborador na busca (nome ou código).' => 'Pick the employee in the search (name or code).',
     'Posto não encontrado.' => 'Post not found.',

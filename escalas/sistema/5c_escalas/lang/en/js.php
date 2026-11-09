@@ -45,7 +45,7 @@ return [
     'Continuar mesmo assim' => 'Continue anyway',
     'Resolver em {tela}' => 'Fix it in {tela}',
     'Pronto. Abrindo a grade…' => 'Done. Opening the schedule grid…',
-    'A conexão caiu; tentando de novo ({n} de 2)…' => 'The connection dropped; trying again ({n} of 2)…',
+    'A conexão caiu; tentando de novo ({n} de {m})…' => 'The connection dropped; trying again ({n} of {m})…',
     'Não deu para concluir esta etapa.' => 'Could not finish this step.',
     'outra tela' => 'another screen',
     'Recarregar a tela' => 'Reload the screen',

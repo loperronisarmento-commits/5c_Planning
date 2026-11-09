@@ -23,7 +23,7 @@ if (escPost()) {
     }
     $modelo = (int) ($_POST['modelo_id'] ?? 0);
     $desde = (string) ($_POST['vigente_desde'] ?? '') ?: date('Y-m-d');
-    if (!preg_match('~^\d{4}-\d{2}-\d{2}$~', $desde)) {
+    if (!escDataValida($desde)) {
         throw new RuntimeException(t('Data inválida.'));
     }
     $m = escQ1('SELECT id, tipo FROM ' . escT('esc_modelo_escala') . ' WHERE id = ? AND ativo = 1', [$modelo]);

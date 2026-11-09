@@ -29,7 +29,7 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
         $pid = (int) ($_POST['page_id'] ?? 0);
         $dia = (string) ($_POST['dia'] ?? '');
         $turno = (string) ($_POST['turno'] ?? '');
-        if (!isset(ESC_TURNOS[$turno]) || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $dia)) {
+        if (!isset(ESC_TURNOS[$turno]) || !escDataValida($dia)) {
             throw new RuntimeException(t('Essa célula não existe mais nesta versão. Recarregue a grade.'));
         }
         $pagina = escQ1('SELECT pagina FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ? AND page_id = ? LIMIT 1', [$planoId, $pid]);
@@ -758,16 +758,18 @@ if (escPost()) {
         throw new RuntimeException(t('Publique esta versão antes de marcar a postagem.'));
     }
     $csv = escCsvT1T6($porPagina[$pid]['cel'], $seg, $corteCsv);
-    escW('INSERT INTO ' . escT('esc_plano_postagem') . ' (plano_id, page_id, pagina, semana, csv, csv_hash) VALUES (?, ?, ?, ?, ?, ?) AS n
-          ON DUPLICATE KEY UPDATE csv = n.csv, csv_hash = n.csv_hash', [$planoId, $pid, $porPagina[$pid]['nome'], $seg, $csv, hash('sha256', $csv)]);
-    if ($passo === 'apagado') {
-        escW('UPDATE ' . escT('esc_plano_postagem') . ' SET apagado_em = NOW(), apagado_por = ? WHERE plano_id = ? AND page_id = ?', [escUserId(), $planoId, $pid]);
-    } elseif ($passo === 'postado') {
-        escW('UPDATE ' . escT('esc_plano_postagem') . ' SET postado_em = NOW(), postado_por = ? WHERE plano_id = ? AND page_id = ?', [escUserId(), $planoId, $pid]);
-    } else {
-        escW('UPDATE ' . escT('esc_plano_postagem') . ' SET apagado_em = NULL, apagado_por = NULL, postado_em = NULL, postado_por = NULL WHERE plano_id = ? AND page_id = ?', [$planoId, $pid]);
-    }
-    escLog('grade.' . $passo, 'esc_plano_postagem', $planoId . ':' . $pid);
+    escTx(function () use ($planoId, $pid, $porPagina, $seg, $csv, $passo) {
+        escW('INSERT INTO ' . escT('esc_plano_postagem') . ' (plano_id, page_id, pagina, semana, csv, csv_hash) VALUES (?, ?, ?, ?, ?, ?) AS n
+              ON DUPLICATE KEY UPDATE csv = n.csv, csv_hash = n.csv_hash', [$planoId, $pid, $porPagina[$pid]['nome'], $seg, $csv, hash('sha256', $csv)]);
+        if ($passo === 'apagado') {
+            escW('UPDATE ' . escT('esc_plano_postagem') . ' SET apagado_em = NOW(), apagado_por = ? WHERE plano_id = ? AND page_id = ?', [escUserId(), $planoId, $pid]);
+        } elseif ($passo === 'postado') {
+            escW('UPDATE ' . escT('esc_plano_postagem') . ' SET postado_em = NOW(), postado_por = ? WHERE plano_id = ? AND page_id = ?', [escUserId(), $planoId, $pid]);
+        } else {
+            escW('UPDATE ' . escT('esc_plano_postagem') . ' SET apagado_em = NULL, apagado_por = NULL, postado_em = NULL, postado_por = NULL WHERE plano_id = ? AND page_id = ?', [$planoId, $pid]);
+        }
+        escLog('grade.' . $passo, 'esc_plano_postagem', $planoId . ':' . $pid);
+    });
     $vp = ['pagina' => $porPagina[$pid]['nome']];
     escVoltar('grade', ['plano' => $planoId, 'turno' => $_GET['turno'] ?? ''], $passo === 'desfazer' ? t('{pagina}: marcação desfeita.', $vp)
         : ($passo === 'apagado' ? t('{pagina}: marcado como apagado.', $vp) : t('{pagina}: marcado como postado.', $vp)), false, 'postar-' . $pid);
@@ -787,7 +789,7 @@ $times = array_values(array_unique(array_filter(array_map(static fn($p) => $p['t
 sort($times);
 $timeSel = (string) ($_GET['time'] ?? '');
 $nomes = escNomes();
-$resumo = json_decode((string) $plano['resumo'], true) ?: [];
+$resumo = (escResumosVivos([$planoId])[$planoId] ?? []) + (json_decode((string) $plano['resumo'], true) ?: []);
 // Nome curto que se repete entre os SRs do plano (ex.: dois "Gustavo Pereira") sai com o código.
 $curtos = [];
 foreach (array_unique(array_filter(array_column($aloc, 'rep_code'))) as $c) {
@@ -1142,9 +1144,14 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   </div>
 
 <?php else:
-    $tipoSel = $_GET['tipo'] ?? '';
+    $tipoSel = is_string($_GET['tipo'] ?? null) ? $_GET['tipo'] : '';
+    $diaDif = escDataValida($_GET['dia_dif'] ?? null) ?? '';
     $sqlTipo = $tipoSel !== '' ? ' AND tipo = ?' : '';
     $parDif = $tipoSel !== '' ? [$planoId, $tipoSel] : [$planoId];
+    if ($diaDif !== '') {
+        $sqlTipo .= ' AND dia = ?';
+        $parDif[] = $diaDif;
+    }
     $difs = escQ('SELECT * FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ?' . $sqlTipo . ' ORDER BY dia, bloco, pagina LIMIT 1000', $parDif);
     $contagem = escQ('SELECT tipo, COUNT(*) AS n FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ? GROUP BY tipo', [$planoId]);
 ?>
@@ -1153,8 +1160,14 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <?php else: ?>
   <div class="chips">
     <a class="chip-filtro <?php echo $tipoSel === '' ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara'])); ?>"><?php echo h(t('Todos')); ?></a>
+    <?php $totalDif = array_sum(array_map(static fn($c) => $tipoSel === '' || $c['tipo'] === $tipoSel ? (int) $c['n'] : 0, $contagem)); ?>
     <?php foreach ($contagem as $c): ?><a class="chip-filtro <?php echo $tipoSel === $c['tipo'] ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $c['tipo']])); ?>"><?php echo h(escRotulo('tipo_diferenca', $c['tipo'])); ?> · <?php echo (int) $c['n']; ?></a><?php endforeach; ?>
   </div>
+  <div class="filtros-chip">
+    <a class="chip-filtro <?php echo $diaDif === '' ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $tipoSel ?: null])); ?>"><?php echo h(t('Semana inteira')); ?></a>
+    <?php foreach ($dias as $dDif): ?><a class="chip-filtro <?php echo $diaDif === $dDif ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $tipoSel ?: null, 'dia_dif' => $dDif])); ?>"><?php echo h(dataBr($dDif)); ?></a><?php endforeach; ?>
+  </div>
+  <?php if ($diaDif === '' && $totalDif > count($difs)): ?><p class="aviso laranja" role="status"><?php echo h(t('Mostrando {n} de {total} diferenças. Escolha um dia para ver o resto.', ['n' => count($difs), 'total' => $totalDif])); ?></p><?php endif; ?>
   <div class="tabela-rolagem">
   <table>
     <thead><tr><th><?php echo h(t('Dia')); ?></th><th><?php echo h(t('Bloco')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Tipo')); ?></th><th><?php echo h(t('De')); ?></th><th><?php echo h(t('Para')); ?></th><th><?php echo h(t('Motivo')); ?></th><th><?php echo h(t('Aplicado')); ?></th></tr></thead>

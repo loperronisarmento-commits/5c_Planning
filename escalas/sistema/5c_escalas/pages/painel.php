@@ -12,9 +12,9 @@ if (escPost()) {
         throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
     }
     $r = escMotorVerificar(escUserId(), true);
-    escVoltar('painel', [], $r['recalculados']
+    escVoltar('painel', [], ($r['recalculados']
         ? t('Mudanças nas entradas: {lista}. O rascunho foi recalculado; veja o De→Para na grade.', ['lista' => implode('; ', array_map(static fn($x) => t('semana de {dia} ({fontes})', ['dia' => dataBr($x['semana']), 'fontes' => implode(', ', array_map('escNomeFonte', $x['fontes']))]), $r['recalculados']))])
-        : t('Nada mudou nas entradas desde a última versão.'));
+        : (!empty($r['falhas']) ? '' : t('Nada mudou nas entradas desde a última versão.'))) . escVerificarFalhas($r) . escEstruturaAviso(), !empty($r['falhas']));
 }
 
 $legado = escLegadoAtivo();
@@ -80,7 +80,7 @@ $pend = escQ1('SELECT (SELECT COUNT(*) FROM ' . escT('esc_indisponibilidade') . 
   </div>
   <p class="muted small"><?php echo h(t('Confere se o Capacity, a estrutura, as páginas, os colaboradores, os pedidos aprovados ou os modelos mudaram desde a versão atual de cada semana em aberto. Se mudou, recalcula o rascunho (nova subversão) mantendo os ajustes travados.')); ?></p>
   <?php if (escPode('planejar')): ?>
-  <form method="post" action="<?php echo h(link_tela('painel')); ?>" class="acoes" data-longo="<?php echo h(t('Verificando e recalculando… pode levar até 3 min.')); ?>">
+  <form method="post" action="<?php echo h(link_tela('painel')); ?>" class="acoes" data-confirmar="<?php echo h(t('Verificar mudanças agora?') . "\n\n" . t('Se alguma entrada mudou, as semanas em aberto são recalculadas e ganham nova subversão. O que foi ajustado à mão fica.')); ?>" data-longo="<?php echo h(t('Verificando e recalculando… pode levar até 3 min.')); ?>">
     <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="verificar">
     <button type="submit" class="botao"><?php echo h(t('Verificar mudanças')); ?></button>
   </form>

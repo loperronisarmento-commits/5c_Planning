@@ -24,7 +24,7 @@ if (escPost()) {
         escExigir('corrigir');
         $rep = strtoupper(trim((string) ($_POST['rep_code'] ?? '')));
         $tipo = (string) ($_POST['tipo'] ?? '');
-        $aPartir = preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_POST['a_partir'] ?? '')) ? $_POST['a_partir'] : null;
+        $aPartir = escDataValida($_POST['a_partir'] ?? null);
         $texto = mb_substr(trim((string) ($_POST['texto'] ?? '')), 0, 500);
         $dUnidade = in_array((int) ($_POST['destino_unidade'] ?? 0), [1, 2, 3], true) ? (int) $_POST['destino_unidade'] : null;
         $dTurno = in_array($_POST['destino_turno'] ?? '', ['A', 'C', 'D'], true) ? $_POST['destino_turno'] : null;
@@ -133,7 +133,7 @@ if (escPost()) {
         $id = (int) ($_POST['id'] ?? 0);
         $par = strtoupper(trim((string) ($_POST['par'] ?? '')));
         $desde = (string) ($_POST['desde'] ?? '');
-        if (!preg_match('~^\d{4}-\d{2}-\d{2}$~', $desde) || $desde < $primeiroDia) {
+        if (!escDataValida($desde) || $desde < $primeiroDia) {
             throw new RuntimeException(t('A troca vale a partir de {dia} ou depois (não dá para mudar o que já passou).', ['dia' => dataBr($primeiroDia)]));
         }
         $s = escQ1('SELECT * FROM ' . $tab . ' WHERE id = ?', [$id]);

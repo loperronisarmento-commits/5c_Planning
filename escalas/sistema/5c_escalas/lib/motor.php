@@ -16,7 +16,6 @@
 
 require_once __DIR__ . '/calendario.php';
 require_once __DIR__ . '/parametros.php';
-require_once __DIR__ . '/motor_v3_legado.php';
 require_once __DIR__ . '/entradas.php';
 require_once __DIR__ . '/csv.php';
 require_once __DIR__ . '/grade_conflitos.php';
@@ -213,6 +212,9 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
     if ($limiteTempo !== 0) {
         @set_time_limit(max(180, $limiteTempo));
     }
+    if (PHP_SAPI !== 'cli' && escMaisDias($seg, 6) < date('Y-m-d')) {
+        throw new RuntimeException(t('Esta semana já terminou: não dá para gerar nem recalcular.'));
+    }
     // Uma geração por vez, em qualquer caminho (Gerar, Criar rascunho, Verificar, Saída, Troca de unidade).
     if (function_exists('escGerarTravar') && !escGerarTravar()) {
         throw new RuntimeException(t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.'));
@@ -382,12 +384,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         }
         $estruturaPlano = 'V4';
     } else {
-        $saida = escMotorAlocar([
-            'dias' => $dias, 'config' => $config, 'estado' => $estado,
-            'estrutura' => escEstrutura(), 'paginas' => escMotorPaginas(),
-            'cap' => $cap, 'indisp' => escMotorIndisp($dias), 'travadas' => $travadas,
-        ]);
-        $estruturaPlano = 'V3';
+        throw new RuntimeException(t('Esta semana já terminou: não dá para gerar nem recalcular.'));
     }
 
     $est = $est ?? []; // estrutura v4 (pessoas e postos), para proteger só quem continua nela

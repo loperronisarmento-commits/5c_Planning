@@ -13,7 +13,11 @@ $seg = (string) ($_GET['semana'] ?? $semanas[1]);
 if (!in_array($seg, $semanas, true) && !preg_match('~^\d{4}-\d{2}-\d{2}$~', $seg)) {
     $seg = $semanas[1];
 }
-$seg = segundaDaSemana($seg);
+$seg = segundaDaSemana(escDataValida($seg) ?? $semanas[1]);
+if (!in_array($seg, $semanas, true)) {
+    $semanas[] = $seg; // semana aberta por link: o seletor mostra a semana em que o POST vai agir
+    sort($semanas);
+}
 
 if (escPost()) {
     escExigir('planejar');
@@ -54,10 +58,24 @@ if (escPost()) {
                     }
                 }
             } elseif ($etapa === 'escala') {
-                if (!escGerarTravar()) {
+                // Repetição por queda de rede: se a tentativa anterior terminou, devolve o que ela gerou.
+                $idGeracao = preg_replace('~[^a-z0-9]~i', '', (string) ($_POST['id_geracao'] ?? ''));
+                $jaGerado = $idGeracao !== '' ? escSessao(static fn() => $_SESSION['esc_gerar_feito'][$idGeracao] ?? null) : null;
+                if (is_array($jaGerado)) {
+                    $resp['ok'] = true;
+                    $resp['msg'] = $jaGerado['msg'];
+                    $resp['url'] = link_tela('grade', ['plano' => $jaGerado['plano']]);
+                } elseif (!escGerarTravar()) {
                     $resp['erro'] = t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.');
+                    $resp['repetir'] = !empty($_POST['repeticao']); // pode ser a própria tentativa anterior, ainda rodando
                 } else {
                     $g = escGerarEscala($acao, $segPost, $desde, true);
+                    if ($idGeracao !== '') {
+                        escSessao(static function () use ($idGeracao, $g) {
+                            $_SESSION['esc_gerar_feito'] = [$idGeracao => ['plano' => $g['plano'], 'msg' => $g['msg']]];
+                            unset($_SESSION['esc_gerar_capacity']);
+                        });
+                    }
                     escFlash($g['msg']);
                     $resp['ok'] = true;
                     $resp['msg'] = $g['msg'];
@@ -103,7 +121,7 @@ if (escPost()) {
     if ($acao === 'verificar') {
         $r = escMotorVerificar(escUserId(), true);
         $n = count($r['recalculados']);
-        escVoltar('gerar', ['semana' => $segPost], $n ? tn($n, '{n} semana recalculada: {fontes}', '{n} semanas recalculadas: {fontes}', ['fontes' => implode(', ', array_map(static fn($x) => implode('/', array_map('escNomeFonte', $x['fontes'])), $r['recalculados']))]) : t('Nada mudou nas entradas desde a última versão.'));
+        escVoltar('gerar', ['semana' => $segPost], ($n ? tn($n, '{n} semana recalculada: {fontes}', '{n} semanas recalculadas: {fontes}', ['fontes' => implode(', ', array_map(static fn($x) => implode('/', array_map('escNomeFonte', $x['fontes'])), $r['recalculados']))]) : (!empty($r['falhas']) ? '' : t('Nada mudou nas entradas desde a última versão.'))) . escVerificarFalhas($r) . escEstruturaAviso(), !empty($r['falhas']));
     }
     if ($acao === 'excluir') {
         // Versões substituídas ou rascunho: apaga a versão e o que é só dela. A publicada não sai;
@@ -286,7 +304,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
       <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="gerar"><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="desde" value="" class="campo-desde">
       <button type="submit" class="botao <?php echo $atual ? '' : 'primario'; ?>"><?php echo $atual ? h(t('Gerar do zero (nova versão)')) : h(t('Gerar rascunho')); ?></button>
     </form>
-    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-longo="<?php echo h(t('Verificando… pode levar até 3 min.')); ?>">
+    <form method="post" action="<?php echo h(link_tela('gerar', ['semana' => $seg])); ?>" data-confirmar="<?php echo h(t('Verificar mudanças agora?') . "\n\n" . t('Se alguma entrada mudou, as semanas em aberto são recalculadas e ganham nova subversão. O que foi ajustado à mão fica.')); ?>" data-longo="<?php echo h(t('Verificando… pode levar até 3 min.')); ?>">
       <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="verificar"><input type="hidden" name="semana" value="<?php echo h($seg); ?>">
       <button type="submit" class="botao"><?php echo h(t('Verificar mudanças')); ?></button>
     </form>
@@ -343,7 +361,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <table>
     <thead><tr><?php if ($podeExcluir): ?><th data-sem-ordem class="col-sel"></th><?php endif; ?><th><?php echo h(t('Versão')); ?></th><th><?php echo h(t('Status')); ?></th><th><?php echo h(t('Gerada em')); ?></th><th><?php echo h(t('Gatilho')); ?></th><th class="num"><?php echo h(t('Blocos')); ?></th><th class="num"><?php echo h(t('Lacunas')); ?></th><th class="num"><?php echo h(t('Anomalias')); ?></th><th class="num"><?php echo h(t('Buffers sem página')); ?></th><th></th></tr></thead>
     <tbody>
-    <?php foreach ($versoes as $v): $r = json_decode((string) $v['resumo'], true) ?: []; ?>
+    <?php $vivos = escResumosVivos(array_map('intval', array_column($versoes, 'id'))); foreach ($versoes as $v): $r = ($vivos[(int) $v['id']] ?? []) + (json_decode((string) $v['resumo'], true) ?: []); ?>
       <tr>
         <?php if ($podeExcluir): ?><td class="col-sel"><?php if ($v['status'] !== 'PUBLICADO'): ?><input type="checkbox" name="planos[]" value="<?php echo (int) $v['id']; ?>" form="versoes-excluir" class="versao-sel" data-status="<?php echo h($v['status']); ?>" data-rotulo="<?php echo h(escPlanoRotulo($v)); ?>" aria-label="<?php echo h(t('Selecionar {versao}', ['versao' => escPlanoRotulo($v)])); ?>"><?php endif; ?></td><?php endif; ?>
         <td><strong><?php echo h(escPlanoRotulo($v)); ?></strong></td>

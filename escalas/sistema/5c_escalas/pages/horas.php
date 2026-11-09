@@ -13,7 +13,11 @@ $semanas = [];
 for ($i = -1; $i < 4; $i++) {
     $semanas[] = date('Y-m-d', strtotime(segundaDaSemana(date('Y-m-d')) . " +{$i} week"));
 }
-$seg = segundaDaSemana(is_string($_GET['semana'] ?? null) && preg_match('~^\d{4}-\d{2}-\d{2}$~', $_GET['semana']) ? $_GET['semana'] : $semanas[2]);
+$seg = segundaDaSemana(escDataValida($_GET['semana'] ?? null) ?? $semanas[2]);
+if (!in_array($seg, $semanas, true)) {
+    $semanas[] = $seg;
+    sort($semanas);
+}
 $pagina5c = escV4Param('v4_overlap_pagina', '5C Schedule');
 
 // Blocos de 4 h: T1 01–05, T2 05–09, T3 09–13, T4 13–17, T5 17–21, T6 21–01. O T1 do turno D
@@ -60,7 +64,9 @@ if (escPost()) {
     if ($acao === 'recusar') {
         escExigir('planejar');
         $id = (int) ($_POST['id'] ?? 0);
-        escW('UPDATE ' . escT('esc_hora_extra') . " SET status = 'RECUSADO', decidido_em = NOW(), decidido_por = ? WHERE id = ? AND status = 'INTERESSADO'", [escUserId(), $id]);
+        if (escW('UPDATE ' . escT('esc_hora_extra') . " SET status = 'RECUSADO', decidido_em = NOW(), decidido_por = ? WHERE id = ? AND status = 'INTERESSADO'", [escUserId(), $id]) === 0) {
+            throw new RuntimeException(t('Pedido não encontrado ou já decidido.'));
+        }
         escLog('hora_extra.recusar', 'esc_hora_extra', $id);
         escVoltar('horas', ['semana' => $segPost], t('Interesse recusado.'));
     }
@@ -80,6 +86,9 @@ if (escPost()) {
         $rep = $he['rep_code'];
         $dia = substr($he['dia'], 0, 10);
         $turno = $he['turno'];
+        if (empty($_POST['mesmo_assim']) && array_key_exists($turno, escMotorIndisp([$dia])[strtoupper((string) $rep)][$dia] ?? [])) {
+            throw new RuntimeException(t('{rep} tem indisponibilidade aprovada neste turno. Para alocar assim, marque "alocar mesmo assim".', ['rep' => $rep]));
+        }
         // Blocos pedidos: o do pedido (4 h) ou, em pedido antigo sem bloco, o turno inteiro.
         $blocosHe = !empty($he['bloco']) ? [$he['bloco']] : ESC_TURNOS[$turno];
         $celulas = array_map(static fn($b) => [$diaDoBloco($dia, $turno, $b), $b], $blocosHe);
@@ -262,7 +271,8 @@ $formInteresse = static function (array $campos) use ($seg): string {
     return $html . '<input type="search" name="rep_code" list="lista-colaboradores" autocomplete="off" placeholder="' . h(t('quem quer fazer (nome ou código)')) . '" aria-label="' . h(t('Quem quer fazer a hora extra (nome ou código)')) . '" required>'
         . '<button type="submit" class="botao">' . h(t('Registrar')) . '</button></form>';
 };
-$listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho): string {
+$indispSemana = escMotorIndisp(escDiasDaSemana($seg));
+$listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho, $indispSemana): string {
     if (!$lista) {
         return '<span class="muted small">' . h(t('ninguém ainda')) . '</span>';
     }
@@ -276,6 +286,7 @@ $listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho
                     continue;
                 }
                 $html .= ' <form method="post" action="' . h(link_tela('horas', ['semana' => $seg])) . '" class="he-inline" data-manter-rolagem>' . campoCsrf()
+                    . ($acao === 'alocar' && array_key_exists($l['turno'], $indispSemana[strtoupper((string) $l['rep_code'])][substr((string) $l['dia'], 0, 10)] ?? []) ? '<label class="small"><input type="checkbox" name="mesmo_assim" value="1"> ' . h(t('alocar mesmo assim (tem indisponibilidade)')) . '</label> ' : '')
                     . '<input type="hidden" name="acao" value="' . $acao . '"><input type="hidden" name="id" value="' . (int) $l['id'] . '"><input type="hidden" name="semana" value="' . h($seg) . '">'
                     . '<button type="submit" class="' . $cls . '"' . ($acao === 'recusar' ? ' data-confirmar="' . h(t('Recusar o interesse de {nome} na hora extra?', ['nome' => nomeCurto($nomes[strtoupper((string) $l['rep_code'])] ?? (string) $l['rep_code'])])) . '"' : '') . '>' . $rot . '</button></form>';
             }

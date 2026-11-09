@@ -56,13 +56,15 @@ if (escPost()) {
         if ($datas['fim'] < $datas['inicio'] || $datas['disponivel_em'] <= $datas['fim']) {
             throw new RuntimeException(t('O fim vem depois do início, e o "disponível" depois do fim.'));
         }
-        escW('UPDATE ' . escT('esc_treinamento_turma') . ' SET turno = ?, inicio = ?, fim = ?, disponivel_em = ?, paginas_necessarias = ? WHERE id = ?',
-            [$turno, $datas['inicio'], $datas['fim'], $datas['disponivel_em'], $n, $id]);
-        if ($turno !== $turma['turno']) {
-            escW('DELETE FROM ' . escT('esc_treinamento_pagina') . ' WHERE turma_id = ?', [$id]);
-            escW('UPDATE ' . escT('esc_treinamento_turma') . " SET status = 'RASCUNHO' WHERE id = ?", [$id]);
-        }
-        escLog('treinamento.ajustar', 'treinamento', $id, null, $datas + ['turno' => $turno, 'paginas' => $n]);
+        escTx(function () use ($turno, $datas, $n, $id, $turma) {
+            escW('UPDATE ' . escT('esc_treinamento_turma') . ' SET turno = ?, inicio = ?, fim = ?, disponivel_em = ?, paginas_necessarias = ? WHERE id = ?',
+                [$turno, $datas['inicio'], $datas['fim'], $datas['disponivel_em'], $n, $id]);
+            if ($turno !== $turma['turno']) {
+                escW('DELETE FROM ' . escT('esc_treinamento_pagina') . ' WHERE turma_id = ?', [$id]);
+                escW('UPDATE ' . escT('esc_treinamento_turma') . " SET status = 'RASCUNHO' WHERE id = ?", [$id]);
+            }
+            escLog('treinamento.ajustar', 'treinamento', $id, null, $datas + ['turno' => $turno, 'paginas' => $n]);
+        });
         escVoltar('treinamento', [], t('Turma ajustada.'));
     }
     throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
