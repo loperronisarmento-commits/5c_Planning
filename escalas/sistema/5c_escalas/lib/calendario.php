@@ -52,6 +52,24 @@ function escTrabalhaNoDia(array $cfg, int $trilha, string $dia): bool {
     return $ciclo[$idx] === '1';
 }
 
+// Corte dos dados históricos (pedido de 09/11): os dados anteriores estão comprometidos, então as janelas
+// de desempenho (mérito, metas, faltas, SLA, vendas, quem conhece a página, política, tags) nunca começam
+// antes desta data. O Capacity fica de fora e segue com as janelas dele.
+function escDadosDesde(): string {
+    return substr(escV4Param('dados_desde', '2026-11-01'), 0, 10);
+}
+
+// Início de uma janela: nunca antes do corte. Aceita 'AAAA-MM-DD' e 'AAAA-MM-DDTHH:MM:SS'.
+function escCorteDados(string $inicio): string {
+    $corte = escDadosDesde();
+    return substr($inicio, 0, 10) < $corte ? $corte . substr($inicio, 10) : $inicio;
+}
+
+// Janela em dias para trás a partir de hoje, sem passar do corte.
+function escDiasCorte(int $n): int {
+    return max(1, min($n, (int) round((strtotime(date('Y-m-d')) - strtotime(escDadosDesde())) / 86400)));
+}
+
 function escV4DiaVirada(): string {
     return substr(escV4Param('v4_virada', '2026-11-01 05:00'), 0, 10);
 }

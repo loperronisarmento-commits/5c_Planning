@@ -180,6 +180,10 @@ Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem bibl
 
 `escPodeVerRestrito()` (perfil real ADMIN, PLANEJAMENTO ou WFM, também no Modo Treino) controla a Política de mérito (telas `owners` e `merito`, seções de mérito e política em Regras), as tags individuais, o motivo da indisponibilidade, Folga juntos, venda por hora, faturamento e valor de contrato. Telas `times`, `trocas` e `modelos` só para admin. Este README não é servido pela web (`.htaccess`).
 
+## Corte de dados (1.23.0)
+
+As janelas de desempenho nunca começam antes de 01/11/2026: `escCorteDados()` e `escDiasCorte()` em `lib/calendario.php`, com a data em `escV4Param('dados_desde', '2026-11-01')`. O Capacity e a sincronização da estrutura ficam de fora.
+
 ## Requisitos
 
 PHP 7.4 ou mais novo, com `pdo_mysql` (e ZipArchive para o .zip). MySQL 8.0.19 ou mais novo (usa `INSERT ... AS n ON DUPLICATE KEY UPDATE`); o servidor .11 está no 9.5.

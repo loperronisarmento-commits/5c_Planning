@@ -342,7 +342,7 @@ function escSaidaPassarVagas(array $livres, string $desde, array &$res): void {
         $hist = [];
         foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS dias FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn($reps) . ') AND shiftDateAndHour >= ? GROUP BY UPPER(codigo), modeloNome',
-            array_merge($reps, [escMaisDias($desde, -56) . 'T00:00:00'])) as $r) {
+            array_merge($reps, [escCorteDados(escMaisDias($desde, -56)) . 'T00:00:00'])) as $r) {
             $hist[$r['rep']][$r['pagina']] = (int) $r['dias'];
         }
         $ocupada = [];

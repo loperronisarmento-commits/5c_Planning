@@ -597,11 +597,11 @@ if (($_GET['ver'] ?? '') === 'pdf') {
         }
         $sqlDias = [];
         foreach ($janelasPdf as $j) {
-            $sqlDias[] = "COUNT(DISTINCT IF(shiftDateAndHour >= '" . escMaisDias($seg, -$j) . "T00:00:00', LEFT(shiftDateAndHour, 10), NULL)) AS d{$j}";
+            $sqlDias[] = "COUNT(DISTINCT IF(shiftDateAndHour >= '" . escCorteDados(escMaisDias($seg, -$j)) . "T00:00:00', LEFT(shiftDateAndHour, 10), NULL)) AS d{$j}";
         }
         foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, ' . implode(', ', $sqlDias) . ' FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn($todosReps) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
-                        GROUP BY UPPER(codigo), modeloNome', array_merge($todosReps, [escMaisDias($seg, -max($janelasPdf)) . 'T00:00:00', $seg . 'T00:00:00'])) as $l) {
+                        GROUP BY UPPER(codigo), modeloNome', array_merge($todosReps, [escCorteDados(escMaisDias($seg, -max($janelasPdf))) . 'T00:00:00', $seg . 'T00:00:00'])) as $l) {
             $pid = $pidDe[escV4ChavePagina((string) $l['pagina'])] ?? null;
             if ($pid !== null) {
                 foreach ($janelasPdf as $j) {

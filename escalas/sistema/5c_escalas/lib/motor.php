@@ -105,6 +105,7 @@ function escMotorIndisp(array $dias): array {
 
 // Dias trabalhados (dia do turno = horário do bloco − 5 h) de cada rep.
 function escMotorRealizado(string $de, string $ate): array {
+    $de = escCorteDados($de);
     $linhas = escQ("SELECT UPPER(codigo) AS code,
                            DATE(DATE_SUB(STR_TO_DATE(shiftDateAndHour, '%Y-%m-%dT%H:%i:%s'), INTERVAL 5 HOUR)) AS dia
                       FROM `5c_schedule`.`scheduleday`
@@ -122,7 +123,7 @@ function escMotorRealizado(string $de, string $ate): array {
 
 function escMotorReleitura(array $config, array $realizado, string $seg): array {
     $fim = escMaisDias($seg, -1);
-    $inicio = escMaisDias($seg, -28);
+    $inicio = escCorteDados(escMaisDias($seg, -28));
     $janela = [];
     for ($d = $inicio; $d <= $fim; $d = escMaisDias($d, 1)) {
         $janela[] = $d;

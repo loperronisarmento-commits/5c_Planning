@@ -467,7 +467,7 @@ function escEstruturaDividirOS(array &$novos, array $mantidos, array $esc, array
     foreach ($cap as $p) {
         $todas += $p['paginas'];
     }
-    $receita = escV4ReceitaPaginas(array_keys($todas), (int) escV4Param('v4_receita_dias', '30'));
+    $receita = escV4ReceitaPaginas(array_keys($todas), (int) escV4Param('v4_receita_dias', '30'), false); // Capacity: sem o corte de dados
     $valor = static function (array $p) use ($receita): float {
         $v = 0.0;
         foreach ($p['paginas'] as $pg => $g) {

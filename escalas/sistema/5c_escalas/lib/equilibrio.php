@@ -32,7 +32,7 @@ function escEqFaturamento(string $hoje): array {
         foreach (escQ("SELECT CREATOR_NAME AS pagina, CASE WHEN HOUR(`DATE`) BETWEEN 5 AND 12 THEN 'A' WHEN HOUR(`DATE`) BETWEEN 13 AND 20 THEN 'C' ELSE 'D' END AS turno,
                               SUM(CASE WHEN STATUS = 'reverse' THEN -ABS(AMOUNT) ELSE AMOUNT END) AS v
                          FROM `5c_wfm_db`.`agg_statements_classification` WHERE `DATE` >= ? AND `DATE` < ? GROUP BY CREATOR_NAME, turno",
-            [escMaisDias($hoje, -30) . ' 00:00:00', $hoje . ' 00:00:00']) as $r) {
+            [escCorteDados(escMaisDias($hoje, -30)) . ' 00:00:00', $hoje . ' 00:00:00']) as $r) {
             $k = escEqChave((string) $r['pagina']);
             $f[$k][$r['turno']] = round(($f[$k][$r['turno']] ?? 0) + (float) $r['v'], 2);
         }
@@ -339,7 +339,7 @@ function escEqDados(string $hoje, ?string $dia = null): array {
         try {
             foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS dias FROM `5c_schedule`.`scheduleday`
                             WHERE codigo IN (' . escIn($lote) . ') AND shiftDateAndHour >= ? GROUP BY UPPER(codigo), modeloNome',
-                array_merge($lote, [escMaisDias($dia, -56) . 'T00:00:00'])) as $h) {
+                array_merge($lote, [escCorteDados(escMaisDias($dia, -56)) . 'T00:00:00'])) as $h) {
                 $k = escEqChave((string) $h['pagina']);
                 $conhece[$h['rep']][$k] = ($conhece[$h['rep']][$k] ?? 0) + (int) $h['dias'];
             }

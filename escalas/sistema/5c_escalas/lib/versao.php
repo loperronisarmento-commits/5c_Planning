@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.23.0', 'data' => '2026-11-09', 'titulo' => 'Dados históricos só a partir de 01/11/2026', 'sql' => [], 'itens' => [
+    'Corte de dados: mérito, metas, faltas, SLA, vendas, quem conhece a página, política, tags, Equilíbrio e Treinamento contam só a partir de 01/11/2026, mesmo quando a janela é maior. O Capacity segue como estava.',
+    'Com pouco histórico, o mínimo de 7 dias para conhecer uma página continua valendo: as páginas vermelhas só recebem quem é fixo nelas ou já tem esses dias desde 01/11, então podem aparecer mais lacunas nelas no próximo Gerar.',
+    'Tempo de casa e cargo seguem do cadastro.',
+    ]],
     ['versao' => '1.22.0', 'data' => '2026-11-09', 'titulo' => 'Mérito dos SRs exportável em .xlsx e PDF', 'sql' => [], 'itens' => [
     'Mérito dos SRs: botões "Exportar .xlsx" e "Exportar PDF" (WFM, Planejamento e Admin), com os filtros de unidade e turno da tela. O .xlsx traz pontos e dado de origem em colunas separadas, com filtro e cabeçalho congelado; o PDF sai em A4 paisagem no papel timbrado.',
     'Os dois arquivos levam a versão no cabeçalho e no nome; o número sobe quando os dados exportados mudam.',

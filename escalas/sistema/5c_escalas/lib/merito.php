@@ -123,6 +123,7 @@ function escMeritoFaixaRotulo(string $faixa): array {
 // Devolve ['taxa' => [chave => taxa], 'fonte' => 'oficial' | 'schedule'].
 function escAbsRealizado(string $por, string $de, string $ate, array $reps = []): array {
     $reps = array_values(array_unique(array_map('strtoupper', $reps)));
+    $de = escCorteDados($de);
     $filtro = $reps ? ' AND codigo IN (' . escIn($reps) . ')' : '';
     $taxa = [];
     try {
@@ -177,13 +178,13 @@ function escMeritoCalcular(array $reps): array {
     }
     $n = max(7, (int) escV4Param('merito_janela_dias', '28'));
     $ate = date('Y-m-d', strtotime('-1 day'));
-    $de = date('Y-m-d', strtotime('-' . $n . ' day'));
+    $de = escCorteDados(date('Y-m-d', strtotime('-' . $n . ' day')));
     $teto = (float) str_replace(',', '.', escV4Param('merito_desempenho_teto', '2'));
     $pts = escMeritoPtsParam();
     // M-10: as últimas seq_semanas semanas fechadas (segunda a domingo), que podem começar antes da janela.
     $segAtual = segundaDaSemana(date('Y-m-d'));
     $ateSem = escMaisDias($segAtual, -1);
-    $deSem = escMaisDias($segAtual, -7 * $pts['seq_semanas']);
+    $deSem = escCorteDados(escMaisDias($segAtual, -7 * $pts['seq_semanas']));
     $deDados = min($de, $deSem);
 
     // Código do Infloww (prefixo do remetente, ex.: "SRJ70") → código do SR.
@@ -355,7 +356,7 @@ function escMeritoCalcular(array $reps): array {
     try {
         foreach (escQ('SELECT UPPER(sr_code) AS rep, COUNT(*) AS n FROM ' . escT('esc_sr_infraction') . ' WHERE sr_code IN (' . escIn($reps) . ')
                          AND COALESCE(applied_date, occurrency_date) >= ? GROUP BY UPPER(sr_code)',
-            array_merge($reps, [date('Y-m-d', strtotime('-' . $pts['infracao_dias'] . ' day'))])) as $r) {
+            array_merge($reps, [escCorteDados(date('Y-m-d', strtotime('-' . $pts['infracao_dias'] . ' day')))])) as $r) {
             $nInf[$r['rep']] = (int) $r['n'];
         }
     } catch (Throwable $e) {
@@ -423,7 +424,7 @@ function escMeritoAtingimentoPaginas(array $paginas, array $reps, array $periodo
         return [];
     }
     $ontem = date('Y-m-d', strtotime('-1 day'));
-    $de = min(array_column($periodos, 0));
+    $de = escCorteDados(min(array_column($periodos, 0)));
     $ate = min($ontem, max(array_column($periodos, 1)));
     if ($de > $ate) {
         return [];

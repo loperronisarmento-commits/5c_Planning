@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.23.0' => ['titulo' => 'Historical data only from 11/01/2026', 'itens' => [
+    'Data cutoff: merit, goals, absences, SLA, sales, who knows the page, policy, tags, Balance and Training only count from 11/01/2026, even when the window is longer. Capacity stays as it was.',
+    'With little history, the 7-day minimum to know a page still applies: red pages only take those fixed on them or who already have those days since 11/01, so more gaps may appear on them at the next Generate.',
+    'Tenure and role still come from the registry.',
+    ]],
     '1.22.0' => ['titulo' => 'SR merit exportable to .xlsx and PDF', 'itens' => [
     'SR merit: "Export .xlsx" and "Export PDF" buttons (WFM, Planning and Admin), with the unit and shift filters on the screen. The .xlsx has points and source data in separate columns, with a filter and a frozen header; the PDF comes out in A4 landscape on the letterhead.',
     'Both files carry the version in the header and in the name; the number goes up when the exported data changes.',

@@ -1,6 +1,7 @@
 <?php
 // Textos em inglês da tela Mérito dos SRs (pages/tertius.php). O português é a chave.
 return [
+    'Só contam dados a partir de {dia}.' => 'Only data from {dia} onward counts.',
     'Exportar .xlsx' => 'Export .xlsx',
     'Exportar PDF' => 'Export PDF',
     'Com os filtros de unidade e turno escolhidos acima.' => 'With the unit and shift filters chosen above.',

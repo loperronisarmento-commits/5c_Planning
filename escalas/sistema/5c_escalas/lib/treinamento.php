@@ -382,7 +382,7 @@ function escTrnAtingimento(array $paginas, string $hoje, int $n): array {
     }
     $out = [];
     foreach (escQ('SELECT Page AS pagina, Turn AS t, SUM(`5CReps`) AS r, SUM(`Goal 5CReps`) AS g FROM `5c_wfm_db_mis`.`tab_intraday_base`
-                    WHERE `Date` >= ? AND `Date` < ? AND Page IN (' . escIn($paginas) . ') GROUP BY Page, Turn', array_merge([escMaisDias($hoje, -$n), $hoje], $paginas)) as $l) {
+                    WHERE `Date` >= ? AND `Date` < ? AND Page IN (' . escIn($paginas) . ') GROUP BY Page, Turn', array_merge([escCorteDados(escMaisDias($hoje, -$n)), $hoje], $paginas)) as $l) {
         $t = ESC_POL_TURNO[$l['t']] ?? null;
         $out[$l['pagina']]['*'][0] = ($out[$l['pagina']]['*'][0] ?? 0) + (float) $l['r'];
         $out[$l['pagina']]['*'][1] = ($out[$l['pagina']]['*'][1] ?? 0) + (float) $l['g'];

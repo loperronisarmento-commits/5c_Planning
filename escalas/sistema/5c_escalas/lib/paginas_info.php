@@ -204,7 +204,7 @@ function escV4ReceitaTier(): array {
 //   - nenhuma venda: o meio da faixa do tier da página, dividido igual entre os turnos (TIER).
 //     Página com cara de OFTV sem venda fica com zero (SEM).
 // $saida[pagina] = ['A' =>, 'C' =>, 'D' => (US$ por dia), 'total' => (US$ em $n dias), 'dias' =>, 'base' =>, 'tier' =>].
-function escV4ReceitaPaginas(array $nomes, int $n): array {
+function escV4ReceitaPaginas(array $nomes, int $n, bool $corte = true): array {
     $de = [];
     foreach ($nomes as $nm) {
         $de[escV4ChavePagina((string) $nm)][] = (string) $nm;
@@ -212,7 +212,7 @@ function escV4ReceitaPaginas(array $nomes, int $n): array {
     if (!$de) {
         return [];
     }
-    $n = max(1, $n);
+    $n = $corte ? escDiasCorte(max(1, $n)) : max(1, $n);
     $soma = [];
     $ini = [];
     foreach (escQ("SELECT CREATOR_NAME AS pagina, MIN(Date) AS ini,

@@ -159,7 +159,7 @@ if (isset($_GET['baixar'])) {
   <?php if (!$soPdf): ?>
   <details>
     <summary><strong><?php echo h(t('Como a nota é calculada')); ?></strong></summary>
-    <p><?php echo h(t('A nota é a soma dos pontos abaixo, nos últimos {n} dias até ontem. Sem dado num componente, ele vale 0.', ['n' => (int) escV4Param('merito_janela_dias', '28')])); ?> <a href="<?php echo h(link_tela('merito')); ?>"><?php echo h(t('Ver a explicação completa')); ?></a></p>
+    <p><?php echo h(t('A nota é a soma dos pontos abaixo, nos últimos {n} dias até ontem. Sem dado num componente, ele vale 0.', ['n' => (int) escV4Param('merito_janela_dias', '28')])); ?> <?php echo h(t('Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?> <a href="<?php echo h(link_tela('merito')); ?>"><?php echo h(t('Ver a explicação completa')); ?></a></p>
     <ul class="small">
       <li><strong><?php echo h(t('Tier:')); ?></strong> <?php echo h(t('tier da página em que o SR mais esteve, regular ou assistente: F 0, E 1, D 2, C 3, B 5, A ou acima 8.')); ?></li>
       <li><strong><?php echo h(t('Meta:')); ?></strong> <?php echo h(t('realizado ÷ meta 5CReps, rateado pelas mensagens do SR: 1 ponto a cada 10% acima ou abaixo de 100%, até ±10.')); ?></li>

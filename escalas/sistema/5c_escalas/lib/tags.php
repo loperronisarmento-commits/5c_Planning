@@ -60,7 +60,7 @@ function escTagsParam(): array {
 // Leituras das tags, em cache de arquivo por 6 h (as fontes mudam no máximo uma vez por dia):
 // ['sr' => [rep => [códigos]], 'meta' => [chave da página][rep] => atingimento, 'dias' => [chave][rep] => dias em 90].
 function escTagsDados(): array {
-    return escCache('tags_' . date('Ymd'), 6 * 3600, static function (): array {
+    return escCache('tags_corte_' . date('Ymd'), 6 * 3600, static function (): array {
         $p = escTagsParam();
         $sr = [];
         try {
@@ -131,7 +131,7 @@ function escTagsDados(): array {
             try {
                 foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS d FROM `5c_schedule`.`scheduleday`
                                 WHERE shiftDateAndHour >= ? AND shiftDateAndHour < ? GROUP BY UPPER(codigo), modeloNome',
-                    [date('Y-m-d', strtotime('-90 day')) . 'T00:00:00', date('Y-m-d') . 'T00:00:00']) as $l) {
+                    [escCorteDados(date('Y-m-d', strtotime('-90 day'))) . 'T00:00:00', date('Y-m-d') . 'T00:00:00']) as $l) {
                     $k = escV4ChavePagina((string) $l['pagina']);
                     $dias[$k][$l['rep']] = ($dias[$k][$l['rep']] ?? 0) + (int) $l['d'];
                 }

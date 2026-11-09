@@ -49,7 +49,7 @@ function escPolPrazo(float $a, array $p): int {
 // Realizado e meta por página, dia e turno (A, C, D), dos últimos dias da janela (cache de 15 min).
 function escPolSeries(string $hoje): array {
     $p = escPolParam();
-    $de = escMaisDias($hoje, -(int) $p['pol_janela'] - 1);
+    $de = escCorteDados(escMaisDias($hoje, -(int) $p['pol_janela'] - 1));
     return escCache('politica_series_' . $hoje, 900, static function () use ($de, $hoje): array {
         $s = [];
         foreach (escQ("SELECT `Date` AS dia, Page AS pagina, Turn AS t, SUM(`5CReps`) AS r, SUM(`Goal 5CReps`) AS g
@@ -69,7 +69,7 @@ function escPolSeries(string $hoje): array {
 // Situação de uma série [dia => [real, meta]] desde $inicio. Devolve situacao, ating (janela),
 // ating7, ating14, dias com dado, desde quando abaixo, quando vence o prazo e quantos dias faltam.
 function escPolSituacao(array $serie, string $inicio, string $hoje, ?string $ultimaTroca, array $p): array {
-    $w0 = max($inicio, escMaisDias($hoje, -(int) $p['pol_janela']), $ultimaTroca ?? '0000-00-00');
+    $w0 = max($inicio, escCorteDados(escMaisDias($hoje, -(int) $p['pol_janela'])), $ultimaTroca ?? '0000-00-00');
     $dias = array_filter($serie, static fn($v, $d) => $d >= $w0 && $d < $hoje && $v[1] > 0, ARRAY_FILTER_USE_BOTH);
     ksort($dias);
     $soma = static function (array $ds): ?float {

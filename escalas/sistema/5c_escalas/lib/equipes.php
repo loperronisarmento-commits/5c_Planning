@@ -182,7 +182,7 @@ function escEquipesCompletar(string $desde, string $ref): array {
     if ($todos) {
         foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS dias FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn($todos) . ') AND shiftDateAndHour >= ? GROUP BY UPPER(codigo), modeloNome',
-            array_merge($todos, [escMaisDias($ref, -56) . 'T00:00:00'])) as $h) {
+            array_merge($todos, [escCorteDados(escMaisDias($ref, -56)) . 'T00:00:00'])) as $h) {
             $hist[$h['rep']][$h['pagina']] = (int) $h['dias'];
         }
     }
