@@ -51,8 +51,8 @@ $merito = $verMerito ? escMeritoCarregar() : [];
 $pts = escMeritoPtsParam();
 $calculadoEm = $merito ? max(array_column($merito, 'calculado_em')) : null;
 
-$uSel = (string) ($_GET['u'] ?? '');
-$tSel = (string) ($_GET['t'] ?? '');
+$uSel = in_array((string) ($_GET['u'] ?? ''), ['1', '2', '3'], true) ? (string) $_GET['u'] : '';
+$tSel = in_array((string) ($_GET['t'] ?? ''), ['A', 'C', 'D'], true) ? (string) $_GET['t'] : '';
 $fatiaNivel = [0 => 0.40, 1 => 0.60, 2 => 0.80];
 $linhas = [];
 foreach ($srs as $s) {
@@ -79,14 +79,69 @@ foreach ($linhas as $l) {
 }
 $sinal = static fn($v): string => $v === null ? '—' : ((int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 ? '−' . abs((int) $v) : '0'));
 $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : ((int) $v < 0 ? 'laranja' : 'muted'));
+
+// ---------- Exportar (.xlsx e PDF): mérito individual, só WFM/Planejamento e Admin ----------
+$soPdf = ($_GET['ver'] ?? '') === 'pdf';
+$docMerito = ['versao' => 0, 'rotulo' => '', 'desde' => ''];
+if ($soPdf || isset($_GET['baixar'])) {
+    escExigirRestrito();
+    $exportar = [];
+    foreach ($linhas as $l) {
+        $m = $l['m'];
+        $pt = static fn(string $k) => $m && array_key_exists($k, $m) && $m[$k] !== null ? (int) $m[$k] : null;
+        $dec = static fn(string $k) => $m && isset($m[$k]) ? (float) $m[$k] : null;
+        $faixaTxt = $l['faixa'] !== null ? escMeritoFaixaRotulo($l['faixa'])[0] : t('Sem nota');
+        $exportar[] = [$l['nome'], $l['rep'], 'U' . $l['u'], $l['t'], $l['nucleo'] !== null ? (int) $l['nucleo'] : null, $l['nivel'],
+            (int) $l['posto'], (int) $l['assist'], (int) $l['buffer'], (int) $l['overlap'], $l['pct'], $l['alvo'],
+            $pt('pts_tier'), $m['tier'] ?? null, $m['pagina_principal'] ?? null, $pt('pts_meta'), $dec('desempenho'), $pt('pts_faltas'), $pt('faltas'),
+            $pt('pts_sla'), $dec('sla'), $pt('pts_casa'), $pt('pts_vendas'), $dec('venda_h'), $pt('pts_cargo'), $pt('pts_infracao'), $pt('pts_seq'), $pt('semanas_meta'),
+            $l['nota'] !== null ? (int) $l['nota'] : null, ['v' => $faixaTxt, 'cor' => ['ACIMA' => 'verde', 'ABAIXO' => 'laranja'][$l['faixa'] ?? ''] ?? '']];
+    }
+    // A versão sobe quando os dados exportados mudam; o .xlsx e o PDF do mesmo filtro têm o mesmo número.
+    $docMerito = escDocVersao('merito_srs', 'plano:' . $planoId . ':u' . $uSel . ':t' . $tSel, (string) json_encode($exportar, JSON_UNESCAPED_UNICODE));
+    $filtroTxt = ($uSel !== '' ? 'U' . $uSel : t('Todas as unidades')) . ' · ' . ($tSel !== '' ? t('Turno {t}', ['t' => $tSel]) : t('Todos os turnos'));
+    $infoDoc = t('Semana de {de} a {ate}', ['de' => dataBr($seg), 'ate' => dataBr($fim)]) . ' · ' . $filtroTxt
+        . ($docMerito['rotulo'] !== '' ? ' · ' . t('versão {v}', ['v' => $docMerito['rotulo']]) : '')
+        . ($calculadoEm ? ' · ' . t('Calculado em {quando}', ['quando' => escDataHora((string) $calculadoEm)]) : '');
+    $nomeArq = t('Mérito dos SRs') . ' ' . escPlanoRotulo($plano) . ($uSel !== '' ? ' U' . $uSel : '') . ($tSel !== '' ? ' ' . $tSel : '') . ' ' . date('d-m-Y') . escDocSufixo($docMerito);
+}
+if (($_GET['baixar'] ?? '') === 'xlsx') {
+    require_once __DIR__ . '/../lib/xlsx.php';
+    $col = static fn(string $titulo, float $largura, string $estilo) => ['titulo' => $titulo, 'largura' => $largura, 'estilo' => $estilo];
+    $sem = static fn(string $s): string => strtr($s, ['á' => 'a', 'ã' => 'a', 'â' => 'a', 'é' => 'e', 'ê' => 'e', 'í' => 'i', 'ó' => 'o', 'õ' => 'o', 'ú' => 'u', 'ç' => 'c', 'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ç' => 'C']);
+    escXlsxBaixar($sem($nomeArq) . '.xlsx', t('Mérito dos SRs'),
+        [t('Mérito dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)]), $infoDoc,
+            t('Acima') . ' ' . $contaFaixa['ACIMA'] . ' · ' . t('Na média') . ' ' . $contaFaixa['MEDIA'] . ' · ' . t('Abaixo') . ' ' . $contaFaixa['ABAIXO'] . ' · ' . t('Sem nota') . ' ' . $contaFaixa['']],
+        [$col('SR', 28, 'texto'), $col(t('Código'), 10, 'texto'), $col(t('Unidade'), 8, 'texto'), $col(t('Turno'), 7, 'texto'), $col(t('Núcleo'), 7, 'inteiro'), $col(t('Nível'), 7, 'inteiro'),
+            $col(t('Em posto'), 8, 'inteiro'), $col(t('Assistente'), 10, 'inteiro'), $col('Buffer (-2)', 8, 'inteiro'), $col('Overlap (-5)', 8, 'inteiro'), $col(t('% em posto'), 8, 'pct'), $col(t('Alvo'), 7, 'pct'),
+            $col(t('Tier (pontos)'), 8, 'pontos'), $col(t('Tier'), 6, 'texto'), $col(t('Página principal'), 24, 'texto'), $col(t('Meta (pontos)'), 8, 'pontos'), $col(t('Meta %'), 8, 'pct'),
+            $col(t('Faltas (pontos)'), 8, 'pontos'), $col(t('Dias de falta'), 7, 'inteiro'), $col(t('SLA (pontos)'), 8, 'pontos'), $col('SLA %', 7, 'pct'), $col(t('Casa (pontos)'), 8, 'pontos'),
+            $col(t('Vendas (pontos)'), 8, 'pontos'), $col(t('Venda US$/h'), 8, 'dinheiro'), $col(t('Cargo (pontos)'), 8, 'pontos'), $col(t('Infrações (pontos)'), 9, 'pontos'), $col(t('Sequência (pontos)'), 9, 'pontos'), $col(t('Semanas seguidas'), 8, 'inteiro'),
+            $col(t('Nota'), 7, 'nota'), $col(t('Faixa'), 10, 'texto')],
+        $exportar, 2);
+    return;
+}
+if (isset($_GET['baixar'])) {
+    http_response_code(400);
+    echo t('Download desconhecido.');
+    return;
+}
 ?>
+<?php if ($soPdf): ?>
+<div class="acoes nao-imprimir">
+  <a class="botao" href="<?php echo h(link_tela('srs', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]))); ?>">← <?php echo h(t('Voltar para o Mérito dos SRs')); ?></a>
+  <button type="button" class="botao primario" onclick="window.print()"><?php echo h(t('Baixar PDF')); ?></button>
+  <span class="muted small"><?php echo h(t('Na impressão, escolha "Salvar como PDF".')); ?></span>
+</div>
+<?php endif; ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Análise')); ?></span>
   <h1><?php echo h(t('Mérito dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
-  <p class="muted"><?php echo h(t('Turnos de cada SR na escala e o mérito em pontos. No Gerar, quem bateu a meta na página vem primeiro; depois a faixa do mérito, a nota e o tempo de casa. Quem estava no posto fica, a não ser que apareça um SR de faixa acima ou que ele esteja abaixo da meta mínima na página.')); ?></p>
+  <?php if ($soPdf): ?><p class="muted small"><?php echo h($infoDoc); ?></p>
+  <?php else: ?><p class="muted"><?php echo h(t('Turnos de cada SR na escala e o mérito em pontos. No Gerar, quem bateu a meta na página vem primeiro; depois a faixa do mérito, a nota e o tempo de casa. Quem estava no posto fica, a não ser que apareça um SR de faixa acima ou que ele esteja abaixo da meta mínima na página.')); ?></p><?php endif; ?>
 </header>
 
-<?php if ($verMerito && !escAbsOficialOk()): ?>
+<?php if ($verMerito && !$soPdf && !escAbsOficialOk()): ?>
 <p class="aviso" role="status"><?php echo h(t('O sistema não consegue ler as faltas oficiais (5c_wfm_db_mis.abs_adh_af): as faltas ficam com 0 ponto. Peça ao DBA o SELECT nessa tabela para o usuário do sistema.')); ?></p>
 <?php endif; ?>
 <?php if ($verMerito): ?>
@@ -100,7 +155,8 @@ $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : 
 <div class="faixa-legado" role="status"><?php echo h(t('O mérito de cada SR (pontos, faltas e infrações) aparece só para os perfis Planejamento e Admin. Aqui ficam os turnos de cada SR na escala.')); ?></div>
 <?php endif; ?>
 
-<section class="panel">
+<section class="panel<?php echo $soPdf ? ' merito-srs-pdf' : ''; ?>">
+  <?php if (!$soPdf): ?>
   <details>
     <summary><strong><?php echo h(t('Como a nota é calculada')); ?></strong></summary>
     <p><?php echo h(t('A nota é a soma dos pontos abaixo, nos últimos {n} dias até ontem. Sem dado num componente, ele vale 0.', ['n' => (int) escV4Param('merito_janela_dias', '28')])); ?> <a href="<?php echo h(link_tela('merito')); ?>"><?php echo h(t('Ver a explicação completa')); ?></a></p>
@@ -126,9 +182,15 @@ $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : 
     <?php echo campoCsrf(); ?><button type="submit" class="botao" data-longo="<?php echo h(t('Recalculando o mérito… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular mérito agora')); ?></button>
     <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) escV4Param('merito_cache_horas', '20')])) : h(t('Ainda não calculado (rode o ES_16).')); ?></span>
   </form>
+  <div class="acoes">
+    <a class="botao" href="<?php echo h(link_tela('srs', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel, 'baixar' => 'xlsx']))); ?>"><?php echo h(t('Exportar .xlsx')); ?></a>
+    <a class="botao" href="<?php echo h(link_tela('srs', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel, 'ver' => 'pdf', 'imprimir' => 1]))); ?>" target="_blank" rel="noopener"><?php echo h(t('Exportar PDF')); ?></a>
+    <span class="muted small"><?php echo h(t('Com os filtros de unidade e turno escolhidos acima.')); ?></span>
+  </div>
+  <?php endif; ?>
   <?php endif; ?>
   <div class="tabela-rolagem">
-  <table>
+  <table<?php echo $soPdf ? ' data-sem-ordem' : ''; ?>>
     <thead><tr><th>SR</th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th class="num"><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Em posto')); ?></th><th class="num"><?php echo h(t('Assistente')); ?></th><th class="num">Buffer (-2)</th><th class="num">Overlap (-5)</th><th class="num"><?php echo h(t('% em posto × alvo')); ?></th>
       <?php if ($verMerito): ?><th class="num"><?php echo h(t('Tier')); ?></th><th class="num"><?php echo h(t('Meta')); ?></th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">SLA</th><th class="num"><?php echo h(t('Casa')); ?></th><th class="num"><?php echo h(t('Vendas')); ?></th><th class="num"><?php echo h(t('Cargo')); ?></th><th class="num"><abbr title="<?php echo h(t('Infrações')); ?>"><?php echo h(t('Infr.')); ?></abbr></th><th class="num"><abbr title="<?php echo h(t('Semanas seguidas batendo a meta')); ?>"><?php echo h(t('Seq.')); ?></abbr></th><th class="num"><?php echo h(t('Nota')); ?></th><th><?php echo h(t('Faixa')); ?></th><?php endif; ?></tr></thead>
     <tbody>
@@ -165,3 +227,7 @@ $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : 
   </div>
   <p class="muted small"><?php echo h(t('Turnos contados uma vez por dia e turno. "% em posto" = em posto (regular ou assistente) ÷ (em posto + buffer de plantão); o Overlap fica fora. O alvo é a fatia do nível: SR 0 = 40%, SR 1 = 60%, SR 2 = 80%, SR 3 a 5 = 100%. Cada coluna do mérito mostra os pontos e, ao lado, o dado de origem. A nota é a soma; com a mesma nota, vem antes quem tem mais tempo de casa.')); ?></p>
 </section>
+<?php if ($soPdf): ?>
+<?php echo escDocTituloJs($nomeArq); ?>
+<?php if (!empty($_GET['imprimir'])): ?><script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script><?php endif; ?>
+<?php endif; ?>

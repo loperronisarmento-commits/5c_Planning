@@ -172,6 +172,10 @@ Era o motor da estrutura antiga (`lib/motor.php`); as semanas a partir da virada
 
 Apague a pasta e a linha do `.htaccess`. Os dados ficam no `5c_escalas` (o `ES_999_desfazer.sql` apaga o schema).
 
+## Exportar o Mérito dos SRs (1.22.0)
+
+Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem biblioteca externa, só ZipArchive) e `?p=srs&ver=pdf&imprimir=1` (`@page merito-srs`, A4 paisagem). Valem os filtros `u` e `t`, o acesso é o de `escPodeVerRestrito()` e a versão vem de `escDocVersao('merito_srs', ...)`.
+
 ## Acesso restrito (1.21.0)
 
 `escPodeVerRestrito()` (perfil real ADMIN, PLANEJAMENTO ou WFM, também no Modo Treino) controla a Política de mérito (telas `owners` e `merito`, seções de mérito e política em Regras), as tags individuais, o motivo da indisponibilidade, Folga juntos, venda por hora, faturamento e valor de contrato. Telas `times`, `trocas` e `modelos` só para admin. Este README não é servido pela web (`.htaccess`).

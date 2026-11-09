@@ -1117,3 +1117,31 @@ body.ge-aberto { overflow: hidden; }
 @media (max-width: 640px) {
   main .botao, main select, main input:not([type=hidden]):not([type=checkbox]):not([type=radio]) { min-height: 28px; }
 }
+
+/* Mérito dos SRs: exportar em PDF (A4 paisagem, todas as colunas na folha) */
+@page merito-srs {
+  size: A4 landscape; margin: 10mm 8mm 13mm 0;
+  @bottom-right { content: "www.5ccompany.com"; font: 600 9px "Open Sans", sans-serif; color: #650637; }
+  @bottom-left { content: counter(page) " / " counter(pages); font: 9px "Open Sans", sans-serif; color: #67636d; margin-left: 24mm; }
+}
+@media print {
+  body:has(.merito-srs-pdf) { page: merito-srs; }
+  .merito-srs-pdf { padding: 0; border: 0; background: none; }
+  .merito-srs-pdf .tabela-rolagem { overflow: visible; }
+  .merito-srs-pdf table { width: 100%; border-collapse: collapse; font-size: 7.6px; line-height: 1.25; }
+  .merito-srs-pdf thead { display: table-header-group; }
+  .merito-srs-pdf th, .merito-srs-pdf td { padding: 2px 3px; border-bottom: 1px solid #e6dce1; }
+  .merito-srs-pdf tr { break-inside: avoid; }
+  .merito-srs-pdf .small { font-size: inherit; }
+  .merito-srs-pdf .tag { font-size: 7px; padding: 0 3px; white-space: nowrap; }
+  .merito-srs-pdf .chip { font-size: 7.5px; padding: 0 3px; }
+  .merito-srs-pdf td br { display: none; } /* nome e código na mesma linha: cabem mais SRs por folha */
+  .merito-srs-pdf td .mono { margin-left: 4px; }
+  .merito-srs-pdf > p.small { font-size: 8px; break-before: avoid; }
+  .merito-srs-pdf tbody tr:last-child { break-after: avoid; }
+  body:has(.merito-srs-pdf) .kpis { gap: 6px; margin-bottom: 6px; }
+  body:has(.merito-srs-pdf) .kpi { padding: 5px 9px; }
+  body:has(.merito-srs-pdf) .kpi strong { font-size: 15px; }
+  body:has(.merito-srs-pdf) .cabecalho { margin-bottom: 6px; }
+  th.ordenavel button.ordenar::after { content: none; }
+}

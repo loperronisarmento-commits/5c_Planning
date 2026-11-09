@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.22.0' => ['titulo' => 'SR merit exportable to .xlsx and PDF', 'itens' => [
+    'SR merit: "Export .xlsx" and "Export PDF" buttons (WFM, Planning and Admin), with the unit and shift filters on the screen. The .xlsx has points and source data in separate columns, with a filter and a frozen header; the PDF comes out in A4 landscape on the letterhead.',
+    'Both files carry the version in the header and in the name; the number goes up when the exported data changes.',
+    'Printing: the table sort arrows no longer come out on paper.',
+    ]],
     '1.21.1' => ['titulo' => 'Schedule PDF for the Read profile', 'itens' => [
     'Schedule PDF: with the Read profile it stopped at the first sheet after the access change in 1.21.0. It is complete again, without revenue or sales per hour.',
     'Grid: the "Post on the 5C website" section only shows to those who post (Planning, WFM and admin).',

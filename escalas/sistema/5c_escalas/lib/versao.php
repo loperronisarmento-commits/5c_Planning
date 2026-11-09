@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.22.0', 'data' => '2026-11-09', 'titulo' => 'Mérito dos SRs exportável em .xlsx e PDF', 'sql' => [], 'itens' => [
+    'Mérito dos SRs: botões "Exportar .xlsx" e "Exportar PDF" (WFM, Planejamento e Admin), com os filtros de unidade e turno da tela. O .xlsx traz pontos e dado de origem em colunas separadas, com filtro e cabeçalho congelado; o PDF sai em A4 paisagem no papel timbrado.',
+    'Os dois arquivos levam a versão no cabeçalho e no nome; o número sobe quando os dados exportados mudam.',
+    'Impressão: as setas de ordenação das tabelas não saem mais no papel.',
+    ]],
     ['versao' => '1.21.1', 'data' => '2026-11-09', 'titulo' => 'PDF da escala para o perfil Leitura', 'sql' => [], 'itens' => [
     'PDF da escala: com o perfil Leitura ele parava na primeira folha depois da mudança de acesso da 1.21.0. Volta a sair completo, sem faturamento nem venda por hora.',
     'Grade: a seção "Postar no site da 5C" só aparece para quem posta (Planejamento, WFM e admin).',
