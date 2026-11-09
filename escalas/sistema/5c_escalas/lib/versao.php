@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.21.1', 'data' => '2026-11-09', 'titulo' => 'PDF da escala para o perfil Leitura', 'sql' => [], 'itens' => [
+    'PDF da escala: com o perfil Leitura ele parava na primeira folha depois da mudança de acesso da 1.21.0. Volta a sair completo, sem faturamento nem venda por hora.',
+    'Grade: a seção "Postar no site da 5C" só aparece para quem posta (Planejamento, WFM e admin).',
+    ]],
     ['versao' => '1.21.0', 'data' => '2026-11-09', 'titulo' => 'Correções da auditoria: Gerar e Saídas de volta, Política de mérito restrita e motor corrigido', 'sql' => [], 'itens' => [
     'Correção crítica da 1.20.0: Gerar, Saídas de página, Criar rascunho e Verificar paravam ao guardar a versão das Restrições dos OM. Voltam a funcionar.',
     'Acesso: a Política de mérito fica só para WFM, Planejamento e Admin (telas Owners e backups e Mérito, seções de mérito e política em Regras, Glossário, FAQ e tour), também no Modo Treino. Tags de mérito, faltas, SLA, infração e meta individual, motivo da indisponibilidade, Folga juntos, venda por hora, faturamento e valor de contrato idem. Telas do Legado e Modelos, só admin. Baixar os CSVs da escala pede Planejamento.',

@@ -484,7 +484,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     }
     $ordemPdf = static fn($pg) => [-round($recModeloPdf[$modeloPdf[$pg['nome']] ?? $pg['nome']] ?? 0), -round((float) ($recPdf[$pg['nome']]['total'] ?? 0)), $pg['nome']];
     uasort($folhas, static fn($a, $b) => $ordemPdf($a) <=> $ordemPdf($b));
-    $usdPdf = static fn(float $v, string $moeda = 'US$'): string => $moeda . ' ' . number_format($v, 0, ',', '.');
+    $usdPdf = static fn(float $v, string $moeda = 'US$'): string => escPodeVerRestrito() ? $moeda . ' ' . number_format($v, 0, ',', '.') : '—';
     // Venda por hora de cada SR nos últimos v4_receita_dias (US$ vendido ÷ horas no chat, cap_rep_hora):
     // o número que o motor usa para pôr os melhores SRs nas páginas grandes. Faixa contra a mediana.
     $diasPdf = max(1, (int) escV4Param('v4_receita_dias', '30'));
@@ -684,7 +684,8 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <h1><?php echo h($pg['nome']); ?> <span class="pag-pdf-unidade">U<?php echo $u; ?></span></h1>
     <p class="pag-pdf-sub"><?php echo h(t('Schedule · semana de {de} a {ate} · {carteira} · versão {versao} · gerado em {gerado}', ['de' => $dePdf, 'ate' => $atePdf,
         'carteira' => implode(' · ', array_keys($cartPdf[$pid] ?? [])) ?: '—', 'versao' => $versaoPdf, 'gerado' => date('d/m/Y H:i')])); ?></p>
-    <?php if (escPodeVerRestrito()): ?><p class="pag-pdf-sub"><?php $mPdf = $modeloPdf[$pg['nome']] ?? $pg['nome']; $moedaFolha = escMoedaPagina($pg['nome']); echo h(t('Faturamento {d} dias: {pag} · modelo {modelo}: {mod} · {pu}ª da U{u} · {pg}ª da fila geral', ['d' => $diasPdf, 'pag' => $usdPdf((float) ($recPdf[$pg['nome']]['total'] ?? 0), $moedaFolha), 'modelo' => $mPdf,
+    <?php $mPdf = $modeloPdf[$pg['nome']] ?? $pg['nome']; $moedaFolha = escMoedaPagina($pg['nome']); ?>
+    <?php if (escPodeVerRestrito()): ?><p class="pag-pdf-sub"><?php echo h(t('Faturamento {d} dias: {pag} · modelo {modelo}: {mod} · {pu}ª da U{u} · {pg}ª da fila geral', ['d' => $diasPdf, 'pag' => $usdPdf((float) ($recPdf[$pg['nome']]['total'] ?? 0), $moedaFolha), 'modelo' => $mPdf,
         'mod' => $usdPdf((float) ($recModeloPdf[$mPdf] ?? 0), $moedaFolha), 'pu' => array_search($pid, $porUnidadePdf[$u], true) + 1, 'u' => $u, 'pg' => $posGeral[$pid] + 1])); ?></p><?php endif; ?>
     <table class="pag-pdf-tabela">
       <thead><tr><th class="pag-pdf-bloco"><?php echo h(t('Bloco')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
@@ -724,7 +725,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     </table>
     <?php endif; ?>
     <p class="pag-pdf-legenda"><?php echo h(t('# antes do nome = assistente (o primeiro da página no bloco entra sem #; os demais, que ajudam no capacity, com #) · ⚠ cobrindo acima da capacidade (até 30%, só páginas da mesma agência; cede quando houver gente) · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS. Turno A = T2 e T3 · C = T4 e T5 · D = T6 e o T1 do dia seguinte.') . ' ' . t('Ao lado do código: venda por hora do SR nos últimos {d} dias (valor vendido ÷ horas no chat), o número que o motor usa para pôr os melhores SRs nas páginas grandes; verde = 115% da mediana ou mais, laranja = menos de 85%, sem cor = na média.', ['d' => $diasPdf])
-        . (!empty($medPdf[$moedaFolha]) ? ' ' . t('Mediana: {moeda} {v}/h.', ['moeda' => $moedaFolha, 'v' => number_format($medPdf[$moedaFolha], 0, ',', '.')]) : '')
+        . (!empty($medPdf[$moedaFolha]) && escPodeVerRestrito() ? ' ' . t('Mediana: {moeda} {v}/h.', ['moeda' => $moedaFolha, 'v' => number_format($medPdf[$moedaFolha], 0, ',', '.')]) : '')
         . ($moedaFolha === 'R$' ? ' ' . t('Privacy vende em reais: nesta folha os valores estão em R$ e a venda por hora conta só as horas na Privacy.') : '')
         . ' ' . t('Representantes: tempo de casa pela data mais antiga do cadastro (headcount); dias escalados na página no 5C Schedule e atingimento da meta 5CReps na página (na parte de cada um, pela fatia das mensagens) nos 30, 60 e 90 dias antes da semana. Verde: meta batida. — : sem mensagens na página no período.')); ?></p>
     <p class="pag-pdf-legenda"><?php echo h(t('Tags (na escala só os riscos; na tabela, todas):')) . ' ' . escTagsLegenda(); ?></p>
@@ -1192,7 +1193,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
 <?php endif; ?>
 </section>
 
-<?php if ($aba === 'pagina'):
+<?php if ($aba === 'pagina' && escPode('planejar')):
     // Postagem: um cartão por página com o CSV da semana (todos os turnos), como na troca de páginas.
     $fimSem = escMaisDias($seg, 6);
     $postagens = [];

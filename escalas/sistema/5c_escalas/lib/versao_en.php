@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.21.1' => ['titulo' => 'Schedule PDF for the Read profile', 'itens' => [
+    'Schedule PDF: with the Read profile it stopped at the first sheet after the access change in 1.21.0. It is complete again, without revenue or sales per hour.',
+    'Grid: the "Post on the 5C website" section only shows to those who post (Planning, WFM and admin).',
+    ]],
     '1.21.0' => ['titulo' => 'Audit fixes: Generate and Exits back, Merit Policy restricted and engine corrected', 'itens' => [
     'Critical fix for 1.20.0: Generate, Page exits, Create draft and Check stopped when saving the OM restrictions version. They work again.',
     'Access: the Merit Policy is now only for WFM, Planning and Admin (Owners and backups and Merit screens, merit and policy sections in Rules, Glossary, FAQ and tour), in Training mode too. The same goes for merit, absence, SLA, infraction and individual goal tags, the unavailability reason, Days off together, sales per hour, revenue and contract value. Legacy screens and Models: admin only. Downloading the schedule CSVs requires Planning.',
