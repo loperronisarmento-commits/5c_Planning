@@ -118,8 +118,8 @@ $corPts = static fn($v): string => $v === null ? '' : ((int) $v > 0 ? 'verde' : 
   </details>
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
     <input type="hidden" name="p" value="tertius"><input type="hidden" name="plano" value="<?php echo $planoId; ?>">
-    <select name="u" onchange="this.form.submit()" aria-label="<?php echo h(t('Unidade')); ?>" data-sem-busca><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo (string) $u === $uSel ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select>
-    <select name="t" onchange="this.form.submit()" aria-label="<?php echo h(t('Turno')); ?>" data-sem-busca><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $t === $tSel ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
+    <select name="u" data-envio-auto aria-label="<?php echo h(t('Unidade')); ?>" data-sem-busca><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo (string) $u === $uSel ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select>
+    <select name="t" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>" data-sem-busca><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $t === $tSel ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
   </form>
   <?php if (escPodeReal('planejar')): ?>
   <form method="post" action="<?php echo h(link_tela('srs', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]))); ?>" class="acoes">

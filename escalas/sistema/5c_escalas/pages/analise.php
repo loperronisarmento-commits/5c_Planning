@@ -619,10 +619,10 @@ $rotRegra = ['EXCLUSIVA' => t('exclusiva'), 'ASSISTENTE_FIXO' => t('assistente_f
     </div>
     <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
       <input type="hidden" name="p" value="analise"><input type="hidden" name="aba" value="<?php echo h($aba); ?>">
-      <select name="semana" onchange="this.form.submit()" aria-label="<?php echo h(t('Semana')); ?>" data-sem-busca>
+      <select name="semana" data-envio-auto aria-label="<?php echo h(t('Semana')); ?>" data-sem-busca>
         <?php foreach ($semanas as $s): ?><option value="<?php echo h($s); ?>" <?php echo $s === $seg ? 'selected' : ''; ?>><?php echo h(t('{ini} a {fim}', ['ini' => dataBr($s), 'fim' => dataBr(escMaisDias($s, 6))])); ?></option><?php endforeach; ?>
       </select>
-      <select name="unidade" onchange="this.form.submit()" aria-label="<?php echo h(t('Unidade')); ?>">
+      <select name="unidade" data-envio-auto aria-label="<?php echo h(t('Unidade')); ?>">
         <option value=""><?php echo h(t('Todas as unidades')); ?></option>
         <?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo $unSel === $u ? 'selected' : ''; ?>><?php echo h(t('Unidade {n}', ['n' => $u])); ?></option><?php endforeach; ?>
       </select>
@@ -702,6 +702,7 @@ $rotRegra = ['EXCLUSIVA' => t('exclusiva'), 'ASSISTENTE_FIXO' => t('assistente_f
   <table>
     <thead><tr><th><?php echo h(t('Unidade')); ?></th><th><?php echo h(t('Turno')); ?></th><th class="num"><?php echo h(t('Postos')); ?></th><th class="num"><?php echo h(t('Titulares')); ?></th><th class="num"><?php echo h(t('Buffer')); ?></th><th class="num"><?php echo h(t('Precisa')); ?></th><th class="num"><?php echo h(t('Tem')); ?></th><th class="num"><?php echo h(t('Saldo')); ?></th><th class="num"><?php echo h(t('Absenteísmo')); ?></th><th class="num"><?php echo h(t('Falha adm.')); ?></th><th class="num"><?php echo h(t('Buffers presentes/dia')); ?></th></tr></thead>
     <tbody>
+    <?php if (!$cap): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($cap as $u => $pt): if ($unSel && $u !== $unSel) { continue; } foreach ($pt as $t => $c): ?>
       <tr><td>U<?php echo (int) $u; ?></td><td><span class="chip chip-<?php echo strtolower($t); ?>"><?php echo h($t); ?></span></td>
         <td class="num"><?php echo (int) $c['postos']; ?></td><td class="num"><?php echo (int) $c['titulares']; ?></td><td class="num"><?php echo (int) $c['buffer']; ?></td>
@@ -731,7 +732,7 @@ $rotRegra = ['EXCLUSIVA' => t('exclusiva'), 'ASSISTENTE_FIXO' => t('assistente_f
     <?php foreach ($prev21 as $l): ?>
       <tr><td class="nowrap"><?php echo h(dataBr($l['dia'], true)); ?></td><td class="num"><?php echo (int) $l['a']; ?></td><td class="num"><?php echo (int) $l['c']; ?></td><td class="num"><?php echo (int) $l['d']; ?></td><td class="num"><strong><?php echo (int) $l['total']; ?></strong></td><td class="num"><?php echo (int) $l['paginas']; ?></td></tr>
     <?php endforeach; ?>
-    <?php if (!$previsao): ?><tr><td colspan="6" class="muted"><?php echo h(t('Sem previsão do Capacity.')); ?></td></tr><?php endif; ?>
+    <?php if (!$prev21): ?><tr><td colspan="6" class="muted"><?php echo h(t('Sem previsão do Capacity.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
@@ -758,6 +759,7 @@ $rotRegra = ['EXCLUSIVA' => t('exclusiva'), 'ASSISTENTE_FIXO' => t('assistente_f
       <?php foreach (array_keys($turnos) as $t): ?><th class="num"><?php echo h(t('{turno} fãs/h', ['turno' => $t])); ?></th><th class="num"><?php echo h(t('{turno} US$/dia', ['turno' => $t])); ?></th><th class="num"><?php echo h(t('{turno} SRs/dia', ['turno' => $t])); ?></th><?php endforeach; ?>
     </tr></thead>
     <tbody>
+    <?php if (!$carga): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($carga as $pg => $c): ?>
       <tr><td><strong><?php echo h($pg); ?></strong><?php echo ($c['regra'] ?? 'PADRAO') !== 'PADRAO' ? ' <span class="tag">' . h($rotRegra[$c['regra']] ?? strtolower((string) $c['regra'])) . '</span>' : ''; ?></td><td><?php echo h($c['carteira']); ?></td>
         <?php foreach (array_keys($turnos) as $t): $sr = $srPagina[$pg][$t] ?? 0; $f = $c[$t] ?? 0; ?>

@@ -156,6 +156,7 @@ foreach (escQ('SELECT UPPER(c.rep_code) AS rep, c.funcao, c.nivel, n.unidade, n.
       <a class="chip-filtro <?php echo $status === $k ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('aprovar', ['status' => $k])); ?>"><?php echo h($rot); ?><?php echo $k !== 'TODOS' ? ' · ' . (int) ($contagem[$k] ?? 0) : ''; ?></a>
     <?php endforeach; ?>
   </div>
+  <?php if (count($pedidos) >= 200): ?><p class="muted small"><?php echo h(t('Mostrando só os {n} mais recentes.', ['n' => 200])); ?></p><?php endif; ?>
   <?php foreach ($pedidos as $p): $e = $estrutura[$p['rep_code']] ?? null; $hst = $historico[$p['rep_code']] ?? null; ?>
   <div class="cartao-csv">
     <div class="linha-titulo">

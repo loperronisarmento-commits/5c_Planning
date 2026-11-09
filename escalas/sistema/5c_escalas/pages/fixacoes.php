@@ -514,7 +514,7 @@ if ($verVersao > 0):
   <p class="muted"><?php echo h(t('Nenhuma versão registrada ainda.')); ?></p>
   <?php else: ?>
   <table class="tabela">
-    <thead><tr><th><?php echo h(t('Versão')); ?></th><th><?php echo h(t('Valeu de')); ?></th><th><?php echo h(t('Até')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Versão')); ?></th><th><?php echo h(t('Valeu de')); ?></th><th><?php echo h(t('Até')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($versoesFix as $x): ?>
       <tr<?php echo $x['versao'] === (int) ($docFix['versao'] ?? 0) ? ' class="ativo"' : ''; ?>>

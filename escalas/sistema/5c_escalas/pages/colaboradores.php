@@ -260,7 +260,7 @@ $linkDia = static fn(array $p = []) => link_tela('colaboradores', $p + ['dia' =>
     <?php $nivelMaxAssist = (int) escV4Param('v4_nivel_max_assistente', '2'); $nivelForm = $ehV4 && ($x['nivel'] ?? null) !== null ? (int) $x['nivel'] : null; $semAssist = $nivelForm !== null && $nivelForm > $nivelMaxAssist; ?>
     <label class="small" data-pode-assist data-nivel-max="<?php echo $nivelMaxAssist; ?>"><input type="checkbox" name="pode_assistente" value="1" <?php echo (int) $c['pode_assistente'] && !$semAssist ? 'checked' : ''; ?> <?php echo $semAssist ? 'disabled' : ''; ?>> <?php echo h(t('pode ser assistente')); ?>
       <span class="muted" data-pode-assist-aviso <?php echo $semAssist ? '' : 'hidden'; ?>><?php echo h(t('(SR {n} ou mais não trabalha como assistente)', ['n' => $nivelMaxAssist + 1])); ?></span></label>
-    <label><?php echo h(t('Observação')); ?><input type="text" name="observacao" value="<?php echo h($c['observacao'] ?? ''); ?>"></label>
+    <label><?php echo h(t('Observação')); ?><input type="text" name="observacao" maxlength="255" value="<?php echo h($c['observacao'] ?? ''); ?>"></label>
     <div class="acoes"><button type="submit" class="botao primario"><?php echo h(t('Salvar')); ?></button><a class="botao" href="<?php echo h($linkDia()); ?>"><?php echo h(t('Cancelar')); ?></a></div>
     <?php if ($ehV4): ?><span class="muted small"><?php echo h(t('Trocar de núcleo fecha as vagas fixas da pessoa no núcleo antigo na véspera; o motor cobre essas vagas. Quem é OS de cada núcleo muda pelo quadro da liderança, não por aqui.')); ?></span><?php endif; ?>
   </form>
@@ -325,14 +325,14 @@ $linkDia = static fn(array $p = []) => link_tela('colaboradores', $p + ['dia' =>
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
     <input type="hidden" name="p" value="colaboradores">
     <input type="search" name="q" value="<?php echo h($busca); ?>" placeholder="<?php echo $ehV4 ? h(t('Nome, código ou OS')) : h(t('Nome, código ou party')); ?>" aria-label="<?php echo h(t('Buscar')); ?>">
-    <select name="turno" onchange="this.form.submit()" aria-label="<?php echo h(t('Turno')); ?>"><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $turnoF === $t ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
+    <select name="turno" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>"><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $turnoF === $t ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
     <?php if ($ehV4): ?>
-    <select name="unidade" onchange="this.form.submit()" aria-label="<?php echo h(t('Unidade')); ?>"><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo $unidadeF === (string) $u ? 'selected' : ''; ?>><?php echo h(t('Unidade {u}', ['u' => $u])); ?></option><?php endforeach; ?></select>
-    <select name="tipo" onchange="this.form.submit()" aria-label="<?php echo h(t('Função')); ?>"><option value=""><?php echo h(t('SR e OS')); ?></option><option value="SR" <?php echo $tipoF === 'SR' ? 'selected' : ''; ?>>SR</option><option value="OS" <?php echo $tipoF === 'OS' ? 'selected' : ''; ?>>OS</option><option value="fora da estrutura" <?php echo $tipoF === 'fora da estrutura' ? 'selected' : ''; ?>><?php echo h(t('Fora da estrutura')); ?></option></select>
+    <select name="unidade" data-envio-auto aria-label="<?php echo h(t('Unidade')); ?>"><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo $unidadeF === (string) $u ? 'selected' : ''; ?>><?php echo h(t('Unidade {u}', ['u' => $u])); ?></option><?php endforeach; ?></select>
+    <select name="tipo" data-envio-auto aria-label="<?php echo h(t('Função')); ?>"><option value=""><?php echo h(t('SR e OS')); ?></option><option value="SR" <?php echo $tipoF === 'SR' ? 'selected' : ''; ?>>SR</option><option value="OS" <?php echo $tipoF === 'OS' ? 'selected' : ''; ?>>OS</option><option value="fora da estrutura" <?php echo $tipoF === 'fora da estrutura' ? 'selected' : ''; ?>><?php echo h(t('Fora da estrutura')); ?></option></select>
     <?php else: ?>
-    <select name="tipo" onchange="this.form.submit()" aria-label="<?php echo h(t('Tipo')); ?>"><option value=""><?php echo h(t('Time e Buffer')); ?></option><option value="TIME" <?php echo $tipoF === 'TIME' ? 'selected' : ''; ?>><?php echo h(t('Time')); ?></option><option value="BUFFER" <?php echo $tipoF === 'BUFFER' ? 'selected' : ''; ?>><?php echo h(t('Buffer')); ?></option></select>
+    <select name="tipo" data-envio-auto aria-label="<?php echo h(t('Tipo')); ?>"><option value=""><?php echo h(t('Time e Buffer')); ?></option><option value="TIME" <?php echo $tipoF === 'TIME' ? 'selected' : ''; ?>><?php echo h(t('Time')); ?></option><option value="BUFFER" <?php echo $tipoF === 'BUFFER' ? 'selected' : ''; ?>><?php echo h(t('Buffer')); ?></option></select>
     <?php endif; ?>
-    <label class="small muted"><?php echo h(t('Data')); ?> <input type="date" name="dia" value="<?php echo h($dia); ?>" onchange="this.form.submit()"></label>
+    <label class="small muted"><?php echo h(t('Data')); ?> <input type="date" name="dia" value="<?php echo h($dia); ?>" data-envio-auto></label>
     <button type="submit" class="botao"><?php echo h(t('Filtrar')); ?></button>
     <?php if (escPode('cadastrar')): ?><a class="botao primario" href="<?php echo h($linkDia(['editar' => 'NOVO'])); ?>"><?php echo h(t('Novo')); ?></a><?php endif; ?>
   </form>
@@ -340,7 +340,7 @@ $linkDia = static fn(array $p = []) => link_tela('colaboradores', $p + ['dia' =>
   <div class="tabela-rolagem">
   <table>
     <?php if ($ehV4): ?>
-    <thead><tr><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th><?php echo h(t('Função')); ?></th><th><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="num"><?php echo h(t('Dias seguidos')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th><?php echo h(t('Função')); ?></th><th><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="num"><?php echo h(t('Dias seguidos')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($lista as $l): $c = $l['c']; ?>
       <tr>
@@ -354,8 +354,9 @@ $linkDia = static fn(array $p = []) => link_tela('colaboradores', $p + ['dia' =>
       </tr>
     <?php endforeach; ?>
     <?php else: ?>
-    <thead><tr><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Time · party · papel')); ?></th><th><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="num"><?php echo h(t('Trilha')); ?></th><th class="num"><?php echo h(t('Dias seguidos')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Time · party · papel')); ?></th><th><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="num"><?php echo h(t('Trilha')); ?></th><th class="num"><?php echo h(t('Dias seguidos')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
+    <?php if (count($lista) > 400): ?><tr><td colspan="12" class="muted small"><?php echo h(t('Mostrando só os {n} primeiros.', ['n' => 400])); ?></td></tr><?php endif; ?>
     <?php foreach (array_slice($lista, 0, 400) as $l): $c = $l['c']; ?>
       <tr>
         <td><strong><?php echo h(nomeCurto($l['nome'])); ?></strong><br><span class="muted small mono"><?php echo h($l['rep']); ?></span></td>

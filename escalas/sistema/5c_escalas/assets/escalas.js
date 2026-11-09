@@ -874,3 +874,24 @@ document.addEventListener('click', function (ev) {
     abrir(form);
   });
 })();
+
+// Filtros que enviam sozinhos (data-envio-auto): com mouse ou toque, na hora; com teclado, só ao
+// sair do campo ou com Enter, para a seta num select ou a digitação de uma data não recarregarem a tela.
+(function () {
+  var porTeclado = false, pendente = null;
+  function auto(el) { return el && el.matches && el.matches('[data-envio-auto]'); }
+  function enviar(el) { pendente = null; if (el.form) { el.form.submit(); } }
+  document.addEventListener('pointerdown', function () { porTeclado = false; }, true);
+  document.addEventListener('keydown', function (e) {
+    if (!auto(e.target)) { return; }
+    if (e.key === 'Enter') { e.preventDefault(); enviar(e.target); return; }
+    if (e.key !== 'Tab') { porTeclado = true; }
+  }, true);
+  document.addEventListener('change', function (e) {
+    if (!auto(e.target)) { return; }
+    if (porTeclado) { pendente = e.target; } else { enviar(e.target); }
+  });
+  document.addEventListener('focusout', function (e) {
+    if (pendente && e.target === pendente) { enviar(pendente); }
+  });
+})();

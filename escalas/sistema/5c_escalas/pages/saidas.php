@@ -384,8 +384,9 @@ foreach ($saidas as $s) {
   <h2><?php echo h(t('Saídas aplicadas pelo sistema')); ?></h2>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th><?php echo h(t('Quando')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('A partir de')); ?></th><th class="num"><?php echo h(t('Postos fechados')); ?></th><th class="num"><?php echo h(t('Refeitos')); ?></th><th class="num"><?php echo h(t('SRs com vaga nova')); ?></th><th class="num"><?php echo h(t('Livres')); ?></th><th><?php echo h(t('Escalas')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Quando')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('A partir de')); ?></th><th class="num"><?php echo h(t('Postos fechados')); ?></th><th class="num"><?php echo h(t('Refeitos')); ?></th><th class="num"><?php echo h(t('SRs com vaga nova')); ?></th><th class="num"><?php echo h(t('Livres')); ?></th><th><?php echo h(t('Escalas')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
+    <?php if (count($aplicadas) >= 20): ?><tr><td colspan="12" class="muted small"><?php echo h(t('Mostrando só os {n} mais recentes.', ['n' => 20])); ?></td></tr><?php endif; ?>
     <?php $nomesAplic = escNomes(); foreach ($aplicadas as $a): $r = json_decode((string) $a['resultado'], true) ?: []; ?>
       <tr>
         <td class="small"><?php echo h(escDataHora((string) $a['criado_em'])); ?></td>
@@ -459,7 +460,7 @@ foreach ($saidas as $s) {
   <?php endif; ?>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><?php if ($podeLote): ?><th data-sem-ordem class="col-sel"><input type="checkbox" id="lote-todas" aria-label="<?php echo h(t('Selecionar todas')); ?>"></th><?php endif; ?><th><?php echo h(t('Data')); ?></th><th><?php echo h(t('Página')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Checagem')); ?></th><th></th></tr></thead>
+    <thead><tr><?php if ($podeLote): ?><th data-sem-ordem class="col-sel"><input type="checkbox" id="lote-todas" aria-label="<?php echo h(t('Selecionar todas')); ?>"></th><?php endif; ?><th><?php echo h(t('Data')); ?></th><th><?php echo h(t('Página')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Checagem')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($saidas as $s): $ch = $checagem[(int) $s['id']] ?? null; $dec = $ch['decisao'] ?? 'PENDENTE';
         $ap = $aplicadaEvento[(int) $s['id']] ?? (isset($aplicadaPagina[$s['pagina']]) && abs(strtotime((string) $aplicadaPagina[$s['pagina']]['vale_desde']) - strtotime(max(substr((string) $s['data_evento'], 0, 10), date('Y-m-d')))) <= ESC_SAIDA_JANELA_DIAS * 86400 ? $aplicadaPagina[$s['pagina']] : null);

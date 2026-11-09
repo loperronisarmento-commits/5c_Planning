@@ -193,7 +193,7 @@ $partiesNomes = array_column($parties, 'party');
   </div>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th><?php echo h(t('Time / Party')); ?></th><th><?php echo h(t('Formação')); ?></th><th><?php echo h(t('Páginas')); ?></th><th><?php echo h(t('Regra')); ?></th><th><?php echo h(t('Ação sugerida')); ?></th><th><?php echo h(t('Ação registrada')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Time / Party')); ?></th><th><?php echo h(t('Formação')); ?></th><th><?php echo h(t('Páginas')); ?></th><th><?php echo h(t('Regra')); ?></th><th><?php echo h(t('Ação sugerida')); ?></th><th><?php echo h(t('Ação registrada')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($lista as $l): ?>
       <tr>
@@ -237,7 +237,7 @@ $partiesNomes = array_column($parties, 'party');
     <h2><?php echo h(t('Formação do time')); ?></h2>
     <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php">
       <input type="hidden" name="p" value="times"><input type="hidden" name="regra" value="<?php echo h($filtro); ?>"><input type="hidden" name="q" value="<?php echo h($busca); ?>">
-      <select name="time" onchange="this.form.submit()" aria-label="<?php echo h(t('Time')); ?>">
+      <select name="time" data-envio-auto aria-label="<?php echo h(t('Time')); ?>">
         <?php foreach ($times as $t): ?><option <?php echo $t === $timeSel ? 'selected' : ''; ?>><?php echo h($t); ?></option><?php endforeach; ?>
       </select>
     </form>
@@ -269,7 +269,7 @@ $partiesNomes = array_column($parties, 'party');
   <p class="muted small"><?php echo h(t('O Planner não tem API de escrita. Cada mudança vira uma instrução para aplicar lá; ela fecha sozinha quando a estrutura do Planner bate com o pedido. Passou {n} dias da data sem aparecer: "atrasada". O Planner mudou diferente do pedido: "divergente".', ['n' => (int) $atraso])); ?></p>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th><?php echo h(t('Mudança')); ?></th><th><?php echo h(t('O que fazer no Planner')); ?></th><th><?php echo h(t('Vale a partir de')); ?></th><th><?php echo h(t('Situação')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Mudança')); ?></th><th><?php echo h(t('O que fazer no Planner')); ?></th><th><?php echo h(t('Vale a partir de')); ?></th><th><?php echo h(t('Situação')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($pendencias as $pd): ?>
       <tr>

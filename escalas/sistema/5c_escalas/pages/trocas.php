@@ -359,7 +359,7 @@ $nomePessoa = static function (string $code) use (&$estrutura, &$nomes): string 
 <form class="filtros" method="get" action="<?php echo h(MODULE_URL); ?>/index.php">
   <input type="hidden" name="p" value="trocas">
   <label><?php echo h(t('Lote de trocas (horário marcado no Planner)')); ?>
-    <select name="corte" onchange="this.form.submit()">
+    <select name="corte" data-envio-auto>
       <?php foreach ($cortes as $c): $varsCorte = ['dia' => dataBr($c['ts'], true), 'hora' => substr($c['ts'], 11, 5), 'n' => $c['n'], 'pendentes' => $c['pendentes']]; ?>
         <option value="<?php echo h($c['ts']); ?>" <?php echo $c['ts'] === $ts ? 'selected' : ''; ?>>
           <?php echo h((int) $c['pendentes'] > 0 ? t('{dia} {hora} · {n} página(s) · {pendentes} a aplicar', $varsCorte) : t('{dia} {hora} · {n} página(s) · já aplicada', $varsCorte)); ?>

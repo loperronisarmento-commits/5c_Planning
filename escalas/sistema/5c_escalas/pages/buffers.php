@@ -156,6 +156,7 @@ foreach ($pool as $c) {
   <table>
     <thead><tr><th><?php echo h(t('Buffer')); ?></th><th><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Modelo')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
     <tbody>
+    <?php if (!$pool): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($pool as $rep => $c): ?>
       <tr>
         <td><strong><?php echo h(nomeCurto($nomes[$rep] ?? $rep)); ?></strong><br><span class="muted small mono"><?php echo h($rep); ?></span></td>

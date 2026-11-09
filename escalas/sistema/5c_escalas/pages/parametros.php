@@ -33,6 +33,7 @@ $lista = escQ('SELECT * FROM ' . escT('esc_parametro') . " WHERE grupo <> 'motor
   <table>
     <thead><tr><th><?php echo h(t('Grupo')); ?></th><th><?php echo h(t('Parâmetro')); ?></th><th><?php echo h(t('Descrição')); ?></th><th><?php echo h(t('Valor')); ?></th></tr></thead>
     <tbody>
+    <?php if (!$lista): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($lista as $p): ?>
       <tr>
         <td class="small"><?php echo h($p['grupo']); ?></td>

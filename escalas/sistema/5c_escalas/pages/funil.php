@@ -194,6 +194,7 @@ $confianca = static function (int $n): array {
   <table>
     <thead><tr><th><?php echo h(t('Arquétipo')); ?></th><th class="num"><?php echo h(t('Páginas')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th><?php echo h(t('Faixa por página')); ?></th><th><?php echo h(t('Confiança')); ?></th></tr></thead>
     <tbody>
+    <?php if (!$arquetipos): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($arquetipos as $a): [$conf, $cor] = $confianca((int) $a['paginas']); ?>
       <tr>
         <td><strong><?php echo h($a['tier'] . ' · ' . $a['perfil']); ?></strong></td>

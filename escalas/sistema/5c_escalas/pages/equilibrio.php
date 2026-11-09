@@ -176,7 +176,7 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
   <p class="muted"><?php echo h(t('Da que mais aproxima as unidades para a que menos, cada uma contando com as de cima ("Melhora" é quanto do desequilíbrio de hoje some até aquela linha). A página troca com todos os turnos, junto com as outras páginas da mesma modelo. Só pode trocar depois de 28 dias na unidade; o gap que ficar, o Funil cobre dando prioridade às unidades abaixo da média.')); ?></p>
   <div class="tabela-rolagem largo">
   <table>
-    <thead><tr><th>#</th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('De → para')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Melhora')); ?></th><th><?php echo h(t('Pode a partir de')); ?></th><th></th></tr></thead>
+    <thead><tr><th>#</th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('De → para')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Melhora')); ?></th><th><?php echo h(t('Pode a partir de')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($sugestoes as $i => $s): $pg = $eq['paginas'][$s['paginas'][0]]; $pode = ($s['madura_em'] ?? '') <= date('Y-m-d'); $sugerida = max($amanha, (string) $s['madura_em']); ?>
       <tr>

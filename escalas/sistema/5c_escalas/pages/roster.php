@@ -261,7 +261,7 @@ foreach ($nucleos as $n) {
 </header>
 
 <section class="panel org-barra">
-  <form method="get" class="acoes" style="margin:0"><input type="hidden" name="p" value="roster"><label class="small muted"><?php echo h(t('Ver em')); ?> <input type="date" name="dia" value="<?php echo h($dia); ?>" onchange="this.form.submit()"></label></form>
+  <form method="get" class="acoes" style="margin:0"><input type="hidden" name="p" value="roster"><label class="small muted"><?php echo h(t('Ver em')); ?> <input type="date" name="dia" value="<?php echo h($dia); ?>" data-envio-auto></label></form>
   <a class="botao" href="<?php echo h(link_tela('organograma', ['dia' => $dia])); ?>"><?php echo h(t('Ver no Organograma')); ?></a>
   <?php if (!$podeMudar): ?><span class="muted small"><?php echo h(t('Só Planejamento, WFM e Admin mudam o roster.')); ?></span><?php endif; ?>
 </section>

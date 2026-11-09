@@ -257,7 +257,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="linha-titulo">
     <input type="hidden" name="p" value="gerar">
     <label class="filtros"><?php echo h(t('Semana')); ?>
-      <select name="semana" onchange="this.form.submit()">
+      <select name="semana" data-envio-auto>
         <?php foreach ($semanas as $s): ?><option value="<?php echo h($s); ?>" <?php echo $s === $seg ? 'selected' : ''; ?>><?php echo h(t('{de} a {ate}', ['de' => dataBr($s), 'ate' => dataBr(escMaisDias($s, 6))])); ?></option><?php endforeach; ?>
       </select>
     </label>
@@ -359,7 +359,7 @@ $mudancasEntrada = escQ('SELECT d.fonte, COUNT(*) AS n, MAX(f.lido_em) AS quando
   <?php endif; ?>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><?php if ($podeExcluir): ?><th data-sem-ordem class="col-sel"></th><?php endif; ?><th><?php echo h(t('Versão')); ?></th><th><?php echo h(t('Status')); ?></th><th><?php echo h(t('Gerada em')); ?></th><th><?php echo h(t('Gatilho')); ?></th><th class="num"><?php echo h(t('Blocos')); ?></th><th class="num"><?php echo h(t('Lacunas')); ?></th><th class="num"><?php echo h(t('Anomalias')); ?></th><th class="num"><?php echo h(t('Buffers sem página')); ?></th><th></th></tr></thead>
+    <thead><tr><?php if ($podeExcluir): ?><th data-sem-ordem class="col-sel"></th><?php endif; ?><th><?php echo h(t('Versão')); ?></th><th><?php echo h(t('Status')); ?></th><th><?php echo h(t('Gerada em')); ?></th><th><?php echo h(t('Gatilho')); ?></th><th class="num"><?php echo h(t('Blocos')); ?></th><th class="num"><?php echo h(t('Lacunas')); ?></th><th class="num"><?php echo h(t('Anomalias')); ?></th><th class="num"><?php echo h(t('Buffers sem página')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php $vivos = escResumosVivos(array_map('intval', array_column($versoes, 'id'))); foreach ($versoes as $v): $r = ($vivos[(int) $v['id']] ?? []) + (json_decode((string) $v['resumo'], true) ?: []); ?>
       <tr>

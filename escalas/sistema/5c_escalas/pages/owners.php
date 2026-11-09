@@ -130,7 +130,7 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
   <h2><?php echo h(t('Prévia: {pagina} sai da U{u}', ['pagina' => $previa['pagina'], 'u' => $previa['unidade']])); ?></h2>
   <p class="small"><?php echo h(t('Atingimento na unidade: {a} ({sit}).', ['a' => $pct($previa['situacao']['ating']), 'sit' => $sitTexto($previa['situacao'])])); ?></p>
   <form method="get" class="acoes"><input type="hidden" name="p" value="owners"><input type="hidden" name="previa" value="<?php echo h($previa['pagina']); ?>">
-    <label class="small"><?php echo h(t('Destino')); ?> <select name="destino" onchange="this.form.submit()"><?php foreach ($destinos as $d): $u = $d['nucleo']['unidade']; ?><option value="<?php echo $u; ?>" <?php echo $u === $dest ? 'selected' : ''; ?>><?php echo h('U' . $u . ' · ' . t('nota {n}', ['n' => $d['nota']]) . ' · ' . t('saldo {antes} → {depois}', ['antes' => $d['saldo_u_antes'], 'depois' => $d['saldo_u_depois']])); ?></option><?php endforeach; ?></select></label>
+    <label class="small"><?php echo h(t('Destino')); ?> <select name="destino" data-envio-auto><?php foreach ($destinos as $d): $u = $d['nucleo']['unidade']; ?><option value="<?php echo $u; ?>" <?php echo $u === $dest ? 'selected' : ''; ?>><?php echo h('U' . $u . ' · ' . t('nota {n}', ['n' => $d['nota']]) . ' · ' . t('saldo {antes} → {depois}', ['antes' => $d['saldo_u_antes'], 'depois' => $d['saldo_u_depois']])); ?></option><?php endforeach; ?></select></label>
   </form>
   <div class="colunas-acoes small">
     <div><strong><?php echo h(t('Na U{u} (origem)', ['u' => $previa['unidade']])); ?></strong><ul>
@@ -197,8 +197,8 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
 
 <section class="panel">
   <form method="get" class="acoes nao-imprimir"><input type="hidden" name="p" value="owners">
-    <label class="small"><?php echo h(t('Unidade')); ?> <select name="unidade" onchange="this.form.submit()"><option value="0"><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo $filtroU === $u ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select></label>
-    <label class="small"><?php echo h(t('Situação')); ?> <select name="situacao" onchange="this.form.submit()"><option value=""><?php echo h(t('Todas')); ?></option><option value="acao" <?php echo $filtroS === 'acao' ? 'selected' : ''; ?>><?php echo h(t('Prazo vencido')); ?></option><option value="prazo" <?php echo $filtroS === 'prazo' ? 'selected' : ''; ?>><?php echo h(t('Prazo correndo ou acompanhamento')); ?></option><option value="bem" <?php echo $filtroS === 'bem' ? 'selected' : ''; ?>><?php echo h(t('Na meta ou destaque')); ?></option></select></label>
+    <label class="small"><?php echo h(t('Unidade')); ?> <select name="unidade" data-envio-auto><option value="0"><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo $filtroU === $u ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select></label>
+    <label class="small"><?php echo h(t('Situação')); ?> <select name="situacao" data-envio-auto><option value=""><?php echo h(t('Todas')); ?></option><option value="acao" <?php echo $filtroS === 'acao' ? 'selected' : ''; ?>><?php echo h(t('Prazo vencido')); ?></option><option value="prazo" <?php echo $filtroS === 'prazo' ? 'selected' : ''; ?>><?php echo h(t('Prazo correndo ou acompanhamento')); ?></option><option value="bem" <?php echo $filtroS === 'bem' ? 'selected' : ''; ?>><?php echo h(t('Na meta ou destaque')); ?></option></select></label>
     <input type="search" id="owners-busca" placeholder="<?php echo h(t('Buscar página ou pessoa…')); ?>" aria-label="<?php echo h(t('Buscar página ou pessoa')); ?>">
     <button type="button" class="botao" onclick="window.print()"><?php echo h(t('Imprimir / PDF')); ?></button>
   </form>

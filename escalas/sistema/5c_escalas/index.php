@@ -339,6 +339,7 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
 <script>window.ESC_I18N = <?php echo json_encode((object) $textosJs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;<?php if ($tour): ?> window.ESC_TOUR = <?php echo json_encode($tour, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES); ?>;<?php endif; ?></script>
 </head>
 <body>
+<a class="pular-conteudo" href="#conteudo"><?php echo h(t('Pular para o conteúdo')); ?></a>
 <div class="app">
 <nav class="menu" aria-label="<?php echo h(t('Menu do sistema')); ?>">
   <div class="menu-topo">
@@ -385,7 +386,7 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
   <?php endif; ?>
   </div>
 </nav>
-<main class="conteudo">
+<main class="conteudo" id="conteudo" tabindex="-1">
   <?php if (escModoTreino()): ?>
   <div class="faixa-treino" role="status"><strong><?php echo h(t('MODO TREINO')); ?></strong><span><?php echo h(t('Dados de treino: o que você fizer aqui não muda a escala real nem o site da 5C.')); ?></span>
     <?php if (escPodeReal('planejar')): ?><form method="post" action="<?php echo h(link_tela('tutorial')); ?>" data-confirmar="<?php echo h(t('Recomeçar o treino?') . "\n\n" . t('Apaga tudo o que foi feito no treino e copia de novo os cadastros do sistema real.')); ?>" data-longo="<?php echo h(t('Recomeçando o treino…')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="treino_recomecar"><button type="submit" class="botao"><?php echo h(t('Recomeçar o treino')); ?></button></form><?php endif; ?>

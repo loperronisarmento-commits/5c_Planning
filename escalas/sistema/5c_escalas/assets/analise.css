@@ -72,7 +72,7 @@
 .analise .m-3 { background: var(--mapa-3, rgba(255, 255, 255, 0.17)); }
 .analise .m-4 { background: rgba(248, 113, 113, 0.30); border-color: rgba(248, 113, 113, 0.5); }
 .analise .m-5 { background: rgba(248, 113, 113, 0.55); border-color: #f87171; }
-.celula-mapa.m-4 strong, .celula-mapa.m-5 strong { color: var(--mapa-forte, #fff); }
+.celula-mapa.m-4 strong, .celula-mapa.m-5 strong, .celula-mapa.m-5 .small { color: var(--mapa-forte, #fff); }
 .celula-mapa:hover { outline: 1px solid var(--texto-3); }
 
 /* Funil em cartões */

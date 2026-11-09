@@ -98,6 +98,7 @@ $rotTipo = ['WORKLOAD' => t('workload'), 'COBERTURA' => t('cobertura')];
     <?php endforeach; ?>
   </div>
 
+  <?php if (count($lista) >= 300): ?><p class="muted small"><?php echo h(t('Mostrando só os {n} mais recentes.', ['n' => 300])); ?></p><?php endif; ?>
   <?php foreach ($lista as $s): $d = json_decode((string) $s['dados'], true) ?: []; ?>
   <div class="cartao-csv">
     <div class="linha-titulo"><strong><?php echo h($s['titulo']); ?></strong><span class="tag <?php echo $s['tipo'] === 'COBERTURA' ? 'laranja' : 'amarelo'; ?>"><?php echo h($rotTipo[$s['tipo']] ?? escRotulo('tipo_sugestao', $s['tipo'])); ?></span></div>
@@ -111,7 +112,7 @@ $rotTipo = ['WORKLOAD' => t('workload'), 'COBERTURA' => t('cobertura')];
       <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'turno' => $d['turno'] ?? 'C'])); ?>"><?php echo h(t('Cobrir na grade')); ?></a>
       <?php endif; ?>
       <form method="post" action="<?php echo h(link_tela('sugestoes', $params)); ?>" class="acoes"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="descartar"><input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
-        <input type="text" name="motivo" placeholder="<?php echo h(t('motivo do descarte')); ?>" required>
+        <input type="text" name="motivo" aria-label="<?php echo h(t('motivo do descarte')); ?>" placeholder="<?php echo h(t('motivo do descarte')); ?>" required>
         <button type="submit" class="botao"><?php echo h(t('Descartar')); ?></button></form>
     </div>
     <?php elseif ($s['status'] !== 'ABERTA'): ?>

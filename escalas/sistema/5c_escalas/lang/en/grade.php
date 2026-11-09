@@ -1,6 +1,7 @@
 <?php
 // Textos em inglês da tela Grade da escala (pages/grade.php). O português é a chave.
 return [
+    'Célula travada' => 'Locked cell',
     'Mostrando {n} de {total} diferenças. Escolha um dia para ver o resto.' => 'Showing {n} of {total} differences. Choose a day to see the rest.',
     'Histórico de meta das páginas' => 'Pages goal history',
     'gerado em {gerado}' => 'generated on {gerado}',

@@ -62,16 +62,17 @@ $log = escQ('SELECT quando, user_id, user_nome, canal, acao, entidade, entidade_
 <section class="panel">
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th><?php echo h(t('Usuário do portal')); ?></th><th><?php echo h(t('Nome')); ?></th><th><?php echo h(t('Perfil')); ?></th><th><?php echo h(t('Times')); ?></th><th><?php echo h(t('Ativo')); ?></th><?php if (escPode('admin')): ?><th></th><?php endif; ?></tr></thead>
+    <thead><tr><th><?php echo h(t('Usuário do portal')); ?></th><th><?php echo h(t('Nome')); ?></th><th><?php echo h(t('Perfil')); ?></th><th><?php echo h(t('Times')); ?></th><th><?php echo h(t('Ativo')); ?></th><?php if (escPode('admin')): ?><th aria-label="<?php echo h(t('Ações')); ?>"></th><?php endif; ?></tr></thead>
     <tbody>
+    <?php if (!$lista): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($lista as $a): $uid = (int) $a['user_id']; ?>
       <tr>
         <td><?php echo h($logins[$uid] ?? t('não encontrado no portal')); ?><br><span class="muted small">user_id <?php echo $uid; ?></span></td>
         <?php if (escPode('admin')): $fid = 'fa' . $uid; ?>
-          <td><input type="text" name="nome" form="<?php echo $fid; ?>" value="<?php echo h($nomeDe($uid, $a['nome'])); ?>"></td>
-          <td><select name="perfil" form="<?php echo $fid; ?>"><?php foreach (array_unique(array_merge(['ADMIN', 'PLANEJAMENTO', 'LEITURA'], [$a['perfil']])) as $pf): ?><option value="<?php echo h($pf); ?>" <?php echo $a['perfil'] === $pf ? 'selected' : ''; ?>><?php echo h(['ADMIN' => 'ADMIN', 'PLANEJAMENTO' => t('PLANEJAMENTO / WFM'), 'LEITURA' => t('LEITURA'), 'WFM' => t('WFM (= Planejamento)'), 'GESTOR_TIME' => t('GESTOR_TIME (antigo)')][$pf] ?? $pf); ?></option><?php endforeach; ?></select></td>
-          <td><input type="text" name="times" form="<?php echo $fid; ?>" value="<?php echo h($a['times']); ?>" placeholder="<?php echo h(t('só para gestor')); ?>"></td>
-          <td><input type="checkbox" name="ativo" form="<?php echo $fid; ?>" value="1" <?php echo (int) $a['ativo'] ? 'checked' : ''; ?>></td>
+          <td><input type="text" name="nome" aria-label="<?php echo h(t('Nome')); ?>" form="<?php echo $fid; ?>" value="<?php echo h($nomeDe($uid, $a['nome'])); ?>"></td>
+          <td><select name="perfil" aria-label="<?php echo h(t('Perfil')); ?>" form="<?php echo $fid; ?>"><?php foreach (array_unique(array_merge(['ADMIN', 'PLANEJAMENTO', 'LEITURA'], [$a['perfil']])) as $pf): ?><option value="<?php echo h($pf); ?>" <?php echo $a['perfil'] === $pf ? 'selected' : ''; ?>><?php echo h(['ADMIN' => 'ADMIN', 'PLANEJAMENTO' => t('PLANEJAMENTO / WFM'), 'LEITURA' => t('LEITURA'), 'WFM' => t('WFM (= Planejamento)'), 'GESTOR_TIME' => t('GESTOR_TIME (antigo)')][$pf] ?? $pf); ?></option><?php endforeach; ?></select></td>
+          <td><input type="text" name="times" aria-label="<?php echo h(t('Times')); ?>" form="<?php echo $fid; ?>" value="<?php echo h($a['times']); ?>" placeholder="<?php echo h(t('só para gestor')); ?>"></td>
+          <td><input type="checkbox" name="ativo" aria-label="<?php echo h(t('Ativo')); ?>" form="<?php echo $fid; ?>" value="1" <?php echo (int) $a['ativo'] ? 'checked' : ''; ?>></td>
           <td><form id="<?php echo $fid; ?>" method="post" action="<?php echo h(link_tela('acessos')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="user_id" value="<?php echo $uid; ?>"><button type="submit" class="botao"><?php echo h(t('Salvar')); ?></button></form></td>
         <?php else: ?>
           <td><?php echo h($nomeDe($uid, $a['nome'])); ?></td><td><?php echo h(escRotulo('perfil', $a['perfil'])); ?></td><td><?php echo h($a['times']); ?></td><td><?php echo h((int) $a['ativo'] ? t('sim') : t('não')); ?></td>
@@ -103,6 +104,7 @@ $log = escQ('SELECT quando, user_id, user_nome, canal, acao, entidade, entidade_
 <section class="panel">
   <h2><?php echo h(t('Últimas alterações (log)')); ?></h2>
   <ul class="regras small">
+    <?php if (count($log) >= 30): ?><li class="muted"><?php echo h(t('Mostrando só os {n} mais recentes.', ['n' => 30])); ?></li><?php endif; ?>
     <?php foreach ($log as $l): ?><li><?php echo h(escDataHora($l['quando'])); ?> · <?php echo h($l['user_id'] ? $nomeDe((int) $l['user_id'], $l['user_nome']) : escRotulo('canal', $l['canal'])); ?> · <?php echo h($l['acao']); ?> · <?php echo h($l['entidade'] . ' ' . $l['entidade_id']); ?></li><?php endforeach; ?>
     <?php if (!$log): ?><li class="muted"><?php echo h(t('Nada ainda.')); ?></li><?php endif; ?>
   </ul>

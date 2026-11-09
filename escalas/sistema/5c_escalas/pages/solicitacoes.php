@@ -248,6 +248,7 @@ $nome = static fn(string $r) => $nomes[strtoupper($r)] ?? strtoupper($r);
       <a class="chip-filtro <?php echo $status === $k ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('solicitacoes', ['status' => $k])); ?>"<?php echo $status === $k ? ' aria-current="page"' : ''; ?>><?php echo h($rot); ?><?php echo $k !== 'TODOS' ? ' · ' . (int) ($contagem[$k] ?? 0) : ''; ?></a>
     <?php endforeach; ?>
   </div>
+  <?php if (count($lista) >= 200): ?><p class="muted small"><?php echo h(t('Mostrando só os {n} mais recentes.', ['n' => 200])); ?></p><?php endif; ?>
   <?php foreach ($lista as $s): $rep = strtoupper($s['rep_code']); $l = $lugares[$rep] ?? null; ?>
   <article class="cartao-csv sol-cartao" id="sol-<?php echo (int) $s['id']; ?>">
     <div class="linha-titulo">

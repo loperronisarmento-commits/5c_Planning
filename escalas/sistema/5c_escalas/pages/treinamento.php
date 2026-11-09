@@ -189,7 +189,7 @@ $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
       <?php $nLac = count(array_filter($s['candidatas'], static fn($c) => $c['modo'] === 'LACUNA')); ?>
       <p class="muted small"><?php echo h($nLac ? tn($nLac, '{n} página com lacuna no turno nos dias da turma (vem primeiro: melhor treinar do que deixar vazia).', '{n} páginas com lacuna no turno nos dias da turma (vêm primeiro: melhor treinar do que deixar vazia).') : t('Nenhuma lacuna no turno nos dias da turma na versão atual das semanas (gere ou recalcule a semana para ver as lacunas).')); ?> <?php echo h(t('Todas as possibilidades aparecem; em cinza, as que não podem e o motivo.')); ?></p>
       <div class="tabela-rolagem"><table class="treino-paginas">
-        <thead><tr><th></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Tipo')); ?></th><th class="num"><?php echo h(t('Fãs/h')); ?></th><th><?php echo h(t('Dono do turno')); ?></th><th class="num"><?php echo h(t('Mês')); ?></th><th class="num"><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Situação')); ?></th></tr></thead>
+        <thead><tr><th aria-label="<?php echo h(t('Ações')); ?>"></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Tipo')); ?></th><th class="num"><?php echo h(t('Fãs/h')); ?></th><th><?php echo h(t('Dono do turno')); ?></th><th class="num"><?php echo h(t('Mês')); ?></th><th class="num"><?php echo h(t('Turno')); ?></th><th><?php echo h(t('Situação')); ?></th></tr></thead>
         <tbody>
         <?php foreach ($s['candidatas'] as $nome => $c): $marcada = in_array($nome, $s['escolha'], true); ?>
           <tr class="<?php echo $c['ok'] ? '' : 'muted'; ?>">

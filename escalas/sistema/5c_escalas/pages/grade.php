@@ -886,7 +886,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes grade-semana nao-imprimir">
     <input type="hidden" name="p" value="grade">
     <?php if ($semanaAnt): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => (int) $semanaAnt['id']])); ?>" aria-label="<?php echo h(t('Semana anterior')); ?>">‹</a><?php endif; ?>
-    <select name="plano" onchange="this.form.submit()" aria-label="<?php echo h(t('Semana')); ?>" data-sem-busca>
+    <select name="plano" data-envio-auto aria-label="<?php echo h(t('Semana')); ?>" data-sem-busca>
       <?php foreach ($semanasGrade as $s => $x): ?>
         <option value="<?php echo (int) $x['atual']['id']; ?>" <?php echo (int) $x['atual']['id'] === $planoId ? 'selected' : ''; ?>><?php echo h(t('Semana de {de} a {ate}', ['de' => dataBr($s), 'ate' => dataBr(escMaisDias($s, 6))]) . ' · ' . escPlanoRotulo($x['atual']) . ' ' . ($x['atual']['status'] === 'PUBLICADO' ? t('publicada') : t('rascunho'))); ?></option>
         <?php if ($x['publicado'] && (int) $x['publicado']['id'] !== (int) $x['atual']['id']): ?>
@@ -933,11 +933,11 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
       <input type="hidden" name="p" value="grade"><input type="hidden" name="plano" value="<?php echo $planoId; ?>"><input type="hidden" name="aba" value="<?php echo h($aba); ?>">
       <?php foreach (array_intersect_key($params, ['tags' => 1, 'risco' => 1]) as $k => $v): ?><input type="hidden" name="<?php echo h($k); ?>" value="<?php echo h((string) $v); ?>"><?php endforeach; ?>
-      <select name="turno" onchange="this.form.submit()" aria-label="<?php echo h(t('Turno')); ?>">
+      <select name="turno" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>">
         <?php foreach (['A' => t('Turno {turno} ({horas})', ['turno' => 'A', 'horas' => '05–13']), 'C' => t('Turno {turno} ({horas})', ['turno' => 'C', 'horas' => '13–21']), 'D' => t('Turno {turno} ({horas})', ['turno' => 'D', 'horas' => '21–05'])] as $t => $rot): ?><option value="<?php echo $t; ?>" <?php echo $t === $turnoSel ? 'selected' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
       </select>
       <?php if (!$ehV4): ?>
-      <select name="time" onchange="this.form.submit()" aria-label="<?php echo h(t('Time')); ?>">
+      <select name="time" data-envio-auto aria-label="<?php echo h(t('Time')); ?>">
         <option value=""><?php echo h(t('Todos os times')); ?></option>
         <?php foreach ($times as $t): ?><option <?php echo $t === $timeSel ? 'selected' : ''; ?>><?php echo h($t); ?></option><?php endforeach; ?>
       </select>
@@ -950,7 +950,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <input type="hidden" name="p" value="grade"><input type="hidden" name="plano" value="<?php echo (int) $planoId; ?>">
     <?php if (isset($_GET['aba']) && is_string($_GET['aba'])): ?><input type="hidden" name="aba" value="<?php echo h($_GET['aba']); ?>"><?php endif; ?>
     <label class="filtros" title="<?php echo h(t('Date Schedule = o dia escolhido. Nesse dia, os blocos antes do turno saem iguais à versão (gerada com "antes do corte, igual ao site", são os do site); os dias antes ficam fora do CSV. O passado não muda.')); ?>"><?php echo h(t('CSV a partir de')); ?>
-      <select name="desde" onchange="this.form.submit()">
+      <select name="desde" data-envio-auto>
         <option value="semana"<?php echo $corteCsv === '' ? ' selected' : ''; ?>><?php echo h(t('Semana inteira')); ?></option>
         <?php foreach (escSlotsDaSemana($seg) as $slot => $rot): ?><option value="<?php echo h($slot); ?>"<?php echo $slot === $corteCsv ? ' selected' : ''; ?><?php echo $slot < escPostagemCorte($seg) ? ' disabled' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
       </select>
@@ -991,19 +991,21 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
 <?php if ($aba === 'pagina'): ?>
   <div class="tabela-rolagem grade-rolagem">
   <table class="grade">
-    <thead><tr><th class="col-pagina"><?php echo h(t('Página')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?><th></th></tr></thead>
+    <thead><tr><th class="col-pagina"><?php echo h(t('Página')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
+    <?php $letraOrigem = ['vaga_dono' => 'D', 'party_dona' => 'D', 'vaga_cobertura' => 'C', 'outra_party' => 'C', 'buffer_nucleo' => 'B', 'buffer' => 'B', 'transicao' => 'T', 'manual' => 'M', 'overlap' => 'O']; ?>
     <?php foreach ($listaPaginas as $pg): ?>
       <tr>
-        <td class="col-pagina"><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: t('sem party')); ?></span><?php if (!empty($riscoPag[$pg['id']])): $nr = count($riscoPag[$pg['id']]); ?> <span class="tag-sr tag-sr-vermelho" title="<?php echo h(tn($nr, '{n} SR com tag vermelha neste turno', '{n} SRs com tag vermelha neste turno')); ?>">⚠ <?php echo $nr; ?></span><?php endif; ?></td>
+        <td class="col-pagina" role="rowheader"><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: t('sem party')); ?></span><?php if (!empty($riscoPag[$pg['id']])): $nr = count($riscoPag[$pg['id']]); ?> <span class="tag-sr tag-sr-vermelho" title="<?php echo h(tn($nr, '{n} SR com tag vermelha neste turno', '{n} SRs com tag vermelha neste turno')); ?>">⚠ <?php echo $nr; ?></span><?php endif; ?></td>
         <?php foreach ($dias as $d): $cel = $grade[$pg['id']][$d] ?? []; $lac = $cel && !array_filter($cel, static fn($x) => $x['rep_code'] !== null || $x['origem'] === 'TREINO'); ?>
-          <td class="celula <?php echo $lac ? 'lacuna' : ''; ?> <?php echo array_filter($cel, static fn($x) => (int) $x['travada'] === 1) ? 'travada' : ''; ?>">
+          <td class="celula <?php echo $lac ? 'lacuna' : ''; ?> <?php $temTrava = (bool) array_filter($cel, static fn($x) => (int) $x['travada'] === 1); echo $temTrava ? 'travada' : ''; ?>">
             <a href="<?php echo h(link_tela('grade', $params + ['pg' => $pg['id'], 'dia' => $d])); ?>" data-manter-rolagem>
+            <span class="so-leitor"><?php echo h($pg['nome'] . ', ' . dataBr($d) . ': '); ?></span><?php if ($temTrava): ?><span class="trava-icone" aria-hidden="true">🔒</span><span class="so-leitor"><?php echo h(t('Célula travada')); ?>: </span><?php endif; ?>
             <?php if (!$cel): ?><span class="muted">—</span><?php endif; ?>
             <?php foreach ($cel as $x): ?>
               <?php if ($x['rep_code'] === null && $x['origem'] === 'TREINO'): ?><span class="origem-treino" title="<?php echo h($x['motivo']); ?>"><?php echo h(t('treinamento')); ?></span><br>
               <?php elseif ($x['rep_code'] === null): ?><span class="laranja"><?php echo h(t('lacuna')); ?></span><br>
-              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php $mc = escMarcaCsv($x); echo $mc === true ? '# ' : ''; ?><?php echo h($nomeCelula($x['rep_code'])); ?><?php echo is_string($mc) ? ' ' . $mc : ''; ?><?php echo $x['origem'] === 'SOBRECARGA' ? ' ⚠' : ''; ?></span><?php echo $ehV4 ? escTagsHtml(escTagsDe($x['rep_code'], $x['pagina']), $tagsModo) : ''; ?><br><?php endif; ?>
+              <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php $mc = escMarcaCsv($x); echo $mc === true ? '# ' : ''; ?><?php echo h($nomeCelula($x['rep_code'])); ?><?php echo is_string($mc) ? ' ' . $mc : ''; ?><?php echo $x['origem'] === 'SOBRECARGA' ? ' ⚠' : ''; ?><?php $lo = $letraOrigem[strtolower((string) $x['origem'])] ?? ''; echo $lo !== '' ? ' <sup class="origem-letra" aria-hidden="true">' . $lo . '</sup>' : ''; ?><span class="so-leitor"> (<?php echo h(mb_strtolower(str_replace('_', ' ', (string) $x['origem']))); ?>)</span></span><?php echo $ehV4 ? escTagsHtml(escTagsDe($x['rep_code'], $x['pagina']), $tagsModo) : ''; ?><br><?php endif; ?>
             <?php endforeach; ?>
             </a>
           </td>
@@ -1020,7 +1022,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <?php foreach ($ehV4
         ? ['vaga_dono' => t('vaga do dono'), 'vaga_cobertura' => t('cobertura'), 'buffer_nucleo' => t('buffer do núcleo'), 'transicao' => t('transição'), 'buffer' => t('buffer de plantão (-2)'), 'overlap' => 'Overlap (-5)', 'lider_os' => t('liderança (OA -6, OC -7, OS -8)'), 'treino' => t('trainee New Hire (-4)'), 'sobrecarga' => t('acima da capacidade ⚠'), 'manual' => t('ajuste manual')]
         : ['party_dona' => t('party dona'), 'outra_party' => t('outra party'), 'tertius' => t('rodízio'), 'buffer' => t('Buffer'), 'manual' => t('ajuste manual')] as $cls => $rot): ?>
-      <span class="pessoa-cel origem-<?php echo $cls; ?> amostra"><?php echo h($rot); ?></span>
+      <span class="pessoa-cel origem-<?php echo $cls; ?> amostra"><?php echo isset($letraOrigem[$cls]) ? '<sup class="origem-letra">' . $letraOrigem[$cls] . '</sup> ' : ''; ?><?php echo h($rot); ?></span>
     <?php endforeach; ?>
     <span class="muted">· <?php echo h(t('"#" antes do nome = assistente · clique na célula para ver o porquê e ajustar')); ?></span>
   </div>
@@ -1163,7 +1165,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <?php $totalDif = array_sum(array_map(static fn($c) => $tipoSel === '' || $c['tipo'] === $tipoSel ? (int) $c['n'] : 0, $contagem)); ?>
     <?php foreach ($contagem as $c): ?><a class="chip-filtro <?php echo $tipoSel === $c['tipo'] ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $c['tipo']])); ?>"><?php echo h(escRotulo('tipo_diferenca', $c['tipo'])); ?> · <?php echo (int) $c['n']; ?></a><?php endforeach; ?>
   </div>
-  <div class="filtros-chip">
+  <div class="chips">
     <a class="chip-filtro <?php echo $diaDif === '' ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $tipoSel ?: null])); ?>"><?php echo h(t('Semana inteira')); ?></a>
     <?php foreach ($dias as $dDif): ?><a class="chip-filtro <?php echo $diaDif === $dDif ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $tipoSel ?: null, 'dia_dif' => $dDif])); ?>"><?php echo h(dataBr($dDif)); ?></a><?php endforeach; ?>
   </div>

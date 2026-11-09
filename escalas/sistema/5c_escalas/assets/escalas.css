@@ -73,7 +73,8 @@
   --cinza-texto: #c9ccd3;
   --legado-texto: #e4e5ea;
   --placeholder: #9a9ea8;
-  --graf-neutro: #4d2a3c;
+  --graf-neutro: #7f5f71;
+  --quadrado-trabalho: #e0559b;
   --graf-grade: rgba(255, 255, 255, 0.09);
 }
 :root[data-tema="claro"] {
@@ -143,7 +144,7 @@
   --cinza-texto: #44434a;
   --legado-texto: #2e2d33;
   --placeholder: #67636d;
-  --graf-neutro: #c9c4cc;
+  --graf-neutro: #8f8a94; --quadrado-trabalho: #970250;
   --graf-grade: rgba(0, 0, 0, 0.08);
 }
 @media (prefers-color-scheme: light) {
@@ -214,7 +215,7 @@
     --cinza-texto: #44434a;
     --legado-texto: #2e2d33;
     --placeholder: #67636d;
-    --graf-neutro: #c9c4cc;
+    --graf-neutro: #8f8a94; --quadrado-trabalho: #970250;
     --graf-grade: rgba(0, 0, 0, 0.08);
   }
 }
@@ -468,7 +469,7 @@ table.grade td.travada { box-shadow: inset 3px 0 0 var(--roxo); }
 @media print { .barra-presenca::after { background: #970250; } } /* liderança: cor própria (o laranja é "acima da capacidade") */
 .origem-sobrecarga { color: var(--o-sobrecarga); font-weight: 600; }
 .quadrado { display: inline-block; width: 14px; height: 14px; border-radius: 3px; margin-right: 2px; vertical-align: middle; }
-.quadrado.trabalho { background: var(--accent); }
+.quadrado.trabalho { background: var(--quadrado-trabalho, var(--accent)); }
 .quadrado.folga { background: var(--folga); box-shadow: inset 0 0 0 1px var(--borda-campo); }
 tr.inativo td { color: var(--texto-2); }
 /* Ordenação das tabelas (escalas.js) */
@@ -859,7 +860,7 @@ label > .busca-select { order: 2; }
     --cinza-texto: #44434a;
     --legado-texto: #2e2d33;
     --placeholder: #67636d;
-    --graf-neutro: #c9c4cc;
+    --graf-neutro: #8f8a94; --quadrado-trabalho: #970250;
     --graf-grade: rgba(0, 0, 0, 0.08);
     --bg: #ffffff; --panel-bg: #ffffff; --glow: transparent;
   }
@@ -1106,4 +1107,13 @@ body.ge-aberto { overflow: hidden; }
   .ge-acoes { flex-direction: column; align-items: stretch; }
   .ge-acoes .botao { text-align: center; justify-content: center; }
   .ge-estado { display: none; }
+}
+
+/* Acessibilidade (auditoria de 08/11) */
+.pular-conteudo { position: absolute; left: 8px; top: -60px; z-index: 100; padding: 8px 14px; border-radius: 8px; background: var(--accent); color: #fff; }
+.pular-conteudo:focus { top: 8px; }
+.origem-letra { font-size: 0.7em; font-weight: 700; margin-left: 1px; }
+.trava-icone { font-size: 0.75em; margin-right: 2px; }
+@media (max-width: 640px) {
+  main .botao, main select, main input:not([type=hidden]):not([type=checkbox]):not([type=radio]) { min-height: 28px; }
 }

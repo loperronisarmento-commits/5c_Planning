@@ -165,9 +165,7 @@ function escAplicarSaidasPaginas(array $itens, string $desde, string $motivo, ?a
 function escAplicarSaidasTravado(array $itens, string $desde, string $motivo, array $inativas = [], ?array $entra = null): array {
     $paginas = array_column($itens, 'pagina');
     $fechar = array_values(array_diff($paginas, $inativas));
-    $saindo = array_flip($paginas);
     $rotulo = count($paginas) === 1 ? $paginas[0] : count($paginas) . ' páginas (' . implode(', ', $paginas) . ')';
-    $ontem = escMaisDias($desde, -1);
     $ids = [];
     foreach ($itens as $i) {
         escW('INSERT INTO `' . ESC_SCHEMA . '`.`esc_saida_pagina` (pagina, vale_desde, evento_id, motivo, status, criado_por) VALUES (?, ?, ?, ?, \'ERRO\', ?)',

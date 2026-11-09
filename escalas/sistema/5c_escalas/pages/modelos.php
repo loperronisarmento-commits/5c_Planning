@@ -114,8 +114,9 @@ $quadrados = static function (string $ciclo): string {
 <section class="panel">
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th><?php echo h(t('Modelo')); ?></th><th><?php echo h(t('Ciclo')); ?></th><th><?php echo h(t('Tipo')); ?></th><th class="num"><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Anomalia')); ?></th><th class="num"><?php echo h(t('Horas/dia')); ?></th><th></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Modelo')); ?></th><th><?php echo h(t('Ciclo')); ?></th><th><?php echo h(t('Tipo')); ?></th><th class="num"><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Anomalia')); ?></th><th class="num"><?php echo h(t('Horas/dia')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
+    <?php if (!$modelos): ?><tr><td colspan="12" class="muted"><?php echo h(t('Nada para mostrar.')); ?></td></tr><?php endif; ?>
     <?php foreach ($modelos as $m): ?>
       <tr class="<?php echo (int) $m['ativo'] ? '' : 'inativo'; ?>">
         <td><strong><?php echo h($m['nome']); ?></strong><?php echo (int) $m['ativo'] ? '' : ' <span class="tag">' . h(t('inativo')) . '</span>'; ?><?php echo $m['admin_a_cada'] ? '<br><span class="muted small">' . h(t('dia admin a cada {n}', ['n' => (int) $m['admin_a_cada']])) . '</span>' : ''; ?></td>

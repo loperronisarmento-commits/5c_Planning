@@ -199,7 +199,7 @@ function escTourPassos(): array {
 function escAcoesNecessarias(): array {
     $acoes = [];
     $seg = segundaDaSemana(date('Y-m-d'));
-    foreach ([$seg, escMaisDias($seg, 7)] as $s) {
+    foreach (escPode('planejar') ? [$seg, escMaisDias($seg, 7)] : [] as $s) {
         $pub = escQ1('SELECT id, versao, subversao FROM ' . escT('esc_plano') . " WHERE semana_inicio = ? AND time_nome = '' AND status = 'PUBLICADO' ORDER BY id DESC LIMIT 1", [$s]);
         $atual = escPlanoAtual($s);
         $semana = escData($s);

@@ -307,7 +307,7 @@ $listaInteresses = static function (array $lista) use ($nomes, $seg, $ehRascunho
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="linha-titulo">
     <input type="hidden" name="p" value="horas">
     <label class="filtros"><?php echo h(t('Semana')); ?>
-      <select name="semana" onchange="this.form.submit()">
+      <select name="semana" data-envio-auto>
         <?php foreach ($semanas as $s): ?><option value="<?php echo h($s); ?>" <?php echo $s === $seg ? 'selected' : ''; ?>><?php echo h(t('{ini} a {fim}', ['ini' => dataBr($s), 'fim' => dataBr(escMaisDias($s, 6))])); ?></option><?php endforeach; ?>
       </select>
     </label>
