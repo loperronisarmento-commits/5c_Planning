@@ -783,7 +783,7 @@ $rotRegra = ['EXCLUSIVA' => t('exclusiva'), 'ASSISTENTE_FIXO' => t('assistente_f
       <?php foreach ($e['cards'] as $k): $c = $k['c']; $pv = $k['pv']; ?>
       <div class="cartao">
         <div class="linha-titulo"><strong><?php echo h($c['cliente'] ?? '—'); ?></strong><?php if ($c['tier'] ?? null): ?><span class="tag"><?php echo h(t('Tier {tier}', ['tier' => $c['tier']])); ?></span><?php endif; ?></div>
-        <span class="muted small"><?php echo h(t('Início {dia}', ['dia' => dataBr($pv['data_prevista'] ?? $c['start_date'])])); ?> · <?php echo $c['value'] !== null ? h(num((float) $c['value'], 0) . ' ' . $c['currency']) : h(t('sem valor')); ?><?php echo $pv && $pv['probabilidade'] !== null ? ' · ' . h(t('{pct} de chance', ['pct' => $pct((float) $pv['probabilidade'])])) : ''; ?></span>
+        <span class="muted small"><?php echo h(t('Início {dia}', ['dia' => dataBr($pv['data_prevista'] ?? $c['start_date'])])); ?> · <?php echo $c['value'] !== null && escPodeVerRestrito() ? h(num((float) $c['value'], 0) . ' ' . $c['currency']) : h(t('sem valor')); ?><?php echo $pv && $pv['probabilidade'] !== null ? ' · ' . h(t('{pct} de chance', ['pct' => $pct((float) $pv['probabilidade'])])) : ''; ?></span>
         <?php if ($k['fans']): ?>
         <span class="small"><?php echo h(t('Fãs/h')); ?> <?php echo chipTurno('A'); ?> <?php echo h(num($k['fans'][0], 1)); ?> <?php echo chipTurno('C'); ?> <?php echo h(num($k['fans'][1], 1)); ?> <?php echo chipTurno('D'); ?> <?php echo h(num($k['fans'][2], 1)); ?></span>
         <span class="small"><?php echo h(t('SRs estimados {srs}', ['srs' => implode(' · ', array_map(static fn($v) => num($v, 1), $k['srs']))])); ?><?php echo !empty($pv['destino_time']) ? ' · ' . h(t('destino {time}', ['time' => $pv['destino_time']])) : ''; ?></span>
@@ -802,7 +802,7 @@ $rotRegra = ['EXCLUSIVA' => t('exclusiva'), 'ASSISTENTE_FIXO' => t('assistente_f
     <?php foreach ($funil as $c): $pv = $prevFunil[(int) $c['id']] ?? null; $fans = $pv ? [(float) $pv['fans_h_a'], (float) $pv['fans_h_c'], (float) $pv['fans_h_d']] : null; ?>
       <tr><td><strong><?php echo h($c['cliente'] ?? '—'); ?></strong></td><td><?php echo h($c['etapa']); ?></td><td><?php echo h($c['tier'] ?? '—'); ?></td>
         <td class="nowrap"><?php echo h(dataBr($pv['data_prevista'] ?? $c['start_date'])); ?></td>
-        <td class="num"><?php echo $c['value'] !== null ? h(num((float) $c['value'], 0) . ' ' . $c['currency']) : '—'; ?></td>
+        <td class="num"><?php echo $c['value'] !== null && escPodeVerRestrito() ? h(num((float) $c['value'], 0) . ' ' . $c['currency']) : '—'; ?></td>
         <td class="num"><?php echo $fans ? h(implode(' · ', array_map(static fn($v) => num($v, 1), $fans))) : '<span class="muted">' . h(t('sem previsão')) . '</span>'; ?></td>
         <td class="num"><?php echo $pv && $pv['probabilidade'] !== null ? $pct((float) $pv['probabilidade']) : '—'; ?></td>
         <td><?php echo $fans ? h(implode(' · ', array_map(static fn($v) => num(ceil($v / 28) * 1.5, 1), $fans))) : '—'; ?></td>

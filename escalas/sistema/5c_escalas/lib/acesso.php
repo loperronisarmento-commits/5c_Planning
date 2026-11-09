@@ -105,6 +105,20 @@ function escPodeReal(string $acao): bool {
     return in_array($GLOBALS['ESC_USUARIO']['perfil'] ?? '', ESC_PODE[$acao] ?? [], true);
 }
 
+// Telas e dados só de WFM/Planejamento e Admin (Política de mérito, mérito individual, Folga juntos):
+// valem o perfil real, também no Modo Treino.
+const ESC_TELAS_RESTRITAS = ['owners', 'merito', 'casais'];
+
+function escPodeVerRestrito(): bool {
+    return escPodeReal('planejar');
+}
+
+function escExigirRestrito(): void {
+    if (!escPodeVerRestrito()) {
+        throw new RuntimeException(t('Bloqueado: seu perfil não pode fazer isso.'));
+    }
+}
+
 function escExigir(string $acao): void {
     if (!escPode($acao)) {
         throw new RuntimeException(t('Bloqueado: seu perfil não pode fazer isso.'));
@@ -281,7 +295,7 @@ function escEsperaBancoHtml(bool $post = false): string {
     $html .= '<script>(function () {
   var box = document.querySelector("[data-espera-banco]");
   if (!box) { return; }
-  var T = ' . json_encode($txt, JSON_UNESCAPED_UNICODE) . ';
+  var T = ' . json_encode($txt, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) . ';
   var info = box.querySelector("[data-espera-info]"), post = box.dataset.post === "1";
   var esperas = [3, 3, 5, 5, 10, 10, 15, 15, 20, 30], i = 0, ini = Date.now(), limite = 10 * 60 * 1000;
   function dur() { var s = Math.round((Date.now() - ini) / 1000); return s < 60 ? s + " s" : Math.floor(s / 60) + " min " + (s % 60) + " s"; }

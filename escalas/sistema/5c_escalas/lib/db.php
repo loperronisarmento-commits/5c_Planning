@@ -134,6 +134,10 @@ function escSqlSemTexto(string $sql): string {
 // $travaLinhas: na conexão de gravação (escQW, dentro de escTx) vale terminar com FOR UPDATE,
 // que só reserva as linhas lidas até o fim da transação.
 function escConferirSomenteLeitura(string $sql, bool $travaLinhas = false): void {
+    // Comentário executável do MySQL (/*! ... */) sumiria na limpeza abaixo, mas rodaria no banco.
+    if (strpos((string) preg_replace("~'(?:[^'\\\\]|\\\\.)*'~s", "''", $sql), '/*!') !== false) {
+        throw new RuntimeException('Bloqueado: comentário executável na consulta.');
+    }
     $semTexto = escSqlSemTexto($sql);
     if ($travaLinhas) {
         $semTexto = preg_replace('~\bFOR\s+UPDATE\s*$~i', ' ', $semTexto);
@@ -144,7 +148,7 @@ function escConferirSomenteLeitura(string $sql, bool $travaLinhas = false): void
     if (strpos($semTexto, ';') !== false) {
         throw new RuntimeException('Bloqueado: uma consulta por vez, sem ";".');
     }
-    if (preg_match('~\b(INSERT|UPDATE|DELETE|REPLACE|ALTER|DROP|CREATE|TRUNCATE|GRANT|REVOKE|CALL|LOAD|RENAME|LOCK|UNLOCK|HANDLER|INTO|OUTFILE|DUMPFILE)\b~i', $semTexto, $m)) {
+    if (preg_match('~\b(INSERT|UPDATE|DELETE|REPLACE|ALTER|DROP|CREATE|TRUNCATE|GRANT|REVOKE|CALL|LOAD|LOAD_FILE|SLEEP|BENCHMARK|RENAME|LOCK|UNLOCK|HANDLER|INTO|OUTFILE|DUMPFILE)\b~i', $semTexto, $m)) {
         throw new RuntimeException('Bloqueado: palavra de escrita na consulta (' . strtoupper($m[1]) . ').');
     }
 }

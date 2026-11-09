@@ -13,7 +13,7 @@ if (escPost()) {
     }
     $uid = (int) ($_POST['user_id'] ?? 0);
     $perfil = (string) ($_POST['perfil'] ?? 'LEITURA');
-    if ($uid <= 0 || !in_array($perfil, ['ADMIN', 'WFM', 'PLANEJAMENTO', 'GESTOR_TIME', 'LEITURA'], true)) {
+    if ($uid <= 0 || !in_array($perfil, ['ADMIN', 'WFM', 'PLANEJAMENTO', 'LEITURA'], true)) {
         throw new RuntimeException(t('Escolha o usuário e o perfil.'));
     }
     if ($uid === escUserId() && $perfil !== 'ADMIN') {

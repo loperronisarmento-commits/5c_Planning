@@ -16,6 +16,7 @@
 // Também atende o download do CSV (index.php?p=trocas&baixar=csv).
 // ===============================================
 
+escExigir('admin'); // Legado: só admin.
 $tabela = '`5c_historic_planner`.`historic_page_planner`';
 
 $cortes = escQ("SELECT `timestamp` AS ts, COUNT(*) AS n, SUM(isApplied = 0) AS pendentes

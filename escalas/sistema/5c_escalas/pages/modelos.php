@@ -6,6 +6,7 @@
 // (ex.: 5x2 rotativo de 21 dias: o ciclo tem até 4 seguidos, o limite é 5).
 // ===============================================
 
+escExigir('admin');
 if (escPost() && ($_POST['acao'] ?? '') === 'excluir') {
     // Excluir: sem ninguém configurado no modelo (nem no histórico), apaga; com histórico,
     // desativa (some das escolhas e da lista principal, e as semanas antigas continuam lendo o ciclo).

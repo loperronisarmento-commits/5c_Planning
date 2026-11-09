@@ -18,7 +18,7 @@ foreach ([0.50, 0.60, 0.70, 0.80] as $a) {
     $prazos[] = $pct($a) . ' → ' . escPolPrazo($a, $pol) . 'd';
 }
 $prio = [];
-if (escPolInstalada()) {
+if (escPolInstalada() && escPodeVerRestrito()) {
     $nomes = escNomes();
     foreach (escQ('SELECT pagina, rep_codes, motivo FROM ' . escT('esc_pagina_prioridade') . ' WHERE vigente_ate IS NULL ORDER BY pagina') as $l) {
         $prio[] = $l['pagina'] . ': ' . implode(', ', array_map(static fn($r) => nomeCurto($nomes[trim($r)] ?? trim($r)), explode(',', strtoupper((string) $l['rep_codes'])))) . ($l['motivo'] ? ' (' . $l['motivo'] . ')' : '');
@@ -112,6 +112,10 @@ $R = [
         ['Prioridades fixas (vencem a nota): {prio}.', 'Fixed priorities (override the score): {prio}.'],
     ]],
 ];
+// Política de mérito: só WFM/Planejamento e Admin.
+if (!escPodeVerRestrito()) {
+    unset($R['merito'], $R['politica']);
+}
 ?>
 <?php escDocIni(); ?>
 <header class="cabecalho">

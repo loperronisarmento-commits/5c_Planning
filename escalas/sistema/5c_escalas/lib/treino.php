@@ -16,7 +16,8 @@ const ESC_TREINO_COPIAR = [
     'esc_posto', 'esc_posto_pagina', 'esc_vaga_equipe', 'esc_parametro', 'esc_acesso',
     'esc_ciclo_estado', 'esc_folga_par', 'esc_pagina_config',
 ];
-// O mérito (esc_sr_merito, esc_sr_infraction) não é copiado: é dado individual restrito.
+// O mérito (esc_sr_merito, esc_sr_infraction) não é copiado: é dado individual restrito. O motor calcula
+// o do treino ao gerar (lib/merito.php); as telas só mostram número com o perfil real (escPodeReal).
 
 function escTreinoExiste(): bool {
     static $existe = null;
@@ -32,7 +33,7 @@ function escTreinoVazio(): bool {
 }
 
 function escTreinoLigar(bool $ligar): void {
-    setcookie('esc_treino', $ligar ? '1' : '', ['expires' => $ligar ? time() + 30 * 86400 : time() - 3600, 'path' => '/', 'samesite' => 'Lax']);
+    setcookie('esc_treino', $ligar ? '1' : '', ['expires' => $ligar ? time() + 30 * 86400 : time() - 3600, 'path' => '/', 'samesite' => 'Lax', 'httponly' => true, 'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
 }
 
 // Apaga o treino e copia de novo os cadastros do 5c_escalas. Só roda com o Modo Treino ligado

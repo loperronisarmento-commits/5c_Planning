@@ -232,6 +232,7 @@ if ($corteCsv !== '') {
 }
 $arquivoDe = static fn(string $nome) => (escModoTreino() ? 'TREINO_' : '') . preg_replace('~[^A-Za-z0-9_-]+~', '_', $nome) . '_' . $seg . '_' . preg_replace('~[^A-Za-z0-9.]+~', '', escPlanoRotulo($plano)) . '.csv';
 if (isset($_GET['baixar'])) {
+    escExigir('planejar'); // pacotes de postagem, inclusive de rascunho
     if ($_GET['baixar'] === 'csv') {
         $pid = (int) ($_GET['pagina'] ?? 0);
         if (!isset($porPagina[$pid])) {
@@ -254,19 +255,22 @@ if (isset($_GET['baixar'])) {
             return;
         }
         $tmp = tempnam(sys_get_temp_dir(), 'esc');
-        $zip = new ZipArchive();
-        $zip->open($tmp, ZipArchive::OVERWRITE);
-        foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, $corteCsv);
-            $zip->addFromString($arquivoDe($pg['nome']), $csv);
+        try {
+            $zip = new ZipArchive();
+            $zip->open($tmp, ZipArchive::OVERWRITE);
+            foreach ($porPagina as $pid => $pg) {
+                $csv = escCsvT1T6($pg['cel'], $seg, $corteCsv);
+                $zip->addFromString($arquivoDe($pg['nome']), $csv);
+            }
+            $zip->close();
+            escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?)",
+                [$planoId, $seg, $corteCsv !== '' ? substr($corteCsv, 0, 10) : $seg, escMaisDias($seg, 6), hash_file('sha256', $tmp), escUserId()]);
+            header('Content-Type: application/zip');
+            header('Content-Disposition: attachment; filename="' . (escModoTreino() ? 'TREINO_' : '') . 'escala_' . $seg . '_' . escPlanoRotulo($plano) . '.zip"');
+            readfile($tmp);
+        } finally {
+            @unlink($tmp);
         }
-        $zip->close();
-        escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?)",
-            [$planoId, $seg, $corteCsv !== '' ? substr($corteCsv, 0, 10) : $seg, escMaisDias($seg, 6), hash_file('sha256', $tmp), escUserId()]);
-        header('Content-Type: application/zip');
-        header('Content-Disposition: attachment; filename="' . (escModoTreino() ? 'TREINO_' : '') . 'escala_' . $seg . '_' . escPlanoRotulo($plano) . '.zip"');
-        readfile($tmp);
-        @unlink($tmp);
         return;
     }
     if ($_GET['baixar'] === 'lote') {
@@ -326,6 +330,7 @@ if ($corteCsv !== '' && in_array($_GET['ver'] ?? '', ['pdf', 'metas'], true)) {
     $rotCortePdf = escSlotsDaSemana($seg)[$corteCsv] ?? $corteCsv;
 }
 if (($_GET['ver'] ?? '') === 'metas') {
+    escExigirRestrito(); // meta individual
     $nomesPdf = escNomes();
     $soPid = (int) ($_GET['pagina'] ?? 0);
     $overlapPdf = escV4Param('v4_overlap_pagina', '5C Schedule');
@@ -418,7 +423,7 @@ if (($_GET['ver'] ?? '') === 'metas') {
 <script>
 (function () {
   // PDF pela impressão do navegador; o título vira o nome do arquivo sugerido ao salvar.
-  var titulo = document.title, nome = <?php echo json_encode($arquivoPdf); ?>;
+  var titulo = document.title, nome = <?php echo json_encode($arquivoPdf, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
   function imprimir() { document.title = nome; window.print(); }
   document.getElementById('pag-pdf-baixar').addEventListener('click', imprimir);
   window.addEventListener('afterprint', function () { document.title = titulo; });
@@ -492,6 +497,9 @@ if (($_GET['ver'] ?? '') === 'pdf') {
         $medPdf[$moeda] = $vMed ? $vMed[intdiv(count($vMed), 2)] : null;
     }
     $vendaTxt = static function (string $rep, string $moeda = 'US$') use ($vendaPdf, $medPdf): string {
+        if (!escPodeVerRestrito()) {
+            return '';
+        }
         if (!isset($vendaPdf[$moeda][$rep])) {
             return '';
         }
@@ -637,7 +645,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
   <?php if ($u !== $uAtual): $uAtual = $u; $listaU = $porUnidadePdf[$u]; $somaU = []; $modelosU = []; foreach ($listaU as $x) { $mU = escMoedaPagina($folhas[$x]['nome']); $somaU[$mU] = ($somaU[$mU] ?? 0.0) + (float) ($recPdf[$folhas[$x]['nome']]['total'] ?? 0); $modelosU[$modeloPdf[$folhas[$x]['nome']] ?? $folhas[$x]['nome']] = true; } ?>
   <section class="pag-pdf-folha pag-pdf-capa">
     <h1><?php echo h($u === 9 ? t('Sem unidade') : t('Unidade {u}', ['u' => $u])); ?></h1>
-    <p class="pag-pdf-sub"><?php echo h(t('Semana de {de} a {ate} · {n} páginas de {m} modelos · faturamento {d} dias {usd} · as folhas seguem esta ordem (da modelo que mais fatura para a que menos)', ['de' => $dePdf, 'ate' => $atePdf, 'n' => count($listaU), 'm' => count($modelosU), 'd' => $diasPdf, 'usd' => implode(' + ', array_map(static fn($m) => $usdPdf($somaU[$m], $m), array_keys($somaU))) ?: $usdPdf(0.0)]) . ' · ' . t('versão {v}', ['v' => $versaoPdf])); ?></p>
+    <?php if (escPodeVerRestrito()): ?><p class="pag-pdf-sub"><?php echo h(t('Semana de {de} a {ate} · {n} páginas de {m} modelos · faturamento {d} dias {usd} · as folhas seguem esta ordem (da modelo que mais fatura para a que menos)', ['de' => $dePdf, 'ate' => $atePdf, 'n' => count($listaU), 'm' => count($modelosU), 'd' => $diasPdf, 'usd' => implode(' + ', array_map(static fn($m) => $usdPdf($somaU[$m], $m), array_keys($somaU))) ?: $usdPdf(0.0)]) . ' · ' . t('versão {v}', ['v' => $versaoPdf])); ?></p><?php endif; ?>
     <table class="pag-pdf-tabela pag-pdf-indice">
       <thead><tr><th class="pag-pdf-num">#</th><th class="pag-pdf-num"><?php echo h(t('Fila geral')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('Modelo')); ?></th><th class="pag-pdf-num"><?php echo h(t('Página {d}d', ['d' => $diasPdf])); ?></th><th class="pag-pdf-num"><?php echo h(t('Modelo {d}d', ['d' => $diasPdf])); ?></th></tr></thead>
       <tbody>
@@ -652,8 +660,8 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <h1><?php echo h($pg['nome']); ?> <span class="pag-pdf-unidade">U<?php echo $u; ?></span></h1>
     <p class="pag-pdf-sub"><?php echo h(t('Schedule · semana de {de} a {ate} · {carteira} · versão {versao} · gerado em {gerado}', ['de' => $dePdf, 'ate' => $atePdf,
         'carteira' => implode(' · ', array_keys($cartPdf[$pid] ?? [])) ?: '—', 'versao' => $versaoPdf, 'gerado' => date('d/m/Y H:i')])); ?></p>
-    <p class="pag-pdf-sub"><?php $mPdf = $modeloPdf[$pg['nome']] ?? $pg['nome']; $moedaFolha = escMoedaPagina($pg['nome']); echo h(t('Faturamento {d} dias: {pag} · modelo {modelo}: {mod} · {pu}ª da U{u} · {pg}ª da fila geral', ['d' => $diasPdf, 'pag' => $usdPdf((float) ($recPdf[$pg['nome']]['total'] ?? 0), $moedaFolha), 'modelo' => $mPdf,
-        'mod' => $usdPdf((float) ($recModeloPdf[$mPdf] ?? 0), $moedaFolha), 'pu' => array_search($pid, $porUnidadePdf[$u], true) + 1, 'u' => $u, 'pg' => $posGeral[$pid] + 1])); ?></p>
+    <?php if (escPodeVerRestrito()): ?><p class="pag-pdf-sub"><?php $mPdf = $modeloPdf[$pg['nome']] ?? $pg['nome']; $moedaFolha = escMoedaPagina($pg['nome']); echo h(t('Faturamento {d} dias: {pag} · modelo {modelo}: {mod} · {pu}ª da U{u} · {pg}ª da fila geral', ['d' => $diasPdf, 'pag' => $usdPdf((float) ($recPdf[$pg['nome']]['total'] ?? 0), $moedaFolha), 'modelo' => $mPdf,
+        'mod' => $usdPdf((float) ($recModeloPdf[$mPdf] ?? 0), $moedaFolha), 'pu' => array_search($pid, $porUnidadePdf[$u], true) + 1, 'u' => $u, 'pg' => $posGeral[$pid] + 1])); ?></p><?php endif; ?>
     <table class="pag-pdf-tabela">
       <thead><tr><th class="pag-pdf-bloco"><?php echo h(t('Bloco')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
       <tbody>
@@ -671,7 +679,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
       <?php endforeach; ?>
       </tbody>
     </table>
-    <?php if (!empty($repsPag[$pid])): ?>
+    <?php if (!empty($repsPag[$pid]) && escPodeVerRestrito()): ?>
     <table class="pag-pdf-tabela pag-pdf-reps">
       <thead><tr>
         <th class="pag-pdf-membro"><?php echo h(t('Representante')); ?></th>
@@ -703,7 +711,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
 <script>
 (function () {
   // PDF pela impressão do navegador; o título vira o nome do arquivo sugerido ao salvar.
-  var titulo = document.title, nome = <?php echo json_encode($arquivoPdf); ?>;
+  var titulo = document.title, nome = <?php echo json_encode($arquivoPdf, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
   function imprimir() { document.title = nome; window.print(); }
   document.getElementById('pag-pdf-baixar').addEventListener('click', imprimir);
   window.addEventListener('afterprint', function () { document.title = titulo; });
@@ -925,11 +933,11 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   </form>
   <?php endif; ?>
   <div class="acoes">
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'] + $linkDesde)); ?>"><?php echo h(t('Baixar CSVs (.zip)')); ?></a>
+    <?php if (escPode('planejar')): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'] + $linkDesde)); ?>"><?php echo h(t('Baixar CSVs (.zip)')); ?></a><?php endif; ?>
     <?php foreach ([1, 2, 3] as $uPdf): ?>
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'unidade' => $uPdf, 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Só as páginas da U{u}, em ordem de faturamento: uma folha de resumo e uma folha por página (A4 paisagem, papel timbrado), com quem está em cada bloco T1 a T6 dos 7 dias e a venda por hora de cada SR.', ['u' => $uPdf])); ?>"><?php echo h(t('PDF U{u}', ['u' => $uPdf])); ?></a>
     <?php endforeach; ?>
-    <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Uma folha por página (A4 paisagem, papel timbrado), com cada pessoa escalada na semana e o atingimento da meta dela na página nas 4 semanas anteriores.')); ?>"><?php echo h(t('Baixar PDF das metas')); ?></a>
+    <?php if (escPodeVerRestrito()): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" title="<?php echo h(t('Uma folha por página (A4 paisagem, papel timbrado), com cada pessoa escalada na semana e o atingimento da meta dela na página nas 4 semanas anteriores.')); ?>"><?php echo h(t('Baixar PDF das metas')); ?></a><?php endif; ?>
     <?php if (escPode('planejar') && $ehRascunho): ?>
     <?php
     $resumoPublicar = t('Publicar a {versao} (semana de {dia})?', ['versao' => escPlanoRotulo($plano), 'dia' => dataBr($seg)])
@@ -974,7 +982,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
             </a>
           </td>
         <?php endforeach; ?>
-        <td class="grade-baixar"><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a></td>
+        <td class="grade-baixar"><?php if (escPode('planejar')): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <?php endif; ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a><?php if (escPodeVerRestrito()): ?> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a><?php endif; ?></td>
       </tr>
     <?php endforeach; ?>
     <?php if (!$listaPaginas): ?><tr><td colspan="9" class="muted"><?php echo h(t('Nenhuma página neste filtro.')); ?></td></tr><?php endif; ?>

@@ -5,6 +5,7 @@
 // ver as folgas dos próximos 21 dias de cada par e aplicar o ajuste que alinha o ciclo.
 // ===============================================
 
+escExigirRestrito(); // Par de folga é dado pessoal: só WFM/Planejamento e Admin.
 if (!escCasaisInstalado()) {
     ?>
 <header class="cabecalho"><span class="eyebrow"><?php echo h(t('Pessoas')); ?></span><h1><?php echo h(t('Folga juntos')); ?></h1></header>

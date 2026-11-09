@@ -45,6 +45,11 @@ if (!function_exists('appLog')) {
         // rotação simples: se o log já está grande, arquiva e começa de novo
         if (is_file(LOG_FILE) && filesize(LOG_FILE) > LOG_MAX_BYTES) {
             @rename(LOG_FILE, LOG_DIR . 'app.log.' . date('Ymd_His') . '.old');
+            $antigos = glob(LOG_DIR . 'app.log.*.old') ?: [];
+            sort($antigos);
+            foreach (array_slice($antigos, 0, max(0, count($antigos) - 10)) as $antigo) {
+                @unlink($antigo);
+            }
         }
 
         $linha = sprintf(

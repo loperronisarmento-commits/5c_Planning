@@ -514,7 +514,7 @@ function escMeritoCarregar(bool $forcar = false): array {
     if (!$velho && escQ1('SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?', [ESC_SCHEMA, 'esc_sr_merito', 'faixa'])) {
         $velho = !escQ1('SELECT 1 AS ok FROM ' . escT('esc_sr_merito') . ' WHERE faixa IS NOT NULL LIMIT 1');
     }
-    if ($forcar || $velho) {
+    if ($forcar || ($velho && (PHP_SAPI === 'cli' || escPodeVerRestrito()))) {
         try {
             $calc = escMeritoCalcular(escMeritoSrsAtivos());
             $agora = date('Y-m-d H:i:s');

@@ -22,6 +22,8 @@
 // detalhe da célula e na tabela de representantes do PDF, todas.
 // ===============================================
 
+const ESC_TAGS_LIVRES = ['INX', 'TRN', 'EXP'];
+
 // Definição: código => [rótulo curto, nome completo, tom]. A ordem é a de exibição.
 function escTagsDef(): array {
     static $def = null;
@@ -164,7 +166,8 @@ function escTagsDe(string $rep, string $pagina): array {
     $ordem = array_flip(array_keys(escTagsDef()));
     $c = array_values(array_unique(array_filter($c)));
     usort($c, static fn($a, $b) => ($ordem[$a] ?? 99) <=> ($ordem[$b] ?? 99));
-    return $c;
+    // Mérito, faltas, SLA, infração e meta individual: só WFM/Planejamento e Admin.
+    return escPodeVerRestrito() ? $c : array_values(array_intersect($c, ESC_TAGS_LIVRES));
 }
 
 function escTagRisco(string $cod): bool {
@@ -192,8 +195,15 @@ function escTagsHtml(array $codigos, string $modo = 'riscos', bool $longo = fals
 function escTagsLegenda(): string {
     $p = escTagsParam();
     $partes = [];
+    $restrito = !escPodeVerRestrito();
     foreach (escTagsDef() as $c => [$curto, $nome, $tom]) {
+        if ($restrito && !in_array($c, ESC_TAGS_LIVRES, true)) {
+            continue;
+        }
         $partes[] = '<span class="tag-sr tag-sr-' . $tom . '">' . h($curto) . '</span> ' . h($nome);
+    }
+    if ($restrito) {
+        return implode(' · ', $partes);
     }
     return implode(' · ', $partes) . ' · ' . h(t('Meta na página nos últimos 30 dias (✓ {bate}% ou mais, ✗ abaixo de {nao}%); experiente com {exp} dias ou mais na página em 90 dias, inexperiente com menos de {conhece}; faltas com {faltas} dias ou mais em 28; SLA abaixo de {sla}%; sequência de {seq} semanas ou mais.', [
         'bate' => round($p['meta_bate'] * 100), 'nao' => round($p['meta_nao'] * 100), 'exp' => $p['exp_dias'], 'conhece' => $p['conhece_dias'],

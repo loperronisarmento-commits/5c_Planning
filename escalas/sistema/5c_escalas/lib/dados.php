@@ -7,8 +7,10 @@
 // Cache em arquivo (pasta temporária do servidor) para leituras lentas e que mudam pouco.
 // ?recarregar=1 na URL ignora o cache.
 function escCache(string $chave, int $segundos, callable $ler): array {
-    $arq = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR . '/') . DIRECTORY_SEPARATOR . '5c_escalas_' . preg_replace('~[^a-z0-9_]~i', '_', $chave) . '.json';
-    if (empty($_GET['recarregar']) && is_file($arq) && filemtime($arq) > time() - $segundos) {
+    // Treino e sistema real não dividem cache.
+    $arq = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR . '/') . DIRECTORY_SEPARATOR . '5c_escalas_' . (ESC_SCHEMA === ESC_SCHEMA_REAL ? '' : 'treino_') . preg_replace('~[^a-z0-9_]~i', '_', $chave) . '.json';
+    $recarregar = !empty($_GET['recarregar']) && (PHP_SAPI === 'cli' || escPodeVerRestrito());
+    if (!$recarregar && is_file($arq) && filemtime($arq) > time() - $segundos) {
         $dados = json_decode((string) @file_get_contents($arq), true);
         if (is_array($dados)) {
             return $dados;

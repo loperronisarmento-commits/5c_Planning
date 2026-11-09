@@ -13,3 +13,7 @@
 <FilesMatch "^\.">
     Require all denied
 </FilesMatch>
+# Documentação do módulo não é pública.
+<FilesMatch "\.(md|MD)$">
+    Require all denied
+</FilesMatch>

@@ -7,6 +7,11 @@
 
 $ehGlossario = $telaAtual === 'glossario';
 $itens = $ehGlossario ? escGlossario() : escFaq();
+// Política de mérito: só WFM/Planejamento e Admin.
+if (!escPodeVerRestrito()) {
+    $itensRestritos = ['Política de páginas por mérito', 'Mérito (nota)', 'Por que o sistema sugeriu tirar uma página da minha unidade?'];
+    $itens = array_values(array_filter($itens, static fn($it) => !in_array($it['termo'] ?? $it['p'] ?? '', $itensRestritos, true)));
+}
 if ($ehGlossario) {
     usort($itens, static fn($a, $b) => strcoll(escAjudaTexto($a, 'termo'), escAjudaTexto($b, 'termo')));
 }
@@ -27,7 +32,7 @@ if ($ehGlossario) {
     <div class="ajuda-item" id="item-<?php echo $i; ?>">
       <?php if ($ehGlossario): ?>
       <dt><?php echo h(escAjudaTexto($it, 'termo')); ?></dt>
-      <dd><?php echo h(escAjudaTexto($it, 'def')); ?><?php if (!empty($it['tela'])): ?> <a class="small" href="<?php echo h(link_tela($it['tela'])); ?>"><?php echo h(t('Ver na tela')); ?> →</a><?php endif; ?></dd>
+      <dd><?php echo h(escAjudaTexto($it, 'def')); ?><?php if (!empty($it['tela']) && (escPodeVerRestrito() || !in_array($it['tela'], ESC_TELAS_RESTRITAS, true))): ?> <a class="small" href="<?php echo h(link_tela($it['tela'])); ?>"><?php echo h(t('Ver na tela')); ?> →</a><?php endif; ?></dd>
       <?php else: ?>
       <dt><?php echo h(escAjudaTexto($it, 'p')); ?></dt>
       <dd><?php echo h(escAjudaTexto($it, 'r')); ?></dd>

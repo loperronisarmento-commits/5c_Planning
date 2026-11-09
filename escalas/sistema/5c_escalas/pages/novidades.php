@@ -29,11 +29,11 @@ $naoPublicado = $en && ESC_NAO_PUBLICADO_EN ? ESC_NAO_PUBLICADO_EN : ESC_NAO_PUB
 <?php foreach (ESC_PATCH_NOTES as $i => $n): $tr = $en ? (ESC_PATCH_NOTES_EN[$n['versao']] ?? null) : null; ?>
 <section class="panel notas-versao" id="v<?php echo h($n['versao']); ?>">
   <div class="linha-titulo">
-    <h2><span class="tag <?php echo $i === 0 ? 'verde' : ''; ?>">v<?php echo h($n['versao']); ?></span> <?php echo h($tr['titulo'] ?? $n['titulo']); ?></h2>
+    <h2><span class="tag <?php echo $i === 0 ? 'verde' : ''; ?>">v<?php echo h($n['versao']); ?></span> <?php echo h(escPodeVerRestrito() ? ($tr['titulo'] ?? $n['titulo']) : preg_replace('~,? *(pol[ií]tica de p[aá]ginas por m[eé]rito|merit-based page policy)~iu', '', $tr['titulo'] ?? $n['titulo'])); ?></h2>
     <span class="muted small"><?php echo h(escData($n['data'], false, true)); ?><?php echo $n['sql'] && escPode('admin') ? ' · ' . h(implode(', ', $n['sql'])) : ''; ?></span>
   </div>
   <ul class="regras small">
-    <?php foreach ($tr['itens'] ?? $n['itens'] as $item): ?><li><?php echo h($item); ?></li><?php endforeach; ?>
+    <?php foreach ($tr['itens'] ?? $n['itens'] as $item): if (!escPodeVerRestrito() && preg_match('~pol[ií]tica de p[aá]ginas|page policy~iu', $item)) { continue; } ?><li><?php echo h($item); ?></li><?php endforeach; ?>
   </ul>
 </section>
 <?php endforeach; ?>

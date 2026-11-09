@@ -177,6 +177,9 @@ function escTourPassos(): array {
          'texto' => 'Cole o e-mail do Treinamento: o sistema lê as turmas, recomenda as páginas para emprestar e gera a resposta. Turma confirmada entra na página 5C Schedule com -4 quando a semana é gerada.', 'texto_en' => 'Paste the Training e-mail: the system reads the classes, suggests pages to lend and writes the reply. A confirmed class goes on the 5C Schedule page with -4 when the week is generated.',
          'plataforma' => ['Confirmar as turmas e as páginas antes de gerar'], 'plataforma_en' => ['Confirm classes and pages before generating'], 'site' => ['Responder o e-mail do Treinamento'], 'site_en' => ['Reply to the Training e-mail']],
     ];
+    if (!escPodeVerRestrito()) {
+        $passos = array_values(array_filter($passos, static fn($p) => !in_array($p['tela'], ESC_TELAS_RESTRITAS, true)));
+    }
     $ordem = ['painel', 'colaboradores', 'aprovar', 'solicitacoes', 'saidas', 'treinamento', 'casais', 'gerar', 'grade:table.grade', 'horas', 'lideranca', 'grade:.kpis', 'grade:#postar', 'tutorial'];
     $porChave = [];
     foreach ($passos as $p) {

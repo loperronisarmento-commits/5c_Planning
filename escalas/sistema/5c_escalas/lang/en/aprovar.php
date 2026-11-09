@@ -1,6 +1,7 @@
 <?php
 // Tela Indisponibilidade (pages/aprovar.php) em inglês. O português é a chave. Ver lib/i18n.php.
 return [
+    'motivo restrito' => 'restricted reason',
     // mensagens ao lançar e decidir
     'Preencha código, tipo, data e motivo.' => 'Fill in code, type, date and reason.',
     'Período maior que {n} meses.' => 'Period longer than {n} months.',

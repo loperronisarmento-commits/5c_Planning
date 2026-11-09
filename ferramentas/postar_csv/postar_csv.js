@@ -176,6 +176,7 @@
     let p;
     try { p = JSON.parse(texto); } catch (_) { return alert('O arquivo não é um JSON válido.'); }
     if (!p || !Array.isArray(p.paginas) || !p.semana) return alert('Este JSON não é o pacote da Grade ("Pacote para postar em lote").');
+    if (p.treino) return alert('Este pacote é do Modo Treino e não pode ser postado no site real.');
     pacote = p;
     const feitas = lerFeitas();
     $('[data-info]').innerHTML = `Semana <b>${esc(p.semana)}</b> · versão <b>${esc(p.versao)}</b>` +

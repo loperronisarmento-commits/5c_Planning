@@ -72,6 +72,12 @@ function escDocVersao(string $tipo, string $escopo, string $conteudo, bool $linh
             }
             : static fn() => escQ1('SELECT versao, criado_em FROM ' . $tab . ' WHERE tipo = ? AND escopo = ? AND assinatura = ? ORDER BY versao LIMIT 1', [$tipo, $escopo, $ass]);
         $ja = $busca();
+        // Só quem gerencia cria versão nova (abrir uma URL não pode gravar para qualquer perfil).
+        $podeGravar = PHP_SAPI === 'cli' || escPodeVerRestrito();
+        if (!$ja && !$podeGravar) {
+            return $cache[$k] = ['versao' => 0, 'rotulo' => '', 'desde' => ''];
+        }
+        $guardar = preg_replace('~<input type="hidden" name="csrf"[^>]*>~', '', $conteudo);
         // Duas pessoas abrindo o mesmo documento novo ao mesmo tempo: quem perder a corrida (chave
         // duplicada) lê de novo e usa o número que o outro gravou.
         for ($tent = 0; !$ja && $tent < 3; $tent++) {
@@ -79,7 +85,7 @@ function escDocVersao(string $tipo, string $escopo, string $conteudo, bool $linh
             try {
                 if ($comConteudo) {
                     escW('INSERT INTO ' . $tab . ' (tipo, escopo, versao, assinatura, conteudo, bytes, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        [$tipo, $escopo, $max + 1, $ass, base64_encode(gzcompress($conteudo, 6)), strlen($conteudo), function_exists('escUserId') ? escUserId() : null]);
+                        [$tipo, $escopo, $max + 1, $ass, base64_encode(gzcompress($guardar, 6)), strlen($guardar), function_exists('escUserId') ? escUserId() : null]);
                 } else {
                     escW('INSERT INTO ' . $tab . ' (tipo, escopo, versao, assinatura, criado_por) VALUES (?, ?, ?, ?, ?)',
                         [$tipo, $escopo, $max + 1, $ass, function_exists('escUserId') ? escUserId() : null]);
@@ -96,9 +102,9 @@ function escDocVersao(string $tipo, string $escopo, string $conteudo, bool $linh
             throw new RuntimeException('versão do documento não gravada');
         }
         // Versão antiga, de antes do ES_122, sem o documento guardado: guarda agora.
-        if ($comConteudo) {
+        if ($comConteudo && $podeGravar) {
             escW('UPDATE ' . $tab . ' SET conteudo = ?, bytes = ? WHERE tipo = ? AND escopo = ? AND versao = ? AND conteudo IS NULL',
-                [base64_encode(gzcompress($conteudo, 6)), strlen($conteudo), $tipo, $escopo, (int) $ja['versao']]);
+                [base64_encode(gzcompress($guardar, 6)), strlen($guardar), $tipo, $escopo, (int) $ja['versao']]);
         }
         return $cache[$k] = ['versao' => (int) $ja['versao'], 'rotulo' => 'v' . (int) $ja['versao'], 'desde' => (string) $ja['criado_em']];
     } catch (Throwable $e) {

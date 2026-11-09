@@ -12,6 +12,7 @@ $seg = segundaDaSemana(preg_match('~^\d{4}-\d{2}-\d{2}$~', (string) ($_GET['sema
 $escala = escLiderancaSemana($seg);
 
 if (($_GET['baixar'] ?? '') === 'csv') {
+    escExigir('planejar');
     header('Content-Type: text/csv; charset=utf-8');
     $csvLid = escLiderancaCsv($escala);
     $vCsv = escDocVersao('lideranca_csv', 'semana:' . $seg, $csvLid);

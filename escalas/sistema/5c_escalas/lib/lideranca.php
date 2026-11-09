@@ -223,7 +223,7 @@ function escLiderancaCsv(array $e): string {
                     }
                     $linhas[] = implode(';', [date('d/m/Y', strtotime($d)), ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][(int) date('w', strtotime($d))] . ' ' . date('d/m', strtotime($d)), $turno, ESC_LID_HORARIO[$turno], ESC_LID_CARGO[$p['cargo']],
                         $p['unidade'] ? 'U' . $p['unidade'] : '', $p['nucleo'] ? 'U' . $p['unidade'] . $turno . $p['nucleo'] : '', $p['rep'] ?? 'sem código',
-                        str_replace(';', ',', $p['nome']), ESC_LID_SITUACAO[$s]]);
+                        preg_replace('~^([=+\-@])~', "'$1", str_replace(';', ',', $p['nome'])), ESC_LID_SITUACAO[$s]]);
                 }
             }
         }

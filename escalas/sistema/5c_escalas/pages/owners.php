@@ -9,6 +9,7 @@
 
 $hoje = date('Y-m-d');
 $primeiroDia = escSolPrimeiroDia();
+escExigirRestrito(); // Política de mérito: só WFM/Planejamento e Admin.
 $instalada = escPolInstalada();
 
 if (escPost()) {
@@ -89,7 +90,7 @@ $sitTexto = static function (array $s) use ($SIT): string {
     return $txt;
 };
 $tag = static fn(array $s) => '<span class="tag ' . $SIT[$s['situacao']][1] . '">' . h($sitTexto($s)) . '</span>';
-$filtroU = (int) ($_GET['unidade'] ?? 0);
+$filtroU = in_array((int) ($_GET['unidade'] ?? 0), [1, 2, 3], true) ? (int) $_GET['unidade'] : 0;
 $filtroS = (string) ($_GET['situacao'] ?? '');
 $GRUPO = ['acao' => ['VENCIDO', 'ACOMP_VENCIDO'], 'prazo' => ['PRAZO', 'ACOMPANHAMENTO'], 'bem' => ['META', 'DESTAQUE']];
 $lista = array_filter($av['paginas'], static function ($pg) use ($filtroU, $filtroS, $GRUPO) {

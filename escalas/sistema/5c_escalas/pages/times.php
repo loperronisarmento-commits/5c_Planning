@@ -10,6 +10,7 @@
 // ===============================================
 
 // Depois da virada (31/10 21:00) a estrutura antiga deixa de valer: a tela fica só para consulta.
+escExigir('admin'); // Legado: só admin.
 $somenteLeitura = !escLegadoAtivo();
 
 if (escPost()) {

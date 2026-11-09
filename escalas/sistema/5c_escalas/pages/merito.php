@@ -8,6 +8,7 @@
 // mérito individual. Texto em PT e EN lado a lado, como as Regras; imprime no papel timbrado.
 // ===============================================
 
+escExigirRestrito(); // Política de mérito: só WFM/Planejamento e Admin.
 $en = escEmIngles();
 $L = static fn(string $pt, string $enTxt): string => $en ? $enTxt : $pt;
 $pts = escMeritoPtsParam();

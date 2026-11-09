@@ -16,12 +16,16 @@
 const ESC_GERAR_ACOES = ['gerar', 'recalcular', 'recalcular_minimo'];
 const ESC_GERAR_TRAVA = '5c_escalas.gerar';
 
+function escGerarTravaNome(): string {
+    return escModoTreino() ? ESC_SCHEMA_TREINO . '.gerar' : ESC_GERAR_TRAVA;
+}
+
 // Pendências antes de gerar a semana $seg. 'bloqueios' impedem gerar; 'avisos' deixam continuar.
 // Cada item: msg, tela, params (do link) e rotulo (do botão "Resolver em …").
 function escGerarPendencias(string $seg): array {
     $out = ['bloqueios' => [], 'avisos' => []];
     // Outra geração rodando agora (a trava é da conexão de quem gera; some quando ela termina).
-    $livre = escQ1('SELECT IS_FREE_LOCK(?) AS livre', [ESC_GERAR_TRAVA])['livre'] ?? 1;
+    $livre = escQ1('SELECT IS_FREE_LOCK(?) AS livre', [escGerarTravaNome()])['livre'] ?? 1;
     if ((string) $livre === '0') {
         $out['bloqueios'][] = ['msg' => t('Outra pessoa está gerando ou recalculando uma escala agora. Espere terminar (até 3 min) e tente de novo.'), 'tela' => null, 'params' => [], 'rotulo' => ''];
         return $out;
@@ -69,10 +73,8 @@ function escGerarPendencias(string $seg): array {
 
 // Trava da geração na conexão de gravação (fica até a requisição terminar). false = outra rodando.
 function escGerarTravar(): bool {
-    if (escModoTreino()) {
-        return true;
-    }
-    return (int) escDbW()->query("SELECT GET_LOCK('" . ESC_GERAR_TRAVA . "', 0)")->fetchColumn() === 1;
+    // O treino tem trava própria: não disputa com a geração real, mas também só roda uma por vez.
+    return (int) escDbW()->query("SELECT GET_LOCK('" . escGerarTravaNome() . "', 0)")->fetchColumn() === 1;
 }
 
 // Etapa 2: Capacity e estrutura de hoje. Devolve ok, msg (resumo), erro e repetir (conexão caiu).

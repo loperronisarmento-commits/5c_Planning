@@ -19,6 +19,11 @@ require_once __DIR__ . '/config/config.php';
 require_once SHARED_ROOT . 'helpers/auth.php';
 // Todas as datas e horas do planejamento são de Brasília (virada às 21:00, "hoje", semana atual).
 date_default_timezone_set('America/Sao_Paulo');
+header_remove('X-Powered-By');
+header('X-Frame-Options: SAMEORIGIN');
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+header("Content-Security-Policy: frame-ancestors 'self'; base-uri 'self'; form-action 'self'");
 require_once __DIR__ . '/lib/db.php';
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     escConexaoUnica();
@@ -285,6 +290,11 @@ $menu = [
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais', 'treinamento'],
     'Ajuda' => array_merge(['tutorial', 'regras', 'merito', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
 ];
+if (!escPodeVerRestrito()) {
+    foreach ($menu as $secaoMenu => $itensMenu) {
+        $menu[$secaoMenu] = array_values(array_diff($itensMenu, ESC_TELAS_RESTRITAS));
+    }
+}
 $adminMenu = escPode('admin') ? ['acessos', 'parametros', 'modelos', 'diagnostico'] : [];
 // Estrutura antiga (times e parties, trocas do Planner): vale até a virada de 31/10 21:00. Só para o admin.
 $legadoMenu = escPode('admin') ? ['times', 'trocas'] : [];
