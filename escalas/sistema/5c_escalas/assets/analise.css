@@ -94,6 +94,40 @@
   .graf .seg { stroke: CanvasText; }
 }
 
+/* Cinza + uma cor de destaque (Capacity, Requisição de vagas): o destaque é só o que pede ação.
+   Identidade nunca só pela cor: o destaque é mais grosso e tem rótulo direto; o alvo é tracejado. */
+.analise { --destaque: #f06aa8; --cinza: #8d7f88; --cinza-2: #5b4c55; }
+.analise .destaque { fill: var(--destaque); background: var(--destaque); stroke: var(--destaque); }
+.analise .cinza { fill: var(--cinza); background: var(--cinza); stroke: var(--cinza); }
+.analise .cinza-2 { fill: var(--cinza-2); background: var(--cinza-2); stroke: var(--cinza-2); }
+.graf .serie { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.graf .serie.grossa { stroke-width: 3.5; }
+.graf .serie.tracejada { stroke-dasharray: 6 5; }
+.graf .ponta { stroke: var(--campo-bg); stroke-width: 2; }
+.graf .rot-serie { font-size: 12px; font-weight: 700; stroke: none; }
+.graf .rot-serie.destaque { fill: var(--destaque); }
+.graf .rot-serie.cinza, .graf .rot-serie.cinza-2 { fill: var(--texto-2); }
+.graf .marco { stroke: var(--texto-3); stroke-width: 1; stroke-dasharray: 2 4; }
+.graf .marco-txt { font-size: 10px; fill: var(--texto-3); }
+.graf .mira { stroke: transparent; stroke-width: 1; }
+.graf .marca:hover .mira { stroke: var(--texto-3); }
+.graf-linhas .marca:hover .hit { fill: transparent; }
+.legenda-graf .cor.tracejada { height: 0; width: 16px; border-radius: 0; border-top: 2px dashed var(--cinza); background: none; box-shadow: none; }
+.titulo-conclusao { font-size: 15px; }
+.analise .kpi strong.numero-heroi, .numero-heroi { font-size: 34px; font-weight: 800; line-height: 1.1; }
+
 /* Tema claro: barras e mapa de calor com tons que aparecem no fundo branco. */
-:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; }
-@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; } }
+:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: #970250; --cinza: #8a8290; --cinza-2: #c4bcc2; }
+@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: #970250; --cinza: #8a8290; --cinza-2: #c4bcc2; } }
+
+/* Requisição de vagas e destino dos novatos (1.24.0) */
+.tag.azul { background: var(--bg-azul); color: var(--azul); }
+.req .req-q { width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+.req .req-q.acima { border-color: var(--laranja); color: var(--laranja); }
+.req .req-base { align-items: flex-end; flex-wrap: wrap; }
+.req .req-base label { display: flex; flex-direction: column; gap: 4px; }
+.req .req-form { display: inline-block; margin: 2px 4px 2px 0; }
+.req .req-form[open] { display: block; }
+.req .req-form .form-grade input[type="number"] { width: 70px; }
+.req form.inline { display: inline-block; }
+.req-prem { margin-top: 10px; }

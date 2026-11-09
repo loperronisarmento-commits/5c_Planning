@@ -363,7 +363,9 @@ function escTrnTurmas(array $status = ['RASCUNHO', 'ATIVA'], ?string $de = null,
     }
     if ($turmas) {
         $ids = array_keys($turmas);
-        foreach (escQ('SELECT turma_id, UPPER(rep_code) AS rep_code, nome, nome_social FROM ' . escT('esc_treinamento_trainee') . ' WHERE turma_id IN (' . escIn($ids) . ') ORDER BY nome', $ids) as $r) {
+        // Destino depois do treinamento (ES_137), quando instalado.
+        $destino = escQdColunaExiste('esc_treinamento_trainee', 'unidade_destino') ? ', id, situacao, unidade_destino, nucleo_destino_id, destino_motivo, destino_por, destino_em' : '';
+        foreach (escQ('SELECT turma_id, UPPER(rep_code) AS rep_code, nome, nome_social' . $destino . ' FROM ' . escT('esc_treinamento_trainee') . ' WHERE turma_id IN (' . escIn($ids) . ') ORDER BY nome', $ids) as $r) {
             $turmas[(int) $r['turma_id']]['trainees'][$r['rep_code']] = $r;
         }
         foreach (escQ('SELECT * FROM ' . escT('esc_treinamento_pagina') . ' WHERE turma_id IN (' . escIn($ids) . ') ORDER BY fans_h', $ids) as $r) {

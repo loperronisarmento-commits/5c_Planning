@@ -457,6 +457,10 @@ table.grade td.travada { box-shadow: inset 3px 0 0 var(--roxo); }
 .treino-turma { border-top: 1px solid var(--linha); padding-top: 14px; margin-top: 16px; }
 .treino-turma-cab h3 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 4px; }
 .treino-trainees { columns: 2 260px; margin: 6px 0 10px; }
+.treino-destino { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--linha); border-radius: 10px; }
+.treino-destino h4 { margin: 0 0 4px; }
+.treino-destino-tab select { max-width: 300px; }
+.treino-incluir { margin-top: 8px; }
 .treino-turma .acoes { flex-wrap: wrap; }
 .treino-ajustar[open] { flex-basis: 100%; }
 /* Mérito explicado */

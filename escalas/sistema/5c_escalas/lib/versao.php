@@ -8,6 +8,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.24.0', 'data' => '2026-11-09', 'titulo' => 'Seção Quadro e contratação: Capacity, Requisição de vagas e destino dos novatos', 'sql' => ['ES_136_requisicao_vaga.sql', 'ES_137_destino_novatos.sql'], 'itens' => [
+    'Menu: seção nova "Quadro e contratação", entre Análise e Páginas, com Capacity, Requisição de vagas e Turmas de treinamento (antes Treinamento de New Hires, em Pessoas).',
+    'Capacity (só leitura): quantas pessoas faltam hoje, a evolução de precisa × tem por versão, a falta por unidade e turno (a maior em destaque) e a ocupação dos postos na escala da semana por carteira, com as lacunas; as versões e o que mudou. Faturamento por carteira só para WFM, Planejamento e Admin.',
+    'Requisição de vagas: o Simulações 5C dentro do sistema. Falta de pessoas por dia com as turmas do plano do Capacity, a partir do quadro de hoje; "Sugerir tamanhos" refaz as turmas planejadas com o teto por turno; lista pronta para o recrutamento. Acompanhamento de cada turma: planejada, requisição aberta, contratada, em treinamento e operando (esc_requisicao_vaga, ES_136; 02/11 e 16/11 já carregadas).',
+    'Turmas de treinamento: destino depois do treinamento para cada trainee. O sistema sugere a unidade com mais lacunas no turno na semana em que a turma fica disponível (no empate, a com mais falta no Capacity) e o núcleo com menos SRs para a parte dele; o WFM confirma ou troca, marca desistências e, na data, cadastra em Colaboradores com um botão. Também dá para incluir trainee à mão (ES_137).',
+    'Gráficos com título que diz a conclusão, cinza e uma cor de destaque, rótulo direto no fim da linha e a tabela por trás em "Ver tabela" (lib/graficos.php, também usado pela Análise).',
+    ]],
     ['versao' => '1.23.0', 'data' => '2026-11-09', 'titulo' => 'Dados históricos só a partir de 01/11/2026', 'sql' => [], 'itens' => [
     'Corte de dados: mérito, metas, faltas, SLA, vendas, quem conhece a página, política, tags, Equilíbrio e Treinamento contam só a partir de 01/11/2026, mesmo quando a janela é maior. O Capacity segue como estava.',
     'Com pouco histórico, o mínimo de 7 dias para conhecer uma página continua valendo: as páginas vermelhas só recebem quem é fixo nelas ou já tem esses dias desde 01/11, então podem aparecer mais lacunas nelas no próximo Gerar.',

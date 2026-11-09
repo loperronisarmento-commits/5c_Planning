@@ -9,7 +9,7 @@
 
 if (!escTrnInstalado()) {
     ?>
-<header class="cabecalho"><span class="eyebrow"><?php echo h(t('Pessoas')); ?></span><h1><?php echo h(t('Treinamento de New Hires')); ?></h1></header>
+<header class="cabecalho"><span class="eyebrow"><?php echo h(t('Quadro e contratação')); ?></span><h1><?php echo h(t('Turmas de treinamento')); ?></h1></header>
 <section class="panel"><p class="aviso erro" role="alert"><?php echo h(t('A tela de treinamento ainda não foi instalada no banco (script ES_36). Peça ao admin.')); ?></p></section>
     <?php
     return;
@@ -37,6 +37,42 @@ if (escPost()) {
         $repetidas = $turmaOk ? array_intersect_key($turmaOk['paginas'], escTrnOcupadas($turmaOk)) : [];
         escVoltar('treinamento', [], t('Turma confirmada. Recalcule as semanas do treinamento para os trainees entrarem na 5C Schedule com -4.')
             . ($repetidas ? ' ' . t('Atenção: {paginas} também está em treinamento em outro turno.', ['paginas' => implode(', ', array_keys($repetidas))]) : ''));
+    }
+    if ($acao === 'destino') {
+        if (!escDstInstalado()) {
+            throw new RuntimeException(t('O destino dos novatos ainda não foi instalado no banco (script ES_137). Peça ao admin.'));
+        }
+        $turma = escTrnTurmas(['RASCUNHO', 'ATIVA'])[$id] ?? null;
+        if (!$turma) {
+            throw new RuntimeException(t('Turma não encontrada.'));
+        }
+        $itens = [];
+        foreach ((array) ($_POST['dst'] ?? []) as $rep => $x) {
+            $rep = strtoupper((string) $rep);
+            if (!isset($turma['trainees'][$rep]) || !is_array($x)) {
+                continue;
+            }
+            $nuc = (int) ($x['nucleo_id'] ?? 0);
+            $u = (int) ($x['unidade'] ?? 0);
+            // O núcleo tem de ser da unidade e do turno da turma.
+            if ($nuc && !escQ1('SELECT 1 AS ok FROM ' . escT('esc_nucleo') . ' WHERE id = ? AND unidade = ? AND turno = ?', [$nuc, $u, $turma['turno']])) {
+                throw new RuntimeException(t('O núcleo de {rep} não é da unidade e do turno escolhidos.', ['rep' => $rep]));
+            }
+            $sug = (string) ($x['sugestao'] ?? '');
+            $motivo = $sug !== '' && $sug === $u . '|' . $nuc ? (string) ($x['motivo'] ?? '') : t('escolhido por {quem}', ['quem' => (string) ($GLOBALS['ESC_USUARIO']['nome'] ?? '')]);
+            $itens[$rep] = ['situacao' => ($x['situacao'] ?? '') === 'DESISTIU' ? 'DESISTIU' : 'TREINANDO', 'unidade' => $u ?: null, 'nucleo_id' => $nuc ?: null, 'motivo' => $motivo];
+        }
+        $n = escDstSalvar($id, $itens);
+        escVoltar('treinamento', [], tn($n, 'Destino de {n} trainee salvo. Na data disponível, cadastre em Colaboradores (botão em cada linha).', 'Destino de {n} trainees salvo. Na data disponível, cadastre em Colaboradores (botão em cada linha).'), false, 'turma-' . $id);
+    }
+    if ($acao === 'incluir') {
+        $ativas = escTrnTurmas(['RASCUNHO', 'ATIVA']);
+        if (!isset($ativas[$id])) {
+            throw new RuntimeException(t('Turma não encontrada.'));
+        }
+        $rep = strtoupper(trim((string) ($_POST['rep_code'] ?? '')));
+        escDstIncluir($id, $rep, mb_substr(trim((string) ($_POST['nome'] ?? '')), 0, 150));
+        escVoltar('treinamento', [], t('{rep} incluído na turma.', ['rep' => $rep]), false, 'turma-' . $id);
     }
     if ($acao === 'cancelar') {
         escTrnCancelar($id);
@@ -82,13 +118,27 @@ foreach ($turmas as $id => $t) {
     $ciclos[$t['ciclo'] ?: $t['inicio']][$id] = $t;
 }
 $rotStatus = ['RASCUNHO' => [t('rascunho'), 'amarelo'], 'ATIVA' => [t('confirmada'), 'verde'], 'CANCELADA' => [t('cancelada'), 'cinza']];
+// Destino dos novatos (ES_137): sugestão por turma, núcleos do turno e quem já está em Colaboradores.
+$comDestino = escDstInstalado();
+$podeCadastrar = escPode('cadastrar');
+$dstSug = [];
+$dstNucleos = [];
+$dstAplic = [];
+if ($comDestino && $turmas) {
+    $modeloPadrao = (int) (escQ1('SELECT modelo_id, COUNT(*) AS n FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND vigente_ate IS NULL GROUP BY modelo_id ORDER BY n DESC LIMIT 1")['modelo_id'] ?? 0);
+    foreach ($turmas as $id => $tm) {
+        $dstSug[$id] = escDstSugerir($tm, escDstDesignados($turmas, $id));
+        $dstNucleos[$id] = escDstNucleos((string) $tm['disponivel_em']);
+        $dstAplic[$id] = escDstAplicados(array_keys($tm['trainees']), (string) $tm['disponivel_em']);
+    }
+}
 $flash = escFlashLer();
 $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
 ?>
 <header class="cabecalho">
-  <span class="eyebrow"><?php echo h(t('Pessoas')); ?></span>
-  <h1><?php echo h(t('Treinamento de New Hires')); ?></h1>
-  <p class="muted"><?php echo h(t('Cole o e-mail do Treinamento: o sistema lê as turmas, recomenda as páginas para emprestar, gera a resposta e põe os trainees na página 5C Schedule com -4.')); ?></p>
+  <span class="eyebrow"><?php echo h(t('Quadro e contratação')); ?></span>
+  <h1><?php echo h(t('Turmas de treinamento')); ?></h1>
+  <p class="muted"><?php echo h(t('Cole o e-mail do Treinamento: o sistema lê as turmas, recomenda as páginas para emprestar, gera a resposta e põe os trainees na página 5C Schedule com -4.')); ?> <?php echo h(t('Depois, sugere onde cada novato entra (unidade e núcleo) para preencher as lacunas.')); ?></p>
 </header>
 
 <section class="panel">
@@ -181,6 +231,74 @@ $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
       <summary><?php echo h(t('Trainees ({n})', ['n' => count($t['trainees'])])); ?></summary>
       <ul class="treino-trainees small"><?php foreach ($t['trainees'] as $rep => $tr): ?><li><strong><?php echo h($tr['nome_social'] ?: ($tr['nome'] ?: $rep)); ?></strong> <span class="mono muted"><?php echo h($rep); ?></span><?php if ($tr['nome_social'] && $tr['nome']): ?> <span class="muted">(<?php echo h(t('nome de registro: {n}', ['n' => $tr['nome']])); ?>)</span><?php endif; ?></li><?php endforeach; ?></ul>
     </details>
+
+    <?php if ($comDestino && $t['trainees']): $sugT = $dstSug[$id] ?? []; $nucT = $dstNucleos[$id] ?? []; $aplT = $dstAplic[$id] ?? []; $podeDst = $podePlanejar; ?>
+    <div class="treino-destino">
+      <h4><?php echo h(t('Destino depois do treinamento')); ?></h4>
+      <p class="muted small"><?php echo h(t('Sugestão do sistema: a unidade com mais lacunas no turno {t} na escala da semana em que a turma fica disponível ({disp}); no empate, a com mais falta no Capacity. Dentro da unidade, o núcleo com menos SRs para a parte dele. Confirme ou troque; o cadastro em Colaboradores (a partir de {disp}) é o que põe a pessoa na escala.', ['t' => $t['turno'], 'disp' => dataBr($t['disponivel_em'], true)])); ?></p>
+      <?php if ($podeDst): ?><form method="post" action="<?php echo h(link_tela('treinamento')); ?>#turma-<?php echo $id; ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="destino"><input type="hidden" name="turma_id" value="<?php echo $id; ?>"><?php endif; ?>
+      <div class="tabela-rolagem"><table class="treino-destino-tab">
+        <thead><tr><th><?php echo h(t('Trainee')); ?></th><th><?php echo h(t('Situação')); ?></th><th><?php echo h(t('Unidade')); ?></th><th><?php echo h(t('Núcleo')); ?></th><th><?php echo h(t('Por quê')); ?></th><th><?php echo h(t('Colaboradores')); ?></th></tr></thead>
+        <tbody>
+        <?php foreach ($t['trainees'] as $rep => $tr):
+            $sit = (string) ($tr['situacao'] ?? 'TREINANDO');
+            $conf = !empty($tr['destino_em']) && !empty($tr['unidade_destino']);
+            $sg = $sugT[$rep] ?? null;
+            $uSel = $conf ? (int) $tr['unidade_destino'] : (int) ($sg['unidade'] ?? 0);
+            $nSel = $conf ? (int) $tr['nucleo_destino_id'] : (int) ($sg['nucleo_id'] ?? 0);
+            $motivo = $conf ? (string) $tr['destino_motivo'] : (string) ($sg['motivo'] ?? '');
+            $apl = $aplT[$rep] ?? null;
+            $campo = 'dst[' . $rep . ']'; ?>
+          <tr class="<?php echo $sit === 'DESISTIU' ? 'muted' : ''; ?>">
+            <td><strong><?php echo h($tr['nome_social'] ?: ($tr['nome'] ?: $rep)); ?></strong><br><span class="mono muted small"><?php echo h($rep); ?></span></td>
+            <td><?php if ($podeDst): ?><select name="<?php echo h($campo); ?>[situacao]" aria-label="<?php echo h(t('Situação de {rep}', ['rep' => $rep])); ?>">
+                <option value="TREINANDO" <?php echo $sit === 'TREINANDO' ? 'selected' : ''; ?>><?php echo h(t('Treinando')); ?></option>
+                <option value="DESISTIU" <?php echo $sit === 'DESISTIU' ? 'selected' : ''; ?>><?php echo h(t('Desistiu')); ?></option></select>
+              <?php else: ?><?php echo h($sit === 'DESISTIU' ? t('Desistiu') : t('Treinando')); ?><?php endif; ?></td>
+            <td><?php if ($podeDst): ?><select name="<?php echo h($campo); ?>[unidade]" aria-label="<?php echo h(t('Unidade de {rep}', ['rep' => $rep])); ?>">
+                <option value="">—</option>
+                <?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo $uSel === $u ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select>
+              <?php else: ?><?php echo $uSel ? 'U' . $uSel : '—'; ?><?php endif; ?>
+              <?php if (!$conf && $sg): ?><br><span class="tag amarelo small"><?php echo h(t('sugestão')); ?></span><?php elseif ($conf): ?><br><span class="tag verde small"><?php echo h(t('confirmado')); ?></span><?php endif; ?></td>
+            <td><?php if ($podeDst): ?><select name="<?php echo h($campo); ?>[nucleo_id]" aria-label="<?php echo h(t('Núcleo de {rep}', ['rep' => $rep])); ?>">
+                <option value="">—</option>
+                <?php foreach ([1, 2, 3] as $u): foreach ($nucT[$u][$t['turno']] ?? [] as $nid => $n): ?><option value="<?php echo $nid; ?>" <?php echo $nSel === $nid ? 'selected' : ''; ?>><?php echo h(t('U{u} · núcleo {n} · {os} ({srs} SRs)', ['u' => $u, 'n' => $n['numero'], 'os' => nomeCurto($n['os']) ?: '—', 'srs' => $n['srs']])); ?></option><?php endforeach; endforeach; ?></select>
+                <input type="hidden" name="<?php echo h($campo); ?>[sugestao]" value="<?php echo h($sg ? $sg['unidade'] . '|' . (int) $sg['nucleo_id'] : ($conf ? $uSel . '|' . $nSel : '')); ?>">
+                <input type="hidden" name="<?php echo h($campo); ?>[motivo]" value="<?php echo h($motivo); ?>">
+              <?php else: ?><?php $nn = $nucT[$uSel][$t['turno']][$nSel] ?? null; echo $nn ? h(t('núcleo {n} · {os}', ['n' => $nn['numero'], 'os' => nomeCurto($nn['os']) ?: '—'])) : '—'; ?><?php endif; ?></td>
+            <td class="small muted"><?php echo h($motivo ?: '—'); ?></td>
+            <td class="small"><?php if ($apl): ?><span class="tag verde"><?php echo h(t('cadastrado: U{u}', ['u' => $apl['unidade']])); ?></span>
+              <?php elseif ($conf && $sit === 'TREINANDO' && $podeCadastrar && $modeloPadrao && $nSel): ?>
+                <button type="submit" class="botao" form="aplicar-<?php echo h($rep); ?>" data-confirmar="<?php echo h(t('Cadastrar {rep} em Colaboradores a partir de {dia}, na U{u}, nível 0?', ['rep' => $rep, 'dia' => dataBr($t['disponivel_em'], true), 'u' => $uSel])); ?>"><?php echo h(t('Cadastrar a partir de {dia}', ['dia' => dataBr($t['disponivel_em'])])); ?></button>
+              <?php else: ?><span class="muted"><?php echo h($conf ? t('falta o núcleo') : t('confirme o destino')); ?></span><?php endif; ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table></div>
+      <?php if ($podeDst): ?><div class="acoes"><button type="submit" class="botao primario"><?php echo h(t('Confirmar destinos')); ?></button></div></form><?php endif; ?>
+      <?php // Formulários de cadastro em Colaboradores (fora do formulário de destinos: HTML não aceita form dentro de form).
+      if ($podeCadastrar && !empty($modeloPadrao)): foreach ($t['trainees'] as $rep => $tr):
+          if (empty($tr['destino_em']) || empty($tr['nucleo_destino_id']) || isset($aplT[$rep]) || ($tr['situacao'] ?? '') === 'DESISTIU') { continue; } ?>
+        <form method="post" action="<?php echo h(link_tela('colaboradores')); ?>" id="aplicar-<?php echo h($rep); ?>" hidden>
+          <?php echo campoCsrf(); ?><input type="hidden" name="rep_code" value="<?php echo h($rep); ?>"><input type="hidden" name="modelo_id" value="<?php echo (int) $modeloPadrao; ?>">
+          <input type="hidden" name="vigente_desde" value="<?php echo h($t['disponivel_em']); ?>"><input type="hidden" name="nucleo_id" value="<?php echo (int) $tr['nucleo_destino_id']; ?>">
+          <input type="hidden" name="nivel" value="0"><input type="hidden" name="pode_assistente" value="1"><input type="hidden" name="observacao" value="<?php echo h(t('New Hire {turma}', ['turma' => $t['codigo']])); ?>">
+        </form>
+      <?php endforeach; endif; ?>
+      <?php if ($podeDst): ?>
+      <details class="treino-incluir"><summary class="small"><?php echo h(t('Incluir trainee à mão')); ?></summary>
+        <form method="post" action="<?php echo h(link_tela('treinamento')); ?>#turma-<?php echo $id; ?>" class="form-grade">
+          <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="incluir"><input type="hidden" name="turma_id" value="<?php echo $id; ?>">
+          <label><?php echo h(t('Código')); ?><input type="text" name="rep_code" required pattern="[A-Za-z][0-9]{6}" maxlength="7" placeholder="A000000"></label>
+          <label><?php echo h(t('Nome')); ?><input type="text" name="nome" maxlength="150"></label>
+          <div class="acoes"><button type="submit" class="botao"><?php echo h(t('Incluir')); ?></button></div>
+        </form>
+      </details>
+      <?php endif; ?>
+    </div>
+    <?php elseif (!$comDestino && $t['trainees']): ?>
+    <p class="muted small"><?php echo h(t('O destino dos novatos ainda não foi instalado no banco (script ES_137). Peça ao admin.')); ?></p>
+    <?php endif; ?>
 
     <?php if ($podePlanejar): ?>
     <form method="post" action="<?php echo h(link_tela('treinamento')); ?>#turma-<?php echo $id; ?>">

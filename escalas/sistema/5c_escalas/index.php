@@ -55,6 +55,8 @@ require_once __DIR__ . '/lib/treinamento.php';
 require_once __DIR__ . '/lib/casais.php';
 require_once __DIR__ . '/lib/gerar_etapas.php';
 require_once __DIR__ . '/lib/restricoes_om_gestao.php';
+require_once __DIR__ . '/lib/graficos.php';
+require_once __DIR__ . '/lib/quadro.php';
 
 // ---------- nível 1: logado no MIS Portal? ----------
 startSecureSession();
@@ -106,7 +108,9 @@ $telas = [
     'tutorial'     => ['Tutorial', 'pages/tutorial.php'],
     'regras'       => ['Regras', 'pages/regras.php'],
     'merito'       => ['Mérito', 'pages/merito.php'],
-    'treinamento'  => ['Treinamento de New Hires', 'pages/treinamento.php'],
+    'treinamento'  => ['Turmas de treinamento', 'pages/treinamento.php'],
+    'capacity'     => ['Capacity', 'pages/capacity.php'],
+    'requisicao'   => ['Requisição de vagas', 'pages/requisicao.php'],
     'casais'       => ['Folga juntos', 'pages/casais.php'],
     'dba'          => ['Documentação do DBA', 'pages/dba.php'],
 ];
@@ -286,8 +290,9 @@ try {
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
     'Análise' => ['analise', 'srs', 'sugestoes', 'buffers'],
+    'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
-    'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais', 'treinamento'],
+    'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],
     'Ajuda' => array_merge(['tutorial', 'regras', 'merito', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
 ];
 if (!escPodeVerRestrito()) {

@@ -6,6 +6,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.24.0' => ['titulo' => 'Headcount & hiring section: Capacity, Job requisitions and new hire destination', 'itens' => [
+    'Menu: new "Headcount & hiring" section, between Analysis and Pages, with Capacity, Job requisitions and Training classes (formerly New Hire training, under People).',
+    'Capacity (read only): how many people are missing today, the needs × has trend per version, the shortfall per unit and shift (the largest highlighted) and post occupancy in the week\'s schedule per portfolio, with the gaps; the versions and what changed. Revenue per portfolio only for WFM, Planning and Admin.',
+    'Job requisitions: the 5C Simulations inside the system. Shortfall per day with the Capacity plan classes, starting from today\'s headcount; "Suggest sizes" redoes the planned classes with the per-shift cap; list ready for recruitment. Tracking for each class: planned, requisition open, hired, in training and operating (esc_requisicao_vaga, ES_136; 11/02 and 11/16 already loaded).',
+    'Training classes: destination after training for each trainee. The system suggests the unit with the most gaps in the shift in the week the class becomes available (on a tie, the one with the largest Capacity shortfall) and the core with the fewest SRs for its share; WFM confirms or changes it, marks dropouts and, on the date, adds them in Employees with one button. Trainees can also be added by hand (ES_137).',
+    'Charts with a title that states the conclusion, gray plus one highlight color, direct labels at the end of the line and the data behind them under "See table" (lib/graficos.php, also used by Analysis).',
+    ]],
     '1.23.0' => ['titulo' => 'Historical data only from 11/01/2026', 'itens' => [
     'Data cutoff: merit, goals, absences, SLA, sales, who knows the page, policy, tags, Balance and Training only count from 11/01/2026, even when the window is longer. Capacity stays as it was.',
     'With little history, the 7-day minimum to know a page still applies: red pages only take those fixed on them or who already have those days since 11/01, so more gaps may appear on them at the next Generate.',
