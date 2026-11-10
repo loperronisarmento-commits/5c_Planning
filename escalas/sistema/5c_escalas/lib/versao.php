@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.25.1', 'data' => '2026-11-10', 'titulo' => 'Funil de entrada: núcleo (OS) da página que entra', 'sql' => ['ES_139_entradas_u3_1011.sql'], 'itens' => [
+    'Pôr na escala (Funil de entrada › Ativas no site, fora da escala): campo novo "Núcleo (OS) nos 3 turnos". O Gerar cria os postos novos da página nesse núcleo; sem escolha, fica o automático (o núcleo menos carregado). Se a página divide o posto com outra sem núcleo escolhido, vale o núcleo do posto: a outra página não muda de núcleo.',
+    'Entradas feitas por esta seção mostram o núcleo.',
+    'Entradas de 10/11 (ES_139): Alexis Clark volta para a U3C1, no núcleo do posto que divide com a Bianca; Daniswings 157m entra na U3C2, núcleo 3; a Lexis Star saiu e ficou como ignorada. O Capacity de 10/11 foi recalculado. A semana de 09/11 continua como o OM da U3 montou (ES_135); os postos entram no próximo Gerar.',
+    ]],
     ['versao' => '1.25.0', 'data' => '2026-11-10', 'titulo' => 'Funil de entrada: páginas ativas no site e fora da escala, detectadas pela DB', 'sql' => ['ES_138_entrada_pagina_checagem.sql'], 'itens' => [
     'Funil de entrada: seção nova "Ativas no site, fora da escala", que não vem do CRM. Lista as páginas ativas no site da 5C sem carteira no Capacity, como nova ou retorno, com o dia em que ficaram ativas (foto diária do Capacity), a carteira de antes, a saída aplicada, os dias com escala no site e a venda desde então. É o espelho de Saídas de página.',
     'Página que saiu pela tela Saídas e voltou a ficar ativa aparece como "não volta sozinha" (bloqueio de 60 dias). Antes, o caminho era registrar o destino no Funil, que só aceitava card do CRM; por isso Alexis Clark, Daniswings 157m e Lexis Star não apareceram. Agora, em Decidir: escolher a carteira (a de antes vem marcada) e a data e clicar em Pôr na escala. A carteira é gravada no Capacity, que é recalculado na hora; os postos entram na escala no próximo Gerar.',

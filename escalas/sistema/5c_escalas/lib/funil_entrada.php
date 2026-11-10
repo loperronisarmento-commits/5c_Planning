@@ -143,7 +143,11 @@ function escEntradaCarteiras(): array {
 }
 
 // Pôr na escala: grava a carteira no Capacity e recalcula; a escala recebe os postos no próximo Gerar.
-function escEntradaAplicar(string $pagina, string $carteira, string $desde, string $obs): array {
+// $nucleo: núcleo (OS) 1 a 3 da unidade da carteira para os postos novos da página (ES_139); null = automático.
+function escEntradaAplicar(string $pagina, string $carteira, string $desde, string $obs, ?int $nucleo = null): array {
+    if ($nucleo !== null && ($nucleo < 1 || $nucleo > 3)) {
+        throw new RuntimeException(t('Núcleo inválido.'));
+    }
     if (escModoTreino()) {
         throw new RuntimeException(t('No Modo Treino a entrada de página não mexe no Capacity.'));
     }
@@ -194,7 +198,12 @@ function escEntradaAplicar(string $pagina, string $carteira, string $desde, stri
               VALUES (?, ?, ?, ?, \'ENTROU\', ?, ?, ?, ?) AS n
               ON DUPLICATE KEY UPDATE decisao = n.decisao, carteira = n.carteira, vale_desde = n.vale_desde, observacao = n.observacao, decidido_em = NOW(), decidido_por = n.decidido_por',
             [$item['page_id'], $pagina, $item['ativa_desde'], $item['tipo'], $carteira, $desde, mb_substr($obs, 0, 500) ?: null, escUserId() ?: null]);
-        $res = ['pagina' => $pagina, 'tipo' => $item['tipo'], 'carteira' => $carteira, 'desde' => $desde, 'volume' => $origem, 'capacity' => [], 'erro_recalculo' => null];
+        if ($nucleo !== null && escEntradaTemNucleo()) {
+            escW('UPDATE `' . ESC_SCHEMA . '`.`esc_pagina_entrada_checagem` SET nucleo_numero = ? WHERE pagina = ? AND ativa_desde = ?', [$nucleo, $pagina, $item['ativa_desde']]);
+        } elseif (escEntradaTemNucleo()) {
+            escW('UPDATE `' . ESC_SCHEMA . '`.`esc_pagina_entrada_checagem` SET nucleo_numero = NULL WHERE pagina = ? AND ativa_desde = ?', [$pagina, $item['ativa_desde']]);
+        }
+        $res = ['pagina' => $pagina, 'tipo' => $item['tipo'], 'carteira' => $carteira, 'desde' => $desde, 'nucleo' => $nucleo, 'volume' => $origem, 'capacity' => [], 'erro_recalculo' => null];
         try {
             $comVersao = (bool) escQ1("SELECT 1 AS ok FROM information_schema.routines WHERE routine_schema = '5c_planning' AND routine_name = 'sp_fc_recalcular_postos'");
             foreach (escSaidaDatasCapacity($desde) as $dc) {
@@ -210,6 +219,70 @@ function escEntradaAplicar(string $pagina, string $carteira, string $desde, stri
         return $res;
     } finally {
         escDbW()->query("SELECT RELEASE_LOCK('5c_escalas.entrada_pagina')")->fetchColumn();
+    }
+}
+
+function escEntradaTemNucleo(): bool {
+    static $ok = null;
+    if ($ok === null) {
+        $ok = escEntradaTemTabela() && (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_entrada_checagem' AND COLUMN_NAME = 'nucleo_numero'", [ESC_SCHEMA]);
+    }
+    return $ok;
+}
+
+// Sincronização da estrutura (lib/estrutura.php): posto novo de página que entrou pelo Funil com núcleo
+// escolhido (ES_139) fica com esse núcleo como dono, no turno do posto, se a unidade é a da carteira e
+// todas as páginas do posto (fora as de apoio) têm esse núcleo. A cobertura passa para outro núcleo do
+// turno quando coincidia. Só mexe em postos novos: depois de criado, o posto mantém o núcleo.
+function escEntradaFixarNucleos(array &$novos, array $nucleos, string $desde): void {
+    if (!$novos) {
+        return;
+    }
+    try {
+        if (!escEntradaTemNucleo()) {
+            return;
+        }
+        $fixo = [];
+        foreach (escQ("SELECT e.pagina, e.nucleo_numero, c.unidade FROM " . escT('esc_pagina_entrada_checagem') . " e
+                         JOIN `5c_planning`.`fc_carteira` c ON c.carteira COLLATE utf8mb4_unicode_ci = e.carteira COLLATE utf8mb4_unicode_ci
+                        WHERE e.decisao = 'ENTROU' AND e.nucleo_numero IS NOT NULL") as $f) {
+            $fixo[escEntradaChave((string) $f['pagina'])] = ['unidade' => (int) $f['unidade'], 'numero' => (int) $f['nucleo_numero']];
+        }
+        if (!$fixo) {
+            return;
+        }
+        $idDe = [];
+        foreach (escQ('SELECT id, unidade, turno, numero FROM ' . escT('esc_nucleo') . ' WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$desde, $desde]) as $n) {
+            $idDe[$n['unidade'] . '|' . $n['turno'] . '|' . $n['numero']] = (int) $n['id'];
+        }
+        // Posto dividido com página sem núcleo escolhido (ex.: Alexis Clark + Bianca, 10/11): o núcleo não vale,
+        // a página fica no núcleo do posto (decisão do usuário: a outra página não muda de núcleo).
+        foreach ($novos as &$n) {
+            $numero = null;
+            foreach ($n['paginas'] as $pg => $g) {
+                if (!empty($g['apoio'])) {
+                    continue;
+                }
+                $f = $fixo[escEntradaChave((string) $pg)] ?? null;
+                if (!$f || $f['unidade'] !== (int) $n['unidade'] || ($numero !== null && $numero !== $f['numero'])) {
+                    $numero = null;
+                    break;
+                }
+                $numero = $f['numero'];
+            }
+            $dono = $numero !== null ? ($idDe[$n['unidade'] . '|' . $n['turno'] . '|' . $numero] ?? null) : null;
+            if ($dono === null) {
+                continue;
+            }
+            $n['dono'] = $dono;
+            if (($n['cob'] ?? null) === $dono || ($n['cob'] ?? null) === null) {
+                $outros = array_values(array_diff($nucleos[$n['unidade'] . '|' . $n['turno']] ?? [], [$dono]));
+                $n['cob'] = $outros[0] ?? null;
+            }
+        }
+        unset($n);
+    } catch (Throwable $e) {
+        appLog('warning', 'Estrutura: núcleo escolhido na entrada de página não aplicado', ['erro' => $e->getMessage()]);
     }
 }
 

@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.25.1' => ['titulo' => 'Intake funnel: core (OS) of the incoming page', 'itens' => [
+    'Put in the schedule (Intake funnel › Active on the website, outside the schedule): new "Core (OS) in all 3 shifts" field. Generate creates the new positions of the page in that core; with no choice, it stays automatic (the least loaded core). If the page shares the position with another page that has no chosen core, the core of the position applies: the other page does not change core.',
+    'Entries made through this section show the core.',
+    'Entries of 11/10 (ES_139): Alexis Clark returns to U3C1, in the core of the position shared with Bianca; Daniswings 157m joins U3C2, core 3; Lexis Star left and was marked as ignored. Capacity for 11/10 was recalculated. The week of 11/09 stays as the U3 OM built it (ES_135); the positions enter at the next Generate.',
+    ]],
     '1.25.0' => ['titulo' => 'Intake funnel: pages active on the website and outside the schedule, detected from the DB', 'itens' => [
     'Intake funnel: new "Active on the website, outside the schedule" section, which does not come from the CRM. It lists the pages active on the 5C website with no portfolio in Capacity, as new or return, with the day they became active (Capacity daily snapshot), the previous portfolio, the exit applied, the days scheduled on the website and the sales since then. It mirrors Page exits.',
     'A page that left through the Exits screen and became active again shows as "does not come back by itself" (60-day block). Before, the way back was to record a destination in the Funnel, which only took CRM cards; that is why Alexis Clark, Daniswings 157m and Lexis Star did not show up. Now, under Decide: choose the portfolio (the previous one is preselected) and the date, and click Put in the schedule. The portfolio is saved in Capacity, which is recalculated right away; the positions enter the schedule at the next Generate.',

@@ -363,6 +363,8 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
     if (escV4Param('v4_os_equilibrio', '1') === '1') {
         escEstruturaDividirOS($novos, $mantidos, $esc, $cap, $nucleos, $modeloDe);
     }
+    // Núcleo escolhido na entrada da página (Funil de entrada, 1.25.1) vale por cima da escolha automática.
+    escEntradaFixarNucleos($novos, $nucleos, $desde);
 
     $ontem = escMaisDias($desde, -1);
     // Posto que nunca chegou a valer (começava em $desde ou depois) vai para antes da virada,

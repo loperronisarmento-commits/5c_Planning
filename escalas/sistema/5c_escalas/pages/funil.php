@@ -24,7 +24,8 @@ if (escPost() && in_array($acaoEntrada, ['entrada_aplicar', 'entrada_ignorar', '
         if ($desdeEntrada === '') {
             throw new RuntimeException(t('Data inválida.'));
         }
-        $r = escEntradaAplicar($pgEntrada, trim((string) ($_POST['carteira'] ?? '')), $desdeEntrada, trim((string) ($_POST['observacao'] ?? '')));
+        $nucleoEntrada = (int) ($_POST['nucleo'] ?? 0);
+        $r = escEntradaAplicar($pgEntrada, trim((string) ($_POST['carteira'] ?? '')), $desdeEntrada, trim((string) ($_POST['observacao'] ?? '')), $nucleoEntrada > 0 ? $nucleoEntrada : null);
         $msg = t('{pagina} entrou na carteira {carteira} a partir de {dia}. Os postos dela entram na escala no próximo Gerar.', ['pagina' => $r['pagina'], 'carteira' => $r['carteira'], 'dia' => dataBr($r['desde'])]);
         if ($r['erro_recalculo']) {
             $msg .= ' ' . t('O recálculo do Capacity falhou ({erro}); o próximo Gerar recalcula.', ['erro' => mb_substr((string) $r['erro_recalculo'], 0, 120)]);
@@ -137,7 +138,8 @@ $entradasVer = array_values(array_filter($entradas, static fn($e) => $verIgnorad
 $entradaTabela = escEntradaTemTabela();
 $carteirasEntrada = $entradaTabela && escPode('decidir') ? escEntradaCarteiras() : [];
 $entradaMinimo = max(date('Y-m-d'), escV4DiaEstrutura());
-$entradasDecididas = $entradaTabela ? escQ("SELECT pagina, ativa_desde, tipo, decisao, carteira, vale_desde, observacao, decidido_em FROM " . escT('esc_pagina_entrada_checagem') . " WHERE decisao = 'ENTROU' ORDER BY decidido_em DESC LIMIT 10") : [];
+$entradaNucleo = escEntradaTemNucleo();
+$entradasDecididas = $entradaTabela ? escQ("SELECT pagina, ativa_desde, tipo, decisao, carteira, vale_desde, " . ($entradaNucleo ? 'nucleo_numero' : 'NULL AS nucleo_numero') . ", observacao, decidido_em FROM " . escT('esc_pagina_entrada_checagem') . " WHERE decisao = 'ENTROU' ORDER BY decidido_em DESC LIMIT 10") : [];
 $SITUACAO_ENTRADA = [
     'PRESA' => ['vermelho', t('não volta sozinha')],
     'AUTO' => ['verde', t('entra sozinha no próximo Gerar')],
@@ -199,6 +201,9 @@ $SITUACAO_ENTRADA = [
                   <?php foreach ($carteirasEntrada as $c): ?><option value="<?php echo h($c['carteira']); ?>" <?php echo $c['carteira'] === $e['carteira_sugerida'] ? 'selected' : ''; ?>><?php echo h($c['carteira'] . ($c['carteira'] === ($ult['carteira'] ?? null) ? ' · ' . t('a de antes') : ($c['carteira'] === ($e['irma']['carteira'] ?? null) ? ' · ' . t('a da mesma modelo') : ''))); ?></option><?php endforeach; ?>
                 </select></label>
                 <label><?php echo h(t('A partir de')); ?><input type="date" name="desde" required min="<?php echo h($entradaMinimo); ?>" value="<?php echo h(max($entradaMinimo, escMaisDias(date('Y-m-d'), 1))); ?>"></label>
+                <?php if ($entradaNucleo): ?>
+                <label><?php echo h(t('Núcleo (OS) nos 3 turnos')); ?><select name="nucleo"><option value=""><?php echo h(t('automático (o menos carregado)')); ?></option><?php foreach ([1, 2, 3] as $nn): ?><option value="<?php echo $nn; ?>"><?php echo h(t('núcleo {n} (OS{n})', ['n' => $nn])); ?></option><?php endforeach; ?></select></label>
+                <?php endif; ?>
                 <label><?php echo h(t('Observação')); ?><input type="text" name="observacao" maxlength="255"></label>
                 <button type="submit" class="botao primario"><?php echo h(t('Pôr na escala')); ?></button>
               </form>
@@ -223,10 +228,10 @@ $SITUACAO_ENTRADA = [
   <details><summary class="small"><?php echo h(t('Entradas feitas por esta seção · {n}', ['n' => count($entradasDecididas)])); ?></summary>
     <div class="tabela-rolagem">
     <table>
-      <thead><tr><th><?php echo h(t('Quando')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('A partir de')); ?></th><th><?php echo h(t('Observação')); ?></th></tr></thead>
+      <thead><tr><th><?php echo h(t('Quando')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('Núcleo')); ?></th><th><?php echo h(t('A partir de')); ?></th><th><?php echo h(t('Observação')); ?></th></tr></thead>
       <tbody>
       <?php foreach ($entradasDecididas as $d): ?>
-        <tr><td class="small"><?php echo h(dataBr(substr((string) $d['decidido_em'], 0, 10)) . ' ' . substr((string) $d['decidido_em'], 11, 5)); ?></td><td><strong><?php echo h($d['pagina']); ?></strong> <span class="muted small"><?php echo h($d['tipo'] === 'RETORNO' ? t('retorno') : t('nova')); ?></span></td><td><?php echo h((string) $d['carteira']); ?></td><td><?php echo h(dataBr(substr((string) $d['vale_desde'], 0, 10))); ?></td><td class="small"><?php echo h((string) $d['observacao']); ?></td></tr>
+        <tr><td class="small"><?php echo h(dataBr(substr((string) $d['decidido_em'], 0, 10)) . ' ' . substr((string) $d['decidido_em'], 11, 5)); ?></td><td><strong><?php echo h($d['pagina']); ?></strong> <span class="muted small"><?php echo h($d['tipo'] === 'RETORNO' ? t('retorno') : t('nova')); ?></span></td><td><?php echo h((string) $d['carteira']); ?></td><td><?php echo $d['nucleo_numero'] ? h(t('núcleo {n} (OS{n})', ['n' => (int) $d['nucleo_numero']])) : '<span class="muted">' . h(t('automático')) . '</span>'; ?></td><td><?php echo h(dataBr(substr((string) $d['vale_desde'], 0, 10))); ?></td><td class="small"><?php echo h((string) $d['observacao']); ?></td></tr>
       <?php endforeach; ?>
       </tbody>
     </table>
