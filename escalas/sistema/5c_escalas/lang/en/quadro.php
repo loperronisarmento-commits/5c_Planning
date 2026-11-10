@@ -12,7 +12,7 @@ return [
     '14 dias' => '14 days',
     '60 dias' => '60 days',
     '90 dias' => '90 days',
-    'Quantas pessoas o Capacity pede, quantas existem e onde falta; e quanto dos postos a escala da semana ocupa. Só leitura. O Capacity é a exceção ao corte de 01/11: todas as versões contam.' => 'How many people Capacity asks for, how many there are and where they are missing; and how much of the posts the week\'s schedule fills. Read only. Capacity is the exception to the 11/01 cutoff: every version counts.',
+    'Quantas pessoas o Capacity pede, quantas existem e onde falta; e quanto dos postos a escala da semana ocupa. O Capacity é a exceção ao corte de 01/11: todas as versões contam.' => 'How many people Capacity asks for, how many there are and where people are missing; and how much of the posts the week\'s schedule fills. Capacity is the exception to the 11/01 cutoff: every version counts.',
     'Período' => 'Period',
     'Últimos {p}' => 'Last {p}',
     'Semana da escala' => 'Schedule week',
@@ -71,7 +71,6 @@ return [
     'Versões do Capacity e o que mudou' => 'Capacity versions and what changed',
     'Calculada em' => 'Calculated on',
     'O que mudou' => 'What changed',
-    'Para recalcular o Capacity, use o Gerar (ele recalcula sempre) ou, no banco, CALL sp_fc_recalcular_postos(data, motivo).' => 'To recalculate Capacity, use Generate (it always recalculates) or, in the database, CALL sp_fc_recalcular_postos(date, reason).',
 
     // Requisição de vagas
     'A requisição de vagas ainda não foi instalada no banco (script ES_136). Peça ao admin.' => 'Job requisitions are not installed in the database yet (script ES_136). Ask the admin.',
@@ -226,4 +225,16 @@ return [
     'No Modo Treino o plano de turmas não é gravado (ele fica no Capacity). Use a simulação para testar.' => 'In Training Mode the class plan is not saved (it lives in Capacity). Use the simulation to test.',
     'A turma de {dia} já está em treinamento: os números vêm das Turmas de treinamento.' => 'The class of {dia} is already in training: its numbers come from Training classes.',
     'Já existe uma turma em {dia}. Edite essa turma ou escolha outra data.' => 'There is already a class on {dia}. Edit that class or pick another date.',
+    'No Modo Treino o Capacity não é recalculado: ele é o mesmo do sistema real.' => 'In Training Mode Capacity is not recalculated: it is the same as the real system.',
+    'Capacity recalculado: versão {v}. Precisa {p} (antes {a}), buffer {b}.' => 'Capacity recalculated: version {v}. Needs {p} (was {a}), buffer {b}.',
+    'Capacity recalculado.' => 'Capacity recalculated.',
+    'Recalculando o Capacity…' => 'Recalculating Capacity…',
+    'Recalcular agora' => 'Recalculate now',
+    'Grava uma versão nova para hoje com os postos, o quadro e os parâmetros atuais. Não mexe na escala.' => 'Saves a new version for today with the current posts, headcount and parameters. It does not change the schedule.',
+    'Pela falta e pelos picos, o buffer seria {g}; o mínimo de {m} por núcleo leva a {b}. Por isso mudar o absenteísmo não muda o buffer enquanto ele ficar abaixo do mínimo.' => 'From absences and peaks, the buffer would be {g}; the minimum of {m} per core takes it to {b}. That is why changing absenteeism does not change the buffer while it stays below the minimum.',
+    'Buffer pela falta e pelos picos: {g} (mínimo {m}).' => 'Buffer from absences and peaks: {g} (minimum {m}).',
+    'O Capacity é recalculado sozinho todo dia, a cada Gerar, em entradas e saídas de página e pelo botão Recalcular agora.' => 'Capacity is recalculated on its own every day, at each Generate, on page entries and exits, and with the Recalculate now button.',
+    'Parâmetros do buffer (5c_planning.fc_parametros): absenteísmo desde {desde}{dmed}, mínimo de {min} por núcleo, pico coberto no percentil {pct}.' => 'Buffer parameters (5c_planning.fc_parametros): absenteeism since {desde}{dmed}, minimum of {min} per core, peak covered at percentile {pct}.',
+    'a janela toda' => 'the whole window',
+    ' (turno D na média de A e C)' => ' (shift D at the average of A and C)',
 ];

@@ -474,15 +474,23 @@ window.escConfirmar = function (texto, op) {
     document.querySelectorAll('[data-tema-escolha]').forEach(function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-tema-escolha') === tema ? 'true' : 'false');
     });
+    // Botão de ícone (sol / lua / A): o ícone segue o data-tema do <html> pelo CSS; aqui só o rótulo.
+    document.querySelectorAll('[data-tema-ciclo]').forEach(function (b) {
+      var rot = b.getAttribute('data-rot-' + tema);
+      if (rot) { b.setAttribute('aria-label', rot); b.setAttribute('title', rot); }
+    });
   }
+  var PROXIMO_TEMA = { claro: 'escuro', escuro: 'auto', auto: 'claro' };
   try {
     var salvo = localStorage.getItem('esc-tema');
     if (salvo && salvo !== document.documentElement.getAttribute('data-tema')) { aplicar(salvo); }
   } catch (e) { /* sem storage */ }
   document.addEventListener('click', function (ev) {
-    var b = ev.target.closest('[data-tema-escolha]');
+    var b = ev.target.closest('[data-tema-escolha], [data-tema-ciclo]');
     if (!b) { return; }
-    var tema = b.getAttribute('data-tema-escolha');
+    var tema = b.hasAttribute('data-tema-ciclo')
+      ? (PROXIMO_TEMA[document.documentElement.getAttribute('data-tema')] || 'claro')
+      : b.getAttribute('data-tema-escolha');
     aplicar(tema);
     try { localStorage.setItem('esc-tema', tema); } catch (e) { /* sem storage */ }
     document.cookie = 'esc_tema=' + tema + '; path=/; max-age=31536000; SameSite=Lax';

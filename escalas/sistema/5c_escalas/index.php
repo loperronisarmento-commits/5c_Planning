@@ -357,16 +357,21 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
   </div>
   <div class="menu-itens" id="menu-itens">
   <div class="preferencias">
-  <div class="tema" role="group" aria-label="<?php echo h(t('Tema')); ?>">
-    <?php foreach (['claro' => 'Claro', 'escuro' => 'Escuro', 'auto' => 'Automático'] as $k => $rot): ?>
-    <button type="button" data-tema-escolha="<?php echo $k; ?>" aria-pressed="<?php echo $tema === $k ? 'true' : 'false'; ?>"<?php echo $k === 'auto' ? ' title="' . h(t('Segue o tema do sistema')) . '"' : ''; ?>><?php echo h(t($rot)); ?></button>
-    <?php endforeach; ?>
-  </div>
-  <div class="tema" role="group" aria-label="<?php echo h(t('Idioma')); ?>">
-    <?php foreach (['pt-BR' => 'PT', 'en' => 'EN'] as $k => $rot): ?>
-    <button type="button" data-idioma-escolha="<?php echo $k; ?>" lang="<?php echo $k; ?>" title="<?php echo h(ESC_IDIOMAS[$k]); ?>" aria-pressed="<?php echo escIdioma() === $k ? 'true' : 'false'; ?>"><?php echo $rot; ?></button>
-    <?php endforeach; ?>
-  </div>
+  <?php
+  // Tema e idioma: um botão de ícone cada. O do tema mostra o tema escolhido (sol = claro, lua = escuro,
+  // A = automático) e cada clique passa para o próximo; o do idioma mostra o atual e troca para o outro.
+  $rotTema = [];
+  foreach (['claro' => ['Claro', 'escuro'], 'escuro' => ['Escuro', 'auto'], 'auto' => ['Automático', 'claro']] as $k => [$rot, $prox]) {
+      $rotTema[$k] = t('Tema: {atual}. Clique para {proximo}.', ['atual' => mb_strtolower(t($rot)), 'proximo' => mb_strtolower(t(['claro' => 'Claro', 'escuro' => 'Escuro', 'auto' => 'Automático'][$prox]))]);
+  }
+  $idOutro = escIdioma() === 'en' ? 'pt-BR' : 'en';
+  ?>
+  <button type="button" class="pref-botao pref-tema" data-tema-ciclo<?php foreach ($rotTema as $k => $r): ?> data-rot-<?php echo $k; ?>="<?php echo h($r); ?>"<?php endforeach; ?> aria-label="<?php echo h($rotTema[$tema] ?? $rotTema['auto']); ?>" title="<?php echo h($rotTema[$tema] ?? $rotTema['auto']); ?>">
+    <svg data-icone="claro" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+    <svg data-icone="escuro" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+    <span data-icone="auto" aria-hidden="true">A</span>
+  </button>
+  <button type="button" class="pref-botao" data-idioma-escolha="<?php echo h($idOutro); ?>" lang="<?php echo h(escIdioma()); ?>" aria-label="<?php echo h(t('Idioma: {atual}. Clique para {outro}.', ['atual' => ESC_IDIOMAS[escIdioma()], 'outro' => ESC_IDIOMAS[$idOutro]])); ?>" title="<?php echo h(t('Idioma: {atual}. Clique para {outro}.', ['atual' => ESC_IDIOMAS[escIdioma()], 'outro' => ESC_IDIOMAS[$idOutro]])); ?>"><?php echo escIdioma() === 'en' ? 'EN' : 'PT'; ?></button>
   </div>
   <?php foreach ($menu as $secao => $itens): ?>
   <div class="grupo"><span class="grupo-titulo"><?php echo h(t($secao)); ?></span>

@@ -9,9 +9,30 @@
 //   - as versões e o que mudou em cada uma.
 // O Capacity não entra no corte de 01/11 (escCorteDados): todas as versões contam.
 // Faturamento por carteira só para WFM/Planejamento e Admin (escPodeVerRestrito).
+// Recalcular (1.27.0): o botão chama sp_fc_recalcular_postos para hoje e grava uma versão nova,
+// sem precisar gerar a escala. Pede o perfil de planejar e não roda no Modo Treino (o Capacity é um só).
 // ===============================================
 
-$unSel = (int) (is_string($_GET['unidade'] ?? null) ? $_GET['unidade'] : 0);
+$podeRecalcular = escPode('planejar') && !escModoTreino();
+if (escPost() && ($_POST['acao'] ?? '') === 'recalcular') {
+    escExigir('planejar');
+    if (escModoTreino()) {
+        throw new RuntimeException(t('No Modo Treino o Capacity não é recalculado: ele é o mesmo do sistema real.'));
+    }
+    @set_time_limit(max(300, (int) ini_get('max_execution_time')));
+    $antes = escQdUltimaVersao();
+    $nome = (string) ($GLOBALS['ESC_USUARIO']['nome'] ?? ('usuário ' . escUserId()));
+    escCapacityGravar('recalcular_versao', [date('Y-m-d'), mb_substr('Recalculado na tela Capacity por ' . $nome . ' (5C Escalas)', 0, 255)]);
+    $depois = escQdUltimaVersao();
+    escLog('capacity.recalcular', 'fc_capacity_versao', (string) ($depois['versao'] ?? ''), $antes ? ['versao' => (int) $antes['versao'], 'precisa' => (int) $antes['precisa']] : null,
+        $depois ? ['versao' => (int) $depois['versao'], 'precisa' => (int) $depois['precisa'], 'buffer' => (int) $depois['buffer']] : null);
+    $volta = array_filter(['unidade' => $_GET['unidade'] ?? null, 'turno' => $_GET['turno'] ?? null, 'periodo' => $_GET['periodo'] ?? null, 'semana' => $_GET['semana'] ?? null], 'is_string');
+    escVoltar('capacity', $volta, $depois
+        ? t('Capacity recalculado: versão {v}. Precisa {p} (antes {a}), buffer {b}.', ['v' => (int) $depois['versao'], 'p' => (int) $depois['precisa'], 'a' => (int) ($antes['precisa'] ?? 0), 'b' => (int) $depois['buffer']])
+        : t('Capacity recalculado.'));
+}
+
+$unSel =(int) (is_string($_GET['unidade'] ?? null) ? $_GET['unidade'] : 0);
 $unSel = in_array($unSel, [1, 2, 3], true) ? $unSel : 0;
 $tSel = in_array($_GET['turno'] ?? '', ['A', 'C', 'D'], true) ? $_GET['turno'] : '';
 $periodos = [14 => t('14 dias'), 30 => t('30 dias'), 60 => t('60 dias'), 90 => t('90 dias')];
@@ -52,6 +73,22 @@ $srsHoje = escQdSrsAtivos(date('Y-m-d'));
 $fechamento = escQdUltimoFechamento();
 $faltaFechada = (int) round((float) (escQ1("SELECT valor FROM `5c_planning`.`fc_parametros` WHERE chave = 'falta_fechada'")['valor'] ?? 5));
 $fat = $verFat && $ult ? escQdFaturamento((int) $ult['versao']) : [];
+// Buffer por turno no último cálculo: o que a falta e os picos pedem × o mínimo por núcleo (fc_buffer_turno).
+$bufT = ['global' => 0, 'minimo' => 0, 'buffer' => 0, 'n' => 0];
+if ($ult && !$unSel) {
+    foreach (escQ('SELECT turno, buffer_global, buffer_minimo, buffer FROM `5c_planning`.`fc_buffer_turno` WHERE data_calculo = ?', [substr((string) $ult['data_calculo'], 0, 10)]) as $b) {
+        if ($tSel === '' || $b['turno'] === $tSel) {
+            $bufT['global'] += (int) $b['buffer_global'];
+            $bufT['minimo'] += (int) $b['buffer_minimo'];
+            $bufT['buffer'] += (int) $b['buffer'];
+            $bufT['n']++;
+        }
+    }
+}
+$parBuf = [];
+foreach (escQ("SELECT chave, valor FROM `5c_planning`.`fc_parametros` WHERE chave IN ('abs_desde', 'abs_d_media_ac', 'buffer_minimo_nucleo', 'percentil_pico')") as $l) {
+    $parBuf[$l['chave']] = (float) $l['valor'];
+}
 
 // Totais do filtro na última versão.
 $tot = ['postos' => 0, 'titulares' => 0, 'buffer' => 0, 'precisa' => 0, 'tem' => 0];
@@ -78,7 +115,7 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Quadro e contratação')); ?></span>
   <h1><?php echo h(t('Capacity')); ?></h1>
-  <p class="muted"><?php echo h(t('Quantas pessoas o Capacity pede, quantas existem e onde falta; e quanto dos postos a escala da semana ocupa. Só leitura. O Capacity é a exceção ao corte de 01/11: todas as versões contam.')); ?></p>
+  <p class="muted"><?php echo h(t('Quantas pessoas o Capacity pede, quantas existem e onde falta; e quanto dos postos a escala da semana ocupa. O Capacity é a exceção ao corte de 01/11: todas as versões contam.')); ?></p>
 </header>
 
 <section class="panel">
@@ -102,6 +139,12 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
   <?php if ($ult): ?>
   <span class="muted small"><?php echo h(t('Versão {v} do Capacity, calculada em {dia} ({origem}).', ['v' => (int) $ult['versao'], 'dia' => escDataHora($ult['gerado_em']), 'origem' => strtolower((string) $ult['origem'])])); ?></span>
   <?php endif; ?>
+  <?php if ($podeRecalcular): ?>
+  <form method="post" action="<?php echo h(link_tela('capacity', $params)); ?>" class="acoes" data-longo="<?php echo h(t('Recalculando o Capacity…')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular">
+    <button type="submit" class="botao"><?php echo h(t('Recalcular agora')); ?></button>
+    <span class="muted small"><?php echo h(t('Grava uma versão nova para hoje com os postos, o quadro e os parâmetros atuais. Não mexe na escala.')); ?></span>
+  </form>
+  <?php endif; ?>
 </section>
 
 <?php if (!$ult): ?>
@@ -115,7 +158,12 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
     <span class="muted small"><?php echo h(t('o Capacity pede {precisa} pessoas; há {tem}', ['precisa' => $int($tot['precisa']), 'tem' => $int($tot['tem'])])); ?></span>
     <span class="muted small"><?php echo h(t('O "tem" do Capacity é o cadastro do 5C Escalas desde 09/11 (antes, a foto de 27/10); hoje há {n} SRs com cadastro.', ['n' => $int($srsFiltro)])); ?></span></div>
   <div class="kpi"><span class="muted"><?php echo h(t('Postos')); ?></span><strong><?php echo $int($tot['postos']); ?></strong>
-    <span class="muted small"><?php echo h(t('{tit} titulares (postos × 1,5) + {buf} de buffer', ['tit' => $int($tot['titulares']), 'buf' => $int($tot['buffer'])])); ?></span></div>
+    <span class="muted small"><?php echo h(t('{tit} titulares (postos × 1,5) + {buf} de buffer', ['tit' => $int($tot['titulares']), 'buf' => $int($tot['buffer'])])); ?></span>
+    <?php if ($bufT['n'] && $bufT['minimo'] > $bufT['global']): ?>
+    <span class="muted small"><?php echo h(t('Pela falta e pelos picos, o buffer seria {g}; o mínimo de {m} por núcleo leva a {b}. Por isso mudar o absenteísmo não muda o buffer enquanto ele ficar abaixo do mínimo.', ['g' => $bufT['global'], 'm' => num($parBuf['buffer_minimo_nucleo'] ?? 2, 0), 'b' => $bufT['buffer']])); ?></span>
+    <?php elseif ($bufT['n']): ?>
+    <span class="muted small"><?php echo h(t('Buffer pela falta e pelos picos: {g} (mínimo {m}).', ['g' => $bufT['global'], 'm' => $bufT['minimo']])); ?></span>
+    <?php endif; ?></div>
   <div class="kpi"><span class="muted"><?php echo h(t('A falta fecha (plano oficial)')); ?></span><strong><?php echo $fechamento ? h(escData((string) $fechamento['fecha_oficial'], false, true)) : '—'; ?></strong>
     <span class="muted small"><?php echo h($fechamento ? t('semana em que faltam até {n} pessoas com as turmas do plano (calculado na versão {v}, de {dia}); simule em Requisição de vagas', ['n' => $faltaFechada, 'v' => (int) $fechamento['versao'], 'dia' => escData((string) $fechamento['data_calculo'])]) : t('o plano de turmas ainda não foi calculado; simule em Requisição de vagas')); ?></span></div>
 </section>
@@ -282,7 +330,11 @@ if ($plano && $linhasO) {
     <?php endforeach; ?>
     </tbody>
   </table></div>
-  <p class="muted small"><?php echo h(t('Para recalcular o Capacity, use o Gerar (ele recalcula sempre) ou, no banco, CALL sp_fc_recalcular_postos(data, motivo).')); ?></p>
+  <p class="muted small"><?php echo h(t('O Capacity é recalculado sozinho todo dia, a cada Gerar, em entradas e saídas de página e pelo botão Recalcular agora.')); ?>
+    <?php echo h(t('Parâmetros do buffer (5c_planning.fc_parametros): absenteísmo desde {desde}{dmed}, mínimo de {min} por núcleo, pico coberto no percentil {pct}.', [
+        'desde' => !empty($parBuf['abs_desde']) ? dataBr(substr((string) (int) $parBuf['abs_desde'], 0, 4) . '-' . substr((string) (int) $parBuf['abs_desde'], 4, 2) . '-' . substr((string) (int) $parBuf['abs_desde'], 6, 2)) : t('a janela toda'),
+        'dmed' => !empty($parBuf['abs_d_media_ac']) ? t(' (turno D na média de A e C)') : '',
+        'min' => num($parBuf['buffer_minimo_nucleo'] ?? 2, 0), 'pct' => num($parBuf['percentil_pico'] ?? 0.5, 2)])); ?></p>
 </section>
 </div>
 <script src="<?php echo h(MODULE_URL); ?>/assets/analise.js?v=<?php echo h($versao('analise.js')); ?>" defer></script>

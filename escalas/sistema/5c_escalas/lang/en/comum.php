@@ -64,6 +64,8 @@ return [
     'Automático' => 'Automatic',
     'Segue o tema do sistema' => 'Follows the system theme',
     'Idioma' => 'Language',
+    'Tema: {atual}. Clique para {proximo}.' => 'Theme: {atual}. Click for {proximo}.',
+    'Idioma: {atual}. Clique para {outro}.' => 'Language: {atual}. Click for {outro}.',
     '{n} pendentes' => '{n} pending',
     'versão {v}' => 'version {v}',
     'Fechar aviso' => 'Close notice',

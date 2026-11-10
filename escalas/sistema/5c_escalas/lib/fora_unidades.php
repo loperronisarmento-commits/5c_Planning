@@ -101,9 +101,9 @@ function escFuPessoas(string $hoje): array {
     }
     // Indisponibilidade aprovada hoje ou adiante (afastamento).
     $ind = [];
-    foreach (escQ('SELECT UPPER(i.rep_code) AS rep, MIN(d.dia) AS de, MAX(d.dia) AS ate FROM ' . escT('esc_indisponibilidade') . ' i JOIN ' . escT('esc_indisponibilidade_data') . " d ON d.indisponibilidade_id = i.id
+    foreach (escQ('SELECT UPPER(i.rep_code) AS rep, MIN(d.dia) AS de, MAX(d.dia) AS ate, GROUP_CONCAT(DISTINCT i.motivo_categoria) AS motivos FROM ' . escT('esc_indisponibilidade') . ' i JOIN ' . escT('esc_indisponibilidade_data') . " d ON d.indisponibilidade_id = i.id
                     WHERE d.status = 'APROVADO' AND d.dia >= ? AND UPPER(i.rep_code) IN (" . escIn($lista) . ') GROUP BY UPPER(i.rep_code)', array_merge([$hoje], $lista)) as $l) {
-        $ind[$l['rep']] = ['de' => substr((string) $l['de'], 0, 10), 'ate' => substr((string) $l['ate'], 0, 10)];
+        $ind[$l['rep']] = ['de' => substr((string) $l['de'], 0, 10), 'ate' => substr((string) $l['ate'], 0, 10), 'motivos' => array_values(array_filter(explode(',', (string) ($l['motivos'] ?? ''))))];
     }
     $r = ['candidatos' => [], 'saidas' => [], 'trainees' => count($trainee)];
     foreach ($lista as $rep) {
@@ -113,6 +113,7 @@ function escFuPessoas(string $hoje): array {
         $info = [
             'rep' => $rep,
             'nome' => $h ? (trim((string) $h['socialName']) ?: (string) $h['name']) : '',
+            'nome_completo' => $h ? trim((string) $h['name']) : '',
             'no_rh' => $h !== null,
             'admissao' => $h ? trim((string) $h['startContract']) : '',
             'cadastro' => $u,
@@ -224,6 +225,52 @@ function escFuParado(array $c, string $hoje): bool {
     }
     $ult = $c['site']['plan'] ?? null;
     return $ult === null ? $c['no_rh'] && $c['cadastro'] !== null : $ult < escMaisDias($hoje, -30);
+}
+
+// Lista para o RH desativar no site: quem o RH ainda lista como SR, fora das unidades, e não está
+// trabalhando — saída informada no Escalas, ou afastado / sem escala no site há mais de 30 dias.
+// A observação diz se a pessoa está de licença ou com indisponibilidade programada (o RH decide).
+// [['rep', 'nome_completo', 'admissao' (dd/mm/aaaa do RH), 'ultima_site' (Y-m-d|null), 'observacao', 'grupo' SAIDA|PARADO]]
+function escFuListaRh(array $fu, string $hoje): array {
+    $linhas = [];
+    $obs = static function (array $c, ?string $saida) use ($hoje): string {
+        $partes = [];
+        if ($saida !== null) {
+            // Só o motivo, sem os códigos internos que vêm depois de "(" ou ";" (ex.: "(ES_96); Estrutura de 01/11").
+            $motivo = trim((string) preg_split('~\s*[(;]~u', trim((string) ($c['cadastro']['observacao'] ?? '')))[0], " ,.");
+            $partes[] = t('Saída informada no 5C Escalas: cadastro fechado em {dia}', ['dia' => date('d/m/Y', strtotime($saida))])
+                . ($motivo !== '' ? ' (' . mb_substr($motivo, 0, 80) . ')' : '');
+        }
+        if ($c['afastado']) {
+            $motivos = implode(', ', array_map(static fn($m) => mb_strtolower(escRotulo('motivo', $m)), $c['afastado']['motivos'] ?? []));
+            $de = date('d/m/Y', strtotime($c['afastado']['de']));
+            $ate = date('d/m/Y', strtotime($c['afastado']['ate']));
+            $partes[] = ($c['afastado']['de'] <= $hoje
+                ? t('De licença ou afastado(a) até {ate} (indisponibilidade aprovada)', ['ate' => $ate])
+                : t('Indisponibilidade programada de {de} a {ate}', ['de' => $de, 'ate' => $ate]))
+                . ($motivos !== '' ? ' · ' . t('motivo: {m}', ['m' => $motivos]) : '');
+        }
+        $ult = $c['site']['plan'] ?? null;
+        if ($ult === null) {
+            $partes[] = t('Sem escala no site');
+        } elseif ($ult < escMaisDias($hoje, -30)) {
+            $partes[] = t('Sem escala no site há {n} dias', ['n' => (int) ((strtotime($hoje) - strtotime($ult)) / 86400)]);
+        }
+        return implode(' · ', $partes);
+    };
+    foreach ($fu['saidas'] as $rep => $c) {
+        $linhas[] = ['rep' => $rep, 'nome_completo' => $c['nome_completo'] ?: $c['nome'], 'admissao' => $c['admissao'], 'ultima_site' => $c['site']['plan'] ?? null,
+            'observacao' => $obs($c, substr((string) $c['cadastro']['vigente_ate'], 0, 10)), 'grupo' => 'SAIDA'];
+    }
+    foreach ($fu['candidatos'] as $rep => $c) {
+        if (!$c['no_rh'] || !escFuParado($c, $hoje)) {
+            continue; // trabalhando (ou já fora do RH): não vai para a lista
+        }
+        $linhas[] = ['rep' => $rep, 'nome_completo' => $c['nome_completo'] ?: $c['nome'], 'admissao' => $c['admissao'], 'ultima_site' => $c['site']['plan'] ?? null,
+            'observacao' => $obs($c, null), 'grupo' => 'PARADO'];
+    }
+    usort($linhas, static fn($a, $b) => [$a['grupo'] !== 'SAIDA', $a['nome_completo']] <=> [$b['grupo'] !== 'SAIDA', $b['nome_completo']]);
+    return $linhas;
 }
 
 // Registro diário do quadro (5c_planning.fc_quadro_dia, script 35): SRs com unidade por dia, no filtro

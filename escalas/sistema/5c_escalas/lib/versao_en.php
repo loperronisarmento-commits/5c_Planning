@@ -6,6 +6,16 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.27.0' => ['titulo' => 'Training classes in three subsections, Outside the units with the HR list and Recalculate now in Capacity', 'itens' => [
+    'Outside the units: compact list (one row per person, with core, level, date and Register on the same row), Active · On leave or idle · All filter and search by name or code. The reason for the suggestion is under "why". The shortfall by unit and shift moved to the end.',
+    'Outside the units: new section "For HR to deactivate on the site", with people HR still lists as SRs who are not working (exit recorded in 5C Escalas, or on leave / without a schedule on the site for over 30 days), and the "Download for HR (.xlsx)" button: SR code, full name, hire date, last schedule on the site and a note (leave or scheduled unavailability). Download only for WFM, Planning and Admin; the sheet has a version (vN).',
+    'Training classes: the screen now has three subsections, "E-mail and reply", "Pages" and "New hire destination", each with its number of pending items, and shows one cycle at a time. It opens on the cycle with a class without pages and, after reading the e-mail, on the new cycle. "See past classes" is always visible.',
+    'E-mail and reply: the e-mail and the HR list side by side, the cycle summary (one row per class, with status, time, instructor, dates, trainees, pages and destinations, replacing "Pages per week") and the reply to the e-mail, which only unlocks when every class in the cycle has its pages confirmed and shows what is missing.',
+    'Pages: one class at a time, with the picked ones on top and the "picked · requested" counter. The list opens with the first 12 recommended (gap or borrowed that can), with "All that can", "Cannot" and "All" one click away and search by page, owner or unit. Confirm takes you to the next class without pages by itself. The confirm button stays fixed at the bottom.',
+    'New warnings: changing the shift in "Adjust dates and shift" asks for confirmation (it deletes the class pages), and the reading form warns that reading a draft class again replaces its trainees. The page selection rules did not change.',
+    'Capacity: "Recalculate now" button (planning profile, outside Training Mode), which saves a new version for today without generating the schedule. The screen shows where the buffer comes from (absences and peaks × minimum per core) and the parameters used.',
+    'Menu: theme and language are now one icon button each. The theme one switches between light (sun), dark (moon) and automatic (A); PT/EN changes the language.',
+    ]],
     '1.26.0' => ['titulo' => 'Editable classes, Outside the units and the daily "has" in Capacity', 'itens' => [
     'Job requisitions: the Classes table now adds classes on any date (also between planned ones), changes the date and numbers, and deletes. "Save planned classes" saves them all at once. A class with an open or hired requisition changes under tracking; one in training does not change. Opening the requisition confirms the class in the Capacity plan.',
     'Requisitions of 11/10: 11/16 corrected to 9 on C and 11 on D (A cancelled); new ones on 11/23 (10 on D), 12/07 (12 per shift, replacing the plan of 10) and 12/21 (8 per shift).',
