@@ -6,9 +6,11 @@
 //     plano, a partir do Capacity (precisa por turno) e do quadro de hoje; "Sugerir tamanhos"
 //     refaz as turmas ainda só planejadas, com o teto por turno.
 //   - Acompanhamento (grava em esc_requisicao_vaga, ES_136): planejada → requisição aberta →
-//     contratada → em treinamento → operando. O plano oficial (5c_planning.fc_contratacoes)
-//     continua só sendo lido; em treinamento e operando vêm das Turmas de treinamento.
-// Todos os perfis veem; registrar requisição e contratados pede o perfil de planejar.
+//     contratada → em treinamento → operando. Em treinamento e operando vêm das Turmas de treinamento.
+//   - Plano de turmas (5c_planning.fc_contratacoes, o plano oficial do Capacity): a tabela Turmas
+//     adiciona (também entre as do plano), muda a data, grava as quantidades e apaga turmas. A
+//     requisição substitui o plano da turma (CONFIRMADA com os números pedidos).
+// Todos os perfis veem; gravar pede o perfil de planejar. No Modo Treino o plano não é gravado.
 // ===============================================
 
 $hoje = date('Y-m-d');
@@ -18,13 +20,46 @@ if (escPost()) {
         throw new RuntimeException(t('A requisição de vagas ainda não foi instalada no banco (script ES_136). Peça ao admin.'));
     }
     $acao = (string) ($_POST['acao'] ?? '');
+    $q = [];
+    foreach (['A', 'C', 'D'] as $t) {
+        $q[$t] = max(0, min(99, (int) ($_POST['q'][$t] ?? 0)));
+    }
+    // Plano de turmas: grava todas as planejadas de uma vez (depois de "Sugerir tamanhos").
+    if ($acao === 'plano_salvar_todas') {
+        $lista = json_decode((string) ($_POST['turmas'] ?? ''), true);
+        $turmasPost = [];
+        foreach (is_array($lista) ? $lista : [] as $x) {
+            $d = escDataValida($x['ini'] ?? '');
+            if ($d) {
+                $turmasPost[$d] = ['A' => (int) ($x['q']['A'] ?? 0), 'C' => (int) ($x['q']['C'] ?? 0), 'D' => (int) ($x['q']['D'] ?? 0)];
+            }
+        }
+        if (!$turmasPost) {
+            throw new RuntimeException(t('Nenhuma turma planejada para gravar.'));
+        }
+        $n = escReqPlanoSalvarTodas($turmasPost);
+        escVoltar('requisicao', [], t('{n} turma(s) planejada(s) gravada(s) no plano.', ['n' => $n]), false, 'turmas');
+    }
     $ini = escDataValida($_POST['turma'] ?? '');
     if (!$ini) {
         throw new RuntimeException(t('Turma inválida.'));
     }
-    $q = [];
-    foreach (['A', 'C', 'D'] as $t) {
-        $q[$t] = max(0, min(99, (int) ($_POST['q'][$t] ?? 0)));
+    if ($acao === 'turma_nova') {
+        if (array_sum($q) === 0) {
+            throw new RuntimeException(t('Informe quantas pessoas em pelo menos um turno.'));
+        }
+        $abrir = ($_POST['etapa'] ?? '') === 'ABERTA';
+        escReqPlanoNova($ini, $q, $abrir);
+        escVoltar('requisicao', [], t('Turma de {dia} incluída: {n} pessoas (A {a} · C {c} · D {d}).', ['dia' => dataBr($ini, true), 'n' => array_sum($q), 'a' => $q['A'], 'c' => $q['C'], 'd' => $q['D']]), false, 'turmas');
+    }
+    if ($acao === 'turma_salvar') {
+        $para = escDataValida($_POST['nova'] ?? '') ?? $ini;
+        escReqPlanoSalvar($ini, $para, ($_POST['com_q'] ?? '') === '1' ? $q : null);
+        escVoltar('requisicao', [], t('Turma de {dia} salva.', ['dia' => dataBr($para, true)]), false, 'turmas');
+    }
+    if ($acao === 'turma_apagar') {
+        escReqPlanoApagar($ini);
+        escVoltar('requisicao', [], t('Turma de {dia} apagada do plano.', ['dia' => dataBr($ini, true)]), false, 'turmas');
     }
     if ($acao === 'abrir') {
         $aberta = escDataValida($_POST['aberta_em'] ?? '') ?? $hoje;
@@ -47,6 +82,7 @@ if (escPost()) {
 
 $instalado = escReqInstalado();
 $podePlanejar = escPode('planejar') && $instalado;
+$gravaPlano = $podePlanejar && !escModoTreino();
 $bases = escReqBases();
 $prem = escReqPremissas();
 $turmas = escReqTurmas($hoje);
@@ -67,6 +103,8 @@ foreach ($turmas as $tm) {
 }
 $dados = [
     'hoje' => $hoje, 'en' => $en, 'bases' => $bases, 'quadroHoje' => $quadroHoje, 'prem' => $prem, 'turmas' => $sim,
+    // Gravar o plano pela tabela Turmas: formulários montados no JS com o csrf e a URL da ação.
+    'grava' => $gravaPlano, 'csrf' => $gravaPlano ? escCsrf() : '', 'acao' => link_tela('requisicao'),
     'etapas' => array_map(static fn($e) => $e[0], $etapas),
     'txt' => [
         'titFecha' => t('Com estas turmas, a falta fica em até {n} pessoas a partir de {dia}'),
@@ -84,6 +122,12 @@ $dados = [
         'cabCopia' => t("Turma começa\tAbrir requisição até\tOpera em\tA\tC\tD\tTotal"),
         'baseRot' => t('Capacity de {dia} (versão {v}) · precisa {n}'), 'baseTit' => t('só titulares · {n}'),
         'semReq' => t('Nenhuma turma planejada com gente: nada a pedir.'),
+        'salvar' => t('Salvar'), 'apagar' => t('Apagar'), 'editarReq' => t('Editar no Acompanhamento'),
+        'dataTurma' => t('Início da turma de {dia}'), 'emTreino' => t('vem das Turmas de treinamento'),
+        'confApagar' => t('Apagar a turma de {dia} do plano? A requisição dela, se houver, é cancelada.'),
+        'confTodas' => t('Gravar no plano as {n} turmas planejadas com os números da tabela?'),
+        'semPlanejadas' => t('Nenhuma turma planejada para gravar.'),
+        'editada' => t('mudou: falta Salvar'),
         'meses' => $en ? ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'] : ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'],
     ],
 ];
@@ -115,7 +159,7 @@ $dados = [
     <label class="small"><?php echo h(t('Quadro de partida')); ?>
       <select id="req-partida">
         <option value="hoje"><?php echo h(t('SRs com cadastro hoje no 5C Escalas ({n})', ['n' => array_sum($quadroHoje)])); ?></option>
-        <option value="capacity"><?php echo h(t('"Tem" do Capacity (foto de 27/10)')); ?></option>
+        <option value="capacity"><?php echo h(t('"Tem" do Capacity no dia do cálculo')); ?></option>
       </select></label>
     <button type="button" class="botao primario" id="req-sugerir"><?php echo h(t('Sugerir tamanhos')); ?></button>
     <button type="button" class="botao" id="req-oficial"><?php echo h(t('Voltar ao plano oficial')); ?></button>
@@ -135,12 +179,30 @@ $dados = [
 </div>
 
 <section class="panel" id="turmas">
-  <h2><?php echo h(t('Turmas · pessoas por turno')); ?></h2>
-  <p class="muted small"><?php echo h(t('As turmas planejadas podem ser editadas para simular (nada é gravado). As que já têm requisição, contratados ou treinamento usam as pessoas reais e ficam travadas. Requisição até = início da turma menos o prazo de recrutamento.')); ?></p>
+  <div class="linha-titulo"><h2><?php echo h(t('Turmas · pessoas por turno')); ?></h2>
+  <?php if ($gravaPlano): ?><button type="button" class="botao" id="req-gravar-todas"><?php echo h(t('Gravar turmas planejadas')); ?></button><?php endif; ?></div>
+  <p class="muted small"><?php echo h(t('Mudar os números de uma turma planejada só muda a simulação; Salvar grava a turma no plano (o plano oficial do Capacity). As turmas com requisição ou contratados usam as pessoas reais: os números mudam no Acompanhamento. Turma em treinamento vem das Turmas de treinamento. Requisição até = início da turma menos o prazo de recrutamento.')); ?></p>
   <div class="tabela-rolagem"><table class="req-turmas">
-    <thead><tr><th><?php echo h(t('Turma')); ?></th><th><?php echo h(t('Etapa')); ?></th><th><?php echo h(t('Requisição até')); ?></th><th><?php echo h(t('Opera em')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Total')); ?></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Turma')); ?></th><th><?php echo h(t('Etapa')); ?></th><th><?php echo h(t('Requisição até')); ?></th><th><?php echo h(t('Opera em')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Total')); ?></th><?php if ($gravaPlano): ?><th><?php echo h(t('Ações')); ?></th><?php endif; ?></tr></thead>
     <tbody id="req-turmas"></tbody>
   </table></div>
+  <?php if ($gravaPlano): ?>
+  <details class="req-form req-nova"><summary class="botao primario"><?php echo h(t('Adicionar turma')); ?></summary>
+    <form method="post" action="<?php echo h(link_tela('requisicao')); ?>" class="form-grade">
+      <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="turma_nova">
+      <label><?php echo h(t('Início da turma')); ?><input type="date" name="turma" required min="<?php echo h($hoje); ?>"></label>
+      <?php foreach (['A', 'C', 'D'] as $tt): ?><label><?php echo $tt; ?><input type="number" name="q[<?php echo $tt; ?>]" min="0" max="99" value="0"></label><?php endforeach; ?>
+      <label><?php echo h(t('Etapa')); ?><select name="etapa"><option value="PLANEJADA"><?php echo h(t('Planejada')); ?></option><option value="ABERTA"><?php echo h(t('Requisição aberta')); ?></option></select></label>
+      <div class="acoes"><button type="submit" class="botao primario"><?php echo h(t('Incluir no plano')); ?></button></div>
+    </form>
+    <p class="muted small"><?php echo h(t('Pode ser entre as turmas do plano (turma intermediária). Opera 14 dias depois do início. Com requisição aberta, a turma já entra no Acompanhamento.')); ?></p>
+  </details>
+  <form method="post" action="<?php echo h(link_tela('requisicao')); ?>" id="req-form-todas" hidden>
+    <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="plano_salvar_todas"><input type="hidden" name="turmas" id="req-todas-json">
+  </form>
+  <?php elseif ($podePlanejar && escModoTreino()): ?>
+  <p class="muted small"><?php echo h(t('No Modo Treino o plano de turmas não é gravado (ele fica no Capacity). Use a simulação para testar.')); ?></p>
+  <?php endif; ?>
 </section>
 
 <section class="panel" id="copiar">

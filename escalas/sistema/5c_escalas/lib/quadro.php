@@ -7,7 +7,8 @@
 //     exceção ao corte de 01/11 (escCorteDados): todas as versões contam.
 //   - Ocupação: pessoas escaladas nas páginas de cada carteira (plano atual da semana) ÷
 //     postos do Capacity × dias; lacunas = blocos sem ninguém (origem LACUNA).
-//   - Requisições: esc_requisicao_vaga (ES_136) sobre o plano de turmas (fc_contratacoes).
+//   - Requisições: esc_requisicao_vaga (ES_136) sobre o plano de turmas (fc_contratacoes), que a tela
+//     também grava: adicionar, editar e apagar turmas; a requisição substitui o plano da turma.
 // ===============================================
 
 const ESC_QD_TURNOS = ['A' => '05–13', 'C' => '13–21', 'D' => '21–05'];
@@ -347,7 +348,152 @@ function escReqAbrir(string $ini, array $q, ?string $abertaEm, string $referenci
             }
             $n += $qt;
         }
+        // A requisição substitui o plano: o plano da turma passa a ter os números pedidos (CONFIRMADA).
+        // No Modo Treino o plano (5c_planning) não é tocado.
+        if (!escModoTreino()) {
+            escReqPlanoGravarQ($ini, $q, 'CONFIRMADA', true);
+        }
         escLog('requisicao.abrir', 'esc_requisicao_vaga', $ini, null, ['q' => $q, 'aberta_em' => $abertaEm, 'referencia' => $referencia]);
+    });
+    return $n;
+}
+
+// ---------------------------------------------------------------------------------------------
+// Plano de turmas (5c_planning.fc_contratacoes): adicionar, editar e apagar pela tela.
+// O plano alimenta o Capacity (plano oficial, sp_fc_plano_sugerido, sp_fc_prev_to).
+// Turma em treinamento não muda aqui: os números vêm das Turmas de treinamento.
+// ---------------------------------------------------------------------------------------------
+
+const ESC_REQ_DIAS_TREINO = 14;
+
+function escReqPlanoExigirGravavel(): void {
+    if (escModoTreino()) {
+        throw new RuntimeException(t('No Modo Treino o plano de turmas não é gravado (ele fica no Capacity). Use a simulação para testar.'));
+    }
+}
+
+// Etapa da turma que começa em $ini (null = não existe).
+function escReqEtapaDe(string $ini): ?string {
+    foreach (escReqTurmas(date('Y-m-d')) as $tm) {
+        if ($tm['ini'] === $ini) {
+            return $tm['etapa'];
+        }
+    }
+    return null;
+}
+
+function escReqExigirForaDoTreino(string $ini): void {
+    if (in_array(escReqEtapaDe($ini), ['TREINANDO', 'OPERANDO'], true)) {
+        throw new RuntimeException(t('A turma de {dia} já está em treinamento: os números vêm das Turmas de treinamento.', ['dia' => escData($ini, false, true)]));
+    }
+}
+
+// Grava as quantidades de uma turma no plano, turno a turno: linha que existe recebe a quantidade
+// (0 = CANCELADA); turno sem linha e com gente ganha uma linha nova com $status.
+// $mudarStatus: as linhas que já existem também passam a $status (a requisição confirma o plano).
+function escReqPlanoGravarQ(string $ini, array $q, string $status, bool $mudarStatus = false): void {
+    $opera = escMaisDias($ini, ESC_REQ_DIAS_TREINO);
+    foreach (['A', 'C', 'D'] as $t) {
+        $qt = max(0, min(99, (int) ($q[$t] ?? 0)));
+        $ids = array_map(static fn($l) => (int) $l['id'], escQW("SELECT id FROM `5c_planning`.`fc_contratacoes` WHERE data_inicio_trn = ? AND turno = ? AND status <> 'CANCELADA' ORDER BY id", [$ini, $t]));
+        if ($ids) {
+            $id = array_shift($ids);
+            if ($qt === 0) {
+                escW("UPDATE `5c_planning`.`fc_contratacoes` SET status = 'CANCELADA' WHERE id = ?", [$id]);
+            } else {
+                escW('UPDATE `5c_planning`.`fc_contratacoes` SET qtd = ?' . ($mudarStatus ? ', status = ?' : '') . ' WHERE id = ?', $mudarStatus ? [$qt, $status, $id] : [$qt, $id]);
+            }
+            // Linhas repetidas do mesmo turno (não deveria haver): saem, para a soma bater.
+            foreach ($ids as $extra) {
+                escW("UPDATE `5c_planning`.`fc_contratacoes` SET status = 'CANCELADA' WHERE id = ?", [$extra]);
+            }
+        } elseif ($qt > 0) {
+            escW('INSERT INTO `5c_planning`.`fc_contratacoes` (turma, data_inicio_trn, data_inicio_operacao, turno, qtd, status, obs, fixa) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
+                [$ini, $ini, $opera, $t, $qt, $status, mb_substr('Incluída no 5C Escalas por ' . ((string) ($GLOBALS['ESC_USUARIO']['nome'] ?? '') ?: 'usuário ' . escUserId()) . ' em ' . date('d/m/Y'), 0, 255)]);
+        }
+    }
+}
+
+// Já existe turma (no plano ou com requisição viva) que começa em $ini?
+function escReqTurmaExiste(string $ini): bool {
+    if (escQW("SELECT 1 AS ok FROM `5c_planning`.`fc_contratacoes` WHERE data_inicio_trn = ? AND status <> 'CANCELADA' LIMIT 1", [$ini])) {
+        return true;
+    }
+    return escReqInstalado() && (bool) escQW('SELECT 1 AS ok FROM ' . escT('esc_requisicao_vaga') . " WHERE turma_inicio = ? AND etapa <> 'CANCELADA' LIMIT 1", [$ini]);
+}
+
+// Salva uma turma: muda a data (de $de para $para) e, com $q, as quantidades do plano.
+// Mudar a data leva junto as requisições da turma. $q = null: só a data.
+function escReqPlanoSalvar(string $de, string $para, ?array $q): void {
+    escReqPlanoExigirGravavel();
+    escReqExigirForaDoTreino($de);
+    escTx(function () use ($de, $para, $q) {
+        if ($para !== $de) {
+            if (escReqTurmaExiste($para)) {
+                throw new RuntimeException(t('Já existe uma turma em {dia}. Edite essa turma ou escolha outra data.', ['dia' => escData($para, false, true)]));
+            }
+            escW("UPDATE `5c_planning`.`fc_contratacoes` SET turma = ?, data_inicio_trn = ?, data_inicio_operacao = ? WHERE data_inicio_trn = ? AND status <> 'CANCELADA'",
+                [$para, $para, escMaisDias($para, ESC_REQ_DIAS_TREINO), $de]);
+            if (escReqInstalado()) {
+                // Requisições canceladas na data de destino saem, para não bater na chave (turma, turno).
+                escW('DELETE FROM ' . escT('esc_requisicao_vaga') . " WHERE turma_inicio = ? AND etapa = 'CANCELADA'", [$para]);
+                escW('UPDATE ' . escT('esc_requisicao_vaga') . ' SET turma_inicio = ?, atualizado_por = ? WHERE turma_inicio = ?', [$para, escUserId(), $de]);
+            }
+        }
+        if ($q !== null) {
+            escReqPlanoGravarQ($para, $q, 'PLANEJADA');
+        }
+        escLog('requisicao.turma_salvar', 'fc_contratacoes', $de, ['ini' => $de], ['ini' => $para, 'q' => $q]);
+    });
+}
+
+// Turma nova (também entre as do plano). $abrir = já com a requisição aberta.
+function escReqPlanoNova(string $ini, array $q, bool $abrir): void {
+    escReqPlanoExigirGravavel();
+    if (escReqTurmaExiste($ini)) {
+        throw new RuntimeException(t('Já existe uma turma em {dia}. Edite essa turma ou escolha outra data.', ['dia' => escData($ini, false, true)]));
+    }
+    escTx(function () use ($ini, $q, $abrir) {
+        if ($abrir) {
+            escReqAbrir($ini, $q, null, '', '');
+        } else {
+            escReqPlanoGravarQ($ini, $q, 'PLANEJADA');
+        }
+        escLog('requisicao.turma_nova', 'fc_contratacoes', $ini, null, ['q' => $q, 'abrir' => $abrir]);
+    });
+}
+
+// Apaga a turma: o plano fica CANCELADA (o histórico continua no banco) e a requisição é cancelada.
+function escReqPlanoApagar(string $ini): void {
+    escReqPlanoExigirGravavel();
+    escReqExigirForaDoTreino($ini);
+    escTx(function () use ($ini) {
+        escW("UPDATE `5c_planning`.`fc_contratacoes` SET status = 'CANCELADA' WHERE data_inicio_trn = ? AND status <> 'CANCELADA'", [$ini]);
+        if (escReqInstalado()) {
+            escReqCancelar($ini);
+        }
+        escLog('requisicao.turma_apagar', 'fc_contratacoes', $ini);
+    });
+}
+
+// Grava de uma vez as turmas planejadas (depois de "Sugerir tamanhos"): [ini => [A, C, D]].
+// Só turmas ainda planejadas: as que têm requisição ou treinamento são puladas. Devolve quantas gravou.
+function escReqPlanoSalvarTodas(array $turmas): int {
+    escReqPlanoExigirGravavel();
+    $etapas = [];
+    foreach (escReqTurmas(date('Y-m-d')) as $tm) {
+        $etapas[$tm['ini']] = $tm['etapa'];
+    }
+    $n = 0;
+    escTx(function () use ($turmas, $etapas, &$n) {
+        foreach ($turmas as $ini => $q) {
+            if (($etapas[$ini] ?? null) !== 'PLANEJADA' || !is_array($q)) {
+                continue;
+            }
+            escReqPlanoGravarQ($ini, $q, 'PLANEJADA');
+            $n++;
+        }
+        escLog('requisicao.plano_salvar_todas', 'fc_contratacoes', null, null, ['turmas' => $turmas]);
     });
     return $n;
 }

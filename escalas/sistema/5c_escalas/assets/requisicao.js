@@ -1,6 +1,7 @@
 // 5C Escalas — Requisição de vagas: o motor do Simulações 5C (sim.py de 26/10) no navegador.
 // Os dados vêm do PHP (#req-dados): bases do Capacity, quadro de hoje, premissas e turmas.
-// Nada é gravado: as quantidades editadas só mudam a simulação (e os formulários de requisição).
+// As quantidades editadas só mudam a simulação (e os formulários de requisição) até o Salvar da
+// linha ou o "Gravar turmas planejadas", que gravam no plano (fc_contratacoes) pelo POST da tela.
 (function () {
   'use strict';
   var el = document.getElementById('req-dados');
@@ -34,8 +35,10 @@
   var estado = { base: 0, alvo: 'precisa', partida: 'hoje', turmas: [] };
   function copiaTurmas() {
     return D.turmas.map(function (x) {
-      return { ini: dia(x.ini), opera: x.opera ? dia(x.opera) : null, etapa: x.etapa, fixa: x.fixa === 1 || x.etapa !== 'PLANEJADA',
-        q: { A: x.q.A, C: x.q.C, D: x.q.D }, editada: false };
+      // travada: os números são das pessoas reais (requisição, contratados, treinamento) e não se editam aqui.
+      // fixa: o "Sugerir tamanhos" não mexe (travada ou marcada como fixa no plano).
+      return { ini: dia(x.ini), opera: x.opera ? dia(x.opera) : null, etapa: x.etapa, travada: x.etapa !== 'PLANEJADA',
+        fixa: x.fixa === 1 || x.etapa !== 'PLANEJADA', q: { A: x.q.A, C: x.q.C, D: x.q.D }, editada: false };
     });
   }
   estado.turmas = copiaTurmas();
@@ -155,6 +158,55 @@
     $('req-svg').innerHTML = '<svg class="graf graf-linhas" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc($('req-graf-titulo').textContent) + '">' + g + '</svg>';
   }
 
+  // ---------- gravar o plano (POST da própria tela) ----------
+  function formPost(acao, campos) {
+    var f = document.createElement('form');
+    f.method = 'post'; f.action = D.acao;
+    var add = function (n, v) { var i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; f.appendChild(i); return i; };
+    add('csrf', D.csrf); add('acao', acao);
+    Object.keys(campos).forEach(function (k) { add(k, campos[k]); });
+    return { form: f, add: add };
+  }
+  function botao(txt, cls) { var b = document.createElement('button'); b.type = 'submit'; b.className = 'botao' + (cls ? ' ' + cls : ''); b.textContent = txt; return b; }
+
+  // Célula Ações: a data da turma (editável) com Salvar; Apagar; na turma com requisição, o link
+  // para mudar os números no Acompanhamento. Turma em treinamento não muda aqui.
+  function acoesTurma(x) {
+    var td = document.createElement('td');
+    td.className = 'req-acoes small';
+    if (x.etapa === 'TREINANDO') {
+      td.innerHTML = '<span class="muted">' + esc(TX.emTreino) + '</span>';
+      return td;
+    }
+    var de = iso(x.ini);
+    var s = formPost('turma_salvar', { turma: de });
+    var data = document.createElement('input');
+    data.type = 'date'; data.name = 'nova'; data.value = de; data.required = true;
+    data.setAttribute('aria-label', tt(TX.dataTurma, { dia: fmt(x.ini, true) }));
+    s.form.appendChild(data);
+    if (!x.travada) {
+      // Planejada: grava também os números da linha (os da simulação).
+      s.add('com_q', '1');
+      var hq = {};
+      T.forEach(function (t) { hq[t] = s.add('q[' + t + ']', x.q[t]); });
+      s.form.addEventListener('submit', function () { T.forEach(function (t) { hq[t].value = x.q[t]; }); });
+    }
+    s.form.appendChild(botao(TX.salvar, x.editada && !x.travada ? 'primario' : ''));
+    td.appendChild(s.form);
+    var a = formPost('turma_apagar', { turma: de });
+    var b = botao(TX.apagar, 'perigo');
+    b.setAttribute('data-confirmar', tt(TX.confApagar, { dia: fmt(x.ini, true) }));
+    a.form.appendChild(b);
+    td.appendChild(a.form);
+    if (x.travada) {
+      var l = document.createElement('a');
+      l.href = '#req-' + de; l.textContent = TX.editarReq;
+      td.appendChild(document.createElement('br'));
+      td.appendChild(l);
+    }
+    return td;
+  }
+
   // ---------- tela ----------
   function desenharTurmas(prem) {
     var tb = $('req-turmas');
@@ -168,12 +220,13 @@
         var dd = lim - HOJE;
         prazo = '<br><span class="small ' + (dd < 0 ? 'laranja' : 'muted') + '">' + esc(dd < 0 ? tt(TX.vencida, { n: -dd }) : (dd === 0 ? TX.hoje : tt(TX.vence, { n: dd }))) + '</span>';
       }
-      tr.innerHTML = '<td><strong>' + fmt(x.ini, true) + '</strong></td><td><span class="tag' + (x.fixa ? '' : ' amarelo') + '">' + esc(D.etapas[x.etapa] || x.etapa) + '</span></td>'
+      tr.innerHTML = '<td><strong>' + fmt(x.ini, true) + '</strong></td><td><span class="tag' + (x.travada ? '' : ' amarelo') + '">' + esc(D.etapas[x.etapa] || x.etapa) + '</span>'
+        + (x.editada && !x.travada && D.grava ? '<br><span class="small laranja">' + esc(TX.editada) + '</span>' : '') + '</td>'
         + '<td>' + (x.etapa === 'PLANEJADA' ? fmt(lim, true) + prazo : '—') + '</td><td>' + fmt(opera(x, prem), true) + '</td>';
       T.forEach(function (t) {
         var td = document.createElement('td');
         td.className = 'num';
-        if (x.fixa) {
+        if (x.travada) {
           td.textContent = x.q[t];
         } else {
           var inp = document.createElement('input');
@@ -186,11 +239,12 @@
         tr.appendChild(td);
       });
       var tt2 = document.createElement('td'); tt2.className = 'num'; tt2.innerHTML = '<strong>' + tot + '</strong>'; tr.appendChild(tt2);
+      if (D.grava) { tr.appendChild(acoesTurma(x)); }
       tb.appendChild(tr);
       // O formulário de requisição da turma acompanha os números da simulação.
       T.forEach(function (t) {
         var f = document.querySelector('[data-req-q="' + iso(x.ini) + '|' + t + '"]');
-        if (f && x.editada && !x.fixa) { f.value = x.q[t]; }
+        if (f && x.editada && !x.travada) { f.value = x.q[t]; }
       });
     });
   }
@@ -261,6 +315,17 @@
   $('req-sugerir').addEventListener('click', function () { var prem = premissas(); sugerir(base(prem), prem); $('req-msg').textContent = TX.sugerido; atualizar(); });
   $('req-oficial').addEventListener('click', function () { estado.turmas = copiaTurmas(); $('req-msg').textContent = TX.oficial; atualizar(); });
   Array.prototype.forEach.call(document.querySelectorAll('.req-prem input'), function (inp) { inp.addEventListener('change', atualizar); });
+  // Gravar de uma vez as turmas planejadas com os números da tabela (ex.: depois de "Sugerir tamanhos").
+  if ($('req-gravar-todas')) {
+    $('req-gravar-todas').addEventListener('click', function () {
+      var plan = estado.turmas.filter(function (x) { return !x.travada; });
+      if (!plan.length) { $('req-msg').textContent = TX.semPlanejadas; return; }
+      $('req-todas-json').value = JSON.stringify(plan.map(function (x) { return { ini: iso(x.ini), q: x.q }; }));
+      var f = $('req-form-todas');
+      f.setAttribute('data-confirmar', tt(TX.confTodas, { n: plan.length }));
+      if (f.requestSubmit) { f.requestSubmit(); } else { f.submit(); }
+    });
+  }
   $('req-copiar').addEventListener('click', function () {
     var txt = $('req-texto').textContent;
     var mostrar = function () {

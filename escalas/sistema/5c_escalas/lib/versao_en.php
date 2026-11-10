@@ -6,6 +6,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.26.0' => ['titulo' => 'Editable classes, Outside the units and the daily "has" in Capacity', 'itens' => [
+    'Job requisitions: the Classes table now adds classes on any date (also between planned ones), changes the date and numbers, and deletes. "Save planned classes" saves them all at once. A class with an open or hired requisition changes under tracking; one in training does not change. Opening the requisition confirms the class in the Capacity plan.',
+    'Requisitions of 11/10: 11/16 corrected to 9 on C and 11 on D (A cancelled); new ones on 11/23 (10 on D), 12/07 (12 per shift, replacing the plan of 10) and 12/21 (8 per shift).',
+    'New screen Outside the units (Headcount & hiring): SRs who are in HR and in no unit, with a suggested unit, shift and core from the gaps, and the Register button. Separately, those who already left in Escalas but HR still lists.',
+    'Capacity: "has" is now the 5C Escalas record (since 11/09) and is kept day by day since 11/01, so the chart shows the exits. Buffer absenteeism counts from 11/01 on.',
+    'Parameters: the 27 that no part of the system reads any more (old team structure, merit before the points score, 3x1) moved to Legacy › Legacy parameters, for reference only.',
+    ]],
     '1.25.1' => ['titulo' => 'Intake funnel: core (OS) of the incoming page', 'itens' => [
     'Put in the schedule (Intake funnel › Active on the website, outside the schedule): new "Core (OS) in all 3 shifts" field. Generate creates the new positions of the page in that core; with no choice, it stays automatic (the least loaded core). If the page shares the position with another page that has no chosen core, the core of the position applies: the other page does not change core.',
     'Entries made through this section show the core.',

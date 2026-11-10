@@ -31,6 +31,17 @@ $versao = static fn(string $arq): string => (string) (@filemtime(__DIR__ . '/../
 
 $ult = escQdUltimaVersao();
 $evol = $ult ? escQdEvolucao($desde, $unSel, $tSel) : [];
+// "Tem" de cada dia: o registro diário do quadro (fc_quadro_dia, script 35) quando existe; antes dele,
+// o "tem" da versão (até 08/11, a foto de 27/10).
+$quadroDia = escFuQuadroDia($desde, $unSel, $tSel);
+foreach ($evol as &$e) {
+    $dE = substr((string) $e['data_calculo'], 0, 10);
+    $e['tem_versao'] = (int) $e['tem'];
+    if (isset($quadroDia[$dE])) {
+        $e['tem'] = $quadroDia[$dE];
+    }
+}
+unset($e);
 $ut = $ult ? escQdUnidadeTurno((int) $ult['versao']) : [];
 $plano = escPlanoAtual($seg);
 $versaoSemana = $plano && !empty($plano['capacity_calculo']) ? escQdVersaoDoDia((string) $plano['capacity_calculo']) : ($ult ? (int) $ult['versao'] : null);
@@ -102,7 +113,7 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
   <div class="kpi"><span class="muted"><?php echo h($filtroRot !== '' ? t('Faltam hoje ({filtro})', ['filtro' => $filtroRot]) : t('Faltam hoje')); ?></span>
     <strong class="numero-heroi <?php echo $falta > 0 ? 'laranja' : 'verde'; ?>"><?php echo $falta > 0 ? $int($falta) : '0'; ?></strong>
     <span class="muted small"><?php echo h(t('o Capacity pede {precisa} pessoas; há {tem}', ['precisa' => $int($tot['precisa']), 'tem' => $int($tot['tem'])])); ?></span>
-    <span class="muted small"><?php echo h(t('O "tem" do Capacity é a foto de 27/10; no 5C Escalas há hoje {n} SRs com cadastro.', ['n' => $int($srsFiltro)])); ?></span></div>
+    <span class="muted small"><?php echo h(t('O "tem" do Capacity é o cadastro do 5C Escalas desde 09/11 (antes, a foto de 27/10); hoje há {n} SRs com cadastro.', ['n' => $int($srsFiltro)])); ?></span></div>
   <div class="kpi"><span class="muted"><?php echo h(t('Postos')); ?></span><strong><?php echo $int($tot['postos']); ?></strong>
     <span class="muted small"><?php echo h(t('{tit} titulares (postos × 1,5) + {buf} de buffer', ['tit' => $int($tot['titulares']), 'buf' => $int($tot['buffer'])])); ?></span></div>
   <div class="kpi"><span class="muted"><?php echo h(t('A falta fecha (plano oficial)')); ?></span><strong><?php echo $fechamento ? h(escData((string) $fechamento['fecha_oficial'], false, true)) : '—'; ?></strong>
@@ -144,7 +155,8 @@ if (count($evol) >= 1) {
         ['nome' => t('Precisa'), 'cls' => 'cinza', 'tracejada' => true, 'v' => $vPre, 'rotulo' => t('Precisa {n}', ['n' => end($vPre)])],
         ['nome' => t('Tem'), 'cls' => 'destaque', 'grossa' => true, 'v' => $vTem, 'rotulo' => t('Tem {n}', ['n' => end($vTem)])],
     ], ['titulo' => $titulo, 'dicas' => $dicas, 'zero' => false, 'w' => 760]);
-    echo escGrafFigura($titulo, t('Uma versão por dia (a última do dia). A distância entre as linhas é a falta. Passe o mouse para ver postos, titulares e buffer.'),
+    echo escGrafFigura($titulo, t('Uma versão por dia (a última do dia). A distância entre as linhas é a falta. Passe o mouse para ver postos, titulares e buffer.')
+        . ($quadroDia ? ' ' . t('"Tem" = SRs com cadastro no 5C Escalas em cada dia (registro diário do quadro, desde 01/11); antes disso, o "tem" da versão.') : ''),
         escGrafLegenda(['tracejada' => t('Precisa (titulares + buffer)'), 'destaque' => t('Tem (SRs no quadro)')]), $svg, 'largo', escGrafTabela(t('Ver tabela'), [t('Dia'), t('Versão'), t('Postos'), t('Titulares'), t('Buffer'), t('Precisa'), t('Tem'), t('Faltam')],
         array_map(static fn($e) => [escData((string) $e['data_calculo'], true), (int) $e['versao'], (int) $e['postos'], (int) $e['titulares'], (int) $e['buffer'], (int) $e['precisa'], (int) $e['tem'], (int) $e['precisa'] - (int) $e['tem']], array_reverse($evol))));
 }

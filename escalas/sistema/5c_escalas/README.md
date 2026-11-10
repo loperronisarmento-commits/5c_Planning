@@ -178,9 +178,15 @@ Apague a pasta e a linha do `.htaccess`. Os dados ficam no `5c_escalas` (o `ES_9
 
 Seção nova do menu, entre Análise e Páginas: **Capacity** (`pages/capacity.php`), **Requisição de vagas** (`pages/requisicao.php`) e **Turmas de treinamento** (`pages/treinamento.php`, que saiu de Pessoas). Leituras e gravações comuns em `lib/quadro.php`; gráficos em SVG no servidor em `lib/graficos.php` (também usados pela Análise), com as cores em `assets/analise.css` (cinza e uma cor de destaque, rótulo direto, título que diz a conclusão).
 
-- **Capacity:** só leitura, todos os perfis. Lê `5c_planning.fc_capacity_versao*` (a última versão de cada dia), `fc_capacity_versao_posto` para os postos por carteira e o plano atual da semana (`esc_plano_alocacao` × `fc_pagina_carteira`) para a ocupação e as lacunas. O "tem" do Capacity é a foto de 27/10 (`fc_estrutura_rep`); a tela mostra também os SRs com cadastro hoje (`esc_colaborador_config`).
+- **Capacity:** só leitura, todos os perfis. Lê `5c_planning.fc_capacity_versao*` (a última versão de cada dia), `fc_capacity_versao_posto` para os postos por carteira e o plano atual da semana (`esc_plano_alocacao` × `fc_pagina_carteira`) para a ocupação e as lacunas. O "tem" do Capacity vem do cadastro do 5C Escalas desde 09/11 (`sp_fc_estrutura_rep_escalas`, 5C_Planning_34; antes, a foto de 27/10) e é guardado dia a dia desde 01/11 em `fc_quadro_dia` (5C_Planning_35). O absenteísmo do buffer conta de 01/11 em diante (5C_Planning_36: `abs_desde` e `abs_d_media_ac`).
 - **Requisição de vagas:** a simulação roda no navegador (nada é gravado) com as premissas do `fc_parametros`; o acompanhamento grava em `esc_requisicao_vaga` (ES_136: uma linha por turma e turno, etapa ABERTA, CONTRATADA ou CANCELADA). Em treinamento e operando vêm de `esc_treinamento_turma`. Registrar pede o perfil de planejar.
 - **Destino dos novatos:** colunas novas em `esc_treinamento_trainee` (ES_137): `situacao`, `unidade_destino`, `nucleo_destino_id`, `destino_motivo`, `destino_por`, `destino_em`. A sugestão (`escDstSugerir`) não grava; "Confirmar destinos" grava; "Cadastrar a partir de…" manda para Colaboradores (nível 0, modelo mais usado, núcleo e data do destino).
+
+## Turmas editáveis, Fora das unidades e parâmetros legados (1.26.0)
+
+- **Plano de turmas editável** (Requisição de vagas): incluir, mudar e apagar turmas, gravando em `5c_planning.fc_contratacoes` (`escReqPlanoNova`, `escReqPlanoSalvar`, `escReqPlanoApagar`, `escReqPlanoSalvarTodas` em `lib/quadro.php`). Turma em treinamento ou operando fica travada; no Modo Treino nada grava no plano.
+- **Fora das unidades** (`pages/fora_unidades.php`, `lib/fora_unidades.php`): SRs do RH sem unidade no Escalas, com a sugestão pelas lacunas; "Cadastrar" usa o mesmo POST das Turmas de treinamento.
+- **Parâmetros legados:** `ESC_PARAMETROS_LEGADO` em `lib/parametros.php` lista os parâmetros que nenhum código lê. Eles saem da tela Parâmetros e ficam em Legado › Parâmetros legados, só leitura. Nada muda no banco.
 
 ## Exportar o Mérito dos SRs (1.22.0)
 

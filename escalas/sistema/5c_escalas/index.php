@@ -58,6 +58,7 @@ require_once __DIR__ . '/lib/gerar_etapas.php';
 require_once __DIR__ . '/lib/restricoes_om_gestao.php';
 require_once __DIR__ . '/lib/graficos.php';
 require_once __DIR__ . '/lib/quadro.php';
+require_once __DIR__ . '/lib/fora_unidades.php';
 
 // ---------- nível 1: logado no MIS Portal? ----------
 startSecureSession();
@@ -102,6 +103,7 @@ $telas = [
     'roster'       => ['Roster da liderança', 'pages/roster.php'],
     'acessos'      => ['Acessos', 'pages/acessos.php'],
     'parametros'   => ['Parâmetros', 'pages/parametros.php'],
+    'parametros_legado' => ['Parâmetros legados', 'pages/parametros.php'],
     'diagnostico'  => ['Diagnóstico', 'pages/diagnostico.php'],
     'novidades'    => ['Changelog', 'pages/novidades.php'],
     'glossario'    => ['Glossário', 'pages/ajuda.php'],
@@ -112,6 +114,7 @@ $telas = [
     'treinamento'  => ['Turmas de treinamento', 'pages/treinamento.php'],
     'capacity'     => ['Capacity', 'pages/capacity.php'],
     'requisicao'   => ['Requisição de vagas', 'pages/requisicao.php'],
+    'fora_unidades' => ['Fora das unidades', 'pages/fora_unidades.php'],
     'casais'       => ['Folga juntos', 'pages/casais.php'],
     'dba'          => ['Documentação do DBA', 'pages/dba.php'],
 ];
@@ -291,7 +294,7 @@ try {
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
     'Análise' => ['analise', 'srs', 'sugestoes', 'buffers'],
-    'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento'],
+    'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],
     'Ajuda' => array_merge(['tutorial', 'regras', 'merito', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
@@ -303,7 +306,7 @@ if (!escPodeVerRestrito()) {
 }
 $adminMenu = escPode('admin') ? ['acessos', 'parametros', 'modelos', 'diagnostico'] : [];
 // Estrutura antiga (times e parties, trocas do Planner): vale até a virada de 31/10 21:00. Só para o admin.
-$legadoMenu = escPode('admin') ? ['times', 'trocas'] : [];
+$legadoMenu = escPode('admin') ? ['times', 'trocas', 'parametros_legado'] : [];
 $badges = [];
 // Com o banco fora (tela de espera), nem tenta: cada leitura esperaria a conexão por ~15 s.
 if (empty($bancoCaiu)) try {

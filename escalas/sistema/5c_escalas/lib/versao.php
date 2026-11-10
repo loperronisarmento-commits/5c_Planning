@@ -8,6 +8,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.26.0', 'data' => '2026-11-10', 'titulo' => 'Turmas editáveis, Fora das unidades e o "tem" dia a dia no Capacity', 'sql' => ['5C_Planning_34_tem_do_5c_escalas.sql', '5C_Planning_35_quadro_diario.sql', '5C_Planning_36_absenteismo_desde_0111.sql', 'ES_140_requisicao_1611_corrigida.sql', 'ES_141_requisicoes_2311_0712_2112.sql'], 'itens' => [
+    'Requisição de vagas: a tabela Turmas agora inclui turmas em qualquer data (também entre as do plano), muda a data e os números e apaga. "Gravar turmas planejadas" salva todas de uma vez. Turma com requisição aberta ou contratada muda no acompanhamento; em treinamento não muda. Abrir a requisição confirma a turma no plano do Capacity.',
+    'Requisições de 10/11: 16/11 corrigida para 9 no C e 11 no D (A cancelada); novas em 23/11 (10 no D), 07/12 (12 por turno, no lugar do plano de 10) e 21/12 (8 por turno).',
+    'Nova tela Fora das unidades (Quadro e contratação): SRs que estão no RH e em nenhuma unidade, com a sugestão de unidade, turno e núcleo pelas lacunas, e o botão Cadastrar. À parte, quem já saiu pelo Escalas e o RH ainda lista.',
+    'Capacity: o "tem" passa a ser o cadastro do 5C Escalas (desde 09/11) e fica guardado dia a dia desde 01/11, então o gráfico mostra os desligamentos. O absenteísmo do buffer conta de 01/11 em diante.',
+    'Parâmetros: os 27 que nenhuma parte do sistema lê mais (estrutura antiga de times, mérito antes da nota em pontos, 3x1) foram para Legado › Parâmetros legados, só para consulta.',
+    ]],
     ['versao' => '1.25.1', 'data' => '2026-11-10', 'titulo' => 'Funil de entrada: núcleo (OS) da página que entra', 'sql' => ['ES_139_entradas_u3_1011.sql'], 'itens' => [
     'Pôr na escala (Funil de entrada › Ativas no site, fora da escala): campo novo "Núcleo (OS) nos 3 turnos". O Gerar cria os postos novos da página nesse núcleo; sem escolha, fica o automático (o núcleo menos carregado). Se a página divide o posto com outra sem núcleo escolhido, vale o núcleo do posto: a outra página não muda de núcleo.',
     'Entradas feitas por esta seção mostram o núcleo.',

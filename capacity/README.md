@@ -134,7 +134,12 @@ O detalhe fica nas tabelas, com histórico de 180 dias:
   - `janela_postos_dias` e `carga_minima_posto`;
   - `max_paginas_rep_modelos_diferentes` (2, Política);
   - mais os de antes: `limite_padrao` 35, `limite_compartilhada` 28, `max_paginas_rep` 3 (mesma modelo) e outros.
-- **Reps:** `fc_estrutura_rep` tem a foto de 27/10. Quando o Planning tool tiver o cadastro próprio de quem está em cada unidade, turno e OS, ele passa a alimentar esta tabela.
+- **Reps (o "tem"):** desde 09/11 (script 34), `fc_estrutura_rep` copia o cadastro do 5C Escalas (`esc_colaborador_config`, funcao = 'EQUITE'; coluna `origem` = ESCALAS). A foto de 27/10 (origem FOTO_2710) vale até 08/11.
+  - A cópia é feita por `sp_fc_estrutura_rep_escalas()`, chamada pelo `sp_fc_recalcular_postos` (Gerar e Saídas) e pelo `sp_fc_rodar_dia` (etapa `estrutura_rep`). Para mudar o "tem", mude o cadastro no 5C Escalas e recalcule; não grave à mão em `fc_estrutura_rep`.
+  - Carteira: a da foto, se o SR continua na mesma unidade; senão, a das páginas em que ele é fixo; senão NULL (conta na unidade e turno, mas não na carteira).
+- **Registro diário do quadro (script 35):** `fc_quadro_dia` guarda os SRs e OS com cadastro no 5C Escalas por dia, unidade e turno (unidade 0 = sem unidade), reconstruído desde 01/11; `fc_quadro_dia_rh` guarda o resumo do RH do dia (SR no headcount, com unidade, liderança, trainee, fora das unidades). Grava `sp_fc_quadro_dia(data)`, na etapa `quadro` do `sp_fc_rodar_dia`. A linha "Tem" da tela Capacity usa esta tabela.
+- **Absenteísmo (script 36):** a taxa de falta do buffer (`sp_fc_postos` passo 4 e `sp_fc_buffer`) só usa dias a partir de `abs_desde` (aaaammdd; hoje 20261101) dentro da janela; com `abs_d_media_ac` = 1, o turno D usa a média de A e C (o registro de faltas do D caiu para quase zero na virada de 31/10). Para voltar: os dois parâmetros em 0.
+  - Hoje o buffer é o mínimo (`buffer_minimo_nucleo` 2 × 3 núcleos = 18 por turno): pela falta e pelo pico daria 7 a 8 por turno, então a queda do absenteísmo quase não muda o "precisa".
 
 ## Plano de contratação com o quadro novo (2 cenários)
 

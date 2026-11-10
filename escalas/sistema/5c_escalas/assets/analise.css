@@ -130,4 +130,11 @@
 .req .req-form[open] { display: block; }
 .req .req-form .form-grade input[type="number"] { width: 70px; }
 .req form.inline { display: inline-block; }
+/* Ações da tabela Turmas: data editável + Salvar + Apagar numa linha. */
+.req .req-acoes { white-space: nowrap; }
+.req .req-acoes form { display: inline-flex; align-items: center; gap: 4px; margin: 2px 4px 2px 0; }
+.req .req-acoes input[type="date"] { width: 9.5em; }
+.req .req-acoes .botao { padding: 4px 10px; }
+.req .req-nova { margin-top: 12px; }
+.req .req-nova .form-grade input[type="number"] { width: 70px; }
 .req-prem { margin-top: 10px; }

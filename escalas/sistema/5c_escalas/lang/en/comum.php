@@ -39,6 +39,7 @@ return [
     'Indisponibilidade' => 'Unavailability',
     'Acessos' => 'Access',
     'Parâmetros' => 'Parameters',
+    'Parâmetros legados' => 'Legacy parameters',
     'Diagnóstico' => 'Diagnostics',
     'Changelog' => 'Changelog',
     'Glossário' => 'Glossary',
