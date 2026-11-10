@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.25.0', 'data' => '2026-11-10', 'titulo' => 'Funil de entrada: páginas ativas no site e fora da escala, detectadas pela DB', 'sql' => ['ES_138_entrada_pagina_checagem.sql'], 'itens' => [
+    'Funil de entrada: seção nova "Ativas no site, fora da escala", que não vem do CRM. Lista as páginas ativas no site da 5C sem carteira no Capacity, como nova ou retorno, com o dia em que ficaram ativas (foto diária do Capacity), a carteira de antes, a saída aplicada, os dias com escala no site e a venda desde então. É o espelho de Saídas de página.',
+    'Página que saiu pela tela Saídas e voltou a ficar ativa aparece como "não volta sozinha" (bloqueio de 60 dias). Antes, o caminho era registrar o destino no Funil, que só aceitava card do CRM; por isso Alexis Clark, Daniswings 157m e Lexis Star não apareceram. Agora, em Decidir: escolher a carteira (a de antes vem marcada) e a data e clicar em Pôr na escala. A carteira é gravada no Capacity, que é recalculado na hora; os postos entram na escala no próximo Gerar.',
+    'Ignorar: para página que não é de escala (PH, X, MYM, teste). Se ela sair e voltar, aparece de novo; "Voltar para a lista" desfaz. As páginas sem escala nem venda ficam recolhidas no fim da seção (esc_pagina_entrada_checagem, ES_138).',
+    'Gerar: a verificação avisa, sem bloquear, quando há página ativa de novo que não volta sozinha, com link para o Funil. Ações necessárias e o tour também incluem o Funil.',
+    ]],
     ['versao' => '1.24.0', 'data' => '2026-11-09', 'titulo' => 'Seção Quadro e contratação: Capacity, Requisição de vagas e destino dos novatos', 'sql' => ['ES_136_requisicao_vaga.sql', 'ES_137_destino_novatos.sql'], 'itens' => [
     'Menu: seção nova "Quadro e contratação", entre Análise e Páginas, com Capacity, Requisição de vagas e Turmas de treinamento (antes Treinamento de New Hires, em Pessoas).',
     'Capacity (só leitura): quantas pessoas faltam hoje, a evolução de precisa × tem por versão, a falta por unidade e turno (a maior em destaque) e a ocupação dos postos na escala da semana por carteira, com as lacunas; as versões e o que mudou. Faturamento por carteira só para WFM, Planejamento e Admin.',

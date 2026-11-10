@@ -51,6 +51,8 @@ return [
     'Decidir {n} pedido(s) de indisponibilidade' => 'Decide {n} unavailability request(s)',
     'Decidir {n} interesse(s) de hora extra' => 'Decide {n} overtime offer(s)',
     'Conferir {n} saída(s) de página' => 'Check {n} page exit(s)',
+    'Decidir {n} página ativa de novo no site que não volta sozinha' => 'Decide {n} page active on the website again that does not come back by itself',
+    'Decidir {n} páginas ativas de novo no site que não voltam sozinhas' => 'Decide {n} pages active on the website again that do not come back by themselves',
 
     // Documentação do DBA
     '5C Escalas · Documentação do DBA' => '5C Escalas · DBA documentation',

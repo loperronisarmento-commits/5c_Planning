@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.25.0' => ['titulo' => 'Intake funnel: pages active on the website and outside the schedule, detected from the DB', 'itens' => [
+    'Intake funnel: new "Active on the website, outside the schedule" section, which does not come from the CRM. It lists the pages active on the 5C website with no portfolio in Capacity, as new or return, with the day they became active (Capacity daily snapshot), the previous portfolio, the exit applied, the days scheduled on the website and the sales since then. It mirrors Page exits.',
+    'A page that left through the Exits screen and became active again shows as "does not come back by itself" (60-day block). Before, the way back was to record a destination in the Funnel, which only took CRM cards; that is why Alexis Clark, Daniswings 157m and Lexis Star did not show up. Now, under Decide: choose the portfolio (the previous one is preselected) and the date, and click Put in the schedule. The portfolio is saved in Capacity, which is recalculated right away; the positions enter the schedule at the next Generate.',
+    'Ignore: for pages that are not scheduled (PH, X, MYM, test). If the page leaves and comes back, it shows up again; "Back to the list" undoes it. Pages with no schedule or sales are collapsed at the end of the section (esc_pagina_entrada_checagem, ES_138).',
+    'Generate: the check warns, without blocking, when a page active again does not come back by itself, with a link to the Funnel. Required actions and the tour also include the Funnel.',
+    ]],
     '1.24.0' => ['titulo' => 'Headcount & hiring section: Capacity, Job requisitions and new hire destination', 'itens' => [
     'Menu: new "Headcount & hiring" section, between Analysis and Pages, with Capacity, Job requisitions and Training classes (formerly New Hire training, under People).',
     'Capacity (read only): how many people are missing today, the needs × has trend per version, the shortfall per unit and shift (the largest highlighted) and post occupancy in the week\'s schedule per portfolio, with the gaps; the versions and what changed. Revenue per portfolio only for WFM, Planning and Admin.',

@@ -57,6 +57,22 @@ function escGerarPendencias(string $seg): array {
             'tela' => 'saidas', 'params' => ['dias' => $dias], 'rotulo' => t('Saídas de página'),
         ];
     }
+    // Página ativa de novo no site depois de sair pela tela Saídas (10/11): não volta sozinha por
+    // v4_saida_bloqueio_dias. Dá para gerar, mas sem ela; a decisão fica no Funil de entrada.
+    try {
+        $presas = array_values(array_filter(escEntradasDetectadas(false), static fn($e) => $e['situacao'] === 'PRESA'));
+    } catch (Throwable $e) {
+        appLog('warning', 'Gerar: falha ao ler as páginas ativas fora da escala', ['erro' => $e->getMessage()]);
+        $presas = [];
+    }
+    if ($presas) {
+        $out['avisos'][] = [
+            'msg' => tn(count($presas), '{lista} está ativa no site de novo, mas saiu pela tela Saídas e não volta sozinha: se gerar agora, fica fora da escala.',
+                '{lista} estão ativas no site de novo, mas saíram pela tela Saídas e não voltam sozinhas: se gerar agora, ficam fora da escala.',
+                ['lista' => implode(', ', array_map(static fn($e) => $e['pagina'] . ' (' . dataBr($e['ativa_desde']) . ')', $presas))]),
+            'tela' => 'funil', 'params' => [], 'rotulo' => t('Funil de entrada'),
+        ];
+    }
     // Indisponibilidade ainda sem decisão na semana: dá para gerar, mas o pedido não entra.
     $fim = escMaisDias($seg, 6);
     $ind = escQ1("SELECT COUNT(*) AS dias, COUNT(DISTINCT d.indisponibilidade_id) AS pedidos FROM " . escT('esc_indisponibilidade_data') . " d

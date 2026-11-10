@@ -49,6 +49,7 @@ require_once __DIR__ . '/lib/ajuda.php';
 require_once __DIR__ . '/lib/solicitacao.php';
 require_once __DIR__ . '/lib/roster.php';
 require_once __DIR__ . '/lib/funil_sugestao.php';
+require_once __DIR__ . '/lib/funil_entrada.php';
 require_once __DIR__ . '/lib/politica.php';
 require_once __DIR__ . '/lib/equilibrio.php';
 require_once __DIR__ . '/lib/treinamento.php';

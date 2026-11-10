@@ -792,6 +792,11 @@ label > .busca-select { order: 2; }
 .funil-top li { display: flex; flex-direction: column; gap: 4px; padding-bottom: 8px; border-bottom: 1px solid var(--linha); }
 .funil-top li:last-child { border-bottom: 0; padding-bottom: 0; }
 .funil-top .funil-usar { align-self: flex-start; }
+/* Funil: ativas no site, fora da escala (lib/funil_entrada.php) */
+#ativas td.entrada-antes { min-width: 15rem; }
+#ativas td .tag { white-space: nowrap; }
+#ativas details.entrada-paradas { margin-top: 10px; }
+#ativas td details[open] form { margin-top: 8px; min-width: 15rem; }
 
 /* Impressão com a identidade da 5C (papel timbrado A4 branco do manual): faixa marsala à
    esquerda, logo no topo, águia em marca-d'água e o site no rodapé. Sempre em tema claro. */

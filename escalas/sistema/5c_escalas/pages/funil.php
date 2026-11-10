@@ -14,6 +14,30 @@ foreach (escQ('SELECT id, unidade, turno, numero FROM ' . escT('esc_nucleo') . "
     $nucleosFunil[(int) $n['id']] = $n;
 }
 
+// Páginas ativas no site, fora da escala (lib/funil_entrada.php, ES_138): pôr na escala, ignorar ou desfazer.
+$acaoEntrada = (string) ($_POST['acao'] ?? '');
+if (escPost() && in_array($acaoEntrada, ['entrada_aplicar', 'entrada_ignorar', 'entrada_desfazer'], true)) {
+    escExigir('decidir');
+    $pgEntrada = trim((string) ($_POST['pagina'] ?? ''));
+    if ($acaoEntrada === 'entrada_aplicar') {
+        $desdeEntrada = escDataValida($_POST['desde'] ?? '') ?? '';
+        if ($desdeEntrada === '') {
+            throw new RuntimeException(t('Data inválida.'));
+        }
+        $r = escEntradaAplicar($pgEntrada, trim((string) ($_POST['carteira'] ?? '')), $desdeEntrada, trim((string) ($_POST['observacao'] ?? '')));
+        $msg = t('{pagina} entrou na carteira {carteira} a partir de {dia}. Os postos dela entram na escala no próximo Gerar.', ['pagina' => $r['pagina'], 'carteira' => $r['carteira'], 'dia' => dataBr($r['desde'])]);
+        if ($r['erro_recalculo']) {
+            $msg .= ' ' . t('O recálculo do Capacity falhou ({erro}); o próximo Gerar recalcula.', ['erro' => mb_substr((string) $r['erro_recalculo'], 0, 120)]);
+        }
+        escVoltar('funil', [], $msg, (bool) $r['erro_recalculo'], 'ativas');
+    }
+    $diaEntrada = escDataValida($_POST['ativa_desde'] ?? '') ?? '';
+    escEntradaIgnorar($pgEntrada, $diaEntrada, $acaoEntrada === 'entrada_ignorar', trim((string) ($_POST['observacao'] ?? '')));
+    escVoltar('funil', array_filter(['ignoradas' => $_GET['ignoradas'] ?? null]), $acaoEntrada === 'entrada_ignorar'
+        ? t('{pagina}: ignorada (não é página de escala). Se sair e voltar, aparece de novo.', ['pagina' => $pgEntrada])
+        : t('{pagina}: voltou para a lista.', ['pagina' => $pgEntrada]), false, 'ativas');
+}
+
 // Ajuste de previsão e destino (5c_escalas.esc_pagina_previsao); o CRM não muda.
 if (escPost()) {
     escExigir('decidir');
@@ -103,12 +127,113 @@ $ORIGEM_VOL = ['previsao' => t('previsão salva'), 'arquetipo' => t('arquétipo 
 $confianca = static function (int $n): array {
     return $n >= 5 ? [t('Alta'), 'verde'] : ($n >= 3 ? [t('Média'), 'amarelo'] : [t('Baixa'), 'vermelho']);
 };
+
+// Ativas no site, fora da escala (sem carteira aberta no Capacity). Ignoradas só com ?ignoradas=1.
+$entradas = escEntradasDetectadas();
+$verIgnoradas = !empty($_GET['ignoradas']);
+$nIgnoradas = count(array_filter($entradas, static fn($e) => $e['situacao'] === 'IGNORADA'));
+$nPresas = count(array_filter($entradas, static fn($e) => $e['situacao'] === 'PRESA'));
+$entradasVer = array_values(array_filter($entradas, static fn($e) => $verIgnoradas || $e['situacao'] !== 'IGNORADA'));
+$entradaTabela = escEntradaTemTabela();
+$carteirasEntrada = $entradaTabela && escPode('decidir') ? escEntradaCarteiras() : [];
+$entradaMinimo = max(date('Y-m-d'), escV4DiaEstrutura());
+$entradasDecididas = $entradaTabela ? escQ("SELECT pagina, ativa_desde, tipo, decisao, carteira, vale_desde, observacao, decidido_em FROM " . escT('esc_pagina_entrada_checagem') . " WHERE decisao = 'ENTROU' ORDER BY decidido_em DESC LIMIT 10") : [];
+$SITUACAO_ENTRADA = [
+    'PRESA' => ['vermelho', t('não volta sozinha')],
+    'AUTO' => ['verde', t('entra sozinha no próximo Gerar')],
+    'PARADA' => ['cinza', t('sem escala nem venda')],
+    'ENTROU' => ['verde', t('já entrou')],
+    'IGNORADA' => ['cinza', t('ignorada')],
+];
 ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Páginas')); ?></span>
   <h1><?php echo h(t('Funil de entrada')); ?></h1>
   <p class="muted"><?php echo h(t('Espelha o funil do CRM. Como o CRM normalmente só traz o tier, o volume de cada página nova vem do arquétipo: páginas ativas com faturamento e perfil parecidos.')); ?></p>
 </header>
+
+<section class="panel" id="ativas">
+  <div class="linha-titulo"><h2><?php echo h(t('Ativas no site, fora da escala · {n}', ['n' => count($entradas) - $nIgnoradas])); ?></h2>
+    <span class="muted small"><?php echo h(t('Detectadas pela DB, não pelo CRM: página ativa no site da 5C e sem carteira no Capacity.')); ?></span></div>
+  <p class="muted small"><?php echo h(t('Retorno é a página que já esteve no Capacity ou na escala. Quem saiu pela tela Saídas de página não volta sozinha por {dias} dias: decida aqui. As outras entram sozinhas no próximo Gerar quando têm escala no site ou venda; "Pôr na escala" serve para escolher a carteira antes.', ['dias' => (int) escV4Param('v4_saida_bloqueio_dias', '60')])); ?></p>
+  <?php if (!$entradaTabela): ?><p class="tag laranja"><?php echo h(t('Falta rodar o script ES_138: a lista aparece, mas sem as ações.')); ?></p><?php endif; ?>
+  <?php if ($nPresas): ?><p><span class="tag vermelho"><?php echo h(tn($nPresas, '{n} página não volta sozinha', '{n} páginas não voltam sozinhas')); ?></span></p><?php endif; ?>
+  <?php // Paradas (sem escala nem venda: PH, X, testes...) ficam recolhidas abaixo das que pedem decisão.
+  $gruposEntrada = [
+      ['lista' => array_values(array_filter($entradasVer, static fn($e) => $e['situacao'] !== 'PARADA')), 'recolher' => false],
+      ['lista' => array_values(array_filter($entradasVer, static fn($e) => $e['situacao'] === 'PARADA')), 'recolher' => true],
+  ];
+  foreach ($gruposEntrada as $gi => $grupo): if ($gi > 0 && !$grupo['lista']) { continue; } ?>
+  <?php if ($grupo['recolher']): ?><details class="entrada-paradas"><summary class="small"><?php echo h(tn(count($grupo['lista']), '{n} ativa sem escala nem venda (entra sozinha quando tiver movimento; PH, X e testes: ignore)', '{n} ativas sem escala nem venda (entram sozinhas quando tiverem movimento; PH, X e testes: ignore)')); ?></summary><?php endif; ?>
+  <div class="tabela-rolagem">
+  <table>
+    <thead><tr><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Ativa no site desde')); ?></th><th><?php echo h(t('Antes')); ?></th><th class="num"><?php echo h(t('Dias com escala no site')); ?></th><th class="num"><?php echo h(t('Venda')); ?></th><th><?php echo h(t('Situação')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
+    <tbody>
+    <?php if (!$grupo['lista']): ?><tr><td colspan="7" class="muted"><?php echo h(t('Nenhuma página ativa fora da escala pedindo decisão.')); ?></td></tr><?php endif; ?>
+    <?php foreach ($grupo['lista'] as $e): [$corSit, $rotSit] = $SITUACAO_ENTRADA[$e['situacao']]; $ult = $e['ultima']; ?>
+      <tr>
+        <td><strong><?php echo h($e['pagina']); ?></strong> <span class="tag <?php echo $e['tipo'] === 'RETORNO' ? 'amarelo' : ''; ?>"><?php echo h($e['tipo'] === 'RETORNO' ? t('retorno') : t('nova')); ?></span></td>
+        <td><?php echo h($e['desde_antes'] ? t('{dia} ou antes', ['dia' => dataBr($e['ativa_desde'])]) : dataBr($e['ativa_desde'])); ?></td>
+        <td class="small entrada-antes"><?php
+            $antes = [];
+            if ($ult) { $antes[] = t('carteira {carteira} até {dia}', ['carteira' => $ult['carteira'], 'dia' => $ult['vigente_ate'] ? dataBr(substr((string) $ult['vigente_ate'], 0, 10)) : '—']); }
+            if ($e['saida']) { $antes[] = t('saída aplicada a partir de {dia}', ['dia' => dataBr(substr((string) $e['saida']['vale_desde'], 0, 10))]); }
+            if (!$ult && $e['irma']) { $antes[] = t('a modelo tem {pagina} na carteira {carteira}', ['pagina' => $e['irma']['pagina'], 'carteira' => $e['irma']['carteira']]); }
+            echo $antes ? h(implode(' · ', $antes)) : '<span class="muted">—</span>'; ?></td>
+        <td class="num"><?php echo (int) $e['dias_escala']; ?></td>
+        <td class="num"><?php echo $e['venda'] > 0 ? num($e['venda'], 0) : '<span class="muted">0</span>'; ?></td>
+        <td><span class="tag <?php echo $corSit; ?>"><?php echo h($rotSit); ?></span><?php echo $e['decisao'] && $e['decisao']['observacao'] ? '<br><span class="muted small">' . h($e['decisao']['observacao']) . '</span>' : ''; ?></td>
+        <td>
+          <?php if ($entradaTabela && escPode('decidir')): ?>
+            <?php if ($e['situacao'] === 'IGNORADA'): ?>
+            <form method="post" action="<?php echo h(link_tela('funil', ['ignoradas' => 1])); ?>" class="acoes">
+              <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="entrada_desfazer"><input type="hidden" name="pagina" value="<?php echo h($e['pagina']); ?>"><input type="hidden" name="ativa_desde" value="<?php echo h($e['ativa_desde']); ?>">
+              <button type="submit" class="botao"><?php echo h(t('Voltar para a lista')); ?></button>
+            </form>
+            <?php elseif ($e['situacao'] !== 'ENTROU'): ?>
+            <details><summary class="botao <?php echo $e['situacao'] === 'PRESA' ? 'primario' : ''; ?>"><?php echo h(t('Decidir')); ?></summary>
+              <form method="post" action="<?php echo h(link_tela('funil')); ?>" class="form-grade" data-confirmar="<?php echo h(t('Pôr {pagina} na escala? A carteira é gravada no Capacity, que é recalculado agora; os postos entram no próximo Gerar.', ['pagina' => $e['pagina']])); ?>">
+                <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="entrada_aplicar"><input type="hidden" name="pagina" value="<?php echo h($e['pagina']); ?>">
+                <label><?php echo h(t('Carteira')); ?><select name="carteira" required>
+                  <?php if (!$e['carteira_sugerida']): ?><option value=""><?php echo h(t('(escolha)')); ?></option><?php endif; ?>
+                  <?php foreach ($carteirasEntrada as $c): ?><option value="<?php echo h($c['carteira']); ?>" <?php echo $c['carteira'] === $e['carteira_sugerida'] ? 'selected' : ''; ?>><?php echo h($c['carteira'] . ($c['carteira'] === ($ult['carteira'] ?? null) ? ' · ' . t('a de antes') : ($c['carteira'] === ($e['irma']['carteira'] ?? null) ? ' · ' . t('a da mesma modelo') : ''))); ?></option><?php endforeach; ?>
+                </select></label>
+                <label><?php echo h(t('A partir de')); ?><input type="date" name="desde" required min="<?php echo h($entradaMinimo); ?>" value="<?php echo h(max($entradaMinimo, escMaisDias(date('Y-m-d'), 1))); ?>"></label>
+                <label><?php echo h(t('Observação')); ?><input type="text" name="observacao" maxlength="255"></label>
+                <button type="submit" class="botao primario"><?php echo h(t('Pôr na escala')); ?></button>
+              </form>
+              <form method="post" action="<?php echo h(link_tela('funil')); ?>" class="acoes">
+                <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="entrada_ignorar"><input type="hidden" name="pagina" value="<?php echo h($e['pagina']); ?>"><input type="hidden" name="ativa_desde" value="<?php echo h($e['ativa_desde']); ?>">
+                <label class="small"><?php echo h(t('Por que ignorar')); ?> <input type="text" name="observacao" maxlength="255" placeholder="<?php echo h(t('ex.: página de PH, teste')); ?>"></label>
+                <button type="submit" class="botao"><?php echo h(t('Ignorar: não é página de escala')); ?></button>
+              </form>
+            </details>
+            <?php endif; ?>
+          <?php endif; ?>
+        </td>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table>
+  </div>
+  <?php if ($grupo['recolher']): ?></details><?php endif; ?>
+  <?php endforeach; ?>
+  <?php if ($nIgnoradas): ?><p class="small"><a href="<?php echo h(link_tela('funil', $verIgnoradas ? [] : ['ignoradas' => 1])); ?>#ativas"><?php echo h($verIgnoradas ? t('Esconder as ignoradas') : tn($nIgnoradas, 'Mostrar {n} ignorada', 'Mostrar {n} ignoradas')); ?></a></p><?php endif; ?>
+  <?php if ($entradasDecididas): ?>
+  <details><summary class="small"><?php echo h(t('Entradas feitas por esta seção · {n}', ['n' => count($entradasDecididas)])); ?></summary>
+    <div class="tabela-rolagem">
+    <table>
+      <thead><tr><th><?php echo h(t('Quando')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('A partir de')); ?></th><th><?php echo h(t('Observação')); ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($entradasDecididas as $d): ?>
+        <tr><td class="small"><?php echo h(dataBr(substr((string) $d['decidido_em'], 0, 10)) . ' ' . substr((string) $d['decidido_em'], 11, 5)); ?></td><td><strong><?php echo h($d['pagina']); ?></strong> <span class="muted small"><?php echo h($d['tipo'] === 'RETORNO' ? t('retorno') : t('nova')); ?></span></td><td><?php echo h((string) $d['carteira']); ?></td><td><?php echo h(dataBr(substr((string) $d['vale_desde'], 0, 10))); ?></td><td class="small"><?php echo h((string) $d['observacao']); ?></td></tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+    </div>
+  </details>
+  <?php endif; ?>
+</section>
 
 <section class="panel">
   <div class="linha-titulo"><h2><?php echo h(t('Cards do CRM · {n}', ['n' => count($cards)])); ?></h2><span class="muted small"><?php echo h(t('Pipeline, Onboarding e Active desde 7 dias atrás')); ?></span></div>

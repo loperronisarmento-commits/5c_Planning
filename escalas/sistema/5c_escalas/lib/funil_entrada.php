@@ -1,0 +1,240 @@
+<?php
+// ===============================================
+// ARQUIVO: 5c_escalas/lib/funil_entrada.php
+// Entradas de página detectadas pela DB (pedido de 10/11, ES_138), no espelho de Saídas de página:
+// páginas ativas no site da 5C (5c_pages.pages.active = 1) sem carteira aberta no Capacity
+// (fc_pagina_carteira), como entrada NOVA ou RETORNO. O dia em que ficou ativa vem da foto
+// diária do Capacity (fc_pagina_status_diario).
+// Caso que motivou: Alexis Clark e Daniswings 157m saíram pela tela Saídas e voltaram a ficar
+// ativas em 09/11, mas a entrada automática antes do Gerar (escEstruturaPaginasFora) não traz
+// de volta, por v4_saida_bloqueio_dias (60), quem saiu pela tela Saídas; e o Funil só tinha
+// cards do CRM. Ações (esc_pagina_entrada_checagem):
+//   ENTROU  grava a carteira no Capacity (retorno: a última linha dela, com modelo, regra e volume;
+//           nova: volume do arquétipo) e recalcula o Capacity. A escala não muda agora: os postos
+//           entram no próximo Gerar, que recalcula e sincroniza a estrutura.
+//   IGNORAR não é página de escala (PH, X, MYM, teste...). Se a página sair e voltar, reaparece.
+// ===============================================
+
+function escEntradaTemTabela(): bool {
+    static $ok = null;
+    if ($ok === null) {
+        $ok = (bool) escQ1("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_entrada_checagem'", [ESC_SCHEMA]);
+    }
+    return $ok;
+}
+
+// Comparação de nome de página sem espaços e sem caixa (como a entrada automática: "Haven  Free").
+function escEntradaChave(string $p): string {
+    return mb_strtolower(str_replace(' ', '', trim($p)));
+}
+
+// Páginas ativas no site e fora do Capacity. $movimento: soma os dias na escala do site e a venda
+// desde que ficou ativa (mais pesado; a verificação do Gerar não precisa).
+// Cada item: page_id, pagina, tier, ativa_desde, tipo (NOVA/RETORNO), ultima (última linha da
+// carteira ou null), saida (última saída aplicada pela tela Saídas ou null), presa (bool),
+// decisao (linha de esc_pagina_entrada_checagem ou null), dias_escala, venda e situacao:
+//   ENTROU, IGNORADA, PRESA (não volta sozinha), AUTO (entra sozinha no próximo Gerar) ou PARADA.
+function escEntradasDetectadas(bool $movimento = true): array {
+    $hoje = date('Y-m-d');
+    $semEscala = escEstruturaSemEscala();
+    $overlap = escV4Param('v4_overlap_pagina', '5C Schedule');
+    $paginas = [];
+    foreach (escQ('SELECT id, name, tier, imported_at FROM `5c_pages`.`pages` WHERE active = 1 AND name <> ? ORDER BY name', [$overlap]) as $g) {
+        if (!$semEscala((string) $g['name'])) {
+            $paginas[(int) $g['id']] = $g;
+        }
+    }
+    if (!$paginas) {
+        return [];
+    }
+    // Carteira: aberta (fica fora da lista) e a última linha de cada página (retorno).
+    $aberta = $ultima = $modeloAberta = [];
+    foreach (escQ('SELECT pagina, carteira, modelo, vigente_desde, vigente_ate, obs FROM `5c_planning`.`fc_pagina_carteira` ORDER BY vigente_desde') as $c) {
+        $k = escEntradaChave((string) $c['pagina']);
+        $ultima[$k] = $c;
+        if ($c['vigente_ate'] === null || (string) $c['vigente_ate'] > $hoje) {
+            $aberta[$k] = true;
+            $modeloAberta[escPaginaChaveModelo((string) $c['pagina'])] = $modeloAberta[escPaginaChaveModelo((string) $c['pagina'])] ?? $c;
+        }
+    }
+    $paginas = array_filter($paginas, static fn($g) => !isset($aberta[escEntradaChave((string) $g['name'])]));
+    if (!$paginas) {
+        return [];
+    }
+    $ids = array_keys($paginas);
+    // Dia em que ficou ativa: o primeiro dia ativo depois da última foto inativa (sem foto inativa, a primeira foto).
+    $ativaDesde = [];
+    foreach (escQ('SELECT s.page_id, MIN(s.dia) AS desde
+                     FROM `5c_planning`.`fc_pagina_status_diario` s
+                     LEFT JOIN (SELECT page_id, MAX(dia) AS ult FROM `5c_planning`.`fc_pagina_status_diario` WHERE ativo = 0 AND page_id IN (' . escIn($ids) . ') GROUP BY page_id) i ON i.page_id = s.page_id
+                    WHERE s.ativo = 1 AND s.page_id IN (' . escIn($ids) . ') AND (i.ult IS NULL OR s.dia > i.ult)
+                    GROUP BY s.page_id', array_merge($ids, $ids)) as $s) {
+        $ativaDesde[(int) $s['page_id']] = substr((string) $s['desde'], 0, 10);
+    }
+    // Ativa já na primeira foto: a data real pode ser anterior ("19/10 ou antes").
+    $primeiraFoto = substr((string) (escQ1('SELECT MIN(dia) AS d FROM `5c_planning`.`fc_pagina_status_diario`')['d'] ?? ''), 0, 10);
+    $nomes = array_values(array_map(static fn($g) => (string) $g['name'], $paginas));
+    // Na escala antes (postos de qualquer época) = retorno, mesmo sem carteira.
+    $naEscala = [];
+    foreach (escQ('SELECT DISTINCT pagina FROM ' . escT('esc_posto_pagina') . ' WHERE pagina IN (' . escIn($nomes) . ')', $nomes) as $r) {
+        $naEscala[escEntradaChave((string) $r['pagina'])] = true;
+    }
+    // Última saída aplicada pela tela Saídas; presa = dentro de v4_saida_bloqueio_dias e sem destino novo no Funil depois.
+    $bloqDe = escMaisDias($hoje, -max(1, (int) escV4Param('v4_saida_bloqueio_dias', '60')));
+    $saida = [];
+    foreach (escQ('SELECT pagina, MAX(vale_desde) AS vale_desde, MAX(criado_em) AS quando FROM ' . escT('esc_saida_pagina') . " WHERE status = 'APLICADA' AND pagina IN (" . escIn($nomes) . ') GROUP BY pagina', $nomes) as $s) {
+        $saida[escEntradaChave((string) $s['pagina'])] = $s;
+    }
+    $previsaoDepois = [];
+    foreach ($saida ? escQ('SELECT pagina, GREATEST(criado_em, COALESCE(atualizado_em, criado_em)) AS quando FROM ' . escT('esc_pagina_previsao') . ' WHERE pagina IN (' . escIn($nomes) . ')', $nomes) : [] as $pv) {
+        $k = escEntradaChave((string) $pv['pagina']);
+        if (isset($saida[$k]) && (string) $pv['quando'] > (string) $saida[$k]['quando']) {
+            $previsaoDepois[$k] = true;
+        }
+    }
+    $decisoes = [];
+    if (escEntradaTemTabela()) {
+        foreach (escQ('SELECT id, pagina, ativa_desde, tipo, decisao, carteira, vale_desde, observacao, decidido_em, decidido_por FROM ' . escT('esc_pagina_entrada_checagem') . ' WHERE pagina IN (' . escIn($nomes) . ')', $nomes) as $d) {
+            $decisoes[escEntradaChave((string) $d['pagina']) . '|' . substr((string) $d['ativa_desde'], 0, 10)] = $d;
+        }
+    }
+    // Movimento desde que ficou ativa, no máximo v4_estrutura_movimento_dias (14) para trás.
+    $diasEscala = $venda = [];
+    if ($movimento) {
+        $de = escMaisDias($hoje, -max(1, (int) escV4Param('v4_estrutura_movimento_dias', '14')));
+        foreach (escQ('SELECT modeloNome AS p, LEFT(shiftDateAndHour, 10) AS d FROM `5c_schedule`.`scheduleday` WHERE shiftDateAndHour >= ? AND modeloNome IN (' . escIn($nomes) . ') GROUP BY modeloNome, LEFT(shiftDateAndHour, 10)',
+            array_merge([$de . 'T00:00:00'], $nomes)) as $r) {
+            $diasEscala[escEntradaChave((string) $r['p'])][] = (string) $r['d'];
+        }
+        foreach (escQ('SELECT Page AS p, `Date` AS d, SUM(`5CReps`) AS v FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE `Date` >= ? AND Page IN (' . escIn($nomes) . ') GROUP BY Page, `Date`',
+            array_merge([$de], $nomes)) as $r) {
+            $venda[escEntradaChave((string) $r['p'])][substr((string) $r['d'], 0, 10)] = (float) $r['v'];
+        }
+    }
+    $novaDe = escMaisDias($hoje, -max(0, (int) escV4Param('v4_estrutura_nova_dias', '7')));
+    $out = [];
+    foreach ($paginas as $id => $g) {
+        $nome = (string) $g['name'];
+        $k = escEntradaChave($nome);
+        $desde = $ativaDesde[$id] ?? ($g['imported_at'] ? substr((string) $g['imported_at'], 0, 10) : $hoje);
+        $ult = $ultima[$k] ?? null;
+        $sai = $saida[$k] ?? null;
+        $presa = $sai && substr((string) $sai['vale_desde'], 0, 10) >= $bloqDe && !isset($previsaoDepois[$k]);
+        $dias = count(array_filter($diasEscala[$k] ?? [], static fn($d) => $d >= $desde));
+        $v = array_sum(array_filter($venda[$k] ?? [], static fn($d) => $d >= $desde, ARRAY_FILTER_USE_KEY));
+        $dec = $decisoes[$k . '|' . $desde] ?? null;
+        $temMovimento = $dias > 0 || $v > 0 || ($g['imported_at'] !== null && substr((string) $g['imported_at'], 0, 10) >= $novaDe);
+        $situacao = $dec ? ($dec['decisao'] === 'ENTROU' ? 'ENTROU' : 'IGNORADA') : ($presa ? 'PRESA' : ($movimento && !$temMovimento ? 'PARADA' : 'AUTO'));
+        $irma = $ult ? null : ($modeloAberta[escPaginaChaveModelo($nome)] ?? null);
+        $out[] = ['page_id' => $id, 'pagina' => $nome, 'tier' => $g['tier'], 'ativa_desde' => $desde, 'desde_antes' => $desde === $primeiraFoto,
+            'tipo' => ($ult || isset($naEscala[$k]) || $sai) ? 'RETORNO' : 'NOVA', 'ultima' => $ult, 'irma' => $irma, 'saida' => $sai, 'presa' => $presa,
+            'decisao' => $dec, 'dias_escala' => $dias, 'venda' => $v, 'situacao' => $situacao,
+            'carteira_sugerida' => $ult['carteira'] ?? ($irma['carteira'] ?? null)];
+    }
+    // Primeiro o que precisa de decisão (presas), depois as que entram sozinhas, paradas e decididas.
+    $ordem = ['PRESA' => 0, 'AUTO' => 1, 'PARADA' => 2, 'ENTROU' => 3, 'IGNORADA' => 4];
+    usort($out, static fn($a, $b) => [$ordem[$a['situacao']], $b['ativa_desde'], $a['pagina']] <=> [$ordem[$b['situacao']], $a['ativa_desde'], $b['pagina']]);
+    return $out;
+}
+
+// Carteiras ativas do Capacity, para escolher onde a página entra.
+function escEntradaCarteiras(): array {
+    return escQ('SELECT carteira, unidade, nome FROM `5c_planning`.`fc_carteira` WHERE ativo = 1 ORDER BY unidade, carteira');
+}
+
+// Pôr na escala: grava a carteira no Capacity e recalcula; a escala recebe os postos no próximo Gerar.
+function escEntradaAplicar(string $pagina, string $carteira, string $desde, string $obs): array {
+    if (escModoTreino()) {
+        throw new RuntimeException(t('No Modo Treino a entrada de página não mexe no Capacity.'));
+    }
+    if (!escEntradaTemTabela()) {
+        throw new RuntimeException(t('Falta rodar o script ES_138 (entradas de página).'));
+    }
+    $minimo = max(date('Y-m-d'), escV4DiaEstrutura());
+    if ($desde < $minimo) {
+        throw new RuntimeException(t('A data de entrada não pode ser antes de {dia}.', ['dia' => dataBr($minimo)]));
+    }
+    $item = null;
+    foreach (escEntradasDetectadas(false) as $e) {
+        if ($e['pagina'] === $pagina) {
+            $item = $e;
+        }
+    }
+    if (!$item) {
+        throw new RuntimeException(t('{pagina} não está ativa no site ou já está no Capacity.', ['pagina' => $pagina]));
+    }
+    $cart = escQ1('SELECT carteira, unidade FROM `5c_planning`.`fc_carteira` WHERE carteira = ? AND ativo = 1', [$carteira]);
+    if (!$cart) {
+        throw new RuntimeException(t('Carteira não encontrada: {carteira}.', ['carteira' => $carteira]));
+    }
+    $motivo = mb_substr(($item['tipo'] === 'RETORNO' ? 'Voltou' : 'Entrou') . ' em ' . date('d/m/Y', strtotime($desde)) . ' (Funil de entrada, ativa no site desde '
+        . date('d/m/Y', strtotime($item['ativa_desde'])) . ')' . ($obs !== '' ? ': ' . $obs : ''), 0, 255);
+    $lock = (int) escDbW()->query("SELECT GET_LOCK('5c_escalas.entrada_pagina', 30)")->fetchColumn();
+    if ($lock !== 1) {
+        throw new RuntimeException(t('Outra entrada de página está sendo gravada agora. Tente de novo em instantes.'));
+    }
+    try {
+        $origem = 'ultima';
+        if ($item['ultima'] && escQ1('SELECT 1 AS ok FROM `5c_planning`.`fc_pagina_carteira` WHERE pagina = ? LIMIT 1', [$pagina])) {
+            escCapacityGravar('carteira_entrar', [$desde, $carteira, $motivo, $pagina]);
+        } else {
+            // Página nova (ou com outro nome na carteira antiga): volume do arquétipo do tier e perfil.
+            $perfil = escPaginaPerfil($pagina);
+            $tier = $item['tier'] !== null && $item['tier'] !== '' ? (string) $item['tier'] : null;
+            [$vol, $origem] = escFunilVolume(['perfil' => $perfil, 'fans_h_a' => null, 'fans_h_c' => null, 'fans_h_d' => null], $tier, escFunilArquetipos());
+            $fas = round(max(0.1, ($vol['A'] + $vol['C'] + $vol['D']) / 3), 2);
+            $modelo = $item['irma']['modelo'] ?? escPaginaChaveModelo($pagina);
+            escCapacityGravar('pagina_nova', [$pagina, $desde, $carteira, $modelo, $fas, $motivo, $pagina]);
+        }
+        if (!escQ1('SELECT 1 AS ok FROM `5c_planning`.`fc_pagina_carteira` WHERE pagina = ? AND vigente_ate IS NULL', [$pagina])) {
+            throw new RuntimeException(t('{pagina}: o Capacity não aceitou a carteira. Nada foi gravado na escala.', ['pagina' => $pagina]));
+        }
+        // A decisão fica gravada logo depois da carteira: se o recálculo falhar, o próximo Gerar recalcula.
+        escW('INSERT INTO `' . ESC_SCHEMA . '`.`esc_pagina_entrada_checagem` (page_id, pagina, ativa_desde, tipo, decisao, carteira, vale_desde, observacao, decidido_por)
+              VALUES (?, ?, ?, ?, \'ENTROU\', ?, ?, ?, ?) AS n
+              ON DUPLICATE KEY UPDATE decisao = n.decisao, carteira = n.carteira, vale_desde = n.vale_desde, observacao = n.observacao, decidido_em = NOW(), decidido_por = n.decidido_por',
+            [$item['page_id'], $pagina, $item['ativa_desde'], $item['tipo'], $carteira, $desde, mb_substr($obs, 0, 500) ?: null, escUserId() ?: null]);
+        $res = ['pagina' => $pagina, 'tipo' => $item['tipo'], 'carteira' => $carteira, 'desde' => $desde, 'volume' => $origem, 'capacity' => [], 'erro_recalculo' => null];
+        try {
+            $comVersao = (bool) escQ1("SELECT 1 AS ok FROM information_schema.routines WHERE routine_schema = '5c_planning' AND routine_name = 'sp_fc_recalcular_postos'");
+            foreach (escSaidaDatasCapacity($desde) as $dc) {
+                escCapacityGravar($comVersao ? 'recalcular_versao' : 'recalcular', $comVersao
+                    ? [$dc, mb_substr('Entrada de ' . $pagina . ' em ' . $carteira . ' a partir de ' . date('d/m/Y', strtotime($desde)) . ' (5C Escalas)', 0, 255)] : [$dc]);
+                $res['capacity'][] = $dc;
+            }
+        } catch (Throwable $e) {
+            appLog('error', 'Entrada de página: carteira gravada, recálculo do Capacity falhou', ['pagina' => $pagina, 'erro' => $e->getMessage()]);
+            $res['erro_recalculo'] = $e->getMessage();
+        }
+        escLog('entrada.aplicar', 'esc_pagina_entrada_checagem', null, null, $res);
+        return $res;
+    } finally {
+        escDbW()->query("SELECT RELEASE_LOCK('5c_escalas.entrada_pagina')")->fetchColumn();
+    }
+}
+
+// Ignorar (não é página de escala) ou desfazer o "ignorar".
+function escEntradaIgnorar(string $pagina, string $ativaDesde, bool $ignorar, string $obs): void {
+    if (!escEntradaTemTabela()) {
+        throw new RuntimeException(t('Falta rodar o script ES_138 (entradas de página).'));
+    }
+    if (!$ignorar) {
+        escW('DELETE FROM `' . ESC_SCHEMA . "`.`esc_pagina_entrada_checagem` WHERE pagina = ? AND ativa_desde = ? AND decisao = 'IGNORAR'", [$pagina, $ativaDesde]);
+        escLog('entrada.desfazer_ignorar', 'esc_pagina_entrada_checagem', null, null, ['pagina' => $pagina, 'ativa_desde' => $ativaDesde]);
+        return;
+    }
+    $item = null;
+    foreach (escEntradasDetectadas(false) as $e) {
+        if ($e['pagina'] === $pagina && $e['ativa_desde'] === $ativaDesde) {
+            $item = $e;
+        }
+    }
+    if (!$item) {
+        throw new RuntimeException(t('{pagina} não está ativa no site ou já está no Capacity.', ['pagina' => $pagina]));
+    }
+    escW('INSERT INTO `' . ESC_SCHEMA . '`.`esc_pagina_entrada_checagem` (page_id, pagina, ativa_desde, tipo, decisao, observacao, decidido_por)
+          VALUES (?, ?, ?, ?, \'IGNORAR\', ?, ?) AS n
+          ON DUPLICATE KEY UPDATE decisao = n.decisao, carteira = NULL, vale_desde = NULL, observacao = n.observacao, decidido_em = NOW(), decidido_por = n.decidido_por',
+        [$item['page_id'], $pagina, $ativaDesde, $item['tipo'], mb_substr($obs, 0, 500) ?: null, escUserId() ?: null]);
+    escLog('entrada.ignorar', 'esc_pagina_entrada_checagem', null, null, ['pagina' => $pagina, 'ativa_desde' => $ativaDesde]);
+}
