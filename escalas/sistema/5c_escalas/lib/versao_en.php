@@ -6,6 +6,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.27.1' => ['titulo' => 'Exits read live from the website, manual exit of several pages and renamed page in the Funnel', 'itens' => [
+        'Page exits: new section "Deactivated on the website, no exit detected", which reads the website live. It lists the pages that are in Capacity and were already deactivated in the website registry, before Capacity creates the exit (it only detects after the 3 a.m. snapshot). Tick them and see the preview: the ticked pages leave together, with a single recalculation.',
+        'Apply page exit (manual): "+ another page" for several pages on the same date (e.g. Janet VIP and Janet Free), with one preview and one recalculation of Capacity and the schedule. The default date is now today.',
+        'Detected exits: the row of an exit already applied (by hand or through the new section) no longer counts as "to check".',
+        'Intake funnel: a page renamed on the website is linked to its old name by id (e.g. "Liv" came back as "Liv Loxey") and enters as a return, with its previous portfolio suggested. Capacity records the new portfolio copying model, rule and volume from the old name.',
+        'Intake funnel: a page activated after the 3 a.m. snapshot shows the right day ("after the 3 a.m. snapshot") and, with no schedule or sales yet, stays at the top as "just activated", instead of collapsed among the idle ones with the old import date.',
+    ]],
     '1.27.0' => ['titulo' => 'Training classes in three subsections, Outside the units with the HR list and Recalculate now in Capacity', 'itens' => [
     'Outside the units: compact list (one row per person, with core, level, date and Register on the same row), Active · On leave or idle · All filter and search by name or code. The reason for the suggestion is under "why". The shortfall by unit and shift moved to the end.',
     'Outside the units: new section "For HR to deactivate on the site", with people HR still lists as SRs who are not working (exit recorded in 5C Escalas, or on leave / without a schedule on the site for over 30 days), and the "Download for HR (.xlsx)" button: SR code, full name, hire date, last schedule on the site and a note (leave or scheduled unavailability). Download only for WFM, Planning and Admin; the sheet has a version (vN).',

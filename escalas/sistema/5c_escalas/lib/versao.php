@@ -8,6 +8,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.27.1', 'data' => '2026-11-10', 'titulo' => 'Saídas lidas do site na hora, saída manual de várias páginas e página renomeada no Funil', 'sql' => [], 'itens' => [
+    'Saídas de página: seção nova "Desativadas no site, sem saída detectada", que lê o site na hora. Lista as páginas que estão no Capacity e já foram desativadas no cadastro do site, antes de o Capacity gerar a saída (ele só detecta depois da foto das 3h). Marque e veja a prévia: as marcadas saem juntas, com um recálculo só.',
+    'Aplicar saída de página (manual): "+ outra página" para várias páginas na mesma data (ex.: Janet VIP e Janet Free), com uma prévia e um recálculo do Capacity e da escala. A data padrão passou a ser hoje.',
+    'Saídas detectadas: a linha de uma saída já aplicada (à mão ou pela seção nova) não conta mais como "a conferir".',
+    'Funil de entrada: página renomeada no site é ligada ao nome antigo pelo id (ex.: "Liv" voltou como "Liv Loxey") e entra como retorno, com a carteira de antes sugerida. O Capacity grava a carteira nova copiando modelo, regra e volume do nome antigo.',
+    'Funil de entrada: a página que ativou depois da foto das 3h mostra o dia certo ("depois da foto das 3h") e, sem escala nem venda ainda, fica no topo como "ativou agora", em vez de recolhida entre as paradas com a data de importação antiga.',
+    ]],
     ['versao' => '1.27.0', 'data' => '2026-11-10', 'titulo' => 'Turmas de treinamento em três subseções, Fora das unidades com a lista para o RH e Recalcular agora no Capacity', 'sql' => [], 'itens' => [
     'Fora das unidades: lista compacta (uma linha por pessoa, com o cadastro em núcleo, nível, data e Cadastrar na mesma linha), filtro Ativos · Afastados ou parados · Todos e busca por nome ou código. O motivo da sugestão fica em "por quê". A falta por unidade e turno foi para o fim.',
     'Fora das unidades: seção nova "Para o RH desativar no site", com quem o RH ainda lista como SR e não está trabalhando (saída informada no 5C Escalas, ou afastado / sem escala no site há mais de 30 dias), e o botão "Baixar para o RH (.xlsx)": código do SR, nome completo, data de admissão, data da última escala no site e observação (licença ou indisponibilidade programada). Download só para WFM, Planejamento e Admin; a planilha tem versão (vN).',

@@ -37,6 +37,12 @@ function escCapacityGravar(string $acao, array $params): void {
         'pagina_nova' => 'INSERT INTO `5c_planning`.`fc_pagina_carteira` (pagina, vigente_desde, vigente_ate, carteira, modelo, regra, ordem, fas_h_estimado, obs)
                           SELECT ?, ?, NULL, ?, ?, \'PADRAO\', 999, ?, ? FROM DUAL
                            WHERE NOT EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_carteira` WHERE pagina = ? AND vigente_ate IS NULL)',
+        // Retorno de página renomeada no site (Funil, 1.27.1; ex.: "Liv" voltou como "Liv Loxey"): abre a carteira
+        // com o nome novo, copiando modelo, regra e volume da última linha do nome antigo.
+        'carteira_renomeada' => 'INSERT INTO `5c_planning`.`fc_pagina_carteira` (pagina, vigente_desde, vigente_ate, carteira, modelo, regra, ordem, fas_h_estimado, obs)
+                                 SELECT ?, ?, NULL, ?, modelo, regra, ordem, fas_h_estimado, ? FROM `5c_planning`.`fc_pagina_carteira` WHERE pagina = ?
+                                  AND NOT EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_carteira` x WHERE x.pagina = ? AND x.vigente_ate IS NULL)
+                                  ORDER BY vigente_desde DESC LIMIT 1',
         // Página que entrou sozinha antes de gerar (lib/estrutura.php) com vigência antes do início da estrutura.
         'pagina_auto_inicio' => 'UPDATE `5c_planning`.`fc_pagina_carteira` SET vigente_desde = ? WHERE obs LIKE \'Entrou antes de gerar%\' AND vigente_desde < ? AND vigente_ate IS NULL',
         // Capacity com versões (script 19): recalcula e grava a versão com o motivo.

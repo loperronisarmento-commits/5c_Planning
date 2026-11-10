@@ -4,17 +4,34 @@
 // Saídas de página detectadas pelo Capacity (fc_pagina_eventos) com o
 // efeito calculado (fc_impacto_paginas) e a checagem de quem opera o
 // sistema (5c_escalas.esc_saida_checagem).
+// 1.27.1: "Desativadas no site, sem saída detectada" lê o site na hora (o evento do Capacity só sai
+// depois da foto das 3h) e a saída manual aceita várias páginas de uma vez (mesmo recálculo).
 // ===============================================
+
+// Páginas do pedido: pagina (uma) ou pagina[] (várias), sem repetir e sem vazias.
+$paginasDoPedido = static function ($v): array {
+    $lista = is_array($v) ? $v : [$v];
+    return array_values(array_unique(array_filter(array_map(static fn($p) => trim((string) $p), $lista), 'strlen')));
+};
 
 if (escPost() && ($_POST['acao'] ?? '') === 'aplicar') {
     // Saída aplicada pelo sistema: Capacity (com foto antes e depois), postos, vagas e escala.
     escExigir('planejar');
-    $pagina = trim((string) ($_POST['pagina'] ?? ''));
+    $paginasAplicar = $paginasDoPedido($_POST['pagina'] ?? '');
     $desde = (string) ($_POST['desde'] ?? '');
-    $eventoAplicar = (int) ($_POST['evento_id'] ?? 0) ?: null;
     if (preg_match('~^\d{4}-\d{2}-\d{2}$~', $desde)) {
         $desde = max($desde, date('Y-m-d'));
     }
+    if (count($paginasAplicar) > 1) {
+        // Várias páginas na mesma data: um recálculo do Capacity e da escala.
+        $r = escAplicarSaidasPaginas(array_map(static fn($p) => ['pagina' => $p, 'evento_id' => null], $paginasAplicar), $desde, trim((string) ($_POST['motivo'] ?? '')));
+        escVoltar('saidas', ['saida' => $r['id']], t('Saída de {n} páginas aplicada a partir de {dia} ({paginas}). {fechados} posto(s) fechado(s), {refeitos} refeito(s) sem as páginas, {vagas} SR(s) com vaga nova, {livres} livre(s) para o motor; {planos} escala(s) gerada(s) de novo.', [
+            'n' => count($paginasAplicar), 'paginas' => implode(', ', $paginasAplicar), 'dia' => dataBr($desde), 'fechados' => count($r['postos_fechados']), 'refeitos' => count($r['postos_refeitos']),
+            'vagas' => count($r['vagas_passadas']), 'livres' => count($r['livres']), 'planos' => count($r['planos']),
+        ]) . (!empty($r['ja_inativas_no_capacity']) ? ' ' . tn(count($r['ja_inativas_no_capacity']), '{n} página já estava desativada no Capacity: só a escala foi ajustada ({lista}).', '{n} páginas já estavam desativadas no Capacity: só a escala foi ajustada ({lista}).', ['lista' => implode(', ', $r['ja_inativas_no_capacity'])]) : ''));
+    }
+    $pagina = $paginasAplicar[0] ?? '';
+    $eventoAplicar = (int) ($_POST['evento_id'] ?? 0) ?: null;
     // Página que entra no lugar (opcional, ES_37): quem perder a vaga vai para ela.
     $entra = null;
     if (trim((string) ($_POST['entra_pagina'] ?? '')) !== '' && escSaidaComEntrada()) {
@@ -72,15 +89,19 @@ $decidir = static function (int $evento, string $decisao, string $obs): array {
 // Prévia (GET ?previa=1): o que a saída faria, antes de aplicar.
 $previa = null;
 if (!escPost() && !empty($_GET['previa']) && escPode('planejar')) {
-    $pgPrevia = trim((string) ($_GET['pagina'] ?? ''));
+    $pgsPrevia = $paginasDoPedido($_GET['pagina'] ?? '');
+    $pgPrevia = implode(', ', $pgsPrevia);
     $desdePrevia = escDataValida($_GET['desde'] ?? null) ?? '';
-    if ($pgPrevia !== '' && $desdePrevia !== '') {
-        $previa = ['pagina' => $pgPrevia, 'desde' => $desdePrevia, 'evento' => (int) ($_GET['evento'] ?? 0) ?: null,
-                   'motivo' => mb_substr(trim((string) ($_GET['motivo'] ?? '')), 0, 255), 'r' => escSaidaPrevia([$pgPrevia], $desdePrevia),
+    if ($desdePrevia !== '' && $desdePrevia < date('Y-m-d')) {
+        $desdePrevia = date('Y-m-d'); // a página já saiu: a escala muda de hoje em diante
+    }
+    if ($pgsPrevia && $desdePrevia !== '') {
+        $previa = ['pagina' => $pgPrevia, 'paginas' => $pgsPrevia, 'desde' => $desdePrevia, 'evento' => count($pgsPrevia) === 1 ? ((int) ($_GET['evento'] ?? 0) ?: null) : null,
+                   'motivo' => mb_substr(trim((string) ($_GET['motivo'] ?? '')), 0, 255), 'r' => escSaidaPrevia($pgsPrevia, $desdePrevia),
                    'entrada' => null, 'entrada_erro' => null, 'entra' => null];
         $nomesPrevia = escNomes();
-        // Página que entra no lugar (opcional): o plano sai na própria prévia.
-        if (escSaidaComEntrada() && trim((string) ($_GET['entra'] ?? '')) !== '') {
+        // Página que entra no lugar (opcional, só com uma página saindo): o plano sai na própria prévia.
+        if (count($pgsPrevia) === 1 && escSaidaComEntrada() && trim((string) ($_GET['entra'] ?? '')) !== '') {
             $previa['entra'] = ['pagina' => trim((string) $_GET['entra']), 'desde' => (string) ($_GET['entra_desde'] ?? $desdePrevia),
                 'fans' => ['A' => $_GET['fans_a'] ?? null, 'C' => $_GET['fans_c'] ?? null, 'D' => $_GET['fans_d'] ?? null]];
             try {
@@ -246,12 +267,38 @@ try {
     appLog('warning', 'Saídas aplicadas indisponíveis (rodar ES_16)', ['erro' => $e->getMessage()]);
 }
 
+// Saída da linha detectada já aplicada (pelo evento, ou pela página com a data perto).
+$aplicadaDe = static function (array $s) use ($aplicadaEvento, $aplicadaPagina): ?array {
+    if (isset($aplicadaEvento[(int) $s['id']])) {
+        return $aplicadaEvento[(int) $s['id']];
+    }
+    $ap = $aplicadaPagina[$s['pagina']] ?? null;
+    return $ap && abs(strtotime((string) $ap['vale_desde']) - strtotime(max(substr((string) $s['data_evento'], 0, 10), date('Y-m-d')))) <= ESC_SAIDA_JANELA_DIAS * 86400 ? $ap : null;
+};
+
+// Desativadas no site agora, com carteira aberta no Capacity e sem evento de saída ainda (o Capacity só
+// detecta depois da foto das 3h) nem saída aplicada por perto. Lido na hora em 5c_pages.pages.
+$desativadas = [];
+try {
+    $desativadas = escQ("SELECT c.pagina, c.carteira, g.id AS page_id, g.updated_at,
+                                (SELECT MAX(s.dia) FROM `5c_planning`.`fc_pagina_status_diario` s WHERE s.page_id = g.id AND s.ativo = 1) AS ultima_ativa
+                           FROM `5c_planning`.`fc_pagina_carteira` c
+                           JOIN `5c_pages`.`pages` g ON g.name COLLATE utf8mb4_unicode_ci = c.pagina COLLATE utf8mb4_unicode_ci
+                          WHERE (c.vigente_ate IS NULL OR c.vigente_ate > CURDATE()) AND g.active = 0
+                            AND NOT EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_eventos` e WHERE e.page_id = g.id AND e.tipo = 'SAIDA' AND e.data_evento >= CURDATE() - INTERVAL 14 DAY)
+                          ORDER BY c.carteira, c.pagina");
+    $desativadas = array_values(array_filter($desativadas, static fn($d) => !isset($aplicadaPagina[$d['pagina']])
+        || abs(strtotime((string) $aplicadaPagina[$d['pagina']]['vale_desde']) - time()) > ESC_SAIDA_JANELA_DIAS * 86400));
+} catch (Throwable $e) {
+    appLog('warning', 'Saídas: leitura das desativadas no site falhou', ['erro' => $e->getMessage()]);
+}
+
 $soma = 0.0;
 $somaHc = 0.0;
 $pendentes = 0;
 foreach ($saidas as $s) {
     $ch = $checagem[(int) $s['id']]['decisao'] ?? 'PENDENTE';
-    if ($ch === 'PENDENTE' && $s['status'] !== 'CANCELADA') {
+    if ($ch === 'PENDENTE' && $s['status'] !== 'CANCELADA' && !$aplicadaDe($s)) {
         $pendentes++;
     }
     if ($s['status'] !== 'CANCELADA' && $s['reps_h_a'] !== null && $ch !== 'NAO_SAIU') {
@@ -272,6 +319,57 @@ foreach ($saidas as $s) {
   <div class="kpi"><span class="muted"><?php echo h(t('Efeito em pessoas')); ?></span><strong class="azul"><?php echo num($somaHc, 1); ?></strong><span class="muted small"><?php echo h(t('com presença 75% e absenteísmo')); ?></span></div>
 </section>
 
+<?php if ($desativadas): ?>
+<section class="panel" id="desativadas">
+  <div class="linha-titulo"><h2><?php echo h(t('Desativadas no site, sem saída detectada · {n}', ['n' => count($desativadas)])); ?></h2>
+    <span class="muted small"><?php echo h(t('Lido no site agora. O Capacity só gera a saída depois da foto das 3h.')); ?></span></div>
+  <p class="muted small"><?php echo h(t('Páginas que estão no Capacity e já foram desativadas no cadastro do site. Se a saída é real, marque e veja a prévia: as marcadas saem juntas, com um recálculo só. Quando o Capacity detectar amanhã, a linha em "Saídas detectadas" já aparece como aplicada.')); ?></p>
+  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="form-grade">
+    <input type="hidden" name="p" value="saidas"><input type="hidden" name="previa" value="1">
+    <div class="tabela-rolagem">
+    <table>
+      <thead><tr><?php if (escPode('planejar')): ?><th data-sem-ordem class="col-sel"><input type="checkbox" id="desat-todas" aria-label="<?php echo h(t('Selecionar todas')); ?>"></th><?php endif; ?><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Carteira')); ?></th><th><?php echo h(t('Desativada no site')); ?></th><th><?php echo h(t('Última foto ativa')); ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($desativadas as $d): ?>
+        <tr>
+          <?php if (escPode('planejar')): ?><td class="col-sel"><input type="checkbox" name="pagina[]" value="<?php echo h($d['pagina']); ?>" class="desat-sel" aria-label="<?php echo h(t('Selecionar {pagina}', ['pagina' => $d['pagina']])); ?>"></td><?php endif; ?>
+          <td><strong><?php echo h($d['pagina']); ?></strong></td>
+          <td><?php echo h((string) $d['carteira']); ?></td>
+          <td class="small"><?php echo $d['updated_at'] ? h(escDataHora((string) $d['updated_at'])) : '<span class="muted">—</span>'; ?></td>
+          <td class="small"><?php echo $d['ultima_ativa'] ? h(dataBr(substr((string) $d['ultima_ativa'], 0, 10))) : '<span class="muted">—</span>'; ?></td>
+        </tr>
+      <?php endforeach; ?>
+      </tbody>
+    </table>
+    </div>
+    <?php if (escPode('planejar')): ?>
+    <div class="acoes">
+      <label><?php echo h(t('Sem as páginas a partir de')); ?><input type="date" name="desde" required min="<?php echo h(date('Y-m-d')); ?>" value="<?php echo h(date('Y-m-d')); ?>"></label>
+      <label><?php echo h(t('Motivo')); ?><input type="text" name="motivo" size="24" maxlength="255" placeholder="<?php echo h(t('ex.: modelo saiu')); ?>" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }"></label>
+      <button type="submit" class="botao primario" id="desat-previa" disabled><?php echo h(t('Ver prévia das marcadas')); ?></button>
+    </div>
+    <?php endif; ?>
+  </form>
+</section>
+<?php if (escPode('planejar')): ?>
+<script>
+(function () {
+  var todas = document.getElementById('desat-todas'), botao = document.getElementById('desat-previa');
+  var sel = function () { return Array.prototype.slice.call(document.querySelectorAll('.desat-sel')); };
+  function contar() {
+    var n = sel().filter(function (c) { return c.checked; }).length;
+    botao.disabled = n === 0;
+    todas.checked = n > 0 && n === sel().length;
+    todas.indeterminate = n > 0 && n < sel().length;
+  }
+  document.addEventListener('change', function (ev) { if (ev.target.classList.contains('desat-sel')) { contar(); } });
+  todas.addEventListener('change', function () { sel().forEach(function (c) { c.checked = todas.checked; }); contar(); });
+  contar();
+})();
+</script>
+<?php endif; ?>
+<?php endif; ?>
+
 <?php if (escPode('planejar')): ?>
 <section class="panel">
   <h2><?php echo h(t('Aplicar saída de página')); ?></h2>
@@ -282,15 +380,33 @@ foreach ($saidas as $s) {
     <li><?php echo h(t('quem ficou sem vaga vai para uma vaga sem ninguém do próprio núcleo, de preferência numa página que já conhece;')); ?></li>
     <li><?php echo h(t('gera de novo as escalas da data em diante. Os ajustes travados ficam.')); ?></li>
   </ul>
-  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
+  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes" id="saida-manual">
     <input type="hidden" name="p" value="saidas"><input type="hidden" name="previa" value="1">
-    <label><?php echo h(t('Página')); ?><input type="text" name="pagina" list="lista-paginas" required size="28" placeholder="<?php echo h(t('buscar página')); ?>"></label>
-    <label><?php echo h(t('Sem a página a partir de')); ?><input type="date" name="desde" required min="<?php echo h(date('Y-m-d')); ?>" value="<?php echo h(date('Y-m-d', strtotime('+1 day'))); ?>"></label>
+    <span class="saida-manual-paginas">
+      <label><?php echo h(t('Página')); ?><input type="text" name="pagina[]" list="lista-paginas" required size="28" placeholder="<?php echo h(t('buscar página')); ?>"></label>
+    </span>
+    <button type="button" class="botao" id="saida-mais" title="<?php echo h(t('As páginas saem juntas, na mesma data, com um recálculo só.')); ?>"><?php echo h(t('+ outra página')); ?></button>
+    <label><?php echo h(t('Sem a página a partir de')); ?><input type="date" name="desde" required min="<?php echo h(date('Y-m-d')); ?>" value="<?php echo h(date('Y-m-d')); ?>"></label>
     <label><?php echo h(t('Motivo')); ?><input type="text" name="motivo" size="24" placeholder="<?php echo h(t('ex.: modelo saiu')); ?>" onkeydown="if (event.key === 'Enter') { event.preventDefault(); }"></label>
     <button type="submit" class="botao primario"><?php echo h(t('Ver prévia')); ?></button>
   </form>
-  <p class="muted small"><?php echo h(t('A prévia mostra os postos que fecham, os refeitos, quem perde a vaga fixa e as semanas geradas de novo, antes de aplicar.')); ?></p>
+  <p class="muted small"><?php echo h(t('A prévia mostra os postos que fecham, os refeitos, quem perde a vaga fixa e as semanas geradas de novo, antes de aplicar.')); ?> <?php echo h(t('Várias páginas (ex.: as VIP e Free da mesma modelo) saem juntas com "+ outra página".')); ?></p>
 </section>
+<script>
+(function () {
+  var mais = document.getElementById('saida-mais'), caixa = document.querySelector('#saida-manual .saida-manual-paginas');
+  if (!mais || !caixa) { return; }
+  mais.addEventListener('click', function () {
+    var labels = caixa.querySelectorAll('label');
+    if (labels.length >= 10) { return; }
+    var novo = labels[0].cloneNode(true), campo = novo.querySelector('input');
+    campo.value = '';
+    campo.required = false;
+    caixa.appendChild(novo);
+    campo.focus();
+  });
+})();
+</script>
 <?php endif; ?>
 
 <?php if ($previa): $pv = $previa['r']; ?>
@@ -311,7 +427,7 @@ foreach ($saidas as $s) {
   <?php else: ?>
   <p class="muted small"><?php echo h(t('Nenhum posto da estrutura nova tem esta página a partir dessa data. A saída só fecha a página no Capacity e gera as semanas de novo.')); ?></p>
   <?php endif; ?>
-  <?php if (escSaidaComEntrada()):
+  <?php $pe = null; if (escSaidaComEntrada() && count($previa['paginas']) === 1):
       $pe = $previa['entrada'];
       $cands = escSaidaCandidatasEntrada();
       $nucTxt = [];
@@ -348,7 +464,7 @@ foreach ($saidas as $s) {
           'fechados' => count($pv['fechados']), 'refeitos' => count($pv['refeitos']), 'semvaga' => count($pv['sem_vaga']), 'semanas' => count($pv['semanas']),
       ])); ?>" data-longo="<?php echo h(t('Aplicando a saída… recalcula o Capacity e a escala, pode levar alguns minutos.')); ?>">
     <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="aplicar">
-    <input type="hidden" name="pagina" value="<?php echo h($previa['pagina']); ?>"><input type="hidden" name="desde" value="<?php echo h($previa['desde']); ?>">
+    <?php foreach ($previa['paginas'] as $pgH): ?><input type="hidden" name="pagina[]" value="<?php echo h($pgH); ?>"><?php endforeach; ?><input type="hidden" name="desde" value="<?php echo h($previa['desde']); ?>">
     <?php if ($previa['evento']): ?><input type="hidden" name="evento_id" value="<?php echo (int) $previa['evento']; ?>"><?php endif; ?>
     <input type="hidden" name="motivo" value="<?php echo h($previa['motivo']); ?>">
     <?php if (!empty($pe)): ?>
@@ -463,7 +579,7 @@ foreach ($saidas as $s) {
     <thead><tr><?php if ($podeLote): ?><th data-sem-ordem class="col-sel"><input type="checkbox" id="lote-todas" aria-label="<?php echo h(t('Selecionar todas')); ?>"></th><?php endif; ?><th><?php echo h(t('Data')); ?></th><th><?php echo h(t('Página')); ?></th><th class="num">A</th><th class="num">C</th><th class="num">D</th><th class="num"><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Checagem')); ?></th><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <tbody>
     <?php foreach ($saidas as $s): $ch = $checagem[(int) $s['id']] ?? null; $dec = $ch['decisao'] ?? 'PENDENTE';
-        $ap = $aplicadaEvento[(int) $s['id']] ?? (isset($aplicadaPagina[$s['pagina']]) && abs(strtotime((string) $aplicadaPagina[$s['pagina']]['vale_desde']) - strtotime(max(substr((string) $s['data_evento'], 0, 10), date('Y-m-d')))) <= ESC_SAIDA_JANELA_DIAS * 86400 ? $aplicadaPagina[$s['pagina']] : null);
+        $ap = $aplicadaDe($s);
         $jaAplicada = $ap !== null; ?>
       <tr>
         <?php if ($podeLote): ?><td class="col-sel"><input type="checkbox" name="evento_ids[]" value="<?php echo (int) $s['id']; ?>" form="saidas-lote" class="lote-sel" data-pendente="<?php echo $dec === 'PENDENTE' && $s['status'] !== 'CANCELADA' ? '1' : '0'; ?>" data-aplicada="<?php echo $jaAplicada ? '1' : '0'; ?>" data-pagina="<?php echo h($s['pagina']); ?>" aria-label="<?php echo h(t('Selecionar {pagina}', ['pagina' => $s['pagina']])); ?>"></td><?php endif; ?>

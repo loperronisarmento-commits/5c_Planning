@@ -142,6 +142,7 @@ $entradaNucleo = escEntradaTemNucleo();
 $entradasDecididas = $entradaTabela ? escQ("SELECT pagina, ativa_desde, tipo, decisao, carteira, vale_desde, " . ($entradaNucleo ? 'nucleo_numero' : 'NULL AS nucleo_numero') . ", observacao, decidido_em FROM " . escT('esc_pagina_entrada_checagem') . " WHERE decisao = 'ENTROU' ORDER BY decidido_em DESC LIMIT 10") : [];
 $SITUACAO_ENTRADA = [
     'PRESA' => ['vermelho', t('não volta sozinha')],
+    'RECENTE' => ['amarelo', t('ativou agora, sem movimento: decida')],
     'AUTO' => ['verde', t('entra sozinha no próximo Gerar')],
     'PARADA' => ['cinza', t('sem escala nem venda')],
     'ENTROU' => ['verde', t('já entrou')],
@@ -158,6 +159,7 @@ $SITUACAO_ENTRADA = [
   <div class="linha-titulo"><h2><?php echo h(t('Ativas no site, fora da escala · {n}', ['n' => count($entradas) - $nIgnoradas])); ?></h2>
     <span class="muted small"><?php echo h(t('Detectadas pela DB, não pelo CRM: página ativa no site da 5C e sem carteira no Capacity.')); ?></span></div>
   <p class="muted small"><?php echo h(t('Retorno é a página que já esteve no Capacity ou na escala. Quem saiu pela tela Saídas de página não volta sozinha por {dias} dias: decida aqui. As outras entram sozinhas no próximo Gerar quando têm escala no site ou venda; "Pôr na escala" serve para escolher a carteira antes.', ['dias' => (int) escV4Param('v4_saida_bloqueio_dias', '60')])); ?></p>
+  <p class="muted small"><?php echo h(t('A lista lê o site na hora. A que ativou depois da foto das 3h e ainda não tem escala nem venda aparece como "ativou agora": ponha na escala se ela começa já. Página renomeada no site é reconhecida pelo id e volta para a carteira de antes.')); ?></p>
   <?php if (!$entradaTabela): ?><p class="tag laranja"><?php echo h(t('Falta rodar o script ES_138: a lista aparece, mas sem as ações.')); ?></p><?php endif; ?>
   <?php if ($nPresas): ?><p><span class="tag vermelho"><?php echo h(tn($nPresas, '{n} página não volta sozinha', '{n} páginas não voltam sozinhas')); ?></span></p><?php endif; ?>
   <?php // Paradas (sem escala nem venda: PH, X, testes...) ficam recolhidas abaixo das que pedem decisão.
@@ -175,9 +177,10 @@ $SITUACAO_ENTRADA = [
     <?php foreach ($grupo['lista'] as $e): [$corSit, $rotSit] = $SITUACAO_ENTRADA[$e['situacao']]; $ult = $e['ultima']; ?>
       <tr>
         <td><strong><?php echo h($e['pagina']); ?></strong> <span class="tag <?php echo $e['tipo'] === 'RETORNO' ? 'amarelo' : ''; ?>"><?php echo h($e['tipo'] === 'RETORNO' ? t('retorno') : t('nova')); ?></span></td>
-        <td><?php echo h($e['desde_antes'] ? t('{dia} ou antes', ['dia' => dataBr($e['ativa_desde'])]) : dataBr($e['ativa_desde'])); ?></td>
+        <td><?php echo h($e['desde_antes'] ? t('{dia} ou antes', ['dia' => dataBr($e['ativa_desde'])]) : dataBr($e['ativa_desde'])); ?><?php echo !empty($e['recente']) ? '<br><span class="muted small">' . h(t('depois da foto das 3h')) . '</span>' : ''; ?></td>
         <td class="small entrada-antes"><?php
             $antes = [];
+            if (!empty($e['nome_antes'])) { $antes[] = t('no site antes como "{nome}"', ['nome' => $e['nome_antes']]); }
             if ($ult) { $antes[] = t('carteira {carteira} até {dia}', ['carteira' => $ult['carteira'], 'dia' => $ult['vigente_ate'] ? dataBr(substr((string) $ult['vigente_ate'], 0, 10)) : '—']); }
             if ($e['saida']) { $antes[] = t('saída aplicada a partir de {dia}', ['dia' => dataBr(substr((string) $e['saida']['vale_desde'], 0, 10))]); }
             if (!$ult && $e['irma']) { $antes[] = t('a modelo tem {pagina} na carteira {carteira}', ['pagina' => $e['irma']['pagina'], 'carteira' => $e['irma']['carteira']]); }
@@ -193,7 +196,7 @@ $SITUACAO_ENTRADA = [
               <button type="submit" class="botao"><?php echo h(t('Voltar para a lista')); ?></button>
             </form>
             <?php elseif ($e['situacao'] !== 'ENTROU'): ?>
-            <details><summary class="botao <?php echo $e['situacao'] === 'PRESA' ? 'primario' : ''; ?>"><?php echo h(t('Decidir')); ?></summary>
+            <details><summary class="botao <?php echo in_array($e['situacao'], ['PRESA', 'RECENTE'], true) ? 'primario' : ''; ?>"><?php echo h(t('Decidir')); ?></summary>
               <form method="post" action="<?php echo h(link_tela('funil')); ?>" class="form-grade" data-confirmar="<?php echo h(t('Pôr {pagina} na escala? A carteira é gravada no Capacity, que é recalculado agora; os postos entram no próximo Gerar.', ['pagina' => $e['pagina']])); ?>">
                 <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="entrada_aplicar"><input type="hidden" name="pagina" value="<?php echo h($e['pagina']); ?>">
                 <label><?php echo h(t('Carteira')); ?><select name="carteira" required>

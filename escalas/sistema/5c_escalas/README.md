@@ -188,6 +188,13 @@ Seção nova do menu, entre Análise e Páginas: **Capacity** (`pages/capacity.p
 - **Fora das unidades** (`pages/fora_unidades.php`, `lib/fora_unidades.php`): SRs do RH sem unidade no Escalas, com a sugestão pelas lacunas; "Cadastrar" usa o mesmo POST das Turmas de treinamento.
 - **Parâmetros legados:** `ESC_PARAMETROS_LEGADO` em `lib/parametros.php` lista os parâmetros que nenhum código lê. Eles saem da tela Parâmetros e ficam em Legado › Parâmetros legados, só leitura. Nada muda no banco.
 
+## Saídas e entradas lidas do site na hora (1.27.1)
+
+- **Desativadas no site, sem saída detectada** (Saídas de página): carteira aberta no Capacity + `5c_pages.pages.active = 0` agora, sem evento `SAIDA` nos últimos 14 dias nem saída aplicada por perto. O evento do Capacity só sai depois da foto das 3h (`fc_pagina_status_diario`). As marcadas vão juntas para a prévia (`pagina[]`).
+- **Saída manual de várias páginas:** "+ outra página" no "Aplicar saída de página"; a prévia e o POST aceitam `pagina[]` e aplicam por `escAplicarSaidasPaginas` (um recálculo). A página que entra no lugar só vale com uma página saindo.
+- **Funil, página renomeada:** o nome antigo vem do `page_id` nas fotos e nos eventos do Capacity; vira RETORNO com a carteira de antes, e "Pôr na escala" grava pela ação `carteira_renomeada` de `escCapacityGravar` (copia modelo, regra e volume). Com o nome antigo ainda com carteira aberta, a página não aparece (só mudou o nome).
+- **Funil, ativou agora:** inativa (ou sem foto) na última foto e ativa no site agora → situação RECENTE, no topo, com o dia do `updated_at`.
+
 ## Exportar o Mérito dos SRs (1.22.0)
 
 Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem biblioteca externa, só ZipArchive) e `?p=srs&ver=pdf&imprimir=1` (`@page merito-srs`, A4 paisagem). Valem os filtros `u` e `t`, o acesso é o de `escPodeVerRestrito()` e a versão vem de `escDocVersao('merito_srs', ...)`.

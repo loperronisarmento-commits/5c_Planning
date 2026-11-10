@@ -13,6 +13,10 @@
 //           nova: volume do arquétipo) e recalcula o Capacity. A escala não muda agora: os postos
 //           entram no próximo Gerar, que recalcula e sincroniza a estrutura.
 //   IGNORAR não é página de escala (PH, X, MYM, teste...). Se a página sair e voltar, reaparece.
+// 1.27.1 (Liv Loxey, 10/11): a página renomeada no site ("Liv" → "Liv Loxey") é ligada ao nome antigo
+// pelo page_id (fotos e eventos do Capacity) e entra como RETORNO, com a carteira de antes; a que ativou
+// depois da última foto (às 3h) e ainda não tem movimento fica como RECENTE, no topo, e não mais
+// recolhida entre as paradas com a data de importação antiga.
 // ===============================================
 
 function escEntradaTemTabela(): bool {
@@ -39,7 +43,7 @@ function escEntradasDetectadas(bool $movimento = true): array {
     $semEscala = escEstruturaSemEscala();
     $overlap = escV4Param('v4_overlap_pagina', '5C Schedule');
     $paginas = [];
-    foreach (escQ('SELECT id, name, tier, imported_at FROM `5c_pages`.`pages` WHERE active = 1 AND name <> ? ORDER BY name', [$overlap]) as $g) {
+    foreach (escQ('SELECT id, name, tier, imported_at, updated_at FROM `5c_pages`.`pages` WHERE active = 1 AND name <> ? ORDER BY name', [$overlap]) as $g) {
         if (!$semEscala((string) $g['name'])) {
             $paginas[(int) $g['id']] = $g;
         }
@@ -73,7 +77,43 @@ function escEntradasDetectadas(bool $movimento = true): array {
     }
     // Ativa já na primeira foto: a data real pode ser anterior ("19/10 ou antes").
     $primeiraFoto = substr((string) (escQ1('SELECT MIN(dia) AS d FROM `5c_planning`.`fc_pagina_status_diario`')['d'] ?? ''), 0, 10);
+    // Ativou depois da última foto (a foto é diária, às 3h): na última foto estava inativa, ou ainda não tem foto.
+    $ultimaFoto = [];
+    foreach (escQ('SELECT s.page_id, s.ativo FROM `5c_planning`.`fc_pagina_status_diario` s
+                     JOIN (SELECT page_id, MAX(dia) AS d FROM `5c_planning`.`fc_pagina_status_diario` WHERE page_id IN (' . escIn($ids) . ') GROUP BY page_id) u
+                       ON u.page_id = s.page_id AND u.d = s.dia', $ids) as $s) {
+        $ultimaFoto[(int) $s['page_id']] = (int) $s['ativo'];
+    }
+    // Nome antigo da mesma página (o site renomeia: "Liv" virou "Liv Loxey"), pelas fotos e pelos eventos do Capacity.
+    $nomesAntes = [];
+    foreach (escQ('SELECT page_id, pagina, MAX(dia) AS ult FROM `5c_planning`.`fc_pagina_status_diario` WHERE page_id IN (' . escIn($ids) . ') GROUP BY page_id, pagina
+                   UNION ALL SELECT page_id, pagina, MAX(data_evento) AS ult FROM `5c_planning`.`fc_pagina_eventos` WHERE page_id IN (' . escIn($ids) . ') GROUP BY page_id, pagina
+                   ORDER BY ult DESC', array_merge($ids, $ids)) as $r) {
+        $id = (int) $r['page_id'];
+        $antigo = (string) $r['pagina'];
+        if (isset($paginas[$id]) && escEntradaChave($antigo) !== escEntradaChave((string) $paginas[$id]['name']) && !in_array($antigo, $nomesAntes[$id] ?? [], true)) {
+            $nomesAntes[$id][] = $antigo;
+        }
+    }
+    // Com nome antigo que tem carteira aberta, a página já está no Capacity (só o nome mudou): fica fora da lista.
+    foreach ($nomesAntes as $id => $lista) {
+        foreach ($lista as $antigo) {
+            if (isset($aberta[escEntradaChave($antigo)])) {
+                unset($paginas[$id]);
+                break;
+            }
+        }
+    }
+    if (!$paginas) {
+        return [];
+    }
     $nomes = array_values(array_map(static fn($g) => (string) $g['name'], $paginas));
+    foreach ($paginas as $id => $g) {
+        foreach ($nomesAntes[$id] ?? [] as $antigo) {
+            $nomes[] = $antigo;
+        }
+    }
+    $nomes = array_values(array_unique($nomes));
     // Na escala antes (postos de qualquer época) = retorno, mesmo sem carteira.
     $naEscala = [];
     foreach (escQ('SELECT DISTINCT pagina FROM ' . escT('esc_posto_pagina') . ' WHERE pagina IN (' . escIn($nomes) . ')', $nomes) as $r) {
@@ -116,23 +156,37 @@ function escEntradasDetectadas(bool $movimento = true): array {
     foreach ($paginas as $id => $g) {
         $nome = (string) $g['name'];
         $k = escEntradaChave($nome);
-        $desde = $ativaDesde[$id] ?? ($g['imported_at'] ? substr((string) $g['imported_at'], 0, 10) : $hoje);
+        // Ativou depois da última foto: o dia vem do cadastro do site (updated_at), não da importação antiga.
+        $recente = ($ultimaFoto[$id] ?? 0) === 0;
+        $desde = $recente ? min($hoje, substr((string) ($g['updated_at'] ?? $hoje), 0, 10))
+            : ($ativaDesde[$id] ?? ($g['imported_at'] ? substr((string) $g['imported_at'], 0, 10) : $hoje));
+        // Página renomeada no site: a carteira, a saída e os postos de antes estão no nome antigo.
+        $antes = null;
         $ult = $ultima[$k] ?? null;
         $sai = $saida[$k] ?? null;
+        $naEscalaAntes = isset($naEscala[$k]);
+        foreach ($nomesAntes[$id] ?? [] as $antigo) {
+            $ka = escEntradaChave($antigo);
+            if (!$ult && isset($ultima[$ka])) { $ult = $ultima[$ka]; $antes = $antigo; }
+            if (!$sai && isset($saida[$ka])) { $sai = $saida[$ka]; $antes = $antes ?? $antigo; }
+            if (isset($naEscala[$ka])) { $naEscalaAntes = true; $antes = $antes ?? $antigo; }
+        }
         $presa = $sai && substr((string) $sai['vale_desde'], 0, 10) >= $bloqDe && !isset($previsaoDepois[$k]);
         $dias = count(array_filter($diasEscala[$k] ?? [], static fn($d) => $d >= $desde));
         $v = array_sum(array_filter($venda[$k] ?? [], static fn($d) => $d >= $desde, ARRAY_FILTER_USE_KEY));
         $dec = $decisoes[$k . '|' . $desde] ?? null;
         $temMovimento = $dias > 0 || $v > 0 || ($g['imported_at'] !== null && substr((string) $g['imported_at'], 0, 10) >= $novaDe);
-        $situacao = $dec ? ($dec['decisao'] === 'ENTROU' ? 'ENTROU' : 'IGNORADA') : ($presa ? 'PRESA' : ($movimento && !$temMovimento ? 'PARADA' : 'AUTO'));
+        // RECENTE: ativou depois da última foto e ainda sem movimento. Não entra sozinha no Gerar (ele pede escala ou venda): decida aqui.
+        $situacao = $dec ? ($dec['decisao'] === 'ENTROU' ? 'ENTROU' : 'IGNORADA') : ($presa ? 'PRESA' : ($movimento && !$temMovimento ? ($recente ? 'RECENTE' : 'PARADA') : 'AUTO'));
         $irma = $ult ? null : ($modeloAberta[escPaginaChaveModelo($nome)] ?? null);
-        $out[] = ['page_id' => $id, 'pagina' => $nome, 'tier' => $g['tier'], 'ativa_desde' => $desde, 'desde_antes' => $desde === $primeiraFoto,
-            'tipo' => ($ult || isset($naEscala[$k]) || $sai) ? 'RETORNO' : 'NOVA', 'ultima' => $ult, 'irma' => $irma, 'saida' => $sai, 'presa' => $presa,
+        $out[] = ['page_id' => $id, 'pagina' => $nome, 'tier' => $g['tier'], 'ativa_desde' => $desde, 'desde_antes' => !$recente && $desde === $primeiraFoto,
+            'recente' => $recente, 'nome_antes' => $antes,
+            'tipo' => ($ult || $naEscalaAntes || $sai) ? 'RETORNO' : 'NOVA', 'ultima' => $ult, 'irma' => $irma, 'saida' => $sai, 'presa' => $presa,
             'decisao' => $dec, 'dias_escala' => $dias, 'venda' => $v, 'situacao' => $situacao,
             'carteira_sugerida' => $ult['carteira'] ?? ($irma['carteira'] ?? null)];
     }
     // Primeiro o que precisa de decisão (presas), depois as que entram sozinhas, paradas e decididas.
-    $ordem = ['PRESA' => 0, 'AUTO' => 1, 'PARADA' => 2, 'ENTROU' => 3, 'IGNORADA' => 4];
+    $ordem = ['PRESA' => 0, 'RECENTE' => 1, 'AUTO' => 2, 'PARADA' => 3, 'ENTROU' => 4, 'IGNORADA' => 5];
     usort($out, static fn($a, $b) => [$ordem[$a['situacao']], $b['ativa_desde'], $a['pagina']] <=> [$ordem[$b['situacao']], $a['ativa_desde'], $b['pagina']]);
     return $out;
 }
@@ -181,6 +235,10 @@ function escEntradaAplicar(string $pagina, string $carteira, string $desde, stri
         $origem = 'ultima';
         if ($item['ultima'] && escQ1('SELECT 1 AS ok FROM `5c_planning`.`fc_pagina_carteira` WHERE pagina = ? LIMIT 1', [$pagina])) {
             escCapacityGravar('carteira_entrar', [$desde, $carteira, $motivo, $pagina]);
+        } elseif ($item['ultima'] && ($item['nome_antes'] ?? null) !== null && (string) $item['ultima']['pagina'] !== $pagina) {
+            // Renomeada no site: a carteira nova copia modelo, regra e volume da última linha do nome antigo.
+            $origem = 'nome_antes';
+            escCapacityGravar('carteira_renomeada', [$pagina, $desde, $carteira, mb_substr($motivo . ' · antes ' . $item['ultima']['pagina'], 0, 255), (string) $item['ultima']['pagina'], $pagina]);
         } else {
             // Página nova (ou com outro nome na carteira antiga): volume do arquétipo do tier e perfil.
             $perfil = escPaginaPerfil($pagina);
