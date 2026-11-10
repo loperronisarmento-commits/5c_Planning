@@ -181,4 +181,5 @@ return [
     'As páginas saem juntas, na mesma data, com um recálculo só.' => 'The pages leave together, on the same date, with a single recalculation.',
     '+ outra página' => '+ another page',
     'Várias páginas (ex.: as VIP e Free da mesma modelo) saem juntas com "+ outra página".' => 'Several pages (e.g. the VIP and Free of the same model) leave together with "+ another page".',
+    'Parou depois do Capacity e dos postos (já gravados). Aplique de novo as mesmas páginas para terminar.' => 'Stopped after Capacity and the posts (already saved). Apply the same pages again to finish.',
 ];

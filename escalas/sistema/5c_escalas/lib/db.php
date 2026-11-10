@@ -111,8 +111,12 @@ function escConexaoUnica(bool $ligar = true): void {
     $GLOBALS['ESC_CONEXAO_UNICA'] = $ligar;
 }
 
-function escDb(): PDO {
+// $nova: descarta a conexão (caiu: erro 1160/2006/2013) e abre outra na próxima chamada.
+function escDb(bool $nova = false): PDO {
     static $pdo = null;
+    if ($nova) {
+        $pdo = null;
+    }
     if (!empty($GLOBALS['ESC_CONEXAO_UNICA']) && !$pdo instanceof PDO) {
         return escDbW();
     }
@@ -182,8 +186,22 @@ function escIn(array $valores): string {
 
 // ---------- gravação (só 5c_escalas) ----------
 
-function escDbW(): PDO {
+// Conexão caiu no meio (o MySQL do .11 reinicia e corta: 1160, 2006, 2013, SQLSTATE 08S01/HY000 "gone away").
+function escConexaoCaiu(Throwable $e): bool {
+    return (bool) preg_match('~\b(1160|2006|2013)\b|08S01|gone away|Lost connection|Communication link failure~i', $e->getMessage());
+}
+
+// Descarta as duas conexões; a próxima chamada abre outras.
+function escReconectar(): void {
+    escDbW(true);
+    escDb(true);
+}
+
+function escDbW(bool $nova = false): PDO {
     static $pdo = null;
+    if ($nova) {
+        $pdo = null;
+    }
     if (!$pdo instanceof PDO) {
         $pdo = escNovaConexao();
     }

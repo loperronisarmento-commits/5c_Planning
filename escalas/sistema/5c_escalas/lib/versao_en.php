@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.27.3' => ['titulo' => 'Page exit survives a dropped MySQL connection', 'itens' => [
+        'Page exits: when the MySQL connection drops while generating the schedules again (error 1160, as in the batch of Livinia Roberts OFTV, Aria and Janet on 11/10), the system reconnects and tries the week once more. If it fails again, the message says Capacity and the posts are already saved and that applying the same pages again finishes what was left.',
+        'Batch of 11/10 completed on the server (deploy/saida_concluir.php): weeks of 11/16 (v3.2) and 11/23 (v1.6) generated without the 4 pages. The week of 11/09 stays as the OMs locked it.',
+    ]],
     '1.27.2' => ['titulo' => 'Unit balance with the full 30 days of revenue', 'itens' => [
         'Unit balance: revenue is again that of the previous 30 days, without the 11/01 cut. With the cut, the window had only 9 days. The core split and the suggested swaps, which use the same revenue, follow. Merit, goals and absences still start on 11/01.',
     ]],

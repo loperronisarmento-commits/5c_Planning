@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.27.3', 'data' => '2026-11-10', 'titulo' => 'Saída de página resiste à queda da conexão com o MySQL', 'sql' => [], 'itens' => [
+    'Saídas de página: quando a conexão com o MySQL cai ao gerar as escalas de novo (erro 1160, como no lote de Livinia Roberts OFTV, Aria e Janet em 10/11), o sistema reconecta e tenta a semana mais uma vez. Se falhar de novo, a mensagem avisa que o Capacity e os postos já foram gravados e que aplicar de novo as mesmas páginas termina o que faltou.',
+    'Lote de 10/11 concluído no servidor (deploy/saida_concluir.php): semanas de 16/11 (v3.2) e 23/11 (v1.6) geradas sem as 4 páginas. A semana de 09/11 ficou como os OM travaram.',
+    ]],
     ['versao' => '1.27.2', 'data' => '2026-11-10', 'titulo' => 'Equilíbrio das unidades com os 30 dias inteiros de faturamento', 'sql' => [], 'itens' => [
     'Equilíbrio das unidades: o faturamento volta a ser o dos 30 dias anteriores, sem o corte de 01/11. Com o corte, a janela tinha só 9 dias. Valem também a divisão dos OS e as trocas sugeridas, que usam o mesmo faturamento. Mérito, metas e faltas continuam a partir de 01/11.',
     ]],

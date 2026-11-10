@@ -237,9 +237,24 @@ function escAplicarSaidasTravado(array $itens, string $desde, string $motivo, ar
         // O Capacity já foi recalculado acima: o motor não repete (e não traz de volta a página que está saindo).
         $GLOBALS['ESC_ESTRUTURA_AUTO'] = ['erro' => null, 'paginas' => [], 'ja_feito' => true];
         // 6. Escala de novo com o mínimo de mudanças sobre a publicada (mantém os ajustes travados).
+        //    A conexão com o MySQL do .11 às vezes cai aqui (erro 1160 em 10/11, lote da Janet): o Capacity e os
+        //    postos já estão gravados, então reconecta e tenta a semana de novo uma vez (o recálculo refaz a semana inteira).
         foreach (escQ("SELECT DISTINCT semana_inicio AS s FROM " . escT('esc_plano') . " WHERE estrutura = 'V4' AND status IN ('RASCUNHO','PUBLICADO') AND semana_fim >= ? ORDER BY semana_inicio", [$desde]) as $r) {
             $seg = substr((string) $r['s'], 0, 10);
-            $res['planos'][] = ['semana' => $seg, 'plano_id' => escMotorGerar($seg, 'RECALCULO', escUserId() ?: null, null, true)];
+            try {
+                $planoId = escMotorGerar($seg, 'RECALCULO', escUserId() ?: null, null, true);
+            } catch (Throwable $e) {
+                if (!escConexaoCaiu($e)) {
+                    throw $e;
+                }
+                appLog('warning', 'Saída: conexão caiu ao gerar a semana; reconectando e tentando de novo', ['semana' => $seg, 'erro' => $e->getMessage()]);
+                sleep(3);
+                escReconectar();
+                escDbW()->query("SELECT GET_LOCK('5c_escalas.saida_pagina', 0)")->fetchColumn(); // a trava era da conexão que caiu
+                escGerarTravar();
+                $planoId = escMotorGerar($seg, 'RECALCULO', escUserId() ?: null, null, true);
+            }
+            $res['planos'][] = ['semana' => $seg, 'plano_id' => $planoId];
         }
 
         foreach ($ids as $id) {
@@ -249,11 +264,21 @@ function escAplicarSaidasTravado(array $itens, string $desde, string $motivo, ar
         escLog('saida.aplicar', 'esc_saida_pagina', $saidaId, null, ['paginas' => $paginas, 'desde' => $desde, 'resultado' => $res]);
         return ['id' => $saidaId, 'ids' => $ids] + $res;
     } catch (Throwable $e) {
-        foreach ($ids as $id) {
-            escW('UPDATE `' . ESC_SCHEMA . '`.`esc_saida_pagina` SET status = \'ERRO\', erro = ?, resultado = ? WHERE id = ?',
-                [mb_substr($e->getMessage(), 0, 500), json_encode($id === $saidaId ? $res : ['lote_de' => $saidaId, 'paginas' => $paginas], JSON_UNESCAPED_UNICODE), $id]);
+        // Parou depois do Capacity e dos postos: aplicar de novo as mesmas páginas termina o que faltou
+        // (a validação vê as páginas já fechadas no Capacity e não mexe nele de novo).
+        $meio = !empty($res['capacity']) ? t('Parou depois do Capacity e dos postos (já gravados). Aplique de novo as mesmas páginas para terminar.') . ' ' : '';
+        if (escConexaoCaiu($e)) {
+            escReconectar(); // sem isso, a gravação do erro abaixo também falha
         }
-        throw $e;
+        foreach ($ids as $id) {
+            try {
+                escW('UPDATE `' . ESC_SCHEMA . '`.`esc_saida_pagina` SET status = \'ERRO\', erro = ?, resultado = ? WHERE id = ?',
+                    [mb_substr($meio . $e->getMessage(), 0, 500), json_encode($id === $saidaId ? $res : ['lote_de' => $saidaId, 'paginas' => $paginas], JSON_UNESCAPED_UNICODE), $id]);
+            } catch (Throwable $e2) {
+                appLog('error', 'Saída: não deu para gravar o erro', ['id' => $id, 'erro' => $e2->getMessage()]);
+            }
+        }
+        throw $meio !== '' ? new RuntimeException($meio . mb_substr($e->getMessage(), 0, 200), 0, $e) : $e;
     }
 }
 
