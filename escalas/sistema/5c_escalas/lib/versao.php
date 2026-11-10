@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.27.2', 'data' => '2026-11-10', 'titulo' => 'Equilíbrio das unidades com os 30 dias inteiros de faturamento', 'sql' => [], 'itens' => [
+    'Equilíbrio das unidades: o faturamento volta a ser o dos 30 dias anteriores, sem o corte de 01/11. Com o corte, a janela tinha só 9 dias. Valem também a divisão dos OS e as trocas sugeridas, que usam o mesmo faturamento. Mérito, metas e faltas continuam a partir de 01/11.',
+    ]],
     ['versao' => '1.27.1', 'data' => '2026-11-10', 'titulo' => 'Saídas lidas do site na hora, saída manual de várias páginas e página renomeada no Funil', 'sql' => [], 'itens' => [
     'Saídas de página: seção nova "Desativadas no site, sem saída detectada", que lê o site na hora. Lista as páginas que estão no Capacity e já foram desativadas no cadastro do site, antes de o Capacity gerar a saída (ele só detecta depois da foto das 3h). Marque e veja a prévia: as marcadas saem juntas, com um recálculo só.',
     'Aplicar saída de página (manual): "+ outra página" para várias páginas na mesma data (ex.: Janet VIP e Janet Free), com uma prévia e um recálculo do Capacity e da escala. A data padrão passou a ser hoje.',

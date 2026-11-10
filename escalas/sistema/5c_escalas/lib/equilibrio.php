@@ -26,13 +26,15 @@ function escEqChave(string $pagina): string {
 }
 
 // Faturamento de 30 dias por página (escEqChave) e turno: [pagina][A|C|D] = US$ (cache de 15 min).
+// Sempre os 30 dias inteiros antes de hoje, sem o corte de 01/11 (escCorteDados): o faturamento da
+// página não depende da estrutura, e a janela curta desequilibrava a comparação (pedido de 10/11, 1.27.2).
 function escEqFaturamento(string $hoje): array {
-    return escCache('equilibrio_fat_' . $hoje, 900, static function () use ($hoje): array {
+    return escCache('equilibrio_fat30_' . $hoje, 900, static function () use ($hoje): array {
         $f = [];
         foreach (escQ("SELECT CREATOR_NAME AS pagina, CASE WHEN HOUR(`DATE`) BETWEEN 5 AND 12 THEN 'A' WHEN HOUR(`DATE`) BETWEEN 13 AND 20 THEN 'C' ELSE 'D' END AS turno,
                               SUM(CASE WHEN STATUS = 'reverse' THEN -ABS(AMOUNT) ELSE AMOUNT END) AS v
                          FROM `5c_wfm_db`.`agg_statements_classification` WHERE `DATE` >= ? AND `DATE` < ? GROUP BY CREATOR_NAME, turno",
-            [escCorteDados(escMaisDias($hoje, -30)) . ' 00:00:00', $hoje . ' 00:00:00']) as $r) {
+            [escMaisDias($hoje, -30) . ' 00:00:00', $hoje . ' 00:00:00']) as $r) {
             $k = escEqChave((string) $r['pagina']);
             $f[$k][$r['turno']] = round(($f[$k][$r['turno']] ?? 0) + (float) $r['v'], 2);
         }

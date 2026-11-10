@@ -205,7 +205,7 @@ Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem bibl
 
 ## Corte de dados (1.23.0)
 
-As janelas de desempenho nunca começam antes de 01/11/2026: `escCorteDados()` e `escDiasCorte()` em `lib/calendario.php`, com a data em `escV4Param('dados_desde', '2026-11-01')`. O Capacity e a sincronização da estrutura ficam de fora.
+As janelas de desempenho nunca começam antes de 01/11/2026: `escCorteDados()` e `escDiasCorte()` em `lib/calendario.php`, com a data em `escV4Param('dados_desde', '2026-11-01')`. O Capacity, a sincronização da estrutura e o faturamento de 30 dias do Equilíbrio das unidades (`escEqFaturamento`, desde a 1.27.2) ficam de fora.
 
 ## Requisitos
 

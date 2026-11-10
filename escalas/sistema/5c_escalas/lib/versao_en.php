@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.27.2' => ['titulo' => 'Unit balance with the full 30 days of revenue', 'itens' => [
+        'Unit balance: revenue is again that of the previous 30 days, without the 11/01 cut. With the cut, the window had only 9 days. The core split and the suggested swaps, which use the same revenue, follow. Merit, goals and absences still start on 11/01.',
+    ]],
     '1.27.1' => ['titulo' => 'Exits read live from the website, manual exit of several pages and renamed page in the Funnel', 'itens' => [
         'Page exits: new section "Deactivated on the website, no exit detected", which reads the website live. It lists the pages that are in Capacity and were already deactivated in the website registry, before Capacity creates the exit (it only detects after the 3 a.m. snapshot). Tick them and see the preview: the ticked pages leave together, with a single recalculation.',
         'Apply page exit (manual): "+ another page" for several pages on the same date (e.g. Janet VIP and Janet Free), with one preview and one recalculation of Capacity and the schedule. The default date is now today.',
