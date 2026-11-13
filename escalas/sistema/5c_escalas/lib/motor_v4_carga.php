@@ -198,14 +198,16 @@ function escV4Carregar(string $dia): array {
             }
         }
     }
-    // Quem bateu a meta na página: atingimento da meta 5CReps nela nos últimos 30 dias (a parte de cada
-    // um, como no PDF da Grade). Com v4_melhores_meta_min (65%) ou mais, passa na frente de quem nunca fez a página.
+    // Quem bateu a meta na MODELO da página (11/11: qualquer página da modelo vale, ex.: Mikayla Free ou Paid):
+    // atingimento da meta 5CReps nela nos últimos 30 dias (a parte de cada um, como no PDF da Grade). Com
+    // v4_melhores_meta_min (65%) ou mais, passa na frente de quem nunca fez a modelo. A venda/hora segue por página.
     $melhores['meta'] = [];
     $melhores['meta_min'] = (float) str_replace(',', '.', escV4Param('v4_melhores_meta_min', '0.65'));
-    if ($melhores['paginas'] && $pessoas && function_exists('escMeritoAtingimentoPaginas')) {
+    if ($melhores['paginas'] && $pessoas && function_exists('escMeritoAtingimentoModelos')) {
         $periodo = [[date('Y-m-d', strtotime('-30 day')), date('Y-m-d', strtotime('-1 day'))]];
-        foreach (escMeritoAtingimentoPaginas(array_keys($melhores['paginas']), array_keys($pessoas), $periodo) as $pg => $porRep) {
-            foreach ($porRep as $rep => $porPeriodo) {
+        $atModelo = escMeritoAtingimentoModelos(array_keys($melhores['paginas']), array_keys($pessoas), $periodo);
+        foreach (array_keys($melhores['paginas']) as $pg) {
+            foreach ($atModelo[escModeloDaPagina((string) $pg)] ?? [] as $rep => $porPeriodo) {
                 [$real, $meta] = ($porPeriodo[0] ?? []) + [0.0, 0.0];
                 if ($meta > 0) {
                     $melhores['meta'][$pg][strtoupper((string) $rep)] = $real / $meta;
@@ -277,30 +279,42 @@ function escV4Carregar(string $dia): array {
             }
         }
     }
-    // Quem já conhece cada página: dias escalados nela no 5C Schedule (menos troca de gente).
+    // Experiência pela MODELO (11/11): conhecer uma das páginas da modelo basta (ex.: Mikayla Free ou Paid).
+    // Dias distintos na modelo (qualquer página dela; o mesmo dia em duas páginas conta uma vez), no dia de
+    // turno (−5 h). Uma leitura só, na janela maior; cada regra conta a sua janela.
     $historico = [];
-    if ($pessoas && $nomes) {
-        $hd = max(7, (int) escV4Param('v4_historico_dias', '56'));
-        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT DATE(DATE_SUB(STR_TO_DATE(shiftDateAndHour, \'%Y-%m-%dT%H:%i:%s\'), INTERVAL 5 HOUR))) AS dias
-                         FROM `5c_schedule`.`scheduleday`
-                        WHERE codigo IN (' . escIn(array_keys($pessoas)) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
-                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escCorteDados(escMaisDias($dia, -$hd - 7)) . 'T00:00:00', segundaDaSemana($dia) . 'T00:00:00'])) as $r) {
-            if (isset($nomes[$r['pagina']])) {
-                $historico[$r['rep']][$r['pagina']] = (int) $r['dias'];
-            }
-        }
-    }
-    // P-02: quem conhece a página = v4_cor_conhece_dias (7) dias ou mais nela nos últimos v4_cor_janela_dias (90).
     $conheceCor = [];
     if ($pessoas && $nomes) {
+        $hd = max(7, (int) escV4Param('v4_historico_dias', '56'));
         $jan = max(7, (int) escV4Param('v4_cor_janela_dias', '90'));
         $minDias = max(1, (int) escV4Param('v4_cor_conhece_dias', '7'));
-        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT DATE(DATE_SUB(STR_TO_DATE(shiftDateAndHour, \'%Y-%m-%dT%H:%i:%s\'), INTERVAL 5 HOUR))) AS dias
+        $setModelo = escModeloDiasSet(escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, DATE(DATE_SUB(STR_TO_DATE(shiftDateAndHour, \'%Y-%m-%dT%H:%i:%s\'), INTERVAL 5 HOUR)) AS dia
                          FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn(array_keys($pessoas)) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
-                        GROUP BY UPPER(codigo), modeloNome', array_merge(array_keys($pessoas), [escCorteDados(escMaisDias($dia, -$jan - 7)) . 'T00:00:00', segundaDaSemana($dia) . 'T00:00:00'])) as $r) {
-            if (isset($nomes[$r['pagina']]) && (int) $r['dias'] >= $minDias) {
-                $conheceCor[$r['rep']][$r['pagina']] = true;
+                        GROUP BY UPPER(codigo), modeloNome, dia', array_merge(array_keys($pessoas), [escCorteDados(escMaisDias($dia, -max($hd, $jan) - 7)) . 'T00:00:00', segundaDaSemana($dia) . 'T00:00:00'])));
+        $deHist = substr(escCorteDados(escMaisDias($dia, -$hd - 7)), 0, 10);
+        $deCor = substr(escCorteDados(escMaisDias($dia, -$jan - 7)), 0, 10);
+        $pagsDoModelo = [];
+        foreach (array_keys($nomes) as $pg) {
+            $pagsDoModelo[escModeloDaPagina((string) $pg)][] = $pg;
+        }
+        foreach ($setModelo as $rep => $porModelo) {
+            foreach ($porModelo as $m => $ds) {
+                if (!isset($pagsDoModelo[$m])) {
+                    continue;
+                }
+                $nHist = count(array_filter(array_keys($ds), static fn($d) => $d >= $deHist));
+                $nCor = count(array_filter(array_keys($ds), static fn($d) => $d >= $deCor));
+                foreach ($pagsDoModelo[$m] as $pg) {
+                    // Quem já conhece a modelo da página (menos troca de gente).
+                    if ($nHist > 0) {
+                        $historico[$rep][$pg] = $nHist;
+                    }
+                    // P-02: quem conhece = v4_cor_conhece_dias (7) dias ou mais na modelo em v4_cor_janela_dias (90).
+                    if ($nCor >= $minDias) {
+                        $conheceCor[$rep][$pg] = true;
+                    }
+                }
             }
         }
     }

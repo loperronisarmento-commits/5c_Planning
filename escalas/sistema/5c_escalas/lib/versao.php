@@ -8,6 +8,25 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.30.0', 'data' => '2026-11-13', 'titulo' => 'Cadastrar todos os novatos de uma vez', 'sql' => [], 'itens' => [
+    'Turmas de treinamento › Destino dos novatos: botão "Cadastrar todos a partir de…", que cadastra em Colaboradores todos os trainees do ciclo com destino confirmado, cada um a partir do dia em que a turma fica disponível, no núcleo confirmado, nível 0 (os mesmos valores do botão de cada linha). Quem desistiu, já tem cadastro ou está sem destino confirmado fica de fora; a tela diz quantos.',
+    'Quem dá erro (ex.: núcleo que não vale na data) fica de fora, e os outros são cadastrados; a mensagem lista quem ficou e avisa se a semana do dia disponível já tem escala (gerar de novo).',
+    'Colaboradores e o botão novo gravam pela mesma função (escColaboradorGravar em lib/equipes.php).',
+    'Equilíbrio das unidades e Funil de entrada ignoram carteira inativa (a Vencel, unidade 4 terceirizada).',
+    ]],
+    ['versao' => '1.29.0', 'data' => '2026-11-11', 'titulo' => 'Relatório do bot de cobrança', 'sql' => ['ES_143_bot_cobranca_inatividade.sql'], 'itens' => [
+    'Nova tela Análise › Bot de cobrança: o SLA de resposta e as inatividades semana a semana, antes e depois do bot que cobra os SRs no Telegram (entrou em 06/10/2026), com a leitura automática ("melhorou", "ficou estável", "caiu"), os gráficos por semana com a entrada do bot e a das 3 unidades marcadas, a tabela por período e turno e os alertas que o bot abriu, só como contexto.',
+    'Inatividade = página escalada sem mensagem de funcionário por 15 min ou mais (a regra do bot), refeita das mensagens do msgdashboard e da escala postada no 5C Schedule desde 31/08, porque os alertas do próprio bot só existem desde 02/10. O histórico fica em esc_bot_inativ_semana e esc_bot_inativ_rep (ES_143); a tela calcula sozinha cada semana que fecha (uma por acesso de quem planeja, cerca de 1 min).',
+    'Períodos: antes = 07/09 a 04/10; com o bot = 12/10 a 01/11 (ainda na estrutura antiga); a semana de 05/10 e as semanas das 3 unidades (desde 02/11) ficam à parte. A tela não usa o corte de 01/11.',
+    'Por SR (só WFM/Planejamento e Admin): SLA de 5 min e inatividades por 100 blocos antes e com o bot, dos SRs do cadastro atual com 20 horas ou mais nos dois períodos.',
+    ]],
+    ['versao' => '1.28.0', 'data' => '2026-11-11', 'titulo' => 'Experiência e meta pela modelo', 'sql' => [], 'itens' => [
+    'Experiência e meta passam a contar pela modelo, não pela página: conhecer uma das páginas da modelo basta (ex.: Mikayla Free ou Mikayla Paid). Os dias são os dias distintos em qualquer página da modelo (o mesmo dia em duas páginas conta uma vez) e a meta soma o realizado e a meta de todas as páginas dela. A venda por hora continua por página.',
+    'Gerar: vale para quem conhece a página vermelha ou amarela (P-02), para quem bateu a meta no melhor SR das páginas grandes e para a continuidade de quem já está no posto.',
+    'Grade: as tags Exp., Inexp., Meta ✓ e Meta ✗ e as colunas "Dias na modelo" e "Meta" dos representantes no PDF das páginas usam a modelo. Ex.: na Mikayla, com 3 dias ou mais, 12 SRs conhecem a modelo; antes eram 5 na Paid e 6 na Free.',
+    'A modelo de cada página é a do Capacity (fc_pagina_carteira.modelo); sem ela, pelo nome.',
+    'Capacity: o buffer passa a ter mínimo de 15 por turno e de 1 por núcleo (antes, 2 por núcleo = 18 por turno), pela falta real desde 01/11 (script 5C_Planning_37). Versão 96: buffer 54 → 45, precisa 329 → 320. A tela mostra o mínimo por turno.',
+    ]],
     ['versao' => '1.27.3', 'data' => '2026-11-10', 'titulo' => 'Saída de página resiste à queda da conexão com o MySQL', 'sql' => [], 'itens' => [
     'Saídas de página: quando a conexão com o MySQL cai ao gerar as escalas de novo (erro 1160, como no lote de Livinia Roberts OFTV, Aria e Janet em 10/11), o sistema reconecta e tenta a semana mais uma vez. Se falhar de novo, a mensagem avisa que o Capacity e os postos já foram gravados e que aplicar de novo as mesmas páginas termina o que faltou.',
     'Lote de 10/11 concluído no servidor (deploy/saida_concluir.php): semanas de 16/11 (v3.2) e 23/11 (v1.6) geradas sem as 4 páginas. A semana de 09/11 ficou como os OM travaram.',

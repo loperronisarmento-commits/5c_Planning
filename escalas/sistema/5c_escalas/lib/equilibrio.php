@@ -287,7 +287,8 @@ function escEqDados(string $hoje, ?string $dia = null): array {
     $vig = ' vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)';
     $fatPag = escEqFaturamento($hoje);
     $unidadeDe = [];
-    foreach (escQ('SELECT carteira, unidade FROM `5c_planning`.`fc_carteira`') as $c) {
+    // Só carteiras ativas: a Vencel (VENC, unidade 4, script 40) é terceirizada e fica fora do equilíbrio.
+    foreach (escQ('SELECT carteira, unidade FROM `5c_planning`.`fc_carteira` WHERE ativo = 1') as $c) {
         $unidadeDe[$c['carteira']] = (int) $c['unidade'];
     }
     // Página → unidade hoje e desde quando está nela (linhas seguidas da carteira na mesma unidade).

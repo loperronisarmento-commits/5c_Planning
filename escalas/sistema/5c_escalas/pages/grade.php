@@ -591,21 +591,15 @@ if (($_GET['ver'] ?? '') === 'pdf') {
                 $casaPdf[$l['code']] = isset($casaPdf[$l['code']]) ? min($casaPdf[$l['code']], $ini) : $ini;
             }
         }
-        $pidDe = [];
-        foreach ($folhas as $pid => $pg) {
-            $pidDe[escV4ChavePagina($pg['nome'])] = $pid;
-        }
-        $sqlDias = [];
-        foreach ($janelasPdf as $j) {
-            $sqlDias[] = "COUNT(DISTINCT IF(shiftDateAndHour >= '" . escCorteDados(escMaisDias($seg, -$j)) . "T00:00:00', LEFT(shiftDateAndHour, 10), NULL)) AS d{$j}";
-        }
-        foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, ' . implode(', ', $sqlDias) . ' FROM `5c_schedule`.`scheduleday`
+        // Dias e meta pela MODELO da página (11/11): conhecer uma das páginas da modelo basta; o mesmo
+        // dia em duas páginas dela conta uma vez. A venda por hora continua por página.
+        $setPdf = escModeloDiasSet(escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, LEFT(shiftDateAndHour, 10) AS dia FROM `5c_schedule`.`scheduleday`
                         WHERE codigo IN (' . escIn($todosReps) . ') AND shiftDateAndHour >= ? AND shiftDateAndHour < ?
-                        GROUP BY UPPER(codigo), modeloNome', array_merge($todosReps, [escCorteDados(escMaisDias($seg, -max($janelasPdf))) . 'T00:00:00', $seg . 'T00:00:00'])) as $l) {
-            $pid = $pidDe[escV4ChavePagina((string) $l['pagina'])] ?? null;
-            if ($pid !== null) {
+                        GROUP BY UPPER(codigo), modeloNome, LEFT(shiftDateAndHour, 10)', array_merge($todosReps, [escCorteDados(escMaisDias($seg, -max($janelasPdf))) . 'T00:00:00', $seg . 'T00:00:00'])));
+        foreach ($folhas as $pid => $pg) {
+            foreach (array_keys($repsPag[$pid] ?? []) as $rep) {
                 foreach ($janelasPdf as $j) {
-                    $diasPag[$pid][$l['rep']][$j] = ($diasPag[$pid][$l['rep']][$j] ?? 0) + (int) $l['d' . $j];
+                    $diasPag[$pid][$rep][$j] = escModeloDias($setPdf, (string) $rep, $pg['nome'], escCorteDados(escMaisDias($seg, -$j)));
                 }
             }
         }
@@ -616,9 +610,9 @@ if (($_GET['ver'] ?? '') === 'pdf') {
             $periodosPdf[] = [escMaisDias($seg, -$j), escMaisDias($seg, -$ant - 1)];
             $ant = $j;
         }
-        $atPdf = escMeritoAtingimentoPaginas(array_column($folhas, 'nome'), $todosReps, $periodosPdf);
+        $atPdf = escMeritoAtingimentoModelos(array_column($folhas, 'nome'), $todosReps, $periodosPdf);
         foreach ($folhas as $pid => $pg) {
-            foreach ($atPdf[$pg['nome']] ?? [] as $rep => $porPeriodo) {
+            foreach ($atPdf[escModeloDaPagina($pg['nome'])] ?? [] as $rep => $porPeriodo) {
                 $acc = [0.0, 0.0];
                 foreach ($janelasPdf as $i => $j) {
                     $acc = [$acc[0] + (float) ($porPeriodo[$i][0] ?? 0), $acc[1] + (float) ($porPeriodo[$i][1] ?? 0)];
@@ -710,7 +704,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
         <th class="pag-pdf-membro"><?php echo h(t('Representante')); ?></th>
         <th><?php echo h(t('Tags')); ?></th>
         <th class="pag-pdf-num"><?php echo h(t('Tempo de casa')); ?></th>
-        <?php foreach ($janelasPdf as $j): ?><th class="pag-pdf-num"><?php echo h(t('Dias na página {d}d', ['d' => $j])); ?></th><th class="pag-pdf-num"><?php echo h(t('Meta {d}d', ['d' => $j])); ?></th><?php endforeach; ?>
+        <?php foreach ($janelasPdf as $j): ?><th class="pag-pdf-num"><?php echo h(t('Dias na modelo {d}d', ['d' => $j])); ?></th><th class="pag-pdf-num"><?php echo h(t('Meta {d}d', ['d' => $j])); ?></th><?php endforeach; ?>
       </tr></thead>
       <tbody>
       <?php foreach (array_keys($repsPag[$pid]) as $rep): ?>
@@ -727,7 +721,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
     <p class="pag-pdf-legenda"><?php echo h(t('# antes do nome = assistente (o primeiro da página no bloco entra sem #; os demais, que ajudam no capacity, com #) · ⚠ cobrindo acima da capacidade (até 30%, só páginas da mesma agência; cede quando houver gente) · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS. Turno A = T2 e T3 · C = T4 e T5 · D = T6 e o T1 do dia seguinte.') . ' ' . t('Ao lado do código: venda por hora do SR nos últimos {d} dias (valor vendido ÷ horas no chat), o número que o motor usa para pôr os melhores SRs nas páginas grandes; verde = 115% da mediana ou mais, laranja = menos de 85%, sem cor = na média.', ['d' => $diasPdf])
         . (!empty($medPdf[$moedaFolha]) && escPodeVerRestrito() ? ' ' . t('Mediana: {moeda} {v}/h.', ['moeda' => $moedaFolha, 'v' => number_format($medPdf[$moedaFolha], 0, ',', '.')]) : '')
         . ($moedaFolha === 'R$' ? ' ' . t('Privacy vende em reais: nesta folha os valores estão em R$ e a venda por hora conta só as horas na Privacy.') : '')
-        . ' ' . t('Representantes: tempo de casa pela data mais antiga do cadastro (headcount); dias escalados na página no 5C Schedule e atingimento da meta 5CReps na página (na parte de cada um, pela fatia das mensagens) nos 30, 60 e 90 dias antes da semana. Verde: meta batida. — : sem mensagens na página no período.')); ?></p>
+        . ' ' . t('Representantes: tempo de casa pela data mais antiga do cadastro (headcount); dias escalados na modelo no 5C Schedule (qualquer página dela; o mesmo dia conta uma vez) e atingimento da meta 5CReps na modelo (todas as páginas dela, na parte de cada um, pela fatia das mensagens) nos 30, 60 e 90 dias antes da semana. Verde: meta batida. — : sem mensagens na modelo no período. A venda por hora é na página.')); ?></p>
     <p class="pag-pdf-legenda"><?php echo h(t('Tags (na escala só os riscos; na tabela, todas):')) . ' ' . escTagsLegenda(); ?></p>
   </section>
   <?php endforeach; ?>

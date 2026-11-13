@@ -39,7 +39,7 @@ function escFunilContexto(string $dia): array {
     // Modelos (chave sem espaço, minúscula) e em que unidade e carteira já têm página.
     $modelos = [];
     foreach (escQ('SELECT pc.modelo, pc.pagina, pc.carteira, c.unidade FROM `5c_planning`.`fc_pagina_carteira` pc JOIN `5c_planning`.`fc_carteira` c ON c.carteira = pc.carteira
-                    WHERE pc.vigente_ate IS NULL OR pc.vigente_ate > ?', [$dia]) as $m) {
+                    WHERE c.ativo = 1 AND (pc.vigente_ate IS NULL OR pc.vigente_ate > ?)', [$dia]) as $m) {
         $modelos[escFunilChave((string) $m['modelo'])][(int) $m['unidade']] = ['pagina' => $m['pagina'], 'carteira' => $m['carteira']];
     }
     // Faturamento total de cada unidade e turno contra a média (lib/equilibrio.php).

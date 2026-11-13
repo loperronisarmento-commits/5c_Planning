@@ -23,9 +23,10 @@ Seção 1 do 5C Escalas. O banco (`5c_planning`) passa a calcular sozinho, todo 
     - **Presentes por dia** (cada unidade) = (faltas + pico) ÷ (1 − taxa de falta), porque o buffer também falta.
     - **Buffer do turno:** é contado no total das 3 unidades, para não arredondar núcleo a núcleo. É a soma dos presentes × 3 ÷ 2, arredondada para cima, porque o buffer segue a folga do núcleo e 2 de 3 trabalham por dia.
     - **Distribuição:**
-      - cada unidade recebe a parte proporcional aos presentes dela, nunca menos que 2 por núcleo (6 por unidade);
+      - o turno nunca fica abaixo de `buffer_minimo_turno` (15, script 37), somadas as unidades;
+      - cada unidade recebe a parte proporcional aos presentes dela, nunca menos que 1 por núcleo (3 por unidade; até o script 37 eram 2 e 6);
       - dentro da unidade, o Planning tool divide entre os núcleos, de forma desigual se precisar, respeitando o mínimo.
-    - Os pesos ficam em `fc_parametros`: `peso_af_buffer`, `percentil_pico`, `teto_pico_fans_rep`, `janela_buffer_dias`, `janela_pico_dias`, `nucleos_por_turno`, `nucleos_folga_dia`, `buffer_minimo_nucleo` (2) e `fator_volume`.
+    - Os pesos ficam em `fc_parametros`: `peso_af_buffer`, `percentil_pico`, `teto_pico_fans_rep`, `janela_buffer_dias`, `janela_pico_dias`, `nucleos_por_turno`, `nucleos_folga_dia`, `buffer_minimo_nucleo` (1), `buffer_minimo_turno` (15) e `fator_volume`.
 - **Tem:** reps reais de cada unidade e turno.
 
 > **Unidades renumeradas em 30/10 (ES_35, do Planning tool):** U1 = Victoria e U3 = Keller, no banco (todas as datas e versões) e nos textos e scripts desta pasta. A Skylar, por exemplo, era da U3 · C1 (Keller).
@@ -139,7 +140,13 @@ O detalhe fica nas tabelas, com histórico de 180 dias:
   - Carteira: a da foto, se o SR continua na mesma unidade; senão, a das páginas em que ele é fixo; senão NULL (conta na unidade e turno, mas não na carteira).
 - **Registro diário do quadro (script 35):** `fc_quadro_dia` guarda os SRs e OS com cadastro no 5C Escalas por dia, unidade e turno (unidade 0 = sem unidade), reconstruído desde 01/11; `fc_quadro_dia_rh` guarda o resumo do RH do dia (SR no headcount, com unidade, liderança, trainee, fora das unidades). Grava `sp_fc_quadro_dia(data)`, na etapa `quadro` do `sp_fc_rodar_dia`. A linha "Tem" da tela Capacity usa esta tabela.
 - **Absenteísmo (script 36):** a taxa de falta do buffer (`sp_fc_postos` passo 4 e `sp_fc_buffer`) só usa dias a partir de `abs_desde` (aaaammdd; hoje 20261101) dentro da janela; com `abs_d_media_ac` = 1, o turno D usa a média de A e C (o registro de faltas do D caiu para quase zero na virada de 31/10). Para voltar: os dois parâmetros em 0.
-  - Hoje o buffer é o mínimo (`buffer_minimo_nucleo` 2 × 3 núcleos = 18 por turno): pela falta e pelo pico daria 7 a 8 por turno, então a queda do absenteísmo quase não muda o "precisa".
+  - Até o script 37 o buffer ficava no mínimo (`buffer_minimo_nucleo` 2 × 3 núcleos = 18 por turno): pela falta e pelo pico daria 10 a 12 por turno, então a queda do absenteísmo quase não mudava o "precisa".
+- **Buffer mínimo por turno (script 37, 11/11):** `buffer_minimo_turno` = 15 e `buffer_minimo_nucleo` = 1. Com as faltas reais de 01 a 10/11 (A: mediana 3, pior 7; C: mediana 3,5, pior 11), o buffer presente menos o pico mediano cobre 9 de 10 dias no A e 7 de 10 no C (com 18 por turno: 10 e 9; com o calculado, 10–12: 6 a 7). Versão 96: buffer 54 → 45, precisa 329 → 320. Para voltar: `buffer_minimo_nucleo` = 2 e `buffer_minimo_turno` = 0.
+- **Postos com teto +30% e no máximo 2 páginas (script 38, 11/11):** medição da semana de 02 a 08/11 (`cap_rep_hora` × `tab_intraday_base`): com 2 páginas o SR rende quase igual a 1 (meta 83% × 85%); com 3 ou mais, a mesma página perde ~14 pontos de meta; fãs/h acima do teto não derrubaram meta nem SLA.
+  - Parâmetros: `limite_padrao` 45,5, `limite_compartilhada` 36,4, `teto_apoio` e `teto_pico_fans_rep` 52, `max_paginas_rep` 2, `desconto_mesma_modelo` e `desconto_modelo_diferente` 0, `receita_triple` 0 (sem grupos de 3).
+  - `fc_posto_fixo` refeito com vigência em 11/11 (as linhas de 01/11 fecham em 11/11): exclusivas como estavam, Bianca + Alexis Clark e Ivy Vale + Savannah mantidas, OFTV de apoio com a principal da modelo. 57 postos por turno (eram 61): U1 22, U2 17, U3 18. Simulação e lista em `resultados/capacity_teto_1111/`.
+  - Versão 97: precisa 320 → 303, tem 221. A escala só muda no próximo Gerar (semanas de 16/11 e 23/11 precisam ser geradas de novo).
+  - Carteiras ficaram desiguais em postos: U1C1 12 × U1C2 10, U2C1 8 × U2C2 9, U3C1 8 × U3C2 10 por turno.
 
 ## Plano de contratação com o quadro novo (2 cenários)
 

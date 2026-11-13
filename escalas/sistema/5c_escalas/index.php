@@ -59,6 +59,7 @@ require_once __DIR__ . '/lib/restricoes_om_gestao.php';
 require_once __DIR__ . '/lib/graficos.php';
 require_once __DIR__ . '/lib/quadro.php';
 require_once __DIR__ . '/lib/fora_unidades.php';
+require_once __DIR__ . '/lib/bot_cobranca.php';
 
 // ---------- nível 1: logado no MIS Portal? ----------
 startSecureSession();
@@ -87,6 +88,7 @@ $telas = [
     'srs'          => ['Mérito dos SRs', 'pages/tertius.php'],
     'sugestoes'    => ['Sugestões de troca', 'pages/sugestoes.php'],
     'buffers'      => ['Buffers', 'pages/buffers.php'],
+    'bot'          => ['Bot de cobrança', 'pages/bot_cobranca.php'],
     'trocas'       => ['Trocas de página', 'pages/trocas.php'],
     'saidas'       => ['Saídas de página', 'pages/saidas.php'],
     'funil'        => ['Funil de entrada', 'pages/funil.php'],
@@ -293,7 +295,7 @@ try {
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
-    'Análise' => ['analise', 'srs', 'sugestoes', 'buffers'],
+    'Análise' => ['analise', 'srs', 'sugestoes', 'buffers', 'bot'],
     'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],

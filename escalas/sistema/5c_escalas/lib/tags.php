@@ -4,12 +4,13 @@
 // Tags de leitura da escala (Grade, detalhe da célula e PDF das páginas): mostram ao lado de cada
 // SR o que ajuda e o que ameaça o resultado, sem precisar abrir o mérito. Tudo vem de leituras
 // que já existem (cache do mérito, atingimento na página, dias na página e turmas de New Hires).
-//   Na página (SR × página):
-//   - BM Bate meta: atingimento da meta 5CReps na página nos últimos 30 dias ≥ tag_meta_bate (100%).
+//   Na modelo da página (SR × modelo, desde 11/11: conhecer uma das páginas da modelo basta, ex.:
+//   Mikayla Free ou Mikayla Paid; lib/estrutura.php, escModeloDaPagina):
+//   - BM Bate meta: atingimento da meta 5CReps na modelo (todas as páginas dela) nos últimos 30 dias ≥ tag_meta_bate (100%).
 //   - NM Não bate meta: abaixo de tag_meta_nao (80%). Entre os dois, sem tag (perto da meta).
-//     Só com tag_exp_min_dias (3) ou mais dias na página em 90 dias; com menos, vale o INX.
-//   - EXP Experiente na página: tag_exp_dias (15) ou mais dias escalados nela em 90 dias.
-//   - INX Inexperiente na página: menos de v4_conhece_dias (3) dias nela em 90 dias.
+//     Só com v4_conhece_dias (3) ou mais dias na modelo em 90 dias; com menos, vale o INX.
+//   - EXP Experiente na modelo: tag_exp_dias (15) ou mais dias escalados nela em 90 dias (o mesmo dia em duas páginas conta uma vez).
+//   - INX Inexperiente na modelo: menos de v4_conhece_dias (3) dias nela em 90 dias.
 //   Do SR (mérito em cache, janela de 28 dias):
 //   - TRN Trainee: New Hire disponível há menos de tag_trainee_dias (30) dias (rampa do novato)
 //     ou início de contrato no headcount há menos disso.
@@ -28,15 +29,15 @@ const ESC_TAGS_LIVRES = ['INX', 'TRN', 'EXP'];
 function escTagsDef(): array {
     static $def = null;
     return $def ??= [
-        'NM' => [t('Meta ✗'), t('Não bate meta na página'), 'vermelho'],
+        'NM' => [t('Meta ✗'), t('Não bate meta na modelo'), 'vermelho'],
         'ABS' => [t('Faltas'), t('Absenteísmo alto'), 'vermelho'],
         'INF' => [t('Infração'), t('Infração nos últimos 90 dias'), 'vermelho'],
         'MB' => [t('Mérito ↓'), t('Mérito abaixo'), 'vermelho'],
-        'INX' => [t('Inexp.'), t('Inexperiente na página'), 'laranja'],
+        'INX' => [t('Inexp.'), t('Inexperiente na modelo'), 'laranja'],
         'TRN' => [t('Trainee'), t('Trainee (New Hire nos primeiros 30 dias)'), 'laranja'],
         'SLA' => [t('SLA ↓'), t('SLA baixo'), 'laranja'],
-        'BM' => [t('Meta ✓'), t('Bate meta na página'), 'verde'],
-        'EXP' => [t('Exp.'), t('Experiente na página'), 'verde'],
+        'BM' => [t('Meta ✓'), t('Bate meta na modelo'), 'verde'],
+        'EXP' => [t('Exp.'), t('Experiente na modelo'), 'verde'],
         'MA' => [t('Mérito ↑'), t('Mérito acima'), 'verde'],
         'SEQ' => [t('Seq. meta'), t('Semanas seguidas batendo a meta'), 'verde'],
     ];
@@ -58,9 +59,9 @@ function escTagsParam(): array {
 }
 
 // Leituras das tags, em cache de arquivo por 6 h (as fontes mudam no máximo uma vez por dia):
-// ['sr' => [rep => [códigos]], 'meta' => [chave da página][rep] => atingimento, 'dias' => [chave][rep] => dias em 90].
+// ['sr' => [rep => [códigos]], 'meta' => [modelo][rep] => atingimento, 'dias' => [modelo][rep] => dias em 90].
 function escTagsDados(): array {
-    return escCache('tags_corte_' . date('Ymd'), 6 * 3600, static function (): array {
+    return escCache('tags_modelo_' . date('Ymd'), 6 * 3600, static function (): array {
         $p = escTagsParam();
         $sr = [];
         try {
@@ -110,18 +111,18 @@ function escTagsDados(): array {
                 appLog('warning', 'Tags: headcount indisponível', ['erro' => $e->getMessage()]);
             }
         }
-        // Atingimento na página nos últimos 30 dias (como o passo 0 do Gerar) e dias escalados nela em 90.
+        // Atingimento na modelo nos últimos 30 dias (como o passo 0 do Gerar) e dias escalados nela em 90.
         $meta = [];
         $dias = [];
         $paginas = array_column(escMotorPaginas(), 'nome');
         if ($paginas && $reps) {
             try {
                 $periodo = [[date('Y-m-d', strtotime('-30 day')), date('Y-m-d', strtotime('-1 day'))]];
-                foreach (escMeritoAtingimentoPaginas($paginas, $reps, $periodo) as $pg => $porRep) {
+                foreach (escMeritoAtingimentoModelos($paginas, $reps, $periodo) as $modelo => $porRep) {
                     foreach ($porRep as $rep => $porPeriodo) {
                         [$real, $alvo] = ($porPeriodo[0] ?? []) + [0.0, 0.0];
                         if ($alvo > 0) {
-                            $meta[escV4ChavePagina((string) $pg)][strtoupper((string) $rep)] = round($real / $alvo, 4);
+                            $meta[$modelo][strtoupper((string) $rep)] = round($real / $alvo, 4);
                         }
                     }
                 }
@@ -129,11 +130,13 @@ function escTagsDados(): array {
                 appLog('warning', 'Tags: atingimento indisponível', ['erro' => $e->getMessage()]);
             }
             try {
-                foreach (escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, COUNT(DISTINCT LEFT(shiftDateAndHour, 10)) AS d FROM `5c_schedule`.`scheduleday`
-                                WHERE shiftDateAndHour >= ? AND shiftDateAndHour < ? GROUP BY UPPER(codigo), modeloNome',
-                    [escCorteDados(date('Y-m-d', strtotime('-90 day'))) . 'T00:00:00', date('Y-m-d') . 'T00:00:00']) as $l) {
-                    $k = escV4ChavePagina((string) $l['pagina']);
-                    $dias[$k][$l['rep']] = ($dias[$k][$l['rep']] ?? 0) + (int) $l['d'];
+                $set = escModeloDiasSet(escQ('SELECT UPPER(codigo) AS rep, modeloNome AS pagina, LEFT(shiftDateAndHour, 10) AS dia FROM `5c_schedule`.`scheduleday`
+                                WHERE shiftDateAndHour >= ? AND shiftDateAndHour < ? GROUP BY UPPER(codigo), modeloNome, LEFT(shiftDateAndHour, 10)',
+                    [escCorteDados(date('Y-m-d', strtotime('-90 day'))) . 'T00:00:00', date('Y-m-d') . 'T00:00:00']));
+                foreach ($set as $rep => $porModelo) {
+                    foreach ($porModelo as $modelo => $ds) {
+                        $dias[$modelo][$rep] = count($ds);
+                    }
                 }
             } catch (Throwable $e) {
                 appLog('warning', 'Tags: dias na página indisponíveis', ['erro' => $e->getMessage()]);
@@ -149,7 +152,7 @@ function escTagsDe(string $rep, string $pagina): array {
     $dados ??= escTagsDados();
     $p = escTagsParam();
     $rep = strtoupper($rep);
-    $k = escV4ChavePagina($pagina);
+    $k = escModeloDaPagina($pagina); // experiência e meta pela modelo (11/11)
     $c = $dados['sr'][$rep] ?? [];
     $d = (int) ($dados['dias'][$k][$rep] ?? 0);
     if ($d < $p['conhece_dias']) {
@@ -205,7 +208,7 @@ function escTagsLegenda(): string {
     if ($restrito) {
         return implode(' · ', $partes);
     }
-    return implode(' · ', $partes) . ' · ' . h(t('Meta na página nos últimos 30 dias (✓ {bate}% ou mais, ✗ abaixo de {nao}%); experiente com {exp} dias ou mais na página em 90 dias, inexperiente com menos de {conhece}; faltas com {faltas} dias ou mais em 28; SLA abaixo de {sla}%; sequência de {seq} semanas ou mais.', [
+    return implode(' · ', $partes) . ' · ' . h(t('Meta na modelo (todas as páginas dela) nos últimos 30 dias (✓ {bate}% ou mais, ✗ abaixo de {nao}%); experiente com {exp} dias ou mais na modelo em 90 dias, inexperiente com menos de {conhece}; faltas com {faltas} dias ou mais em 28; SLA abaixo de {sla}%; sequência de {seq} semanas ou mais.', [
         'bate' => round($p['meta_bate'] * 100), 'nao' => round($p['meta_nao'] * 100), 'exp' => $p['exp_dias'], 'conhece' => $p['conhece_dias'],
         'faltas' => $p['faltas_min'], 'sla' => round($p['sla_min'] * 100), 'seq' => $p['seq_semanas']]));
 }

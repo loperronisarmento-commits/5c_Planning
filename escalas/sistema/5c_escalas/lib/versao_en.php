@@ -6,6 +6,25 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.30.0' => ['titulo' => 'Add all new hires at once', 'itens' => [
+        'Training classes › New hires\' destination: "Add all from…" button, which adds in Employees every trainee of the cycle with a confirmed destination, each from the day their class becomes available, in the confirmed core, level 0 (the same values as the button on each row). Anyone who dropped out, already has a record or has no confirmed destination is left out; the screen shows how many.',
+        'Anyone with an error (e.g. a core not valid on the date) is left out and the others are added; the message lists who was left out and warns if the week of the available day already has a schedule (generate again).',
+        'Employees and the new button save through the same function (escColaboradorGravar in lib/equipes.php).',
+        'Unit balance and Entry funnel ignore inactive portfolios (Vencel, the outsourced unit 4).',
+    ]],
+    '1.29.0' => ['titulo' => 'Follow-up bot report', 'itens' => [
+        'New screen Analysis › Follow-up bot: response SLA and inactivity week by week, before and after the bot that follows up with SRs on Telegram (started on 10/06/2026), with an automatic reading ("improved", "held steady", "fell"), weekly charts with the bot start and the 3-unit start marked, a table by period and shift, and the alerts the bot opened, as context only.',
+        'Inactivity = a scheduled page with no employee message for 15 min or more (the bot rule), rebuilt from msgdashboard messages and the schedule posted in 5C Schedule since 08/31, because the bot alerts only exist since 10/02. The history is stored in esc_bot_inativ_semana and esc_bot_inativ_rep (ES_143); the screen calculates each week that closes by itself (one per planner visit, about 1 min).',
+        'Periods: before = 09/07 to 10/04; with the bot = 10/12 to 11/01 (still the old structure); the week of 10/05 and the 3-unit weeks (since 11/02) are kept apart. The screen does not use the 11/01 cutoff.',
+        'By SR (WFM/Planning and Admin only): 5-min SLA and inactivity per 100 blocks before and with the bot, for current SRs with 20 hours or more in both periods.',
+    ]],
+    '1.28.0' => ['titulo' => 'Experience and target by model', 'itens' => [
+        'Experience and target now count by model, not by page: knowing one of the model\'s pages is enough (e.g. Mikayla Free or Mikayla Paid). Days are the distinct days on any page of the model (the same day on two pages counts once) and the target adds up the result and target of all its pages. Sales per hour is still per page.',
+        'Generate: it applies to who knows a red or yellow page (P-02), to who hit the target in the best SR of the big pages and to keeping whoever is already on the post.',
+        'Grid: the Exp., Inexp., Goal ✓ and Goal ✗ tags and the "Days on model" and "Target" columns of the representatives in the pages PDF use the model. E.g. on Mikayla, with 3 days or more, 12 SRs know the model; before, 5 on Paid and 6 on Free.',
+        'Each page\'s model is the one in Capacity (fc_pagina_carteira.modelo); without it, by name.',
+        'Capacity: the buffer now has a minimum of 15 per shift and 1 per core (before, 2 per core = 18 per shift), based on actual absences since 11/01 (script 5C_Planning_37). Version 96: buffer 54 → 45, need 329 → 320. The screen shows the per-shift minimum.',
+    ]],
     '1.27.3' => ['titulo' => 'Page exit survives a dropped MySQL connection', 'itens' => [
         'Page exits: when the MySQL connection drops while generating the schedules again (error 1160, as in the batch of Livinia Roberts OFTV, Aria and Janet on 11/10), the system reconnects and tries the week once more. If it fails again, the message says Capacity and the posts are already saved and that applying the same pages again finishes what was left.',
         'Batch of 11/10 completed on the server (deploy/saida_concluir.php): weeks of 11/16 (v3.2) and 11/23 (v1.6) generated without the 4 pages. The week of 11/09 stays as the OMs locked it.',

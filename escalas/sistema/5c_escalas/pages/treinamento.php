@@ -99,6 +99,41 @@ if (escPost()) {
         escDstIncluir($id, $rep, mb_substr(trim((string) ($_POST['nome'] ?? '')), 0, 150));
         escVoltar('treinamento', ['aba' => 'destino', 'ciclo' => $trnCiclo($ativas[$id])], t('{rep} incluído na turma.', ['rep' => $rep]), false, 'turma-' . $id);
     }
+    if ($acao === 'cadastrar_todos') {
+        escExigir('cadastrar');
+        if (!escDstInstalado()) {
+            throw new RuntimeException(t('O destino dos novatos ainda não foi instalado no banco (script ES_137). Peça ao admin.'));
+        }
+        $modelo = escDstModeloPadrao();
+        if (!$modelo) {
+            throw new RuntimeException(t('Nenhum modelo de escala em uso para o cadastro. Cadastre um a um em Colaboradores.'));
+        }
+        $ciclo = (string) ($_POST['ciclo'] ?? '');
+        $doC = array_filter(escTrnTurmas(['RASCUNHO', 'ATIVA']), static fn($t) => $trnCiclo($t) === $ciclo);
+        if (!$doC) {
+            throw new RuntimeException(t('Turma não encontrada.'));
+        }
+        $res = escDstCadastrarTodos($doC, $modelo);
+        if (!$res['ok'] && !$res['erros']) {
+            throw new RuntimeException(t('Ninguém para cadastrar: confirme os destinos (unidade e núcleo) antes.'));
+        }
+        $dias = array_unique(array_values($res['ok']));
+        sort($dias);
+        $msg = $res['ok'] ? tn(count($res['ok']), '{n} novato cadastrado em Colaboradores a partir de {dias}, nível 0.', '{n} novatos cadastrados em Colaboradores a partir de {dias}, nível 0.', ['dias' => implode(', ', array_map(static fn($d) => dataBr($d), $dias))]) : '';
+        if ($res['erros']) {
+            $lista = [];
+            foreach ($res['erros'] as $rep => $e) {
+                $lista[] = $rep . ' (' . $e . ')';
+            }
+            $msg .= ($msg !== '' ? ' ' : '') . t('Ficaram de fora: {lista}.', ['lista' => implode('; ', $lista)]);
+        }
+        // Semana do dia disponível que já tem escala: precisa gerar de novo para os novatos entrarem.
+        $comEscala = array_values(array_unique(array_filter(array_map('segundaDaSemana', $dias), static fn($s) => (bool) escPlanoAtual($s))));
+        if ($comEscala) {
+            $msg .= ' ' . t('A semana de {dias} já tem escala: gere de novo no Gerar para os novatos entrarem.', ['dias' => implode(', ', array_map(static fn($s) => dataBr($s), $comEscala))]);
+        }
+        escVoltar('treinamento', ['aba' => 'destino', 'ciclo' => $ciclo], $msg, (bool) $res['erros'] && !$res['ok']);
+    }
     if ($acao === 'cancelar') {
         $turma = escTrnTurmas(['RASCUNHO', 'ATIVA'])[$id] ?? null;
         escTrnCancelar($id);
@@ -421,14 +456,42 @@ $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
 <?php if (!$doCiclo): ?>
 <section class="panel"><p class="muted"><?php echo h(t('Nenhuma turma em andamento.')); ?></p></section>
 <?php else:
-    $modeloPadrao = 0;
+    $modeloPadrao = $comDestino ? escDstModeloPadrao() : 0;
+    // Cadastrados e prontos para cadastrar, por turma (o "Cadastrar todos" e as linhas usam os mesmos).
+    $aplPorTurma = [];
+    $prontos = 0;
+    $diasProntos = [];
+    $semDestino = 0;
     if ($comDestino) {
-        $modeloPadrao = (int) (escQ1('SELECT modelo_id, COUNT(*) AS n FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND vigente_ate IS NULL GROUP BY modelo_id ORDER BY n DESC LIMIT 1")['modelo_id'] ?? 0);
+        foreach ($doCiclo as $id => $t) {
+            $aplPorTurma[$id] = escDstAplicados(array_keys($t['trainees']), (string) $t['disponivel_em']);
+            $nP = count(escDstProntos($t, $aplPorTurma[$id]));
+            $prontos += $nP;
+            if ($nP) {
+                $diasProntos[(string) $t['disponivel_em']] = dataBr($t['disponivel_em'], true);
+            }
+            foreach ($t['trainees'] as $rep => $tr) {
+                if (($tr['situacao'] ?? 'TREINANDO') === 'TREINANDO' && !isset($aplPorTurma[$id][$rep]) && (empty($tr['destino_em']) || empty($tr['nucleo_destino_id']))) {
+                    $semDestino++;
+                }
+            }
+        }
+        ksort($diasProntos);
     }
 ?>
 <?php if ($comDestino): ?>
 <section class="panel">
   <p class="muted small"><?php echo h(t('Sugestão do sistema: a unidade com mais lacunas no turno da turma na escala da semana em que ela fica disponível; no empate, a com mais falta no Capacity. Dentro da unidade, o núcleo com menos SRs para a parte dele. Confirme ou troque; o cadastro em Colaboradores (a partir do dia disponível) é o que põe a pessoa na escala.')); ?></p>
+  <?php if ($podeCadastrar && $modeloPadrao && ($prontos || $semDestino)): ?>
+  <form method="post" action="<?php echo h($link(['aba' => 'destino'])); ?>" class="acoes treino-cad-todos">
+    <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="cadastrar_todos"><input type="hidden" name="ciclo" value="<?php echo h($cicloSel); ?>">
+    <button type="submit" class="botao primario" <?php echo $prontos ? '' : 'disabled'; ?>
+      data-confirmar="<?php echo h(tn($prontos, 'Cadastrar {n} novato em Colaboradores, a partir do dia disponível da turma ({dias}), no núcleo confirmado e nível 0?', 'Cadastrar {n} novatos em Colaboradores, cada um a partir do dia disponível da turma ({dias}), no núcleo confirmado e nível 0?', ['dias' => implode(', ', $diasProntos)])); ?>"><?php echo h($prontos ? t('Cadastrar todos a partir de {dias} ({n})', ['dias' => implode(', ', array_map(static fn($d) => dataBr($d), array_keys($diasProntos))), 'n' => $prontos]) : t('Cadastrar todos')); ?></button>
+    <span class="small muted"><?php echo h($semDestino
+        ? tn($semDestino, '{n} trainee sem destino confirmado fica de fora: confirme a turma dele antes.', '{n} trainees sem destino confirmado ficam de fora: confirme a turma deles antes.')
+        : t('Todos com destino confirmado. Cada um entra a partir do dia disponível da sua turma.')); ?></span>
+  </form>
+  <?php endif; ?>
 </section>
 <?php endif; ?>
 <?php foreach ($doCiclo as $id => $t):
@@ -444,7 +507,7 @@ $repost = is_array($flash['post'] ?? null) ? $flash['post'] : [];
   <?php else:
       $sugT = escDstSugerir($t, escDstDesignados($turmas, $id));
       $nucT = escDstNucleos((string) $t['disponivel_em']);
-      $aplT = escDstAplicados(array_keys($t['trainees']), (string) $t['disponivel_em']);
+      $aplT = $aplPorTurma[$id] ?? [];
       $podeDst = $podePlanejar; ?>
     <?php if ($podeDst): ?><form method="post" action="<?php echo h($link(['aba' => 'destino'])); ?>#turma-<?php echo $id; ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="destino"><input type="hidden" name="turma_id" value="<?php echo $id; ?>"><?php endif; ?>
     <div class="tabela-rolagem"><table class="treino-destino-tab">

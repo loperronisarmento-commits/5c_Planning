@@ -664,6 +664,50 @@ function escDstSalvar(int $turmaId, array $itens): int {
     return $n;
 }
 
+// Modelo de escala do cadastro dos novatos: o mais usado pelos SRs com cadastro aberto (0 se nenhum).
+function escDstModeloPadrao(): int {
+    return (int) (escQ1('SELECT modelo_id, COUNT(*) AS n FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND vigente_ate IS NULL GROUP BY modelo_id ORDER BY n DESC LIMIT 1")['modelo_id'] ?? 0);
+}
+
+// Trainees prontos para o cadastro em Colaboradores: treinando, com unidade e núcleo confirmados e
+// ainda sem cadastro no dia disponível. $aplicados = escDstAplicados da turma. Devolve [rep => trainee].
+function escDstProntos(array $turma, array $aplicados): array {
+    return array_filter($turma['trainees'], static fn($tr, $rep) => ($tr['situacao'] ?? 'TREINANDO') === 'TREINANDO'
+        && !empty($tr['destino_em']) && !empty($tr['unidade_destino']) && !empty($tr['nucleo_destino_id']) && !isset($aplicados[$rep]), ARRAY_FILTER_USE_BOTH);
+}
+
+// Cadastra em Colaboradores, de uma vez, os trainees prontos das turmas: cada um a partir do dia em que
+// a turma fica disponível, no núcleo confirmado, nível 0, com o modelo padrão (os mesmos valores do
+// botão de cada linha). Quem dá erro (núcleo fora da data, subordinação proibida) fica de fora e os
+// outros seguem. Devolve ['ok' => [rep => dia], 'erros' => [rep => mensagem]].
+function escDstCadastrarTodos(array $turmas, int $modelo): array {
+    $r = ['ok' => [], 'erros' => []];
+    foreach ($turmas as $t) {
+        $dia = (string) $t['disponivel_em'];
+        foreach (escDstProntos($t, escDstAplicados(array_keys($t['trainees']), $dia)) as $rep => $tr) {
+            try {
+                $nucleo = escQ1('SELECT id, unidade, turno, numero FROM ' . escT('esc_nucleo') . ' WHERE id = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [(int) $tr['nucleo_destino_id'], $dia, $dia]);
+                if (!$nucleo) {
+                    throw new RuntimeException(t('Núcleo inválido na data.'));
+                }
+                $proibido = escSubordinacaoProibida($rep, (int) $nucleo['id'], $dia);
+                if ($proibido !== '') {
+                    throw new RuntimeException($proibido);
+                }
+                escColaboradorGravar($rep, [
+                    'modelo_id' => $modelo, 'tipo' => 'NUCLEO', 'turno' => $nucleo['turno'], 'trilha' => null, 'folgas_fixas' => null,
+                    'unidade' => (int) $nucleo['unidade'], 'nucleo_id' => (int) $nucleo['id'], 'nivel' => 0,
+                    'pode_assistente' => 1, 'observacao' => t('New Hire {turma}', ['turma' => $t['codigo']]),
+                ], $dia, $nucleo);
+                $r['ok'][$rep] = $dia;
+            } catch (Throwable $e) {
+                $r['erros'][$rep] = $e->getMessage();
+            }
+        }
+    }
+    return $r;
+}
+
 // Inclui um trainee à mão na turma (quem ainda não veio no e-mail do Treinamento).
 function escDstIncluir(int $turmaId, string $rep, string $nome): void {
     if (!preg_match('~^[A-Z]\d{6}$~', $rep)) {

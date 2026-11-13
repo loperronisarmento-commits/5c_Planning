@@ -414,6 +414,29 @@ function escMeritoCalcular(array $reps): array {
     return $saida;
 }
 
+// Atingimento de cada rep na MODELO (pedido de 11/11): soma o realizado e a meta de todas as páginas abertas
+// da modelo das $paginas (escModeloPaginasAbertas). Volta [modelo][rep][i] = [realizado, meta].
+function escMeritoAtingimentoModelos(array $paginas, array $reps, array $periodos): array {
+    $abertas = escModeloPaginasAbertas();
+    $todas = [];
+    foreach ($paginas as $p) {
+        $todas[(string) $p] = true;
+        foreach ($abertas[escModeloDaPagina((string) $p)] ?? [] as $irma) {
+            $todas[$irma] = true;
+        }
+    }
+    $out = [];
+    foreach (escMeritoAtingimentoPaginas(array_keys($todas), $reps, $periodos) as $pg => $porRep) {
+        $m = escModeloDaPagina((string) $pg);
+        foreach ($porRep as $rep => $porPeriodo) {
+            foreach ($porPeriodo as $i => [$real, $meta]) {
+                $out[$m][$rep][$i] = [($out[$m][$rep][$i][0] ?? 0.0) + (float) $real, ($out[$m][$rep][$i][1] ?? 0.0) + (float) $meta];
+            }
+        }
+    }
+    return $out;
+}
+
 // Atingimento de cada rep em cada página, por período (PDF de metas da Grade): a parte do
 // realizado e da meta 5CReps da página que cabe ao rep, pela fatia das mensagens no dia, bloco
 // e página (a mesma regra do desempenho do mérito). $periodos = [[de, ate], ...], datas

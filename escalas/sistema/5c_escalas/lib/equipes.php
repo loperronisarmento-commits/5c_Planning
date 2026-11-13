@@ -59,6 +59,60 @@ function escConfigCancelarFuturas(string $rep, string $desde): array {
     return $futuras;
 }
 
+// Grava a configuração de uma pessoa a partir de $desde (o POST de Colaboradores e o "Cadastrar todos"
+// das Turmas de treinamento). $novo: modelo_id, tipo, turno, trilha, folgas_fixas, pode_assistente,
+// observacao e, na estrutura nova, unidade, nucleo_id e nivel. $nucleo: a linha de esc_nucleo ou null.
+// Cancela a configuração marcada para depois, fecha (ou atualiza, se começa no mesmo dia) a que vale
+// na data e, se trocou de núcleo, fecha as vagas fixas do antigo. Devolve quantas vagas fecharam.
+function escColaboradorGravar(string $rep, array $novo, string $desde, ?array $nucleo): int {
+    $vagasFechadas = 0;
+    escTx(function () use ($rep, $novo, $desde, $nucleo, &$vagasFechadas) {
+        // Configuração marcada para depois da data: é cancelada e vale a de agora.
+        $neutra = escMaisDias(escV4DiaVirada(), -2);
+        $canceladas = escConfigCancelarFuturas($rep, $desde);
+        // A configuração que vale NA data informada (não a mais nova).
+        $atual = escQW('SELECT * FROM ' . escT('esc_colaborador_config') . ' WHERE rep_code = ? AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?) ORDER BY vigente_desde DESC LIMIT 1', [$rep, $desde, $desde]);
+        $atual = $atual[0] ?? null;
+        // Sem núcleo no formulário, a nova vigência leva junto a estrutura que já tinha.
+        $est = [
+            'unidade' => $novo['unidade'] ?? $atual['unidade'] ?? null,
+            'nucleo_id' => $novo['nucleo_id'] ?? $atual['nucleo_id'] ?? null,
+            'nivel' => array_key_exists('nivel', $novo) ? $novo['nivel'] : ($atual['nivel'] ?? null),
+            'funcao' => $atual['funcao'] ?? ($nucleo ? 'EQUITE' : null),
+        ];
+        // SR 3 ou mais não trabalha como assistente (v4_nivel_max_assistente): grava sempre "não".
+        if ($est['nivel'] !== null && (int) $est['nivel'] > (int) escV4Param('v4_nivel_max_assistente', '2')) {
+            $novo['pode_assistente'] = 0;
+        }
+        if ($atual && substr($atual['vigente_desde'], 0, 10) === $desde) {
+            escW('UPDATE ' . escT('esc_colaborador_config') . ' SET modelo_id = ?, tipo = ?, turno = ?, trilha = ?, folgas_fixas = ?, pode_assistente = ?, unidade = ?, nucleo_id = ?, nivel = ?, funcao = ?, observacao = ?, origem = \'TELA\', atualizado_por = ? WHERE id = ?',
+                [$novo['modelo_id'], $novo['tipo'], $novo['turno'], $novo['trilha'], $novo['folgas_fixas'], $novo['pode_assistente'], $est['unidade'], $est['nucleo_id'], $est['nivel'], $est['funcao'], $novo['observacao'], escUserId(), (int) $atual['id']]);
+        } else {
+            if ($atual) {
+                escW('UPDATE ' . escT('esc_colaborador_config') . ' SET vigente_ate = ?, atualizado_por = ? WHERE id = ?', [escMaisDias($desde, -1), escUserId(), (int) $atual['id']]);
+            }
+            escW('INSERT INTO ' . escT('esc_colaborador_config') . ' (rep_code, modelo_id, tipo, turno, trilha, ancora, folgas_fixas, pode_assistente, unidade, nucleo_id, nivel, funcao, fatia_regular, vigente_desde, observacao, origem, criado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, \'TELA\', ?)',
+                [$rep, $novo['modelo_id'], $novo['tipo'], $novo['turno'], $novo['trilha'], $atual['ancora'] ?? null, $novo['folgas_fixas'], $novo['pode_assistente'],
+                 $est['unidade'], $est['nucleo_id'], $est['nivel'], $est['funcao'], $atual['fatia_regular'] ?? null,
+                 $desde, $novo['observacao'], escUserId()]);
+        }
+        // Trocou de núcleo: as vagas fixas do núcleo antigo fecham na véspera (o motor cobre).
+        // A vaga que só começava na data ou depois nunca valeu: vai para a data neutra.
+        if ($nucleo && $atual && (int) $atual['nucleo_id'] !== (int) $nucleo['id']) {
+            foreach (escQW('SELECT id, vigente_desde FROM ' . escT('esc_vaga_equipe') . ' WHERE rep_code = ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$rep, $desde]) as $v) {
+                if (substr((string) $v['vigente_desde'], 0, 10) >= $desde) {
+                    escVagaNeutra((int) $v['id'], $neutra);
+                } else {
+                    escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ?, motivo = LEFT(CONCAT(\'trocou de núcleo; \', COALESCE(motivo, \'\')), 255) WHERE id = ?', [escMaisDias($desde, -1), (int) $v['id']]);
+                }
+                $vagasFechadas++;
+            }
+        }
+        escLog('colaborador.salvar', 'esc_colaborador_config', $rep, $atual, $novo + ['vigente_desde' => $desde, 'vagas_fechadas' => $vagasFechadas, 'canceladas' => $canceladas]);
+    });
+    return $vagasFechadas;
+}
+
 // " A configuração que estava marcada para depois foi cancelada: 09/11 (U1 · D · núcleo 2)." ou ''.
 function escConfigCanceladasAviso(): string {
     $lista = [];

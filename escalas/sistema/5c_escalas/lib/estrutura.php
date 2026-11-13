@@ -40,6 +40,65 @@ function escPaginaChaveModelo(string $nome): string {
     return escFunilChave(implode('', $partes) ?: $nome);
 }
 
+// ---------- Experiência e meta pela modelo (pedido de 11/11) ----------
+// Conhecer uma das páginas da modelo basta (ex.: Mikayla Free ou Mikayla Paid): os dias e a meta de quem
+// atende a modelo contam para todas as páginas dela. A venda por hora continua por página.
+// Modelo de cada página: a do Capacity (fc_pagina_carteira.modelo, a linha mais nova de cada página);
+// sem ela, pelo nome (escPaginaChaveModelo). Chave da página: escV4ChavePagina.
+function escModeloMapa(): array {
+    static $mapa = null;
+    if ($mapa === null) {
+        $mapa = [];
+        try {
+            foreach (escQ('SELECT pagina, modelo FROM `5c_planning`.`fc_pagina_carteira` WHERE modelo IS NOT NULL AND modelo <> \'\' ORDER BY vigente_desde') as $r) {
+                $mapa[escV4ChavePagina((string) $r['pagina'])] = (string) $r['modelo'];
+            }
+        } catch (Throwable $e) {
+            appLog('warning', 'Modelo das páginas indisponível (Capacity)', ['erro' => $e->getMessage()]);
+        }
+    }
+    return $mapa;
+}
+
+function escModeloDaPagina(string $pagina): string {
+    return escModeloMapa()[escV4ChavePagina($pagina)] ?? escPaginaChaveModelo($pagina);
+}
+
+// Páginas abertas no Capacity de cada modelo: [modelo] = [páginas].
+function escModeloPaginasAbertas(): array {
+    static $porModelo = null;
+    if ($porModelo === null) {
+        $porModelo = [];
+        try {
+            foreach (escQ('SELECT DISTINCT pagina FROM `5c_planning`.`fc_pagina_carteira` WHERE vigente_ate IS NULL OR vigente_ate > CURDATE()') as $r) {
+                $porModelo[escModeloDaPagina((string) $r['pagina'])][] = (string) $r['pagina'];
+            }
+        } catch (Throwable $e) {
+            appLog('warning', 'Páginas por modelo indisponíveis (Capacity)', ['erro' => $e->getMessage()]);
+        }
+    }
+    return $porModelo;
+}
+
+// Dias distintos de cada SR na modelo: $linhas com rep, pagina e dia (um por rep × página × dia, do
+// 5C Schedule). Volta [rep][modelo][dia] = true; o mesmo dia em duas páginas da modelo conta uma vez.
+function escModeloDiasSet(iterable $linhas): array {
+    $set = [];
+    foreach ($linhas as $l) {
+        $set[strtoupper((string) $l['rep'])][escModeloDaPagina((string) $l['pagina'])][substr((string) $l['dia'], 0, 10)] = true;
+    }
+    return $set;
+}
+
+// Dias de $rep na modelo de $pagina, a partir de $desde (AAAA-MM-DD; '' = todos do conjunto).
+function escModeloDias(array $set, string $rep, string $pagina, string $desde = ''): int {
+    $dias = $set[strtoupper($rep)][escModeloDaPagina($pagina)] ?? [];
+    if ($desde === '') {
+        return count($dias);
+    }
+    return count(array_filter(array_keys($dias), static fn($d) => $d >= $desde));
+}
+
 // Primeiro nome da página, sem perfil nem código ("zOFTV Diana Rider" → "diana").
 function escPaginaPrimeiroNome(string $nome): string {
     foreach (preg_split('~\s+~', trim($nome)) as $w) {

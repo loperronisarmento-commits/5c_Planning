@@ -73,7 +73,7 @@ $srsHoje = escQdSrsAtivos(date('Y-m-d'));
 $fechamento = escQdUltimoFechamento();
 $faltaFechada = (int) round((float) (escQ1("SELECT valor FROM `5c_planning`.`fc_parametros` WHERE chave = 'falta_fechada'")['valor'] ?? 5));
 $fat = $verFat && $ult ? escQdFaturamento((int) $ult['versao']) : [];
-// Buffer por turno no último cálculo: o que a falta e os picos pedem × o mínimo por núcleo (fc_buffer_turno).
+// Buffer por turno no último cálculo: o que a falta e os picos pedem × o mínimo (por turno desde o script 37; fc_buffer_turno).
 $bufT = ['global' => 0, 'minimo' => 0, 'buffer' => 0, 'n' => 0];
 if ($ult && !$unSel) {
     foreach (escQ('SELECT turno, buffer_global, buffer_minimo, buffer FROM `5c_planning`.`fc_buffer_turno` WHERE data_calculo = ?', [substr((string) $ult['data_calculo'], 0, 10)]) as $b) {
@@ -86,7 +86,7 @@ if ($ult && !$unSel) {
     }
 }
 $parBuf = [];
-foreach (escQ("SELECT chave, valor FROM `5c_planning`.`fc_parametros` WHERE chave IN ('abs_desde', 'abs_d_media_ac', 'buffer_minimo_nucleo', 'percentil_pico')") as $l) {
+foreach (escQ("SELECT chave, valor FROM `5c_planning`.`fc_parametros` WHERE chave IN ('abs_desde', 'abs_d_media_ac', 'buffer_minimo_nucleo', 'buffer_minimo_turno', 'percentil_pico')") as $l) {
     $parBuf[$l['chave']] = (float) $l['valor'];
 }
 
@@ -160,7 +160,7 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
   <div class="kpi"><span class="muted"><?php echo h(t('Postos')); ?></span><strong><?php echo $int($tot['postos']); ?></strong>
     <span class="muted small"><?php echo h(t('{tit} titulares (postos × 1,5) + {buf} de buffer', ['tit' => $int($tot['titulares']), 'buf' => $int($tot['buffer'])])); ?></span>
     <?php if ($bufT['n'] && $bufT['minimo'] > $bufT['global']): ?>
-    <span class="muted small"><?php echo h(t('Pela falta e pelos picos, o buffer seria {g}; o mínimo de {m} por núcleo leva a {b}. Por isso mudar o absenteísmo não muda o buffer enquanto ele ficar abaixo do mínimo.', ['g' => $bufT['global'], 'm' => num($parBuf['buffer_minimo_nucleo'] ?? 2, 0), 'b' => $bufT['buffer']])); ?></span>
+    <span class="muted small"><?php echo h(t('Pela falta e pelos picos, o buffer seria {g}; o mínimo de {t} por turno ({m} por núcleo) leva a {b}. Por isso mudar o absenteísmo não muda o buffer enquanto ele ficar abaixo do mínimo.', ['g' => $bufT['global'], 't' => num($parBuf['buffer_minimo_turno'] ?? 0, 0), 'm' => num($parBuf['buffer_minimo_nucleo'] ?? 2, 0), 'b' => $bufT['buffer']])); ?></span>
     <?php elseif ($bufT['n']): ?>
     <span class="muted small"><?php echo h(t('Buffer pela falta e pelos picos: {g} (mínimo {m}).', ['g' => $bufT['global'], 'm' => $bufT['minimo']])); ?></span>
     <?php endif; ?></div>
@@ -331,7 +331,8 @@ if ($plano && $linhasO) {
     </tbody>
   </table></div>
   <p class="muted small"><?php echo h(t('O Capacity é recalculado sozinho todo dia, a cada Gerar, em entradas e saídas de página e pelo botão Recalcular agora.')); ?>
-    <?php echo h(t('Parâmetros do buffer (5c_planning.fc_parametros): absenteísmo desde {desde}{dmed}, mínimo de {min} por núcleo, pico coberto no percentil {pct}.', [
+    <?php echo h(t('Parâmetros do buffer (5c_planning.fc_parametros): absenteísmo desde {desde}{dmed}, mínimo de {tur} por turno e {min} por núcleo, pico coberto no percentil {pct}.', [
+        'tur' => num($parBuf['buffer_minimo_turno'] ?? 0, 0),
         'desde' => !empty($parBuf['abs_desde']) ? dataBr(substr((string) (int) $parBuf['abs_desde'], 0, 4) . '-' . substr((string) (int) $parBuf['abs_desde'], 4, 2) . '-' . substr((string) (int) $parBuf['abs_desde'], 6, 2)) : t('a janela toda'),
         'dmed' => !empty($parBuf['abs_d_media_ac']) ? t(' (turno D na média de A e C)') : '',
         'min' => num($parBuf['buffer_minimo_nucleo'] ?? 2, 0), 'pct' => num($parBuf['percentil_pico'] ?? 0.5, 2)])); ?></p>

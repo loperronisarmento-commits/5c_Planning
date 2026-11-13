@@ -35,4 +35,9 @@ return [
     '{n} SR com tag vermelha neste turno' => '{n} SR with a red tag in this shift',
     '{n} SRs com tag vermelha neste turno' => '{n} SRs with a red tag in this shift',
     'Tags (na escala só os riscos; na tabela, todas):' => 'Tags (risks only in the schedule; all of them in the table):',
+    'Não bate meta na modelo' => 'Misses target on the model',
+    'Inexperiente na modelo' => 'Inexperienced on the model',
+    'Bate meta na modelo' => 'Hits target on the model',
+    'Experiente na modelo' => 'Experienced on the model',
+    'Meta na modelo (todas as páginas dela) nos últimos 30 dias (✓ {bate}% ou mais, ✗ abaixo de {nao}%); experiente com {exp} dias ou mais na modelo em 90 dias, inexperiente com menos de {conhece}; faltas com {faltas} dias ou mais em 28; SLA abaixo de {sla}%; sequência de {seq} semanas ou mais.' => 'Target on the model (all its pages) in the last 30 days (✓ {bate}% or more, ✗ below {nao}%); experienced with {exp} days or more on the model in 90 days, inexperienced with fewer than {conhece}; absences with {faltas} days or more in 28; SLA below {sla}%; streak of {seq} weeks or more.',
 ];
