@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.30.1', 'data' => '2026-11-16', 'titulo' => 'Divisão dos OS aplica sem erro de posto repetido', 'sql' => [], 'itens' => [
+    'Equilíbrio das unidades › Aplicar divisão: a cópia dos postos que mudam de OS mantém o número do posto quando ele está livre e, se não, usa o próximo livre na carteira e turno. Antes, dois postos de versões diferentes do Capacity com o mesmo número (ex.: U1C2 A, posto 2) faziam a divisão parar com erro, sem gravar nada.',
+    ]],
     ['versao' => '1.30.0', 'data' => '2026-11-13', 'titulo' => 'Cadastrar todos os novatos de uma vez', 'sql' => [], 'itens' => [
     'Turmas de treinamento › Destino dos novatos: botão "Cadastrar todos a partir de…", que cadastra em Colaboradores todos os trainees do ciclo com destino confirmado, cada um a partir do dia em que a turma fica disponível, no núcleo confirmado, nível 0 (os mesmos valores do botão de cada linha). Quem desistiu, já tem cadastro ou está sem destino confirmado fica de fora; a tela diz quantos.',
     'Quem dá erro (ex.: núcleo que não vale na data) fica de fora, e os outros são cadastrados; a mensagem lista quem ficou e avisa se a semana do dia disponível já tem escala (gerar de novo).',

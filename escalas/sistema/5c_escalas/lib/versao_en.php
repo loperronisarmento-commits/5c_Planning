@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.30.1' => ['titulo' => 'OS split applies without a repeated post number error', 'itens' => [
+        'Unit balance › Apply split: the copy of the posts that change OS keeps the post number when it is free and, if not, uses the next free one in the portfolio and shift. Before, two posts from different Capacity versions with the same number (e.g. U1C2 A, post 2) made the split stop with an error, saving nothing.',
+    ]],
     '1.30.0' => ['titulo' => 'Add all new hires at once', 'itens' => [
         'Training classes › New hires\' destination: "Add all from…" button, which adds in Employees every trainee of the cycle with a confirmed destination, each from the day their class becomes available, in the confirmed core, level 0 (the same values as the button on each row). Anyone who dropped out, already has a record or has no confirmed destination is left out; the screen shows how many.',
         'Anyone with an error (e.g. a core not valid on the date) is left out and the others are added; the message lists who was left out and warns if the week of the available day already has a schedule (generate again).',

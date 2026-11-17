@@ -464,6 +464,10 @@ function escEqAplicarDivisao(int $u, string $t, string $desde): array {
     $res = ['postos' => 0, 'srs' => 0, 'equipe_fora' => 0];
     escTx(static function () use ($div, $ids, $desde, $ontem, $neutra, $u, $t, &$res) {
         // 1. Postos: novo dono e cobertura (posto que já valia antes: fecha e abre a cópia a partir da data).
+        // As cópias ficam numa versão só; postos de versões diferentes podem ter o mesmo número na carteira e
+        // turno, então a cópia mantém o número quando está livre e, se não, pega o próximo livre (uk_posto).
+        $versao = 'OS' . date('Ymd_His');
+        $usados = [];
         foreach ($div['postos'] as $id => $p) {
             if (!$p['muda']) {
                 continue;
@@ -472,9 +476,18 @@ function escEqAplicarDivisao(int $u, string $t, string $desde): array {
             if (substr((string) $orig['vigente_desde'], 0, 10) >= $desde) {
                 escW('UPDATE ' . escT('esc_posto') . ' SET nucleo_dono_id = ?, nucleo_cobertura_id = ? WHERE id = ?', [$ids[$p['os']], $ids[$p['os_cob']], $id]);
             } else {
+                $grupo = $orig['carteira'] . '|' . $orig['turno'];
+                $seq = (int) $orig['seq'];
+                if (isset($usados[$grupo][$seq])) {
+                    $seq = max(array_keys($usados[$grupo])) + 1;
+                    while (isset($usados[$grupo][$seq])) {
+                        $seq++;
+                    }
+                }
+                $usados[$grupo][$seq] = true;
                 escW('INSERT INTO ' . escT('esc_posto') . ' (versao, unidade, carteira, turno, seq, tipo, pagina_principal, n_paginas, assinatura, carga, capacidade, nucleo_dono_id, nucleo_cobertura_id, vigente_desde, vigente_ate)
-                      SELECT ?, unidade, carteira, turno, seq, tipo, pagina_principal, n_paginas, assinatura, carga, capacidade, ?, ?, ?, vigente_ate FROM ' . escT('esc_posto') . ' WHERE id = ?',
-                    ['OS' . date('Ymd_His'), $ids[$p['os']], $ids[$p['os_cob']], $desde, $id]);
+                      SELECT ?, unidade, carteira, turno, ?, tipo, pagina_principal, n_paginas, assinatura, carga, capacidade, ?, ?, ?, vigente_ate FROM ' . escT('esc_posto') . ' WHERE id = ?',
+                    [$versao, $seq, $ids[$p['os']], $ids[$p['os_cob']], $desde, $id]);
                 $novo = escUltimoId();
                 escW('INSERT INTO ' . escT('esc_posto_pagina') . ' (posto_id, pagina, page_id, fracao, fans_h, apoio) SELECT ?, pagina, page_id, fracao, fans_h, apoio FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id = ?', [$novo, $id]);
                 // A equipe segue no posto novo; quem não bater com o núcleo sai no passo 3.
