@@ -111,6 +111,39 @@ if (escPost()) {
         });
         escVoltar('aprovar', [], t('Pedido cancelado.'));
     }
+    if ($acao === 'retirar') {
+        // Pedido já aprovado: o colaborador desistiu de algumas datas (ou de todas). As datas de hoje em
+        // diante viram CANCELADO; as que já passaram ficam como estão. A escala muda no próximo recálculo.
+        escExigir('aprovar');
+        $id = (int) ($_POST['id'] ?? 0);
+        $ped = escQ1('SELECT * FROM ' . escT('esc_indisponibilidade') . ' WHERE id = ?', [$id]);
+        if (!$ped || !in_array($ped['status'], ['APROVADO', 'PARCIAL'], true)) {
+            throw new RuntimeException(t('Só dá para retirar datas de pedido aprovado ou parcial. Recarregue a tela.'));
+        }
+        $hoje = date('Y-m-d');
+        $abertas = escQ('SELECT id, dia FROM ' . escT('esc_indisponibilidade_data') . " WHERE indisponibilidade_id = ? AND status = 'APROVADO' AND dia >= ?", [$id, $hoje]);
+        $ids = ($_POST['modo'] ?? '') === 'todas' ? array_map(static fn($d) => (int) $d['id'], $abertas)
+            : array_values(array_intersect(array_map('intval', (array) ($_POST['retirar'] ?? [])), array_map(static fn($d) => (int) $d['id'], $abertas)));
+        if (!$ids) {
+            throw new RuntimeException(t('Nenhuma data marcada. Marque as datas que saem, ou use "Retirar todas as próximas".'));
+        }
+        $texto = mb_substr(trim((string) ($_POST['comentario'] ?? '')), 0, 200);
+        $nota = mb_substr(t('Retirada em {dia}', ['dia' => date('d/m/Y')]) . ($texto !== '' ? ': ' . $texto : ''), 0, 255);
+        $novo = '';
+        escTx(function () use ($id, $ids, $nota, &$novo) {
+            escW('UPDATE ' . escT('esc_indisponibilidade_data') . " SET status = 'CANCELADO', decidido_em = NOW(), decidido_por = ?, comentario = ? WHERE indisponibilidade_id = ? AND status = 'APROVADO' AND id IN (" . escIn($ids) . ')',
+                array_merge([escUserId(), $nota, $id], $ids));
+            $f = escQW('SELECT SUM(status = \'APROVADO\') AS ap, SUM(status = \'RECUSADO\') AS re, SUM(status = \'CANCELADO\') AS ca, COUNT(*) AS n FROM ' . escT('esc_indisponibilidade_data') . ' WHERE indisponibilidade_id = ?', [$id])[0];
+            $validas = (int) $f['n'] - (int) ($f['ca'] ?? 0);
+            // Sem nenhuma data aprovada sobrando, o pedido fica cancelado (retirado pelo colaborador).
+            $novo = (int) $f['ap'] === 0 ? 'CANCELADO' : ((int) $f['ap'] === $validas ? 'APROVADO' : 'PARCIAL');
+            escW('UPDATE ' . escT('esc_indisponibilidade') . ' SET status = ? WHERE id = ?', [$novo, $id]);
+            escLog('indisp.retirar', 'esc_indisponibilidade', $id, null, ['datas' => $ids, 'status' => $novo, 'comentario' => $nota]);
+        });
+        escVoltar('aprovar', ['status' => $_GET['status'] ?? 'APROVADO'], tn(count($ids), '{n} data retirada.', '{n} datas retiradas.')
+            . ($novo === 'CANCELADO' ? ' ' . t('Não sobrou data aprovada: o pedido ficou cancelado.') : '')
+            . ' ' . t('A escala muda no próximo recálculo da semana (Gerar escala › Recalcular com o mínimo de mudanças).'));
+    }
     throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
@@ -184,8 +217,28 @@ foreach (escQ('SELECT UPPER(c.rep_code) AS rep, c.funcao, c.nivel, n.unidade, n.
     </form>
     <form method="post" action="<?php echo h(link_tela('aprovar', ['status' => $status])); ?>" class="acoes cancelar-pedido"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="cancelar"><input type="hidden" name="id" value="<?php echo (int) $p['id']; ?>"><span class="muted small"><?php echo h(t('Pedido lançado por engano ou retirado pelo colaborador?')); ?></span><button type="submit" class="botao perigo" data-confirmar="<?php echo h(t('Cancelar o pedido inteiro? Ele sai da lista de pendentes e não vira folga. Não dá para desfazer.')); ?>"><?php echo h(t('Cancelar pedido')); ?></button></form>
     <?php else: ?>
-      <span class="small"><?php foreach ($datas[(int) $p['id']] ?? [] as $d): ?><span class="tag <?php echo $d['status'] === 'APROVADO' ? 'verde' : ($d['status'] === 'RECUSADO' ? 'vermelho' : ''); ?>"><?php echo h(dataBr($d['dia']) . ' ' . $d['turno'] . ' · ' . escRotulo('status_pedido', $d['status'])); ?></span> <?php endforeach; ?></span>
+      <span class="small"><?php foreach ($datas[(int) $p['id']] ?? [] as $d): ?><span class="tag <?php echo ['APROVADO' => 'verde', 'RECUSADO' => 'vermelho', 'CANCELADO' => 'cinza'][$d['status']] ?? ''; ?>"<?php echo $d['status'] === 'CANCELADO' && $d['comentario'] ? ' title="' . h($d['comentario']) . '"' : ''; ?>><?php echo h(dataBr($d['dia']) . ' ' . $d['turno'] . ' · ' . escRotulo('status_pedido', $d['status'])); ?></span> <?php endforeach; ?></span>
       <?php if ($p['comentario_decisao']): ?><span class="muted small"><?php echo h(t('Comentário: {texto}', ['texto' => $p['comentario_decisao']])); ?></span><?php endif; ?>
+      <?php $futuras = array_values(array_filter($datas[(int) $p['id']] ?? [], static fn($d) => $d['status'] === 'APROVADO' && substr((string) $d['dia'], 0, 10) >= date('Y-m-d')));
+      if ($futuras && in_array($p['status'], ['APROVADO', 'PARCIAL'], true) && escPode('aprovar')): ?>
+      <details class="retirar-datas">
+        <summary class="botao"><?php echo h(t('Editar: retirar datas aprovadas')); ?></summary>
+        <form method="post" action="<?php echo h(link_tela('aprovar', ['status' => $status])); ?>" class="form-grade">
+          <?php echo campoCsrf(); ?><input type="hidden" name="acao" value="retirar"><input type="hidden" name="id" value="<?php echo (int) $p['id']; ?>">
+          <fieldset class="dias-folga"><legend><?php echo h(t('Datas que saem (de hoje em diante; as que já passaram não mudam)')); ?></legend>
+            <?php foreach ($futuras as $d): ?>
+              <label class="small"><input type="checkbox" name="retirar[]" value="<?php echo (int) $d['id']; ?>"> <?php echo h(dataBr($d['dia'], true)); ?> · <?php echo h($d['turno']); ?><?php echo $d['blocos'] ? ' (' . h($d['blocos']) . ')' : ''; ?></label>
+            <?php endforeach; ?>
+          </fieldset>
+          <label><?php echo h(t('Motivo da retirada (opcional)')); ?><input type="text" name="comentario" maxlength="200" placeholder="<?php echo h(t('ex.: o colaborador pediu para retirar')); ?>"></label>
+          <div class="acoes">
+            <button type="submit" name="modo" value="marcadas" class="botao"><?php echo h(t('Retirar as marcadas')); ?></button>
+            <button type="submit" name="modo" value="todas" class="botao perigo" data-confirmar="<?php echo h(tn(count($futuras), 'Retirar a {n} data aprovada de {nome}? Ela volta a ser dia de trabalho no próximo recálculo.', 'Retirar as {n} datas aprovadas de {nome}, de hoje em diante? Elas voltam a ser dias de trabalho no próximo recálculo.', ['nome' => nomeCurto($nomes[$p['rep_code']] ?? $p['rep_code'])])); ?>"><?php echo h(t('Retirar todas as próximas ({n})', ['n' => count($futuras)])); ?></button>
+          </div>
+        </form>
+        <p class="muted small"><?php echo h(t('Para acrescentar datas, lance um pedido novo abaixo.')); ?></p>
+      </details>
+      <?php endif; ?>
     <?php endif; ?>
   </div>
   <?php endforeach; ?>

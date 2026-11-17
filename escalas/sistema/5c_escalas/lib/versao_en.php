@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.31.0' => ['titulo' => 'Unavailability: remove dates from an approved request', 'itens' => [
+        'People › Unavailability: an approved or partial request now has "Edit: remove approved dates". Select the dates to remove (from today on) or use "Remove all upcoming"; the reason is optional. The dates become Cancelled and past dates do not change.',
+        'With no approved date left, the request becomes Cancelled. The schedule changes at the next recalculation of the week. To add dates, enter a new request.',
+    ]],
     '1.30.4' => ['titulo' => 'Days off together shows the scheduled adjustment and the OS split keeps the pairs', 'itens' => [
         'Days off together: after "Apply" with a future date, the pair shows how it will be from that date ("Off together from 11/23"), with the days off counted from the adjustment. Before, the screen showed the days off as of today, and the pair looked misaligned, with the same suggestions.',
         'OS split: anyone in a Days off together pair stays in their current core (the core sets the days-off cycle). On 11/16 and 11/17 the split moved Rafael Costa, Iris Moreira and Matheus Boaventura to another core, and the pairs stopped being off together; the adjustments of 11/17 realign them from 11/23.',

@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.31.0', 'data' => '2026-11-17', 'titulo' => 'Indisponibilidade: retirar datas de pedido aprovado', 'sql' => [], 'itens' => [
+    'Pessoas › Indisponibilidade: pedido aprovado ou parcial ganha "Editar: retirar datas aprovadas". Marque as datas que saem (de hoje em diante) ou use "Retirar todas as próximas"; o motivo é opcional. As datas viram Cancelado e as que já passaram não mudam.',
+    'Sem nenhuma data aprovada sobrando, o pedido fica Cancelado. A escala muda no próximo recálculo da semana. Para acrescentar datas, lança-se um pedido novo.',
+    ]],
     ['versao' => '1.30.4', 'data' => '2026-11-17', 'titulo' => 'Folga juntos mostra o ajuste agendado e a divisão dos OS respeita os pares', 'sql' => [], 'itens' => [
     'Folga juntos: depois de "Aplicar" com data futura, o par aparece como fica a partir dessa data ("Folgam juntos a partir de 23/11"), com as folgas calculadas desde o ajuste. Antes, a tela mostrava as folgas de hoje, e o par parecia continuar desalinhado, com as mesmas sugestões.',
     'Divisão dos OS: quem está num par de Folga juntos fica no núcleo em que está (o núcleo dá o ciclo de folgas). Em 16 e 17/11 a divisão mudou de núcleo Rafael Costa, Iris Moreira e Matheus Boaventura, e os pares deixaram de folgar juntos; os ajustes de 17/11 os realinham a partir de 23/11.',
