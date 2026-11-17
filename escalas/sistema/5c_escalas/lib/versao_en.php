@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.30.2' => ['titulo' => 'OS split with a repeated team slot', 'itens' => [
+        'Unit balance › Apply split: when the same person has more than one open row in the same slot of the post (e.g. from the 11/02 and the 11/09 Generate), the new post keeps only one. Before, the split stopped with an error (repeated slot), as in U1 D on 11/16.',
+    ]],
     '1.30.1' => ['titulo' => 'OS split applies without a repeated post number error', 'itens' => [
         'Unit balance › Apply split: the copy of the posts that change OS keeps the post number when it is free and, if not, uses the next free one in the portfolio and shift. Before, two posts from different Capacity versions with the same number (e.g. U1C2 A, post 2) made the split stop with an error, saving nothing.',
     ]],

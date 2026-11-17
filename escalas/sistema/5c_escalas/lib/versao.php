@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.30.2', 'data' => '2026-11-16', 'titulo' => 'Divisão dos OS com vaga de equipe repetida', 'sql' => [], 'itens' => [
+    'Equilíbrio das unidades › Aplicar divisão: quando a mesma pessoa tem mais de uma linha aberta na mesma vaga do posto (ex.: do Gerar de 02/11 e do de 09/11), o posto novo fica com uma só. Antes, a divisão parava com erro (vaga repetida), como na U1 D em 16/11.',
+    ]],
     ['versao' => '1.30.1', 'data' => '2026-11-16', 'titulo' => 'Divisão dos OS aplica sem erro de posto repetido', 'sql' => [], 'itens' => [
     'Equilíbrio das unidades › Aplicar divisão: a cópia dos postos que mudam de OS mantém o número do posto quando ele está livre e, se não, usa o próximo livre na carteira e turno. Antes, dois postos de versões diferentes do Capacity com o mesmo número (ex.: U1C2 A, posto 2) faziam a divisão parar com erro, sem gravar nada.',
     ]],

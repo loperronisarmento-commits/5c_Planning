@@ -490,12 +490,13 @@ function escEqAplicarDivisao(int $u, string $t, string $desde): array {
                     [$versao, $seq, $ids[$p['os']], $ids[$p['os_cob']], $desde, $id]);
                 $novo = escUltimoId();
                 escW('INSERT INTO ' . escT('esc_posto_pagina') . ' (posto_id, pagina, page_id, fracao, fans_h, apoio) SELECT ?, pagina, page_id, fracao, fans_h, apoio FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id = ?', [$novo, $id]);
-                // A equipe segue no posto novo; quem não bater com o núcleo sai no passo 3.
-                escW('INSERT INTO ' . escT('esc_vaga_equipe') . ' (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem, criado_por)
+                // A equipe segue no posto novo; quem não bater com o núcleo sai no passo 3. A mesma pessoa pode ter
+                // mais de uma linha aberta na mesma vaga (ex.: do Gerar de 02/11 e do de 09/11): no posto novo fica uma só.
+                escW('INSERT IGNORE INTO ' . escT('esc_vaga_equipe') . ' (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem, criado_por)
                       SELECT ?, vaga, rep_code, fatia, ordem, status, motivo, ?, vigente_ate, origem, criado_por FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vigente_desde < ? AND (vigente_ate IS NULL OR vigente_ate >= ?)',
                     [$novo, $desde, $id, $desde, $desde]);
                 escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ? WHERE posto_id = ? AND vigente_desde < ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$ontem, $id, $desde, $desde]);
-                escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET posto_id = ? WHERE posto_id = ? AND vigente_desde >= ?', [$novo, $id, $desde]);
+                escW('UPDATE IGNORE ' . escT('esc_vaga_equipe') . ' SET posto_id = ? WHERE posto_id = ? AND vigente_desde >= ?', [$novo, $id, $desde]);
                 escW('UPDATE ' . escT('esc_posto') . ' SET vigente_ate = ? WHERE id = ?', [$ontem, $id]);
             }
             $res['postos']++;
