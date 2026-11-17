@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.30.4' => ['titulo' => 'Days off together shows the scheduled adjustment and the OS split keeps the pairs', 'itens' => [
+        'Days off together: after "Apply" with a future date, the pair shows how it will be from that date ("Off together from 11/23"), with the days off counted from the adjustment. Before, the screen showed the days off as of today, and the pair looked misaligned, with the same suggestions.',
+        'OS split: anyone in a Days off together pair stays in their current core (the core sets the days-off cycle). On 11/16 and 11/17 the split moved Rafael Costa, Iris Moreira and Matheus Boaventura to another core, and the pairs stopped being off together; the adjustments of 11/17 realign them from 11/23.',
+    ]],
     '1.30.3' => ['titulo' => 'OS split removes the teams in a single pass', 'itens' => [
         'Removing the teams that no longer match the core now sees the posts and slots the split itself has just saved. Before, it looked at the posts as they were before the change, and the slots copied to the new posts only left if the split was applied again.',
     ]],

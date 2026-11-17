@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.30.4', 'data' => '2026-11-17', 'titulo' => 'Folga juntos mostra o ajuste agendado e a divisão dos OS respeita os pares', 'sql' => [], 'itens' => [
+    'Folga juntos: depois de "Aplicar" com data futura, o par aparece como fica a partir dessa data ("Folgam juntos a partir de 23/11"), com as folgas calculadas desde o ajuste. Antes, a tela mostrava as folgas de hoje, e o par parecia continuar desalinhado, com as mesmas sugestões.',
+    'Divisão dos OS: quem está num par de Folga juntos fica no núcleo em que está (o núcleo dá o ciclo de folgas). Em 16 e 17/11 a divisão mudou de núcleo Rafael Costa, Iris Moreira e Matheus Boaventura, e os pares deixaram de folgar juntos; os ajustes de 17/11 os realinham a partir de 23/11.',
+    ]],
     ['versao' => '1.30.3', 'data' => '2026-11-16', 'titulo' => 'Divisão dos OS tira as equipes numa passada só', 'sql' => [], 'itens' => [
     'A retirada das equipes que deixam de bater com o núcleo passa a ver os postos e as vagas que a própria divisão acabou de gravar. Antes, ela olhava os postos de antes da troca, e as vagas copiadas para os postos novos só saíam se a divisão fosse aplicada de novo.',
     ]],

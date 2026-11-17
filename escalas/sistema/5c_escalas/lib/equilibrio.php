@@ -161,8 +161,9 @@ function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ga
 // grandes ficam com o OS1 e os pequenos com o OS3.
 // $postos[id] = ['fat', 'paginas', 'dono' => número do núcleo dono hoje, 'cob' => número da
 // cobertura]; $srs[rep] = ['num' => núcleo hoje, 'nivel', 'nota', 'conhece' => [escEqChave(pagina)
-// => dias escalado]]. SRs: os melhores (nível, depois mérito) no OS1; no OS2, quem conhece páginas
-// grandes e pequenas; o resto no OS3. O tamanho de cada núcleo segue os postos dele.
+// => dias escalado], 'casal' => num par de Folga juntos]. SRs: os melhores (nível, depois mérito) no
+// OS1; no OS2, quem conhece páginas grandes e pequenas; o resto no OS3. Quem é de um par de Folga
+// juntos fica no núcleo de hoje (o núcleo dá o ciclo de folgas). O tamanho de cada núcleo segue os postos dele.
 // $alvo3 = [mín, máx] da parte do OS3 no faturamento (pedido de 02/11: 15% a 20%, escEqAlvoOS3).
 // O corte entre as duas metades sai do meio e vai para onde o OS3 fica nessa faixa (o mais perto
 // do centro).
@@ -229,12 +230,21 @@ function escEqDivisao(array $postos, array $srs, array $alvo3 = [0.15, 0.20]): a
         $tam[$k]++;
         $resto--;
     }
+    // Quem está num par de Folga juntos ('casal') fica no núcleo de hoje e ocupa um lugar dele.
+    $tamTotal = $tam;
+    $srsOut = [];
+    foreach ($srs as $rep => $s) {
+        if (!empty($s['casal']) && isset($tam[$s['num']])) {
+            $srsOut[$rep] = $s + ['novo' => $s['num']];
+            $tam[$s['num']] = max(0, $tam[$s['num']] - 1);
+        }
+    }
+    $srs = array_diff_key($srs, $srsOut);
     // OS1: os melhores. OS2: dos que sobram, quem conhece as duas pontas (menor dos dias em páginas
     // grandes e em pequenas), depois nível e mérito. OS3: os demais.
     $melhor = static fn($a, $b) => [$b['nivel'], $b['nota'] ?? -999] <=> [$a['nivel'], $a['nota'] ?? -999]; // nota em pontos: pode ser negativa
     $dias = static fn(array $s, array $set) => array_sum(array_intersect_key($s['conhece'] ?? [], $set));
     uasort($srs, $melhor);
-    $srsOut = [];
     foreach (array_slice($srs, 0, $tam[1], true) as $rep => $s) {
         $srsOut[$rep] = $s + ['novo' => 1];
     }
@@ -251,7 +261,7 @@ function escEqDivisao(array $postos, array $srs, array $alvo3 = [0.15, 0.20]): a
     }
     $porcento = static fn(array $v) => array_map(static fn($x) => $total > 0 ? round($x / $total, 4) : 0.0, $v);
     return ['postos' => $saida, 'parte_hoje' => $porcento($parteHoje), 'parte_nova' => $porcento($parteNova), 'postos_por_os' => $qtdPostos,
-        'tamanho' => $tam, 'srs' => $srsOut];
+        'tamanho' => $tamTotal, 'srs' => $srsOut];
 }
 
 // SRs de equipe fixa (esc_pagina_prioridade) que não estão na unidade da página no dia. Regra de
@@ -350,9 +360,16 @@ function escEqDados(string $hoje, ?string $dia = null): array {
             appLog('warning', 'Equilíbrio: sem histórico do 5C Schedule', ['erro' => $e->getMessage()]);
         }
     }
+    // Quem está num par de Folga juntos no dia (lib/casais.php): a divisão dos OS não muda o núcleo
+    // dele, senão o par deixa de folgar junto (o núcleo é o que dá o ciclo de folgas).
+    $casal = [];
+    foreach (function_exists('escCasaisPares') ? escCasaisPares($dia) : [] as $par) {
+        $casal[$par['rep_a']] = $casal[$par['rep_b']] = true;
+    }
     foreach ($pessoas as &$porT) {
         foreach ($porT as &$ps) {
             foreach ($ps as $rep => &$p) {
+                $p['casal'] = isset($casal[strtoupper((string) $rep)]);
                 $p['nota'] = $notas[$rep] ?? null;
                 $p['conhece'] = $conhece[$rep] ?? [];
             }

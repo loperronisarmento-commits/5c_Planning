@@ -213,6 +213,44 @@ function escCasaisSituacao(string $de, bool $futuros = true): array {
     return $saida;
 }
 
+// Situação de cada par vista na data do último ajuste agendado (cadastro de núcleo ou de ciclo que
+// começa depois de $de, até 60 dias, de qualquer das duas pessoas); sem ajuste agendado, em $de.
+// Assim, depois de "Aplicar" com data futura, a tela mostra o par como fica a partir dessa data.
+// Cada item ganha 'ver_de' (a data em que as folgas foram calculadas) e 'agendado' (bool).
+function escCasaisSituacaoAgendada(string $de): array {
+    $sit = escCasaisSituacao($de);
+    if (!$sit) {
+        return [];
+    }
+    $reps = [];
+    foreach ($sit as $s) {
+        $reps[$s['rep_a']] = $reps[$s['rep_b']] = true;
+    }
+    $ate = escMaisDias($de, 60);
+    $prox = [];
+    $sql = static fn(string $tab) => 'SELECT UPPER(rep_code) AS rep, MAX(vigente_desde) AS d FROM ' . escT($tab) . ' WHERE UPPER(rep_code) IN (' . escIn(array_keys($reps)) . ') AND vigente_desde > ? AND vigente_desde <= ? GROUP BY UPPER(rep_code)';
+    foreach (['esc_colaborador_config', 'esc_lideranca'] as $tab) {
+        foreach (escQ($sql($tab), array_merge(array_keys($reps), [$de, $ate])) as $l) {
+            $prox[$l['rep']] = max($prox[$l['rep']] ?? '', substr((string) $l['d'], 0, 10));
+        }
+    }
+    $cache = [];
+    foreach ($sit as &$s) {
+        $dt = max($prox[$s['rep_a']] ?? '', $prox[$s['rep_b']] ?? '');
+        $s['ver_de'] = $de;
+        $s['agendado'] = false;
+        if ($dt === '') {
+            continue;
+        }
+        $cache[$dt] ??= array_column(escCasaisSituacao($dt), null, 'id');
+        if (isset($cache[$dt][$s['id']])) {
+            $s = $cache[$dt][$s['id']] + ['ver_de' => $dt, 'agendado' => true];
+        }
+    }
+    unset($s);
+    return $sit;
+}
+
 // Aviso para a tela Gerar: pares que não folgam juntos na semana.
 function escCasaisAviso(string $seg): string {
     try {

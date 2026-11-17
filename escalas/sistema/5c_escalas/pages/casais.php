@@ -72,7 +72,7 @@ if (escPost()) {
     throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }
 
-$sit = escCasaisSituacao($base);
+$sit = escCasaisSituacaoAgendada($base);
 $estrutura = escCasalPessoas($base)['pessoas'];
 $cargoTxt = static function (?array $p): string {
     if (!$p) {
@@ -113,7 +113,7 @@ $alinhados = count(array_filter($sit, static fn($s) => $s['alinhado']));
   <?php if (!$sit): ?><p class="muted"><?php echo h(t('Nenhum par cadastrado. Associe abaixo.')); ?></p><?php else: ?>
   <div class="tabela-rolagem">
   <table>
-    <thead><tr><th><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Folgas nos próximos 21 dias (a partir de {dia})', ['dia' => dataBr($base)])); ?></th><th><?php echo h(t('Situação')); ?></th><th><?php echo h(t('Ajuste')); ?></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Pessoas')); ?></th><th><?php echo h(t('Folgas em 21 dias (a partir de {dia}, ou da data do ajuste agendado)', ['dia' => dataBr($base)])); ?></th><th><?php echo h(t('Situação')); ?></th><th><?php echo h(t('Ajuste')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($sit as $s): ?>
       <tr>
@@ -125,11 +125,12 @@ $alinhados = count(array_filter($sit, static fn($s) => $s['alinhado']));
           <?php if (substr((string) $s['vigente_desde'], 0, 10) > $base): ?><span class="tag azul"><?php echo h(t('vale a partir de {dia}', ['dia' => dataBr(substr((string) $s['vigente_desde'], 0, 10))])); ?></span><?php endif; ?>
         </td>
         <td class="small">
+          <?php if ($s['agendado']): ?><div class="muted"><?php echo h(t('a partir de {dia}, com o ajuste agendado', ['dia' => dataBr($s['ver_de'])])); ?></div><?php endif; ?>
           <div><?php echo h(nomeCurto($nome($s['rep_a']))); ?>: <span class="mono"><?php echo h($diasTxt($s['folgas_a'])); ?></span></div>
           <div><?php echo h(nomeCurto($nome($s['rep_b']))); ?>: <span class="mono"><?php echo h($diasTxt($s['folgas_b'])); ?></span></div>
         </td>
         <td>
-          <?php if ($s['alinhado']): ?><span class="tag verde"><?php echo h(t('Folgam juntos')); ?></span>
+          <?php if ($s['alinhado']): ?><span class="tag verde"><?php echo h(t('Folgam juntos')); ?></span><?php if ($s['agendado']): ?><br><span class="tag azul small"><?php echo h(t('a partir de {dia}', ['dia' => dataBr($s['ver_de'])])); ?></span><?php endif; ?>
           <?php elseif ($s['sem_ciclo']): ?><span class="tag amarelo"><?php echo h(t('Sem ciclo para comparar')); ?></span>
           <?php else: ?><span class="tag laranja"><?php echo h(t('{n} de {m} folgas juntos', ['n' => count($s['juntos']), 'm' => max(count($s['folgas_a']), count($s['folgas_b']))])); ?></span><?php endif; ?>
         </td>
