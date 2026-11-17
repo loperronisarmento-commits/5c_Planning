@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.30.3', 'data' => '2026-11-16', 'titulo' => 'Divisão dos OS tira as equipes numa passada só', 'sql' => [], 'itens' => [
+    'A retirada das equipes que deixam de bater com o núcleo passa a ver os postos e as vagas que a própria divisão acabou de gravar. Antes, ela olhava os postos de antes da troca, e as vagas copiadas para os postos novos só saíam se a divisão fosse aplicada de novo.',
+    ]],
     ['versao' => '1.30.2', 'data' => '2026-11-16', 'titulo' => 'Divisão dos OS com vaga de equipe repetida', 'sql' => [], 'itens' => [
     'Equilíbrio das unidades › Aplicar divisão: quando a mesma pessoa tem mais de uma linha aberta na mesma vaga do posto (ex.: do Gerar de 02/11 e do de 09/11), o posto novo fica com uma só. Antes, a divisão parava com erro (vaga repetida), como na U1 D em 16/11.',
     ]],

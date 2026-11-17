@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.30.3' => ['titulo' => 'OS split removes the teams in a single pass', 'itens' => [
+        'Removing the teams that no longer match the core now sees the posts and slots the split itself has just saved. Before, it looked at the posts as they were before the change, and the slots copied to the new posts only left if the split was applied again.',
+    ]],
     '1.30.2' => ['titulo' => 'OS split with a repeated team slot', 'itens' => [
         'Unit balance › Apply split: when the same person has more than one open row in the same slot of the post (e.g. from the 11/02 and the 11/09 Generate), the new post keeps only one. Before, the split stopped with an error (repeated slot), as in U1 D on 11/16.',
     ]],

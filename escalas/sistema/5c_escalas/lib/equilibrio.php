@@ -496,7 +496,14 @@ function escEqAplicarDivisao(int $u, string $t, string $desde): array {
                       SELECT ?, vaga, rep_code, fatia, ordem, status, motivo, ?, vigente_ate, origem, criado_por FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vigente_desde < ? AND (vigente_ate IS NULL OR vigente_ate >= ?)',
                     [$novo, $desde, $id, $desde, $desde]);
                 escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ? WHERE posto_id = ? AND vigente_desde < ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$ontem, $id, $desde, $desde]);
-                escW('UPDATE IGNORE ' . escT('esc_vaga_equipe') . ' SET posto_id = ? WHERE posto_id = ? AND vigente_desde >= ?', [$novo, $id, $desde]);
+                foreach (escQW('SELECT id, vaga, rep_code, vigente_desde FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vigente_desde >= ?', [$id, $desde]) as $vg) {
+                    $ja = escQW('SELECT 1 AS ok FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vaga = ? AND rep_code = ? AND vigente_desde = ?', [$novo, $vg['vaga'], $vg['rep_code'], $vg['vigente_desde']]);
+                    if ($ja) {
+                        escW('DELETE FROM ' . escT('esc_vaga_equipe') . ' WHERE id = ?', [(int) $vg['id']]);
+                    } else {
+                        escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET posto_id = ? WHERE id = ?', [$novo, (int) $vg['id']]);
+                    }
+                }
                 escW('UPDATE ' . escT('esc_posto') . ' SET vigente_ate = ? WHERE id = ?', [$ontem, $id]);
             }
             $res['postos']++;
@@ -524,7 +531,8 @@ function escEqAplicarDivisao(int $u, string $t, string $desde): array {
         // 3. Equipe que não bate mais com o núcleo da vaga sai a partir da data.
         $numDe = array_flip($ids);
         $novoDe = array_map(static fn($s) => $s['novo'], $div['srs']);
-        foreach (escQ('SELECT v.id, v.vaga, UPPER(v.rep_code) AS rep, v.vigente_desde, p.nucleo_dono_id, p.nucleo_cobertura_id FROM ' . escT('esc_vaga_equipe') . ' v JOIN ' . escT('esc_posto') . ' p ON p.id = v.posto_id
+        // Pela conexão de gravação, para ver os postos e as vagas que os passos 1 e 2 acabaram de gravar.
+        foreach (escQW('SELECT v.id, v.vaga, UPPER(v.rep_code) AS rep, v.vigente_desde, p.nucleo_dono_id, p.nucleo_cobertura_id FROM ' . escT('esc_vaga_equipe') . ' v JOIN ' . escT('esc_posto') . ' p ON p.id = v.posto_id
                         WHERE p.unidade = ? AND p.turno = ? AND (p.vigente_ate IS NULL OR p.vigente_ate >= ?) AND (v.vigente_ate IS NULL OR v.vigente_ate >= ?)', [$u, $t, $desde, $desde]) as $v) {
             $nucVaga = $numDe[(int) ($v['vaga'] === 'DONO' ? $v['nucleo_dono_id'] : $v['nucleo_cobertura_id'])] ?? null;
             if ($nucVaga === null || !isset($novoDe[$v['rep']]) || $novoDe[$v['rep']] === $nucVaga) {

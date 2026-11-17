@@ -19,11 +19,12 @@
 // não lê). Se a mesma pessoa já tem essa linha neutra na mesma vaga, a repetida é apagada
 // (a chave única é posto + vaga + pessoa + início).
 function escVagaNeutra(int $id, string $neutra): void {
-    $v = escQ1('SELECT posto_id, vaga, rep_code FROM ' . escT('esc_vaga_equipe') . ' WHERE id = ?', [$id]);
+    // Pela conexão de gravação: dentro de uma transação, vê as vagas que ela acabou de criar ou mudar.
+    $v = escQW('SELECT posto_id, vaga, rep_code FROM ' . escT('esc_vaga_equipe') . ' WHERE id = ?', [$id])[0] ?? null;
     if (!$v) {
         return;
     }
-    $ja = escQ1('SELECT 1 AS ok FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vaga = ? AND rep_code = ? AND vigente_desde = ? AND id <> ?',
+    $ja = escQW('SELECT 1 AS ok FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vaga = ? AND rep_code = ? AND vigente_desde = ? AND id <> ?',
         [(int) $v['posto_id'], $v['vaga'], $v['rep_code'], $neutra, $id]);
     if ($ja) {
         escW('DELETE FROM ' . escT('esc_vaga_equipe') . ' WHERE id = ?', [$id]);
