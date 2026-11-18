@@ -45,7 +45,12 @@ $semanas = escKpiSemanas();
 $uSel = in_array((string) ($_GET['u'] ?? ''), ['1', '2', '3'], true) ? (string) $_GET['u'] : '';
 $tSel = in_array((string) ($_GET['t'] ?? ''), ['A', 'C', 'D'], true) ? (string) $_GET['t'] : '';
 $repSel = strtoupper(trim((string) ($_GET['rep'] ?? '')));
-$filtros = array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]);
+// Ordenação: o rank (score do maior para o menor) é o padrão; nome e unidade começam crescentes.
+$ordens = ['rank' => t('Rank'), 'moedas' => t('Moedas'), 'meta' => t('Meta ponderada'), 'process' => 'Process', 'integrity' => 'Integrity', 'nome' => t('Nome'), 'unidade' => t('Unidade · turno')];
+$ordem = isset($ordens[$_GET['o'] ?? '']) ? (string) $_GET['o'] : 'rank';
+$crescentePadrao = in_array($ordem, ['nome', 'unidade'], true);
+$cresc = isset($_GET['d']) ? $_GET['d'] === 'asc' : $crescentePadrao;
+$filtros = array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel, 'o' => $ordem !== 'rank' ? $ordem : null, 'd' => $cresc !== $crescentePadrao ? ($cresc ? 'asc' : 'desc') : null]);
 
 $linhas = [];
 $todas = [];
@@ -63,8 +68,29 @@ foreach ($srs as $s) {
         $linhas[] = $l;
     }
 }
-// Maior score primeiro; no empate, mais moedas e depois o nome (o documento não define desempate).
-usort($linhas, static fn($a, $b) => [$a['u'], $a['t'], -($a['score'] ?? -1), -($a['moedas'] ?? -1), $a['nome']] <=> [$b['u'], $b['t'], -($b['score'] ?? -1), -($b['moedas'] ?? -1), $b['nome']]);
+// Rank no filtro escolhido: maior score primeiro; no empate, mais moedas e depois o nome (o documento
+// não define desempate). Sem score fica sem rank, no fim.
+usort($linhas, static fn($a, $b) => [-($a['score'] ?? -1), -($a['moedas'] ?? -1), $a['nome']] <=> [-($b['score'] ?? -1), -($b['moedas'] ?? -1), $b['nome']]);
+foreach ($linhas as $i => &$l) {
+    $l['rank'] = $l['score'] !== null ? $i + 1 : null;
+}
+unset($l);
+if ($ordem !== 'rank' || $cresc) {
+    $valor = static function (array $l) use ($ordem) {
+        $k = $l['k'] ?? [];
+        return ['rank' => $l['rank'], 'moedas' => $l['moedas'], 'meta' => $k['kinetic_meta'] ?? null, 'process' => $k['process'] ?? null,
+            'integrity' => $k['integrity'] ?? null, 'nome' => mb_strtolower($l['nome']), 'unidade' => $l['u'] . $l['t']][$ordem];
+    };
+    // Sem valor fica sempre no fim; no empate, vale o rank.
+    usort($linhas, static function ($a, $b) use ($valor, $cresc, $ordem) {
+        [$va, $vb] = [$valor($a), $valor($b)];
+        if ($va === null || $vb === null) {
+            return ($va === null) <=> ($vb === null) ?: ($a['rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? PHP_INT_MAX);
+        }
+        $c = $ordem === 'rank' ? $vb <=> $va : $va <=> $vb;
+        return ($cresc ? $c : -$c) ?: ($a['rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? PHP_INT_MAX);
+    });
+}
 $faixas = ['LT25' => '< 25%', '25_50' => '25% – 50%', '50_75' => '50% – 75%', '75_100' => '75% – 100%', '100_110' => '100% – 110%', '110_120' => '110% – 120%', '120' => '120%', 'SEM' => t('Sem score')];
 $conta = array_fill_keys(array_keys($faixas), 0);
 foreach ($linhas as $l) {
@@ -79,7 +105,7 @@ if ($soPdf || isset($_GET['baixar'])) {
     $exportar = [];
     foreach ($linhas as $l) {
         $k = $l['k'] ?? [];
-        $exportar[] = [$l['nome'], $l['rep'], 'U' . $l['u'], $l['t'], $l['nucleo'] !== null ? (int) $l['nucleo'] : null, $l['nivel'],
+        $exportar[] = [$l['rank'], $l['nome'], $l['rep'], 'U' . $l['u'], $l['t'], $l['nucleo'] !== null ? (int) $l['nucleo'] : null, $l['nivel'],
             (int) $l['posto'], (int) $l['assist'], (int) $l['buffer'], (int) $l['overlap'], $l['pct'],
             $k['kinetic_meta'] ?? null, $k['kinetic_base'] ?? null, $k['process'] ?? null, $k['integrity'] ?? null, $l['score'],
             $l['moedas'] !== null ? round($l['moedas'], 1) : null, $l['comp'][1]];
@@ -95,7 +121,7 @@ if (($_GET['baixar'] ?? '') === 'xlsx') {
     escXlsxBaixar($nomeArq . '.xlsx', 'KPI',
         [t('KPI dos SRs (Kinetic, Process & Integrity) · simulação'), $infoDoc,
             implode(' · ', array_map(static fn($f, $n) => $f . ': ' . $n, $faixas, $conta))],
-        [$col('SR', 28, 'texto'), $col(t('Código'), 10, 'texto'), $col(t('Unidade'), 8, 'texto'), $col(t('Turno'), 7, 'texto'), $col(t('Núcleo'), 7, 'inteiro'), $col(t('Nível'), 7, 'inteiro'),
+        [$col(t('Rank'), 6, 'inteiro'), $col('SR', 28, 'texto'), $col(t('Código'), 10, 'texto'), $col(t('Unidade'), 8, 'texto'), $col(t('Turno'), 7, 'texto'), $col(t('Núcleo'), 7, 'inteiro'), $col(t('Nível'), 7, 'inteiro'),
             $col(t('Em posto'), 8, 'inteiro'), $col(t('Assistente'), 10, 'inteiro'), $col('Buffer (-2)', 8, 'inteiro'), $col('Overlap (-5)', 8, 'inteiro'), $col(t('% em posto'), 8, 'pct'),
             $col(t('Meta ponderada'), 10, 'pct'), $col('Kinetic', 9, 'pct'), $col('Process', 9, 'pct'), $col('Integrity', 9, 'pct'), $col('Score', 9, 'pct'),
             $col(t('Moedas (4 semanas)'), 10, 'nota'), $col(t('Comportamento sugerido'), 34, 'texto')],
@@ -128,11 +154,59 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
 <?php if (!escAbsOficialOk()): ?><p class="aviso" role="status"><?php echo h(t('O sistema não consegue ler as faltas oficiais (5c_wfm_db_mis.abs_adh_af): a Integrity fica sem desconto de falta.')); ?></p><?php endif; ?>
 <?php endif; ?>
 
-<section class="kpis">
-  <?php foreach ($faixas as $f => $rot): if ($f === 'SEM' && !$conta['SEM']) { continue; } ?>
-  <div class="kpi"><span class="muted"><?php echo h($rot); ?></span><strong><?php echo $conta[$f]; ?></strong><span class="muted small"><?php echo h($f === 'SEM' ? t('sem dado nas 4 semanas') : escKpiComportamento(['LT25' => 0.1, '25_50' => 0.3, '50_75' => 0.6, '75_100' => 0.8, '100_110' => 1.05, '110_120' => 1.15, '120' => 1.2][$f])[1]); ?></span></div>
-  <?php endforeach; ?>
+<?php
+// Distribuição: SRs por faixa de score (a população do filtro). Barras em cinza; "Sem score" mais apagada.
+$versaoArq = static fn(string $arq): string => (string) (@filemtime(__DIR__ . '/../assets/' . $arq) ?: time());
+$comScore = count($linhas) - $conta['SEM'];
+$pctPop = static fn(int $n): string => $comScore > 0 ? pct($n / $comScore, 0) : '—';
+$compDe = ['LT25' => 0.1, '25_50' => 0.3, '50_75' => 0.6, '75_100' => 0.8, '100_110' => 1.05, '110_120' => 1.15, '120' => 1.2];
+$grupos = [];
+$tabela = [];
+foreach ($faixas as $f => $rot) {
+    $n = $conta[$f];
+    $acao = $f === 'SEM' ? t('sem dado nas 4 semanas') : escKpiComportamento($compDe[$f])[1];
+    $grupos[] = ['rot' => $rot, 'barras' => [['seg' => [['v' => $n, 'cls' => $f === 'SEM' ? 'cinza-2' : 'cinza']],
+        'rotulo' => $n . ($f !== 'SEM' && $n ? ' · ' . $pctPop($n) : ''), 'tip' => $rot . "\n" . tn($n, '{n} SR', '{n} SRs') . ($f !== 'SEM' ? ' (' . $pctPop($n) . ')' : '') . "\n" . $acao]]];
+    $tabela[] = [$rot, (string) $n, $f !== 'SEM' ? $pctPop($n) : '—', $acao];
+}
+$abaixo75 = $conta['LT25'] + $conta['25_50'] + $conta['50_75'];
+$de100 = $conta['100_110'] + $conta['110_120'] + $conta['120'];
+$tituloGraf = $comScore > 0
+    ? t('{a} dos SRs com score estão abaixo de 75%; {b} estão em 100% ou mais', ['a' => $pctPop($abaixo75), 'b' => $pctPop($de100)])
+    : t('Nenhum SR com score neste filtro');
+?>
+<?php if (!$soPdf): ?>
+  <?php $comFiltro = static fn(array $troca): array => array_filter(array_merge($filtros, $troca), static fn($v) => $v !== null && $v !== ''); ?>
+  <div class="kpi-filtros" style="display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px;">
+    <div class="chips" style="align-items: center;" role="group" aria-label="<?php echo h(t('Turno')); ?>"><span class="muted small"><?php echo h(t('Turno')); ?></span>
+      <?php foreach (['' => t('Todos'), 'A' => 'A', 'C' => 'C', 'D' => 'D'] as $k => $rot): ?>
+      <a class="chip-filtro <?php echo $tSel === $k ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('kpi', $comFiltro(['t' => $k]))); ?>"<?php echo $tSel === $k ? ' aria-current="true"' : ''; ?>><?php echo h($rot); ?></a>
+      <?php endforeach; ?>
+    </div>
+    <div class="chips" style="align-items: center;" role="group" aria-label="<?php echo h(t('Unidade')); ?>"><span class="muted small"><?php echo h(t('Unidade')); ?></span>
+      <?php foreach (['' => t('Todas'), '1' => 'U1', '2' => 'U2', '3' => 'U3'] as $k => $rot): ?>
+      <a class="chip-filtro <?php echo $uSel === (string) $k ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('kpi', $comFiltro(['u' => (string) $k]))); ?>"<?php echo $uSel === (string) $k ? ' aria-current="true"' : ''; ?>><?php echo h($rot); ?></a>
+      <?php endforeach; ?>
+    </div>
+    <div class="chips" style="align-items: center;" role="group" aria-label="<?php echo h(t('Ordenar por')); ?>"><span class="muted small"><?php echo h(t('Ordenar por')); ?></span>
+      <?php foreach ($ordens as $k => $rot):
+          $ativo = $ordem === $k;
+          $padrao = in_array($k, ['nome', 'unidade'], true);
+          $novoCresc = $ativo ? !$cresc : $padrao; // clicar de novo inverte
+          $seta = $ativo ? ($k === 'rank' ? ($cresc ? ' ↑' : ' ↓') : ($cresc ? ' ↑' : ' ↓')) : ''; ?>
+      <a class="chip-filtro <?php echo $ativo ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('kpi', $comFiltro(['o' => $k !== 'rank' ? $k : null, 'd' => $novoCresc !== $padrao ? ($novoCresc ? 'asc' : 'desc') : null]))); ?>"<?php echo $ativo ? ' aria-current="true"' : ''; ?> title="<?php echo h($ativo ? t('Clique de novo para inverter a ordem') : ''); ?>"><?php echo h($rot . $seta); ?></a>
+      <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
+<link rel="stylesheet" href="<?php echo h(MODULE_URL); ?>/assets/analise.css?v=<?php echo h($versaoArq('analise.css')); ?>">
+<section class="analise kpi-distribuicao">
+  <?php echo escGrafFigura($tituloGraf,
+      t('SRs por faixa de score ({n} SRs no filtro, {c} com score). O % é sobre quem tem score. Passe o mouse na coluna para ver o comportamento sugerido.', ['n' => count($linhas), 'c' => $comScore]),
+      '', escGrafColunas($grupos, ['titulo' => t('SRs por faixa de score'), 'w' => 1200, 'h' => 300, 'larguraMax' => 72, 'eixoY' => 'SRs']), 'largo',
+      escGrafTabela(t('Ver tabela'), [t('Faixa de score'), 'SRs', t('% com score'), t('Comportamento sugerido')], $tabela)); ?>
 </section>
+<script src="<?php echo h(MODULE_URL); ?>/assets/analise.js?v=<?php echo h($versaoArq('analise.js')); ?>" defer></script>
 
 <?php if ($detalhe !== null && !$soPdf): $linhaSel = null; foreach ($todas as $l) { if ($l['rep'] === $repSel) { $linhaSel = $l; } } ?>
 <section class="panel" id="detalhe">
@@ -184,11 +258,6 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
       <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('por semana, só pela meta: abaixo de 85% = 0; de 85% a 100%, de 1 a 20 em linha reta; acima de 100%, 20 × (1 + log₂(meta)), ou seja, +20 a cada vez que a meta dobra.')); ?></li>
     </ul>
   </details>
-  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
-    <input type="hidden" name="p" value="kpi"><input type="hidden" name="plano" value="<?php echo $planoId; ?>">
-    <select name="u" data-envio-auto aria-label="<?php echo h(t('Unidade')); ?>" data-sem-busca><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo (string) $u === $uSel ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select>
-    <select name="t" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>" data-sem-busca><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $t === $tSel ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
-  </form>
   <div class="acoes">
     <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['recarregar' => 1])); ?>" data-longo="<?php echo h(t('Recalculando o KPI… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular agora')); ?></a>
     <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h. Nada é gravado no banco.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) (ESC_KPI_CACHE_SEG / 3600)])) : ''; ?></span>
@@ -201,11 +270,12 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
   <?php endif; ?>
   <div class="tabela-rolagem">
   <table<?php echo $soPdf ? ' data-sem-ordem' : ''; ?>>
-    <thead><tr><th>SR</th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th class="num"><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Em posto')); ?></th><th class="num"><?php echo h(t('Assistente')); ?></th><th class="num">Buffer (-2)</th><th class="num">Overlap (-5)</th>
+    <thead><tr><th class="num"><abbr title="<?php echo h(t('Rank pelo score no filtro escolhido')); ?>">#</abbr></th><th>SR</th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th class="num"><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Em posto')); ?></th><th class="num"><?php echo h(t('Assistente')); ?></th><th class="num">Buffer (-2)</th><th class="num">Overlap (-5)</th>
       <th class="num"><?php echo h(t('Meta ponderada')); ?></th><th class="num">Kinetic</th><th class="num">Process</th><th class="num">Integrity</th><th class="num">Score</th><th class="num"><?php echo h(t('Moedas')); ?></th><th><?php echo h(t('Comportamento sugerido')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($linhas as $l): $k = $l['k'] ?? []; ?>
       <tr>
+        <td class="num"><strong><?php echo $l['rank'] ?? '—'; ?></strong></td>
         <td><?php if ($soPdf): ?><strong><?php echo h(nomeCurto($l['nome'])); ?></strong><?php else: ?><a href="<?php echo h(link_tela('kpi', $filtros + ['rep' => $l['rep']]) . '#detalhe'); ?>"><strong><?php echo h(nomeCurto($l['nome'])); ?></strong></a><?php endif; ?><br><span class="muted small mono"><?php echo h($l['rep']); ?></span></td>
         <td class="small">U<?php echo $l['u']; ?> <?php echo chipTurno($l['t']); ?> · <?php echo h(t('núcleo {n}', ['n' => (string) $l['nucleo']])); ?></td>
         <td class="num">SR <?php echo $l['nivel']; ?></td>
@@ -222,7 +292,7 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
         <td><span class="tag <?php echo h($l['comp'][2]); ?>"><?php echo h($l['comp'][1]); ?></span></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$linhas): ?><tr><td colspan="14" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
+    <?php if (!$linhas): ?><tr><td colspan="15" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>

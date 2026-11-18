@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.32.1' => ['titulo' => 'SR KPI: chart, rank and sorting', 'itens' => [
+        'SR KPI: the tiles at the top became a column chart with how many SRs are in each score band (and the % of those with a score); the title sums up how many are below 75% and how many at 100% or more. Hover over a column to see the suggested behaviour; "View table" shows the numbers.',
+        'Filter buttons (shift and unit) above the chart, and sort buttons: Rank, Coins, Weighted goal, Process, Integrity, Name and Unit · shift (click again to reverse). By default the list comes by rank, from the highest score to the lowest, with the # rank column; the .xlsx also has the rank.',
+        'Fix: a page with no goal in the Intraday (e.g. a new page, still with goal 0) is left out of the weekly goal. Before, its actual came in with no goal and the weighted goal blew up (e.g. 1,571%).',
+    ]],
     '1.32.0' => ['titulo' => 'SR KPI (simulation)', 'itens' => [
         'Analysis › SR KPI: simulation of the Kinetic, Process & Integrity KPI proposed by the CEO. Score = Kinetic × Process × Integrity (0% to 120%) and coins from the weekly goal, over the last 4 weeks weighted 4-3-2-1. Click the SR name to see the week-by-week calculation.',
         'Process: SLA 15 (−4%), SLA 10 (−2%) and SLA 5 (−1%) for every full 10% below the expected value (95%, 90% and 80%), with a 60% floor. Integrity: −15% per day absent, down to 0%. No data yet and left out: Mass per shift, "not following the plan", DNR, P&G, fines and the shop.',

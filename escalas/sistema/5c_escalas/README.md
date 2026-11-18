@@ -222,6 +222,7 @@ Simulação do documento "KPI — Kinetic, Process e Integrity" (CEO, nov/2026),
 - Process: SLA 5/10/15 do `cap_rep_hora` (o `resp_15min` vem do 5C_Planning_41); esperado 80/90/95% em `ESC_KPI_SLA`; piso 60%.
 - Integrity: dias com ABS no `abs_adh_af` (falta aprovada já sai da escala), −15% cada.
 - Sem dado ainda: Mass por turno, "não seguir o plano", DNR, P&G, multas e loja.
+- 1.32.1: gráfico de SRs por faixa de score (`escGrafColunas`), filtros em botões, ordenação `o`/`d` (padrão: rank pelo score, do maior para o menor) e coluna #. Página e turno sem meta no Intraday ficam fora da meta semanal.
 
 ## Acesso restrito (1.21.0)
 

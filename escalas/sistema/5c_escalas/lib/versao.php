@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.32.1', 'data' => '2026-11-18', 'titulo' => 'KPI dos SRs: gráfico, rank e ordenação', 'sql' => [], 'itens' => [
+    'KPI dos SRs: os quadros do topo viraram um gráfico de colunas com quantos SRs há em cada faixa de score (e o % de quem tem score); o título resume quantos estão abaixo de 75% e quantos em 100% ou mais. Passe o mouse na coluna para ver o comportamento sugerido; "Ver tabela" mostra os números.',
+    'Filtros em botões (turno e unidade) acima do gráfico, e botões de ordenação: Rank, Moedas, Meta ponderada, Process, Integrity, Nome e Unidade · turno (clicar de novo inverte). Por padrão, a lista vem pelo rank, do maior score para o menor, com a coluna # do rank; o .xlsx também traz o rank.',
+    'Correção: página sem meta no Intraday (ex.: página nova, ainda com meta 0) fica fora da meta semanal. Antes o realizado dela entrava sem meta e a meta ponderada explodia (ex.: 1.571%).',
+    ]],
     ['versao' => '1.32.0', 'data' => '2026-11-18', 'titulo' => 'KPI dos SRs (simulação)', 'sql' => ['5C_Planning_41_sla_15min.sql'], 'itens' => [
     'Análise › KPI dos SRs: simulação do KPI Kinetic, Process & Integrity proposto pelo CEO. Score = Kinetic × Process × Integrity (0% a 120%) e moedas pela meta semanal, nas últimas 4 semanas com pesos 4-3-2-1. Clique no nome do SR para ver a conta semana a semana.',
     'Process: SLA 15 (−4%), SLA 10 (−2%) e SLA 5 (−1%) a cada 10% completos abaixo do esperado (95%, 90% e 80%), com piso de 60%. Integrity: −15% por dia de falta, até 0%. Ainda sem dado e fora da conta: Mass por turno, "não seguir o plano", DNR, P&G, multas e loja.',

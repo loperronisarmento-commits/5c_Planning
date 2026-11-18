@@ -191,7 +191,9 @@ function escKpiCalcular(array $reps): array {
         }
     }
     foreach ($msgs as $k => $porCod) {
-        if (!isset($pag[$k]) || empty($tot[$k])) {
+        // Página sem meta no Intraday (ex.: página nova, ainda com Goal 0) fica fora da meta e do
+        // realizado: senão o realizado dela entra sem meta e a meta da semana explode (1.32.1).
+        if (!isset($pag[$k]) || empty($tot[$k]) || $pag[$k][0] <= 0) {
             continue;
         }
         [$meta, $real] = $pag[$k];
