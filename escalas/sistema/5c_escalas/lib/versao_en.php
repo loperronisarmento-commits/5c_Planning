@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.32.0' => ['titulo' => 'SR KPI (simulation)', 'itens' => [
+        'Analysis › SR KPI: simulation of the Kinetic, Process & Integrity KPI proposed by the CEO. Score = Kinetic × Process × Integrity (0% to 120%) and coins from the weekly goal, over the last 4 weeks weighted 4-3-2-1. Click the SR name to see the week-by-week calculation.',
+        'Process: SLA 15 (−4%), SLA 10 (−2%) and SLA 5 (−1%) for every full 10% below the expected value (95%, 90% and 80%), with a 60% floor. Integrity: −15% per day absent, down to 0%. No data yet and left out: Mass per shift, "not following the plan", DNR, P&G, fines and the shop.',
+        'It is view-only: it has no effect on Generate, merit, pay or notifications, and nothing is written to the database. Only WFM/Planning and Admin see the screen; it can be exported to .xlsx and PDF.',
+        'Capacity (script 41): SLA 15 per SR and per page is now saved in the daily load; the days since 11/01 were reloaded.',
+    ]],
     '1.31.0' => ['titulo' => 'Unavailability: remove dates from an approved request', 'itens' => [
         'People › Unavailability: an approved or partial request now has "Edit: remove approved dates". Select the dates to remove (from today on) or use "Remove all upcoming"; the reason is optional. The dates become Cancelled and past dates do not change.',
         'With no approved date left, the request becomes Cancelled. The schedule changes at the next recalculation of the week. To add dates, enter a new request.',

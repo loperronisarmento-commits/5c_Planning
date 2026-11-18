@@ -105,9 +105,9 @@ function escPodeReal(string $acao): bool {
     return in_array($GLOBALS['ESC_USUARIO']['perfil'] ?? '', ESC_PODE[$acao] ?? [], true);
 }
 
-// Telas e dados só de WFM/Planejamento e Admin (Política de mérito, mérito individual, Folga juntos):
-// valem o perfil real, também no Modo Treino.
-const ESC_TELAS_RESTRITAS = ['owners', 'merito', 'casais'];
+// Telas e dados só de WFM/Planejamento e Admin (Política de mérito, mérito individual, Folga juntos,
+// KPI dos SRs): valem o perfil real, também no Modo Treino.
+const ESC_TELAS_RESTRITAS = ['owners', 'merito', 'casais', 'kpi'];
 
 function escPodeVerRestrito(): bool {
     return escPodeReal('planejar');

@@ -103,6 +103,11 @@ $R = [
         ['Faixas: Acima com {acima} pontos ou mais, Abaixo com menos de {abaixo}, Na média entre os dois. Com a mesma nota, vem antes quem tem mais tempo de casa. Detalhe e simulador em Ajuda › Mérito.', 'Bands: Above at {acima} points or more, Below under {abaixo}, Average in between. With the same score, whoever has been with the company longer comes first. Details and a simulator in Help › Merit.'],
         ['No Gerar, a faixa pesa no melhor SR de cada página, no remanejamento, no acúmulo e na sobrecarga (o SR Abaixo vai por último; nada é proibido). O mérito em número aparece só para Planejamento, WFM e Admin.', 'In Generate, the band counts for each page\'s best SR, for moving people up, stacking posts and covering above capacity (the Below SR goes last; nothing is forbidden). Merit numbers are shown only to Planning, WFM and Admin.'],
     ]],
+    'kpi' => ['KPI dos SRs (simulação)', 'SR KPI (simulation)', [
+        ['Score = Kinetic × Process × Integrity, de 0% a 120%, nas últimas 4 semanas (segunda a domingo) com pesos 4 (semana atual, até ontem), 3, 2 e 1; semana sem dado fica fora da média. Kinetic: a meta semanal ponderada vira 25%, 50%, 75%, 90%, 100%, 110% ou 120% (cortes em 50%, 75%, 90%, 100%, 150% e 200%).', 'Score = Kinetic × Process × Integrity, from 0% to 120%, over the last 4 weeks (Monday to Sunday) weighted 4 (current week, up to yesterday), 3, 2 and 1; a week with no data is left out. Kinetic: the weighted weekly goal becomes 25%, 50%, 75%, 90%, 100%, 110% or 120% (cuts at 50%, 75%, 90%, 100%, 150% and 200%).'],
+        ['Process: 100% menos SLA 15 (−4%), SLA 10 (−2%) e SLA 5 (−1%) a cada 10% completos abaixo de 95%, 90% e 80%; piso de 60%. Integrity: 100% menos 15% por dia de falta; pode zerar. Moedas por semana: abaixo de 85% da meta = 0; de 85% a 100%, de 1 a 20; acima, 20 × (1 + log₂(meta)).', 'Process: 100% minus SLA 15 (−4%), SLA 10 (−2%) and SLA 5 (−1%) for every full 10% below 95%, 90% and 80%; 60% floor. Integrity: 100% minus 15% per day absent; it can reach zero. Coins per week: below 85% of the goal = 0; from 85% to 100%, 1 to 20; above, 20 × (1 + log₂(goal)).'],
+        ['É só simulação: não pesa no Gerar, no mérito, em pagamento nem em notificação. Mass por turno, "não seguir o plano", DNR, P&G, multas e loja ainda não têm dado e ficam fora da conta.', 'It is only a simulation: it has no effect on Generate, merit, pay or notifications. Mass per shift, "not following the plan", DNR, P&G, fines and the shop have no data yet and are left out.'],
+    ]],
     'quadro' => ['Quadro e contratação', 'Headcount and hiring', [
         ['Capacity: precisa = titulares (postos × {fator}) + buffer, por unidade e turno; tem = os SRs com cadastro no 5C Escalas (desde 09/11; antes, a foto de 27/10), guardados dia a dia no registro do quadro desde 01/11; falta = precisa − tem. O absenteísmo do buffer conta de 01/11 em diante, com o D na média de A e C enquanto o registro de faltas do D é conferido. A tela mostra uma versão por dia. O Capacity não entra no corte de 01/11.', 'Capacity: needs = main SRs (posts × {fator}) + buffer, per unit and shift; has = the SRs with a record in 5C Escalas (since 11/09; before that, the 10/27 snapshot), kept day by day in the headcount record since 11/01; shortfall = needs − has. Buffer absenteeism counts from 11/01 on, with D at the average of A and C while the D absence records are checked. The screen shows one version per day. Capacity is not affected by the 11/01 cutoff.'],
         ['Ocupação dos postos: SRs escalados por dia nas páginas da carteira ÷ postos do Capacity × dias da semana; buffer, Overlap, treinamento e liderança não contam. Lacuna = bloco de 4 h sem ninguém.', 'Post occupancy: SRs scheduled per day on the portfolio\'s pages ÷ Capacity posts × days of the week; buffer, Overlap, training and leadership do not count. Gap = a 4-hour block with no one.'],
@@ -127,7 +132,7 @@ $R = [
 ];
 // Política de mérito: só WFM/Planejamento e Admin.
 if (!escPodeVerRestrito()) {
-    unset($R['merito'], $R['politica']);
+    unset($R['merito'], $R['politica'], $R['kpi']);
 }
 ?>
 <?php escDocIni(); ?>

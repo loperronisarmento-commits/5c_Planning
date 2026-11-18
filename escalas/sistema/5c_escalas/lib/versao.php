@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.32.0', 'data' => '2026-11-18', 'titulo' => 'KPI dos SRs (simulação)', 'sql' => ['5C_Planning_41_sla_15min.sql'], 'itens' => [
+    'Análise › KPI dos SRs: simulação do KPI Kinetic, Process & Integrity proposto pelo CEO. Score = Kinetic × Process × Integrity (0% a 120%) e moedas pela meta semanal, nas últimas 4 semanas com pesos 4-3-2-1. Clique no nome do SR para ver a conta semana a semana.',
+    'Process: SLA 15 (−4%), SLA 10 (−2%) e SLA 5 (−1%) a cada 10% completos abaixo do esperado (95%, 90% e 80%), com piso de 60%. Integrity: −15% por dia de falta, até 0%. Ainda sem dado e fora da conta: Mass por turno, "não seguir o plano", DNR, P&G, multas e loja.',
+    'É só visualização: não pesa no Gerar, no mérito, em pagamento nem em notificação, e nada é gravado no banco. Só WFM/Planejamento e Admin veem a tela; dá para exportar .xlsx e PDF.',
+    'Capacity (script 41): o SLA 15 por SR e por página passa a ser gravado na carga diária; os dias desde 01/11 foram recarregados.',
+    ]],
     ['versao' => '1.31.0', 'data' => '2026-11-17', 'titulo' => 'Indisponibilidade: retirar datas de pedido aprovado', 'sql' => [], 'itens' => [
     'Pessoas › Indisponibilidade: pedido aprovado ou parcial ganha "Editar: retirar datas aprovadas". Marque as datas que saem (de hoje em diante) ou use "Retirar todas as próximas"; o motivo é opcional. As datas viram Cancelado e as que já passaram não mudam.',
     'Sem nenhuma data aprovada sobrando, o pedido fica Cancelado. A escala muda no próximo recálculo da semana. Para acrescentar datas, lança-se um pedido novo.',

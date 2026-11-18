@@ -86,6 +86,7 @@ $telas = [
     'horas'        => ['Horas extras', 'pages/horas.php'],
     'analise'      => ['Análise', 'pages/analise.php'],
     'srs'          => ['Mérito dos SRs', 'pages/tertius.php'],
+    'kpi'          => ['KPI dos SRs', 'pages/kpi.php'],
     'sugestoes'    => ['Sugestões de troca', 'pages/sugestoes.php'],
     'buffers'      => ['Buffers', 'pages/buffers.php'],
     'bot'          => ['Bot de cobrança', 'pages/bot_cobranca.php'],
@@ -295,7 +296,7 @@ try {
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
-    'Análise' => ['analise', 'srs', 'sugestoes', 'buffers', 'bot'],
+    'Análise' => ['analise', 'srs', 'kpi', 'sugestoes', 'buffers', 'bot'],
     'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],

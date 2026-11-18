@@ -55,6 +55,7 @@ Tabela `5c_escalas.esc_acesso`. No primeiro acesso, se ela estiver vazia, o mód
 | Horas extras | Postos sem ninguém (por faturamento) e buffers que faltam (Capacity × plantão); texto para pedir hora extra; PDF de anúncio do Overtime a partir de um dia e turno, no padrão visual 5C (papel timbrado, desde a 1.20.0; `lib/overtime_pdf.php`, `?p=horas&baixar=overtime&de=&turno=`); registrar quem se ofereceu e alocar no rascunho (trava turno repetido, mais de 12 h seguidas e mais de 52 h na semana) | `esc_hora_extra`, `esc_plano_alocacao` |
 | Análise (WFM) | Abas Escala (horas necessárias × previstas, buffers, escalados, absenteísmo previsto e realizado), Demanda (previsão do Capacity, fluxo por página, funil do CRM) e Escala × demanda por unidade e turno | não grava |
 | Mérito dos SRs | Turnos de cada SR (em posto, assistente, buffer -2, Overlap -5) × fatia do nível, e o mérito em pontos (desde a 1.19.0, regras M-01 a M-10): os pontos de cada componente com o dado ao lado, a nota e a faixa (Acima, Na média, Abaixo); o mérito aparece só para Planejamento e Admin | `esc_sr_merito` (cache) |
+| KPI dos SRs (simulação) | KPI Kinetic, Process & Integrity do CEO, só visualização (1.32.0): Score = Kinetic × Process × Integrity e moedas, 4 semanas com pesos 4-3-2-1; detalhe semana a semana por SR (`?rep=`); exportar .xlsx e PDF; só WFM/Planejamento e Admin | não grava (cache em arquivo, `escCache`) |
 | Sugestões de troca | Workload (remover turno), Buffer sem página, lacunas; aplicar ou descartar com motivo | `esc_sugestao`, `esc_plano_alocacao` |
 | Buffers | Precisa (Capacity) × usados × sem página, por dia e turno; pool | não grava |
 | Bot de cobrança | SLA de 5 e 10 min e inatividades (15 min sem mensagem numa página escalada) por semana, antes e depois do bot de cobrança (06/10/2026); por SR só para WFM/Planejamento e Admin | `esc_bot_inativ_semana`, `esc_bot_inativ_rep` (cada semana que fecha) |
@@ -211,6 +212,16 @@ Seção nova do menu, entre Análise e Páginas: **Capacity** (`pages/capacity.p
 ## Exportar o Mérito dos SRs (1.22.0)
 
 Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem biblioteca externa, só ZipArchive) e `?p=srs&ver=pdf&imprimir=1` (`@page merito-srs`, A4 paisagem). Valem os filtros `u` e `t`, o acesso é o de `escPodeVerRestrito()` e a versão vem de `escDocVersao('merito_srs', ...)`.
+
+## KPI dos SRs (1.32.0)
+
+Simulação do documento "KPI — Kinetic, Process e Integrity" (CEO, nov/2026), em `pages/kpi.php` e `lib/kpi.php`. Só lê o banco (`escQ`), guarda o resultado em arquivo temporário por 3 h (`escCache`; "Recalcular agora" = `recarregar=1`) e não alimenta o Gerar, o mérito, pagamentos nem notificações. Exportações sem número de versão, porque `escDocVersao` grava no banco.
+
+- Semanas de segunda a domingo; pesos 4 (atual, até ontem), 3, 2 e 1; semana sem dado fica fora da média; corte de 01/11.
+- Kinetic: meta semanal (realizado ÷ meta 5CReps rateado pelas mensagens, a mesma conta da M-10), média ponderada → base. Moedas por semana.
+- Process: SLA 5/10/15 do `cap_rep_hora` (o `resp_15min` vem do 5C_Planning_41); esperado 80/90/95% em `ESC_KPI_SLA`; piso 60%.
+- Integrity: dias com ABS no `abs_adh_af` (falta aprovada já sai da escala), −15% cada.
+- Sem dado ainda: Mass por turno, "não seguir o plano", DNR, P&G, multas e loja.
 
 ## Acesso restrito (1.21.0)
 

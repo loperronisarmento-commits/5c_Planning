@@ -1,0 +1,313 @@
+<?php
+// ===============================================
+// ARQUIVO: 5c_escalas/pages/kpi.php
+// KPI dos SRs (Kinetic, Process & Integrity): SIMULAÇÃO, só visualização. As mesmas funções do Mérito
+// dos SRs (pages/tertius.php) e da Ajuda › Mérito (pages/merito.php): semana da escala, filtros de
+// unidade e turno, contagem por faixa, turnos na escala, tabela por SR ordenável, como é calculado,
+// recalcular (só o cache em arquivo), exportar .xlsx e PDF, simulador e resumo por unidade e turno.
+// Mais o detalhe semana a semana de cada SR (?rep=). Cálculo em lib/kpi.php.
+// Só lê o banco e não pesa no Gerar, no mérito, em pagamentos nem em notificações.
+// Acesso: só WFM/Planejamento e Admin (como o mérito individual).
+// ===============================================
+
+escExigirRestrito();
+require_once __DIR__ . '/../lib/kpi.php';
+
+$planoId = (int) ($_GET['plano'] ?? 0);
+if (!$planoId) {
+    $p = escPlanoAtual(date('Y-m-d', strtotime(segundaDaSemana(date('Y-m-d')) . ' +1 week'))) ?? escPlanoAtual(segundaDaSemana(date('Y-m-d')));
+    $planoId = $p ? (int) $p['id'] : 0;
+}
+$plano = $planoId ? escQ1('SELECT * FROM ' . escT('esc_plano') . ' WHERE id = ?', [$planoId]) : null;
+if (!$plano || ($plano['estrutura'] ?? '') !== 'V4') {
+    echo '<header class="cabecalho"><span class="eyebrow">' . h(t('Análise')) . '</span><h1>' . h(t('KPI dos SRs')) . '</h1></header><section class="panel"><p class="muted">' . h(t('Gere um rascunho da estrutura nova para ver o KPI.')) . '</p></section>';
+    return;
+}
+$seg = substr($plano['semana_inicio'], 0, 10);
+$fim = substr($plano['semana_fim'], 0, 10);
+$nomes = escNomes();
+
+// Turnos de cada SR no plano (uma vez por dia e turno), como no Mérito dos SRs.
+$turnos = [];
+foreach (escQ("SELECT UPPER(rep_code) AS rep, papel, origem, COUNT(DISTINCT dia, turno) AS n FROM " . escT('esc_plano_alocacao') . "
+                WHERE plano_id = ? AND rep_code IS NOT NULL AND bloco IN ('T2','T4','T6') GROUP BY UPPER(rep_code), papel, origem", [$planoId]) as $l) {
+    $tipo = $l['origem'] === 'OVERLAP' ? 'overlap' : ($l['origem'] === 'BUFFER' ? 'buffer' : ($l['papel'] === 'ASSISTENTE' ? 'assistente' : 'posto'));
+    $turnos[$l['rep']][$tipo] = ($turnos[$l['rep']][$tipo] ?? 0) + (int) $l['n'];
+}
+$srs = escQ("SELECT UPPER(c.rep_code) AS rep, c.unidade, c.turno, c.nivel, n.numero AS nucleo
+               FROM " . escT('esc_colaborador_config') . " c LEFT JOIN " . escT('esc_nucleo') . " n ON n.id = c.nucleo_id
+              WHERE c.funcao = 'EQUITE' AND c.nucleo_id IS NOT NULL AND c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)", [$fim, $seg]);
+$kpi = escKpiCarregar(array_column($srs, 'rep'));
+$calculadoEm = $kpi['calculado_em'] ?? null;
+$kpiSr = $kpi['srs'] ?? [];
+$semanas = escKpiSemanas();
+
+$uSel = in_array((string) ($_GET['u'] ?? ''), ['1', '2', '3'], true) ? (string) $_GET['u'] : '';
+$tSel = in_array((string) ($_GET['t'] ?? ''), ['A', 'C', 'D'], true) ? (string) $_GET['t'] : '';
+$repSel = strtoupper(trim((string) ($_GET['rep'] ?? '')));
+$filtros = array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]);
+
+$linhas = [];
+$todas = [];
+foreach ($srs as $s) {
+    $k = $kpiSr[$s['rep']] ?? null;
+    $t = $turnos[$s['rep']] ?? [];
+    $emPosto = ($t['posto'] ?? 0) + ($t['assistente'] ?? 0);
+    $base = $emPosto + ($t['buffer'] ?? 0);
+    $l = ['rep' => $s['rep'], 'nome' => $nomes[$s['rep']] ?? $s['rep'], 'u' => (int) $s['unidade'], 't' => $s['turno'], 'nucleo' => $s['nucleo'], 'nivel' => (int) $s['nivel'],
+        'posto' => $t['posto'] ?? 0, 'assist' => $t['assistente'] ?? 0, 'buffer' => $t['buffer'] ?? 0, 'overlap' => $t['overlap'] ?? 0,
+        'pct' => $base ? $emPosto / $base : null, 'k' => $k, 'score' => $k['score'] ?? null, 'moedas' => $k['moedas'] ?? null,
+        'comp' => escKpiComportamento($k['score'] ?? null)];
+    $todas[] = $l;
+    if (($uSel === '' || (string) $s['unidade'] === $uSel) && ($tSel === '' || $s['turno'] === $tSel)) {
+        $linhas[] = $l;
+    }
+}
+// Maior score primeiro; no empate, mais moedas e depois o nome (o documento não define desempate).
+usort($linhas, static fn($a, $b) => [$a['u'], $a['t'], -($a['score'] ?? -1), -($a['moedas'] ?? -1), $a['nome']] <=> [$b['u'], $b['t'], -($b['score'] ?? -1), -($b['moedas'] ?? -1), $b['nome']]);
+$faixas = ['LT25' => '< 25%', '25_50' => '25% – 50%', '50_75' => '50% – 75%', '75_100' => '75% – 100%', '100_110' => '100% – 110%', '110_120' => '110% – 120%', '120' => '120%', 'SEM' => t('Sem score')];
+$conta = array_fill_keys(array_keys($faixas), 0);
+foreach ($linhas as $l) {
+    $conta[$l['comp'][0]]++;
+}
+$pc = static fn($v, int $c = 0): string => $v === null ? '—' : pct((float) $v, $c);
+$semRot = static fn(string $sg): string => dataBr($sg) . '–' . dataBr(escMaisDias($sg, 6));
+
+// ---------- Exportar (.xlsx e PDF), sem número de versão: a versão do documento gravaria no banco ----------
+$soPdf = ($_GET['ver'] ?? '') === 'pdf';
+if ($soPdf || isset($_GET['baixar'])) {
+    $exportar = [];
+    foreach ($linhas as $l) {
+        $k = $l['k'] ?? [];
+        $exportar[] = [$l['nome'], $l['rep'], 'U' . $l['u'], $l['t'], $l['nucleo'] !== null ? (int) $l['nucleo'] : null, $l['nivel'],
+            (int) $l['posto'], (int) $l['assist'], (int) $l['buffer'], (int) $l['overlap'], $l['pct'],
+            $k['kinetic_meta'] ?? null, $k['kinetic_base'] ?? null, $k['process'] ?? null, $k['integrity'] ?? null, $l['score'],
+            $l['moedas'] !== null ? round($l['moedas'], 1) : null, $l['comp'][1]];
+    }
+    $filtroTxt = ($uSel !== '' ? 'U' . $uSel : t('Todas as unidades')) . ' · ' . ($tSel !== '' ? t('Turno {t}', ['t' => $tSel]) : t('Todos os turnos'));
+    $infoDoc = t('SIMULAÇÃO') . ' · ' . t('Semanas de {de} a {ate}', ['de' => dataBr(min(array_keys($semanas))), 'ate' => dataBr(date('Y-m-d', strtotime('-1 day')))]) . ' · ' . $filtroTxt
+        . ($calculadoEm ? ' · ' . t('Calculado em {quando}', ['quando' => escDataHora((string) $calculadoEm)]) : '');
+    $nomeArq = 'KPI SRs simulacao' . ($uSel !== '' ? ' U' . $uSel : '') . ($tSel !== '' ? ' ' . $tSel : '') . ' ' . date('d-m-Y');
+}
+if (($_GET['baixar'] ?? '') === 'xlsx') {
+    require_once __DIR__ . '/../lib/xlsx.php';
+    $col = static fn(string $titulo, float $largura, string $estilo) => ['titulo' => $titulo, 'largura' => $largura, 'estilo' => $estilo];
+    escXlsxBaixar($nomeArq . '.xlsx', 'KPI',
+        [t('KPI dos SRs (Kinetic, Process & Integrity) · simulação'), $infoDoc,
+            implode(' · ', array_map(static fn($f, $n) => $f . ': ' . $n, $faixas, $conta))],
+        [$col('SR', 28, 'texto'), $col(t('Código'), 10, 'texto'), $col(t('Unidade'), 8, 'texto'), $col(t('Turno'), 7, 'texto'), $col(t('Núcleo'), 7, 'inteiro'), $col(t('Nível'), 7, 'inteiro'),
+            $col(t('Em posto'), 8, 'inteiro'), $col(t('Assistente'), 10, 'inteiro'), $col('Buffer (-2)', 8, 'inteiro'), $col('Overlap (-5)', 8, 'inteiro'), $col(t('% em posto'), 8, 'pct'),
+            $col(t('Meta ponderada'), 10, 'pct'), $col('Kinetic', 9, 'pct'), $col('Process', 9, 'pct'), $col('Integrity', 9, 'pct'), $col('Score', 9, 'pct'),
+            $col(t('Moedas (4 semanas)'), 10, 'nota'), $col(t('Comportamento sugerido'), 34, 'texto')],
+        $exportar, 2);
+    return;
+}
+if (isset($_GET['baixar'])) {
+    http_response_code(400);
+    echo t('Download desconhecido.');
+    return;
+}
+$detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
+?>
+<?php if ($soPdf): ?>
+<div class="acoes nao-imprimir">
+  <a class="botao" href="<?php echo h(link_tela('kpi', $filtros)); ?>">← <?php echo h(t('Voltar para o KPI dos SRs')); ?></a>
+  <button type="button" class="botao primario" onclick="window.print()"><?php echo h(t('Baixar PDF')); ?></button>
+  <span class="muted small"><?php echo h(t('Na impressão, escolha "Salvar como PDF".')); ?></span>
+</div>
+<?php endif; ?>
+<header class="cabecalho">
+  <span class="eyebrow"><?php echo h(t('Análise')); ?> · <?php echo h(t('Simulação')); ?></span>
+  <h1><?php echo h(t('KPI dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
+  <?php if ($soPdf): ?><p class="muted small"><?php echo h($infoDoc); ?></p>
+  <?php else: ?><p class="muted"><?php echo h(t('Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, de 0% a 120%, e moedas pela meta semanal. É só uma simulação: não pesa no Gerar, no mérito, em pagamento nem em notificação.')); ?></p><?php endif; ?>
+</header>
+
+<?php if (!$soPdf): ?>
+<p class="aviso" role="status"><?php echo h(t('Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR e quebra de P&G (Integrity), multas e loja de moedas.')); ?></p>
+<?php if (!escAbsOficialOk()): ?><p class="aviso" role="status"><?php echo h(t('O sistema não consegue ler as faltas oficiais (5c_wfm_db_mis.abs_adh_af): a Integrity fica sem desconto de falta.')); ?></p><?php endif; ?>
+<?php endif; ?>
+
+<section class="kpis">
+  <?php foreach ($faixas as $f => $rot): if ($f === 'SEM' && !$conta['SEM']) { continue; } ?>
+  <div class="kpi"><span class="muted"><?php echo h($rot); ?></span><strong><?php echo $conta[$f]; ?></strong><span class="muted small"><?php echo h($f === 'SEM' ? t('sem dado nas 4 semanas') : escKpiComportamento(['LT25' => 0.1, '25_50' => 0.3, '50_75' => 0.6, '75_100' => 0.8, '100_110' => 1.05, '110_120' => 1.15, '120' => 1.2][$f])[1]); ?></span></div>
+  <?php endforeach; ?>
+</section>
+
+<?php if ($detalhe !== null && !$soPdf): $linhaSel = null; foreach ($todas as $l) { if ($l['rep'] === $repSel) { $linhaSel = $l; } } ?>
+<section class="panel" id="detalhe">
+  <h2><?php echo h(t('Como o KPI de {nome} foi calculado', ['nome' => nomeCurto($nomes[$repSel] ?? $repSel)])); ?> <span class="muted small mono"><?php echo h($repSel); ?></span></h2>
+  <div class="tabela-rolagem"><table data-sem-ordem>
+    <thead><tr><th><?php echo h(t('Semana')); ?></th><th class="num"><?php echo h(t('Peso')); ?></th><th class="num"><?php echo h(t('Meta')); ?></th><th class="num"><?php echo h(t('Moedas')); ?></th>
+      <th class="num">SLA 5</th><th class="num">SLA 10</th><th class="num">SLA 15</th><th class="num">Process</th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">Integrity</th></tr></thead>
+    <tbody>
+    <?php foreach ($semanas as $sg => $peso): $w = $detalhe['semanas'][$sg] ?? null; ?>
+      <tr>
+        <td><?php echo h($semRot($sg)); ?><?php echo $sg === segundaDaSemana(date('Y-m-d')) ? ' <span class="muted small">' . h(t('(até ontem)')) . '</span>' : ''; ?></td>
+        <td class="num"><?php echo $peso; ?></td>
+        <?php if ($w === null): ?><td colspan="8" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
+        <?php else: ?>
+        <td class="num"><?php echo $pc($w['atingimento'], 1); ?><?php if ($w['meta'] !== null): ?> <span class="muted small"><?php echo num($w['real'], 0); ?> ÷ <?php echo num($w['meta'], 0); ?></span><?php endif; ?></td>
+        <td class="num"><?php echo $w['moedas'] !== null ? num($w['moedas'], 1) : '—'; ?></td>
+        <?php foreach ([5, 10, 15] as $mi): $v = $w['sla' . $mi]; $d = $w['desc' . $mi]; ?>
+        <td class="num"><?php echo $pc($v, 1); ?><?php if ($d): ?> <span class="laranja small">−<?php echo pct($d, 0); ?></span><?php endif; ?></td>
+        <?php endforeach; ?>
+        <td class="num"><strong><?php echo $pc($w['process']); ?></strong></td>
+        <td class="num"><?php echo (int) $w['faltas']; ?><?php if ($w['faltas']): ?> <span class="laranja small">−<?php echo pct(ESC_KPI_FALTA * $w['faltas'], 0); ?></span><?php endif; ?></td>
+        <td class="num"><strong><?php echo $pc($w['integrity']); ?></strong></td>
+        <?php endif; ?>
+      </tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+  <ul class="small">
+    <li><strong>Kinetic:</strong> <?php echo h(t('meta ponderada {m} → base {b}.', ['m' => $pc($detalhe['kinetic_meta'], 1), 'b' => $pc($detalhe['kinetic_base'])])); ?></li>
+    <li><strong>Process:</strong> <?php echo h(t('média ponderada das semanas = {p}. Cada semana: 100% − descontos de SLA, com piso de 60%.', ['p' => $pc($detalhe['process'], 1)])); ?></li>
+    <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta, até 0%.', ['i' => $pc($detalhe['integrity'], 1)])); ?></li>
+    <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base']) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score'], 1)); ?> · <?php echo h(escKpiComportamento($detalhe['score'])[1]); ?></li>
+    <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('{n} nas semanas acima (soma).', ['n' => $detalhe['moedas'] !== null ? num($detalhe['moedas'], 1) : '—'])); ?></li>
+  </ul>
+  <p class="muted small"><?php echo h(t('A média ponderada usa os pesos só das semanas com dado (soma dos pesos × valor ÷ soma dos pesos). Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?> <a href="<?php echo h(link_tela('kpi', $filtros)); ?>"><?php echo h(t('Fechar')); ?></a></p>
+</section>
+<?php endif; ?>
+
+<section class="panel<?php echo $soPdf ? ' merito-srs-pdf' : ''; ?>">
+  <?php if (!$soPdf): ?>
+  <details>
+    <summary><strong><?php echo h(t('Como o KPI é calculado')); ?></strong></summary>
+    <p><?php echo h(t('Últimas 4 semanas (segunda a domingo), com pesos 4 (semana atual, até ontem), 3, 2 e 1, nos três pilares. Semana sem dado fica fora da média.')); ?> <?php echo h(t('Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?></p>
+    <ul class="small">
+      <li><strong>Kinetic:</strong> <?php echo h(t('meta semanal (realizado ÷ meta 5CReps, rateado pelas mensagens do SR). A média ponderada vira a base: até 50% = 25%; 50–75% = 50%; 75–90% = 75%; 90–100% = 90%; 100–150% = 100%; 150–200% = 110%; acima de 200% = 120%.')); ?></li>
+      <li><strong>Process:</strong> <?php echo h(t('100% menos: SLA 15 −4%, SLA 10 −2% e SLA 5 −1% a cada 10% completos abaixo do esperado (95%, 90% e 80%). Nunca abaixo de 60%. Mass por turno e "não seguir o plano" ainda não são calculados.')); ?></li>
+      <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida). Pode chegar a 0%. DNR e P&G ainda não são calculados.')); ?></li>
+      <li><strong>Score:</strong> <?php echo h(t('Kinetic × Process × Integrity, de 0% a 120%.')); ?></li>
+      <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('por semana, só pela meta: abaixo de 85% = 0; de 85% a 100%, de 1 a 20 em linha reta; acima de 100%, 20 × (1 + log₂(meta)), ou seja, +20 a cada vez que a meta dobra.')); ?></li>
+    </ul>
+  </details>
+  <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
+    <input type="hidden" name="p" value="kpi"><input type="hidden" name="plano" value="<?php echo $planoId; ?>">
+    <select name="u" data-envio-auto aria-label="<?php echo h(t('Unidade')); ?>" data-sem-busca><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo (string) $u === $uSel ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select>
+    <select name="t" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>" data-sem-busca><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $t === $tSel ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
+  </form>
+  <div class="acoes">
+    <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['recarregar' => 1])); ?>" data-longo="<?php echo h(t('Recalculando o KPI… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular agora')); ?></a>
+    <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h. Nada é gravado no banco.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) (ESC_KPI_CACHE_SEG / 3600)])) : ''; ?></span>
+  </div>
+  <div class="acoes">
+    <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['baixar' => 'xlsx'])); ?>"><?php echo h(t('Exportar .xlsx')); ?></a>
+    <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['ver' => 'pdf', 'imprimir' => 1])); ?>" target="_blank" rel="noopener"><?php echo h(t('Exportar PDF')); ?></a>
+    <span class="muted small"><?php echo h(t('Com os filtros de unidade e turno escolhidos acima.')); ?></span>
+  </div>
+  <?php endif; ?>
+  <div class="tabela-rolagem">
+  <table<?php echo $soPdf ? ' data-sem-ordem' : ''; ?>>
+    <thead><tr><th>SR</th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th class="num"><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Em posto')); ?></th><th class="num"><?php echo h(t('Assistente')); ?></th><th class="num">Buffer (-2)</th><th class="num">Overlap (-5)</th>
+      <th class="num"><?php echo h(t('Meta ponderada')); ?></th><th class="num">Kinetic</th><th class="num">Process</th><th class="num">Integrity</th><th class="num">Score</th><th class="num"><?php echo h(t('Moedas')); ?></th><th><?php echo h(t('Comportamento sugerido')); ?></th></tr></thead>
+    <tbody>
+    <?php foreach ($linhas as $l): $k = $l['k'] ?? []; ?>
+      <tr>
+        <td><?php if ($soPdf): ?><strong><?php echo h(nomeCurto($l['nome'])); ?></strong><?php else: ?><a href="<?php echo h(link_tela('kpi', $filtros + ['rep' => $l['rep']]) . '#detalhe'); ?>"><strong><?php echo h(nomeCurto($l['nome'])); ?></strong></a><?php endif; ?><br><span class="muted small mono"><?php echo h($l['rep']); ?></span></td>
+        <td class="small">U<?php echo $l['u']; ?> <?php echo chipTurno($l['t']); ?> · <?php echo h(t('núcleo {n}', ['n' => (string) $l['nucleo']])); ?></td>
+        <td class="num">SR <?php echo $l['nivel']; ?></td>
+        <td class="num"><?php echo (int) $l['posto']; ?></td>
+        <td class="num"><?php echo (int) $l['assist']; ?></td>
+        <td class="num"><?php echo (int) $l['buffer']; ?></td>
+        <td class="num"><?php echo (int) $l['overlap']; ?></td>
+        <td class="num"><?php echo $pc($k['kinetic_meta'] ?? null, 1); ?></td>
+        <td class="num"><?php echo $pc($k['kinetic_base'] ?? null); ?></td>
+        <td class="num"><?php echo $pc($k['process'] ?? null, 1); ?></td>
+        <td class="num <?php echo isset($k['integrity']) && $k['integrity'] < 1 ? 'laranja' : ''; ?>"><?php echo $pc($k['integrity'] ?? null, 1); ?></td>
+        <td class="num"><strong><?php echo $pc($l['score'], 1); ?></strong></td>
+        <td class="num"><?php echo $l['moedas'] !== null ? num($l['moedas'], 1) : '—'; ?></td>
+        <td><span class="tag <?php echo h($l['comp'][2]); ?>"><?php echo h($l['comp'][1]); ?></span></td>
+      </tr>
+    <?php endforeach; ?>
+    <?php if (!$linhas): ?><tr><td colspan="14" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
+    </tbody>
+  </table>
+  </div>
+  <p class="muted small"><?php echo h(t('Turnos na escala desta semana, como no Mérito dos SRs. Kinetic, Process, Integrity e Score são médias ponderadas das últimas 4 semanas; moedas é a soma dessas semanas. Clique no nome para ver o cálculo semana a semana.')); ?></p>
+</section>
+
+<?php if (!$soPdf):
+    $porUt = [];
+    foreach ($todas as $l) {
+        $k = $l['u'] . '|' . $l['t'];
+        $porUt[$k] = $porUt[$k] ?? ['u' => $l['u'], 't' => $l['t'], 'srs' => 0, 'scores' => [], 'moedas' => []];
+        $porUt[$k]['srs']++;
+        if ($l['score'] !== null) {
+            $porUt[$k]['scores'][] = $l['score'];
+        }
+        if ($l['moedas'] !== null) {
+            $porUt[$k]['moedas'][] = $l['moedas'];
+        }
+    }
+    ksort($porUt);
+    $mediana = static function (array $v): ?float {
+        if (!$v) {
+            return null;
+        }
+        sort($v);
+        return $v[intdiv(count($v), 2)];
+    };
+?>
+<section class="panel">
+  <h2><?php echo h(t('Por unidade e turno')); ?></h2>
+  <div class="tabela-rolagem"><table>
+    <thead><tr><th><?php echo h(t('Unidade · turno')); ?></th><th class="num">SRs</th><th class="num"><?php echo h(t('Com score')); ?></th><th class="num"><?php echo h(t('Score mediano')); ?></th><th class="num"><?php echo h(t('Moedas medianas')); ?></th></tr></thead>
+    <tbody>
+    <?php foreach ($porUt as $l): ?>
+      <tr><td>U<?php echo $l['u']; ?> <?php echo chipTurno((string) $l['t']); ?></td><td class="num"><?php echo $l['srs']; ?></td><td class="num"><?php echo count($l['scores']); ?></td>
+        <td class="num"><strong><?php echo $pc($mediana($l['scores']), 1); ?></strong></td><td class="num"><?php $mm = $mediana($l['moedas']); echo $mm !== null ? num($mm, 1) : '—'; ?></td></tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+</section>
+
+<section class="panel">
+  <h2><?php echo h(t('Simulador')); ?></h2>
+  <p class="muted small"><?php echo h(t('Uma semana só (sem o histórico de 4 semanas). Mude os números e veja os pilares, o score e as moedas.')); ?></p>
+  <form class="merito-sim" data-kpi-sim onsubmit="return false">
+    <label><?php echo h(t('Meta %')); ?><input type="number" name="meta" value="100" min="0" max="2000" step="1" inputmode="decimal"></label>
+    <label>SLA 5 %<input type="number" name="sla5" value="80" min="0" max="100" step="1" inputmode="decimal"></label>
+    <label>SLA 10 %<input type="number" name="sla10" value="90" min="0" max="100" step="1" inputmode="decimal"></label>
+    <label>SLA 15 %<input type="number" name="sla15" value="95" min="0" max="100" step="1" inputmode="decimal"></label>
+    <label><?php echo h(t('Dias com falta')); ?><input type="number" name="faltas" value="0" min="0" max="7" step="1" inputmode="numeric"></label>
+    <output class="merito-sim-saida" aria-live="polite">
+      <span>Kinetic <strong data-sim="k">—</strong></span><span>Process <strong data-sim="p">—</strong></span><span>Integrity <strong data-sim="i">—</strong></span>
+      <span>Score <strong data-sim="s">—</strong></span><span><?php echo h(t('Moedas')); ?> <strong data-sim="m">—</strong></span><span class="tag" data-sim="c">—</span>
+    </output>
+  </form>
+</section>
+<script>
+(function () {
+  var f = document.querySelector('[data-kpi-sim]');
+  if (!f) { return; }
+  var sla = <?php echo json_encode(ESC_KPI_SLA); ?>, passo = <?php echo json_encode(ESC_KPI_SLA_PASSO); ?>, piso = <?php echo json_encode(ESC_KPI_PROCESS_PISO); ?>, falta = <?php echo json_encode(ESC_KPI_FALTA); ?>;
+  var faixas = <?php echo json_encode(ESC_KPI_KINETIC); ?>;
+  var rot = <?php echo json_encode(array_map(static fn($x) => escKpiComportamento($x)[1], ['lt25' => 0.1, 'a' => 0.3, 'b' => 0.6, 'c' => 0.8, 'd' => 1.05, 'e' => 1.15, 'f' => 1.2])); ?>;
+  var pc = function (x) { return (Math.round(x * 1000) / 10).toLocaleString(document.documentElement.lang || 'pt-BR') + '%'; };
+  function base(m) { for (var i = 0; i < faixas.length; i++) { if (m < faixas[i][0]) { return faixas[i][1]; } } return m <= 2 ? 1.1 : 1.2; }
+  function moedas(m) { return m < 0.85 ? 0 : (m <= 1 ? 1 + 19 * (m - 0.85) / 0.15 : 20 * (1 + Math.log(m) / Math.LN2)); }
+  function calc() {
+    var v = function (n) { var x = parseFloat(String(f.elements[n].value).replace(',', '.')); return isNaN(x) ? 0 : x; };
+    var m = v('meta') / 100, k = base(m), p = 1;
+    [15, 10, 5].forEach(function (mi) { var s = v('sla' + mi) / 100, e = sla[mi][0]; if (s < e) { p -= Math.floor(Math.round((e - s) / passo * 1e6) / 1e6) * sla[mi][1]; } });
+    p = Math.max(piso, p);
+    var i = Math.max(0, 1 - falta * Math.max(0, Math.floor(v('faltas')))), s = k * p * i, sr = Math.round(s * 1e6) / 1e6;
+    f.querySelector('[data-sim="k"]').textContent = pc(k);
+    f.querySelector('[data-sim="p"]').textContent = pc(p);
+    f.querySelector('[data-sim="i"]').textContent = pc(i);
+    f.querySelector('[data-sim="s"]').textContent = pc(s);
+    f.querySelector('[data-sim="m"]').textContent = (Math.round(moedas(m) * 10) / 10).toLocaleString(document.documentElement.lang || 'pt-BR');
+    f.querySelector('[data-sim="c"]').textContent = sr < 0.25 ? rot.lt25 : sr < 0.5 ? rot.a : sr < 0.75 ? rot.b : sr < 1 ? rot.c : sr <= 1.1 ? rot.d : sr >= 1.2 ? rot.f : rot.e;
+  }
+  f.addEventListener('input', calc);
+  calc();
+})();
+</script>
+<?php endif; ?>
+<?php if ($soPdf): ?>
+<?php echo escDocTituloJs($nomeArq); ?>
+<?php if (!empty($_GET['imprimir'])): ?><script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 400); });</script><?php endif; ?>
+<?php endif; ?>
