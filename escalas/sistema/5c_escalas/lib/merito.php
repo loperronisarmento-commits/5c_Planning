@@ -240,7 +240,9 @@ function escMeritoCalcular(array $reps): array {
     $semana = []; // [cod][segunda] = [realizado, meta] (M-10)
     $segDe = [];
     foreach ($msgs as $k => $porCod) {
-        if (!isset($pag[$k]) || empty($tot[$k])) {
+        // Página sem meta no Intraday (ex.: página nova, ainda com Goal 0) fica fora da meta e do realizado:
+        // senão o realizado dela entra sem meta e infla a M-03 e a M-10 (1.32.2).
+        if (!isset($pag[$k]) || empty($tot[$k]) || $pag[$k][0] <= 0) {
             continue;
         }
         [$meta, $real] = $pag[$k];
@@ -500,7 +502,8 @@ function escMeritoAtingimentoPaginas(array $paginas, array $reps, array $periodo
     }
     $out = [];
     foreach ($msgs as $k => $porRep) {
-        if (!isset($pag[$k]) || empty($tot[$k])) {
+        // Sem meta no Intraday, o realizado não entra (somado na modelo, inflaria o "bateu a meta").
+        if (!isset($pag[$k]) || empty($tot[$k]) || $pag[$k][1] <= 0) {
             continue;
         }
         [$dia, , $p] = explode('|', $k, 3);

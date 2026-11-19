@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.32.2', 'data' => '2026-11-18', 'titulo' => 'KPI: Kinetic em rampa e cores da 5C; mérito sem página sem meta', 'sql' => [], 'itens' => [
+    'KPI dos SRs: a Kinetic deixou de ser em degraus e passou a ser em rampa pelos pontos da tabela do documento (50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%, em linha reta entre eles; mínimo 25%). Com os degraus, os scores se amontoavam no limite das faixas (ex.: quase ninguém entre 50% e 75%); agora a distribuição fica gradual.',
+    'KPI dos SRs: o gráfico usa a paleta da 5C: marsala nas faixas baixas, cinza em 75–100% e ouro em 100% ou mais, nos temas claro e escuro.',
+    'KPI dos SRs: a faixa "100% – 110%" foi esticada até 119% ("só sai para alguém com 120%"). Some a faixa "sem regra no documento", que ficava entre 110% e 120%.',
+    'Mérito: página sem meta no Intraday (ex.: página nova, ainda com meta 0) fica fora da meta (M-03), da sequência de semanas (M-10) e do "bateu a meta na página" do Gerar e das tags. Antes o realizado dela entrava sem meta e inflava a conta. Vale no próximo recálculo do mérito.',
+    ]],
     ['versao' => '1.32.1', 'data' => '2026-11-18', 'titulo' => 'KPI dos SRs: gráfico, rank e ordenação', 'sql' => [], 'itens' => [
     'KPI dos SRs: os quadros do topo viraram um gráfico de colunas com quantos SRs há em cada faixa de score (e o % de quem tem score); o título resume quantos estão abaixo de 75% e quantos em 100% ou mais. Passe o mouse na coluna para ver o comportamento sugerido; "Ver tabela" mostra os números.',
     'Filtros em botões (turno e unidade) acima do gráfico, e botões de ordenação: Rank, Moedas, Meta ponderada, Process, Integrity, Nome e Unidade · turno (clicar de novo inverte). Por padrão, a lista vem pelo rank, do maior score para o menor, com a coluna # do rank; o .xlsx também traz o rank.',

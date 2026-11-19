@@ -218,7 +218,7 @@ Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem bibl
 Simulação do documento "KPI — Kinetic, Process e Integrity" (CEO, nov/2026), em `pages/kpi.php` e `lib/kpi.php`. Só lê o banco (`escQ`), guarda o resultado em arquivo temporário por 3 h (`escCache`; "Recalcular agora" = `recarregar=1`) e não alimenta o Gerar, o mérito, pagamentos nem notificações. Exportações sem número de versão, porque `escDocVersao` grava no banco.
 
 - Semanas de segunda a domingo; pesos 4 (atual, até ontem), 3, 2 e 1; semana sem dado fica fora da média; corte de 01/11.
-- Kinetic: meta semanal (realizado ÷ meta 5CReps rateado pelas mensagens, a mesma conta da M-10), média ponderada → base. Moedas por semana.
+- Kinetic: meta semanal (realizado ÷ meta 5CReps rateado pelas mensagens, a mesma conta da M-10), média ponderada → base em rampa pelos pontos da tabela do documento (`ESC_KPI_KINETIC`, 1.32.2; antes, degraus). Moedas por semana.
 - Process: SLA 5/10/15 do `cap_rep_hora` (o `resp_15min` vem do 5C_Planning_41); esperado 80/90/95% em `ESC_KPI_SLA`; piso 60%.
 - Integrity: dias com ABS no `abs_adh_af` (falta aprovada já sai da escala), −15% cada.
 - Sem dado ainda: Mass por turno, "não seguir o plano", DNR, P&G, multas e loja.

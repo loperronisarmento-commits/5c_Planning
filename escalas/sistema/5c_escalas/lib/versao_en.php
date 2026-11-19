@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.32.2' => ['titulo' => 'KPI: ramp Kinetic and 5C colours; merit without no-goal pages', 'itens' => [
+        'SR KPI: Kinetic is no longer in steps but on a ramp through the points of the document table (50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%, in a straight line between them; minimum 25%). With the steps, scores piled up at the band limits (e.g. almost no one between 50% and 75%); now the distribution is gradual.',
+        'SR KPI: the chart uses the 5C palette: marsala for the low bands, grey for 75–100% and gold for 100% or more, in light and dark themes.',
+        'SR KPI: the "100% – 110%" band was stretched to 119% ("only replaced by someone at 120%"). The "no rule in the document" band between 110% and 120% is gone.',
+        'Merit: a page with no goal in the Intraday (e.g. a new page, still with goal 0) is left out of the goal (M-03), the week streak (M-10) and the "hit the page goal" used by Generate and the tags. Before, its actual came in with no goal and inflated the result. It applies at the next merit recalculation.',
+    ]],
     '1.32.1' => ['titulo' => 'SR KPI: chart, rank and sorting', 'itens' => [
         'SR KPI: the tiles at the top became a column chart with how many SRs are in each score band (and the % of those with a score); the title sums up how many are below 75% and how many at 100% or more. Hover over a column to see the suggested behaviour; "View table" shows the numbers.',
         'Filter buttons (shift and unit) above the chart, and sort buttons: Rank, Coins, Weighted goal, Process, Integrity, Name and Unit · shift (click again to reverse). By default the list comes by rank, from the highest score to the lowest, with the # rank column; the .xlsx also has the rank.',

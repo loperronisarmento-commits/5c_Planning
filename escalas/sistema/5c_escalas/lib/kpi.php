@@ -5,7 +5,8 @@
 // Regras do documento "KPI — Kinetic, Process e Integrity" (Versão para Simulação WFM, nov/2026), à risca:
 // - Últimas 4 semanas (segunda a domingo) com pesos 4-3-2-1: a atual (até ontem) 4, a anterior 3, a
 //   antepenúltima 2 e a de 4 semanas atrás 1. Vale para os três pilares.
-// - Kinetic_base: média ponderada da meta semanal → 25% / 50% / 75% / 90% / 100% / 110% / 120%.
+// - Kinetic_base: média ponderada da meta semanal, em rampa pelos pontos da tabela do documento
+//   (50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%; piso 25%, teto 120%).
 // - Process: 100% − SLA 15 (−4% a cada 10% abaixo do esperado) − SLA 10 (−2%) − SLA 5 (−1%); piso de 60%.
 //   Mass por turno e "não seguir plano" ainda sem dado: não calculados.
 // - Integrity: 100% − 15% por falta (abs_adh_af, ABS); pode zerar. DNR e P&G ainda sem dado: não calculados.
@@ -21,8 +22,10 @@ const ESC_KPI_SLA = [15 => [0.95, 0.04], 10 => [0.90, 0.02], 5 => [0.80, 0.01]];
 const ESC_KPI_SLA_PASSO = 0.10;
 const ESC_KPI_PROCESS_PISO = 0.60;
 const ESC_KPI_FALTA = 0.15;                         // Integrity: −15% por falta
-// Kinetic_base: [até (exclusivo), base]; o limite fica na faixa de cima. 150%–200% inclui o 200%.
-const ESC_KPI_KINETIC = [[0.50, 0.25], [0.75, 0.50], [0.90, 0.75], [1.00, 0.90], [1.50, 1.00]];
+// Kinetic_base em rampa (decisão do usuário em 18/11, opção B): os pontos da tabela do documento
+// [meta, base], ligados em linha reta. Sem os degraus, o score não se amontoa no limite das faixas.
+// Abaixo do primeiro ponto vale 25%; a partir de 200%, 120%.
+const ESC_KPI_KINETIC = [[0.0, 0.25], [0.50, 0.50], [0.75, 0.75], [0.90, 0.90], [1.00, 1.00], [1.50, 1.10], [2.00, 1.20]];
 const ESC_KPI_CACHE_SEG = 3 * 3600;
 
 // As 4 semanas do KPI na data de hoje: [segunda => peso], da atual para trás.
@@ -40,12 +43,18 @@ function escKpiKineticBase(?float $meta): ?float {
     if ($meta === null) {
         return null;
     }
-    foreach (ESC_KPI_KINETIC as [$ate, $base]) {
-        if ($meta < $ate) {
-            return $base;
+    $pts = ESC_KPI_KINETIC;
+    if ($meta <= $pts[0][0]) {
+        return $pts[0][1];
+    }
+    for ($i = 1, $n = count($pts); $i < $n; $i++) {
+        [$x0, $y0] = $pts[$i - 1];
+        [$x1, $y1] = $pts[$i];
+        if ($meta <= $x1) {
+            return $y0 + ($y1 - $y0) * ($meta - $x0) / ($x1 - $x0);
         }
     }
-    return $meta <= 2.0 ? 1.10 : 1.20;
+    return $pts[$n - 1][1];
 }
 
 // Moedas de uma semana pela meta: < 85% = 0; 85% a 100% linear de 1 a 20; acima, 20 × (1 + log2(meta)).
@@ -90,13 +99,12 @@ function escKpiComportamento(?float $score): array {
     if ($s < 1.00) {
         return ['75_100', t('Mantém a posição'), ''];
     }
-    if ($s <= 1.10) {
-        return ['100_110', t('Só sai para alguém com 120%'), 'verde'];
+    // A faixa "100% – 110%" do documento foi esticada até 119% (decisão do usuário em 19/11): o documento
+    // não dizia o que fazer entre 110% e 120%.
+    if ($s < 1.20) {
+        return ['100_120', t('Só sai para alguém com 120%'), 'verde'];
     }
-    if ($s >= 1.20) {
-        return ['120', t('Prioridade nas páginas maiores'), 'verde'];
-    }
-    return ['110_120', t('Sem regra no documento (entre 110% e 120%)'), 'cinza'];
+    return ['120', t('Prioridade nas páginas maiores'), 'verde'];
 }
 
 // Média ponderada de [segunda => valor] com os pesos das semanas que têm valor.

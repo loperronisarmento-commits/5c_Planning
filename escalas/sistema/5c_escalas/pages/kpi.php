@@ -91,7 +91,7 @@ if ($ordem !== 'rank' || $cresc) {
         return ($cresc ? $c : -$c) ?: ($a['rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? PHP_INT_MAX);
     });
 }
-$faixas = ['LT25' => '< 25%', '25_50' => '25% – 50%', '50_75' => '50% – 75%', '75_100' => '75% – 100%', '100_110' => '100% – 110%', '110_120' => '110% – 120%', '120' => '120%', 'SEM' => t('Sem score')];
+$faixas = ['LT25' => '< 25%', '25_50' => '25% – 50%', '50_75' => '50% – 75%', '75_100' => '75% – 100%', '100_120' => '100% – 119%', '120' => '120%', 'SEM' => t('Sem score')];
 $conta = array_fill_keys(array_keys($faixas), 0);
 foreach ($linhas as $l) {
     $conta[$l['comp'][0]]++;
@@ -159,18 +159,21 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
 $versaoArq = static fn(string $arq): string => (string) (@filemtime(__DIR__ . '/../assets/' . $arq) ?: time());
 $comScore = count($linhas) - $conta['SEM'];
 $pctPop = static fn(int $n): string => $comScore > 0 ? pct($n / $comScore, 0) : '—';
-$compDe = ['LT25' => 0.1, '25_50' => 0.3, '50_75' => 0.6, '75_100' => 0.8, '100_110' => 1.05, '110_120' => 1.15, '120' => 1.2];
+$compDe = ['LT25' => 0.1, '25_50' => 0.3, '50_75' => 0.6, '75_100' => 0.8, '100_120' => 1.1, '120' => 1.2];
+// Cores da marca 5C, divergentes: marsala nas faixas baixas (mais forte = pior), cinza neutro em 75–100%
+// e ouro nas faixas de 100% ou mais (mais forte = melhor); "Sem score" num cinza apagado.
+$corFaixa = ['LT25' => 'kf1', '25_50' => 'kf2', '50_75' => 'kf3', '75_100' => 'kf4', '100_120' => 'kf6', '120' => 'kf7', 'SEM' => 'kfsem'];
 $grupos = [];
 $tabela = [];
 foreach ($faixas as $f => $rot) {
     $n = $conta[$f];
     $acao = $f === 'SEM' ? t('sem dado nas 4 semanas') : escKpiComportamento($compDe[$f])[1];
-    $grupos[] = ['rot' => $rot, 'barras' => [['seg' => [['v' => $n, 'cls' => $f === 'SEM' ? 'cinza-2' : 'cinza']],
+    $grupos[] = ['rot' => $rot, 'barras' => [['seg' => [['v' => $n, 'cls' => $corFaixa[$f]]],
         'rotulo' => $n . ($f !== 'SEM' && $n ? ' · ' . $pctPop($n) : ''), 'tip' => $rot . "\n" . tn($n, '{n} SR', '{n} SRs') . ($f !== 'SEM' ? ' (' . $pctPop($n) . ')' : '') . "\n" . $acao]]];
     $tabela[] = [$rot, (string) $n, $f !== 'SEM' ? $pctPop($n) : '—', $acao];
 }
 $abaixo75 = $conta['LT25'] + $conta['25_50'] + $conta['50_75'];
-$de100 = $conta['100_110'] + $conta['110_120'] + $conta['120'];
+$de100 = $conta['100_120'] + $conta['120'];
 $tituloGraf = $comScore > 0
     ? t('{a} dos SRs com score estão abaixo de 75%; {b} estão em 100% ou mais', ['a' => $pctPop($abaixo75), 'b' => $pctPop($de100)])
     : t('Nenhum SR com score neste filtro');
@@ -200,6 +203,21 @@ $tituloGraf = $comScore > 0
   </div>
 <?php endif; ?>
 <link rel="stylesheet" href="<?php echo h(MODULE_URL); ?>/assets/analise.css?v=<?php echo h($versaoArq('analise.css')); ?>">
+<style>
+/* Paleta 5C no gráfico do KPI. Escuro (padrão): tons claros para aparecer no fundo preto. */
+.kpi-distribuicao { --kf1: #f06aa8; --kf2: #c23d80; --kf3: #8a2d5c; --kf4: #6b6170; --kf5: #8a6a33; --kf6: #d6a250; --kf7: #f0c47a; --kfsem: #3a3238; }
+:root[data-tema="claro"] .kpi-distribuicao { --kf1: #650637; --kf2: #970250; --kf3: #c96a96; --kf4: #c9c4cc; --kf5: #e6c993; --kf6: #d6a250; --kf7: #a8782a; --kfsem: #ddd6df; }
+@media (prefers-color-scheme: light) {
+  :root[data-tema="auto"] .kpi-distribuicao, :root:not([data-tema]) .kpi-distribuicao { --kf1: #650637; --kf2: #970250; --kf3: #c96a96; --kf4: #c9c4cc; --kf5: #e6c993; --kf6: #d6a250; --kf7: #a8782a; --kfsem: #ddd6df; }
+}
+@media print {
+  .kpi-distribuicao { --kf1: #650637; --kf2: #970250; --kf3: #c96a96; --kf4: #c9c4cc; --kf5: #e6c993; --kf6: #d6a250; --kf7: #a8782a; --kfsem: #ddd6df; }
+}
+.kpi-distribuicao .graf .seg.kf1 { fill: var(--kf1); } .kpi-distribuicao .graf .seg.kf2 { fill: var(--kf2); }
+.kpi-distribuicao .graf .seg.kf3 { fill: var(--kf3); } .kpi-distribuicao .graf .seg.kf4 { fill: var(--kf4); }
+.kpi-distribuicao .graf .seg.kf5 { fill: var(--kf5); } .kpi-distribuicao .graf .seg.kf6 { fill: var(--kf6); }
+.kpi-distribuicao .graf .seg.kf7 { fill: var(--kf7); } .kpi-distribuicao .graf .seg.kfsem { fill: var(--kfsem); }
+</style>
 <section class="analise kpi-distribuicao">
   <?php echo escGrafFigura($tituloGraf,
       t('SRs por faixa de score ({n} SRs no filtro, {c} com score). O % é sobre quem tem score. Passe o mouse na coluna para ver o comportamento sugerido.', ['n' => count($linhas), 'c' => $comScore]),
@@ -235,10 +253,10 @@ $tituloGraf = $comScore > 0
     </tbody>
   </table></div>
   <ul class="small">
-    <li><strong>Kinetic:</strong> <?php echo h(t('meta ponderada {m} → base {b}.', ['m' => $pc($detalhe['kinetic_meta'], 1), 'b' => $pc($detalhe['kinetic_base'])])); ?></li>
+    <li><strong>Kinetic:</strong> <?php echo h(t('meta ponderada {m} → base {b}.', ['m' => $pc($detalhe['kinetic_meta'], 1), 'b' => $pc($detalhe['kinetic_base'], 1)])); ?></li>
     <li><strong>Process:</strong> <?php echo h(t('média ponderada das semanas = {p}. Cada semana: 100% − descontos de SLA, com piso de 60%.', ['p' => $pc($detalhe['process'], 1)])); ?></li>
     <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta, até 0%.', ['i' => $pc($detalhe['integrity'], 1)])); ?></li>
-    <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base']) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score'], 1)); ?> · <?php echo h(escKpiComportamento($detalhe['score'])[1]); ?></li>
+    <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base'], 1) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score'], 1)); ?> · <?php echo h(escKpiComportamento($detalhe['score'])[1]); ?></li>
     <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('{n} nas semanas acima (soma).', ['n' => $detalhe['moedas'] !== null ? num($detalhe['moedas'], 1) : '—'])); ?></li>
   </ul>
   <p class="muted small"><?php echo h(t('A média ponderada usa os pesos só das semanas com dado (soma dos pesos × valor ÷ soma dos pesos). Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?> <a href="<?php echo h(link_tela('kpi', $filtros)); ?>"><?php echo h(t('Fechar')); ?></a></p>
@@ -251,7 +269,7 @@ $tituloGraf = $comScore > 0
     <summary><strong><?php echo h(t('Como o KPI é calculado')); ?></strong></summary>
     <p><?php echo h(t('Últimas 4 semanas (segunda a domingo), com pesos 4 (semana atual, até ontem), 3, 2 e 1, nos três pilares. Semana sem dado fica fora da média.')); ?> <?php echo h(t('Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?></p>
     <ul class="small">
-      <li><strong>Kinetic:</strong> <?php echo h(t('meta semanal (realizado ÷ meta 5CReps, rateado pelas mensagens do SR). A média ponderada vira a base: até 50% = 25%; 50–75% = 50%; 75–90% = 75%; 90–100% = 90%; 100–150% = 100%; 150–200% = 110%; acima de 200% = 120%.')); ?></li>
+      <li><strong>Kinetic:</strong> <?php echo h(t('meta semanal (realizado ÷ meta 5CReps, rateado pelas mensagens do SR). A média ponderada vira a base em rampa, pelos pontos da tabela do documento: 50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110% e 200% → 120%, em linha reta entre eles (ex.: 62% → 62%; 125% → 105%). Mínimo de 25% e máximo de 120%.')); ?></li>
       <li><strong>Process:</strong> <?php echo h(t('100% menos: SLA 15 −4%, SLA 10 −2% e SLA 5 −1% a cada 10% completos abaixo do esperado (95%, 90% e 80%). Nunca abaixo de 60%. Mass por turno e "não seguir o plano" ainda não são calculados.')); ?></li>
       <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida). Pode chegar a 0%. DNR e P&G ainda não são calculados.')); ?></li>
       <li><strong>Score:</strong> <?php echo h(t('Kinetic × Process × Integrity, de 0% a 120%.')); ?></li>
@@ -284,7 +302,7 @@ $tituloGraf = $comScore > 0
         <td class="num"><?php echo (int) $l['buffer']; ?></td>
         <td class="num"><?php echo (int) $l['overlap']; ?></td>
         <td class="num"><?php echo $pc($k['kinetic_meta'] ?? null, 1); ?></td>
-        <td class="num"><?php echo $pc($k['kinetic_base'] ?? null); ?></td>
+        <td class="num"><?php echo $pc($k['kinetic_base'] ?? null, 1); ?></td>
         <td class="num"><?php echo $pc($k['process'] ?? null, 1); ?></td>
         <td class="num <?php echo isset($k['integrity']) && $k['integrity'] < 1 ? 'laranja' : ''; ?>"><?php echo $pc($k['integrity'] ?? null, 1); ?></td>
         <td class="num"><strong><?php echo $pc($l['score'], 1); ?></strong></td>
@@ -355,9 +373,13 @@ $tituloGraf = $comScore > 0
   if (!f) { return; }
   var sla = <?php echo json_encode(ESC_KPI_SLA); ?>, passo = <?php echo json_encode(ESC_KPI_SLA_PASSO); ?>, piso = <?php echo json_encode(ESC_KPI_PROCESS_PISO); ?>, falta = <?php echo json_encode(ESC_KPI_FALTA); ?>;
   var faixas = <?php echo json_encode(ESC_KPI_KINETIC); ?>;
-  var rot = <?php echo json_encode(array_map(static fn($x) => escKpiComportamento($x)[1], ['lt25' => 0.1, 'a' => 0.3, 'b' => 0.6, 'c' => 0.8, 'd' => 1.05, 'e' => 1.15, 'f' => 1.2])); ?>;
+  var rot = <?php echo json_encode(array_map(static fn($x) => escKpiComportamento($x)[1], ['lt25' => 0.1, 'a' => 0.3, 'b' => 0.6, 'c' => 0.8, 'd' => 1.1, 'f' => 1.2])); ?>;
   var pc = function (x) { return (Math.round(x * 1000) / 10).toLocaleString(document.documentElement.lang || 'pt-BR') + '%'; };
-  function base(m) { for (var i = 0; i < faixas.length; i++) { if (m < faixas[i][0]) { return faixas[i][1]; } } return m <= 2 ? 1.1 : 1.2; }
+  function base(m) {
+    if (m <= faixas[0][0]) { return faixas[0][1]; }
+    for (var i = 1; i < faixas.length; i++) { if (m <= faixas[i][0]) { var a = faixas[i - 1], b = faixas[i]; return a[1] + (b[1] - a[1]) * (m - a[0]) / (b[0] - a[0]); } }
+    return faixas[faixas.length - 1][1];
+  }
   function moedas(m) { return m < 0.85 ? 0 : (m <= 1 ? 1 + 19 * (m - 0.85) / 0.15 : 20 * (1 + Math.log(m) / Math.LN2)); }
   function calc() {
     var v = function (n) { var x = parseFloat(String(f.elements[n].value).replace(',', '.')); return isNaN(x) ? 0 : x; };
@@ -370,7 +392,7 @@ $tituloGraf = $comScore > 0
     f.querySelector('[data-sim="i"]').textContent = pc(i);
     f.querySelector('[data-sim="s"]').textContent = pc(s);
     f.querySelector('[data-sim="m"]').textContent = (Math.round(moedas(m) * 10) / 10).toLocaleString(document.documentElement.lang || 'pt-BR');
-    f.querySelector('[data-sim="c"]').textContent = sr < 0.25 ? rot.lt25 : sr < 0.5 ? rot.a : sr < 0.75 ? rot.b : sr < 1 ? rot.c : sr <= 1.1 ? rot.d : sr >= 1.2 ? rot.f : rot.e;
+    f.querySelector('[data-sim="c"]').textContent = sr < 0.25 ? rot.lt25 : sr < 0.5 ? rot.a : sr < 0.75 ? rot.b : sr < 1 ? rot.c : sr < 1.2 ? rot.d : rot.f;
   }
   f.addEventListener('input', calc);
   calc();
