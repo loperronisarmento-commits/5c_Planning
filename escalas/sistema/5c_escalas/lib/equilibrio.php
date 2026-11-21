@@ -306,6 +306,29 @@ function escEqDados(string $hoje, ?string $dia = null): array {
     foreach (escQ('SELECT pagina, carteira, modelo, vigente_desde, vigente_ate FROM `5c_planning`.`fc_pagina_carteira` ORDER BY pagina, vigente_desde') as $l) {
         $linhas[$l['pagina']][] = $l;
     }
+    // Carteiras inativas (a Vencel): só informativo na tela, com as páginas e o faturamento de 30 dias
+    // delas por turno; não entram no equilíbrio, nas trocas nem na divisão dos OS.
+    $informativo = [];
+    foreach (escQ('SELECT carteira, unidade, nome FROM `5c_planning`.`fc_carteira` WHERE ativo = 0') as $c) {
+        $informativo[(int) $c['unidade']] ??= ['nome' => (string) $c['nome'], 'carteiras' => [], 'paginas' => [], 'fat' => ['A' => 0.0, 'C' => 0.0, 'D' => 0.0]];
+        $informativo[(int) $c['unidade']]['carteiras'][] = $c['carteira'];
+    }
+    foreach ($informativo as $u => &$inf) {
+        foreach ($linhas as $nome => $ls) {
+            foreach ($ls as $l) {
+                if (in_array($l['carteira'], $inf['carteiras'], true) && substr((string) $l['vigente_desde'], 0, 10) <= $dia
+                    && ($l['vigente_ate'] === null || substr((string) $l['vigente_ate'], 0, 10) > $dia)) {
+                    $inf['paginas'][] = (string) $nome;
+                    foreach ($fatPag[escEqChave((string) $nome)] ?? [] as $t => $v) {
+                        $inf['fat'][$t] = ($inf['fat'][$t] ?? 0) + (float) $v;
+                    }
+                    break;
+                }
+            }
+        }
+        sort($inf['paginas']);
+    }
+    unset($inf);
     $maturacao = (int) (escPolParam()['pol_prazo_acomp'] ?? 28);
     $paginas = [];
     foreach ($linhas as $nome => $ls) {
@@ -427,7 +450,8 @@ function escEqDados(string $hoje, ?string $dia = null): array {
     // Postos com páginas juntadas pelo Capacity (fc_postos.forcado, regra dos 32k/16k): a divisão dos
     // OS move o posto inteiro, sem separar as páginas. Na troca de unidade só a modelo vai junta; as
     // juntadas se encadeiam pela unidade toda e o Capacity refaz as combinações no recálculo da troca.
-    return ['dia' => $dia, 'paginas' => $paginas, 'srs' => $srs, 'pessoas' => $pessoas, 'fat' => $fatUT, 'postos' => $postos, 'nucleo_id' => $nucleoId];
+    return ['dia' => $dia, 'paginas' => $paginas, 'srs' => $srs, 'pessoas' => $pessoas, 'fat' => $fatUT, 'postos' => $postos, 'nucleo_id' => $nucleoId,
+        'informativo' => $informativo];
 }
 
 // Conferência com o Capacity (vw_fc_19_faturamento_unidades, script 23 do Capacity): faturamento

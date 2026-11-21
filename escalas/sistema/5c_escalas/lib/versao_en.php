@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.32.4' => ['titulo' => 'Unit balance shows Vencel for information only', 'itens' => [
+        'Unit balance: Vencel (U4, outsourced) appears in a card and in its own rows by shift, with its pages and 30-day revenue, marked "for information: outside the balance". It is not part of the unit average or deviation, the suggested swaps or the OS split. The 30 days include the days when the pages were still at 5C.',
+    ]],
     '1.32.3' => ['titulo' => 'Generate respects "Ignore" in the Entry funnel', 'itens' => [
         'Generate schedule: a page active on the site that is marked "Ignore" in the Entry funnel no longer enters Capacity by itself before generating. Before, MYM Nicole came back on every Generate. To put the page on the schedule, use "Put on schedule" in the funnel.',
     ]],

@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.32.4', 'data' => '2026-11-21', 'titulo' => 'Equilíbrio mostra a Vencel só como informativo', 'sql' => [], 'itens' => [
+    'Equilíbrio das unidades: a Vencel (U4, terceirizada) aparece num cartão e em linhas próprias por turno, com as páginas dela e o faturamento de 30 dias, marcadas "informativo: fora do equilíbrio". Ela não entra na média nem no desvio das unidades, nas trocas sugeridas nem na divisão dos OS. Os 30 dias incluem os dias em que as páginas ainda estavam na 5C.',
+    ]],
     ['versao' => '1.32.3', 'data' => '2026-11-21', 'titulo' => 'Gerar respeita o "Ignorar" do Funil de entrada', 'sql' => [], 'itens' => [
     'Gerar escala: a página ativa no site que está marcada como "Ignorar" no Funil de entrada não entra mais sozinha no Capacity antes de gerar. Antes, a MYM Nicole voltava a cada Gerar. Para pôr a página na escala, use "Pôr na escala" no Funil.',
     ]],

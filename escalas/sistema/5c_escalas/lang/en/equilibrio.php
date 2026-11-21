@@ -76,4 +76,6 @@ return [
     'Quem é fixado numa página vai sempre para a unidade dona dela, no mesmo turno e nível, com uma compensação no sentido contrário. Fora dela a fixação não vale: o Gerar só escolhe entre os SRs da unidade e do turno.' => 'Whoever is fixed on a page always moves to the unit that owns it, in the same shift and level, with a compensating move the other way. Outside it the fixing does not apply: Generate only picks among the SRs of the unit and shift.',
     'está na U{u} {turno}; a página é da U{p}' => 'is in U{u} {turno}; the page belongs to U{p}',
     'Todas as equipes fixas estão na unidade da página.' => 'Every fixed team is in the page unit.',
+    'informativo: fora do equilíbrio' => 'for information: outside the balance',
+    'U{u} {nome}: {paginas}. Só para acompanhar: não entra na média nem no desvio das unidades, nas trocas sugeridas nem na divisão dos OS. Os 30 dias incluem os dias em que as páginas ainda estavam na 5C.' => 'U{u} {nome}: {paginas}. For tracking only: it is not part of the unit average or deviation, the suggested swaps or the OS split. The 30 days include the days when the pages were still at 5C.',
 ];

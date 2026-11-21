@@ -135,6 +135,9 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
   <?php foreach ($unidHoje as $u => $x): $y = $unidDepois[$u] ?? null; ?>
   <div class="kpi"><span class="muted">U<?php echo (int) $u; ?> · <?php echo h(t('30 dias')); ?></span><strong class="<?php echo $classeDesvio($x['desvio']); ?>">US$ <?php echo num($x['total'] / 1e6, 2); ?> mi <span class="small"><?php echo h($fmtDesvio($x['desvio'])); ?></span></strong><span class="muted small"><?php echo h(t('com as trocas: {v} ({d})', ['v' => 'US$ ' . num(($y['total'] ?? 0) / 1e6, 2) . ' mi', 'd' => $fmtDesvio($y['desvio'] ?? null)])); ?></span></div>
   <?php endforeach; ?>
+  <?php foreach ($eq['informativo'] ?? [] as $u => $inf): ?>
+  <div class="kpi" title="<?php echo h(implode(', ', $inf['paginas'])); ?>"><span class="muted">U<?php echo (int) $u; ?> <?php echo h($inf['nome']); ?> · <?php echo h(t('30 dias')); ?></span><strong class="muted">US$ <?php echo num(array_sum($inf['fat']) / 1e6, 2); ?> mi</strong><span class="muted small"><?php echo h(t('informativo: fora do equilíbrio')); ?></span></div>
+  <?php endforeach; ?>
   <div class="kpi"><span class="muted"><?php echo h(t('Trocas sugeridas')); ?></span><strong><?php echo count($sugestoes); ?></strong><span class="muted small"><?php echo h(tn($maduras, '{n} já pode ser aplicada', '{n} já podem ser aplicadas')); ?></span></div>
 </section>
 
@@ -158,9 +161,20 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
       </tr>
     <?php endforeach; endforeach; ?>
     <?php if (!$pesoTotal): ?><tr><td colspan="8" class="muted"><?php echo h(t('Sem faturamento nem SRs na estrutura nova para o dia.')); ?></td></tr><?php endif; ?>
+    <?php foreach ($eq['informativo'] ?? [] as $u => $inf): foreach (['A', 'C', 'D'] as $t): ?>
+      <tr class="muted">
+        <td>U<?php echo (int) $u; ?> <?php echo chipTurno($t); ?></td>
+        <td class="small"><?php echo h($inf['nome']); ?></td>
+        <td class="num">US$ <?php echo num($inf['fat'][$t] ?? 0, 0); ?></td>
+        <td colspan="5" class="small"><?php echo h(t('informativo: fora do equilíbrio')); ?></td>
+      </tr>
+    <?php endforeach; endforeach; ?>
     </tbody>
   </table>
   </div>
+  <?php foreach ($eq['informativo'] ?? [] as $u => $inf): ?>
+  <p class="muted small"><?php echo h(t('U{u} {nome}: {paginas}. Só para acompanhar: não entra na média nem no desvio das unidades, nas trocas sugeridas nem na divisão dos OS. Os 30 dias incluem os dias em que as páginas ainda estavam na 5C.', ['u' => $u, 'nome' => $inf['nome'], 'paginas' => $inf['paginas'] ? implode(', ', $inf['paginas']) : '—'])); ?></p>
+  <?php endforeach; ?>
   <p class="muted small"><?php echo h(t('Faturamento: complete + pending − reverse, todas as classificações, pelo horário da venda (A 05h–13h, C 13h–21h, D 21h–05h). Desvio = faturamento do coordenador ÷ média do turno − 1 (por SR: o mesmo, dividido pelos SRs). Até ±5% está equilibrado.')); ?></p>
   <?php $capU = escEqCapacityUnidades(); if ($capU): ?>
   <p class="small"><strong><?php echo h(t('Conferência com o Capacity (versão {v}, bruto de 30 dias por unidade):', ['v' => reset($capU)['versao']])); ?></strong>
