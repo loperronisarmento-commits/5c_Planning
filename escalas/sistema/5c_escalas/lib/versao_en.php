@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.32.3' => ['titulo' => 'Generate respects "Ignore" in the Entry funnel', 'itens' => [
+        'Generate schedule: a page active on the site that is marked "Ignore" in the Entry funnel no longer enters Capacity by itself before generating. Before, MYM Nicole came back on every Generate. To put the page on the schedule, use "Put on schedule" in the funnel.',
+    ]],
     '1.32.2' => ['titulo' => 'KPI: ramp Kinetic and 5C colours; merit without no-goal pages', 'itens' => [
         'SR KPI: Kinetic is no longer in steps but on a ramp through the points of the document table (50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%, in a straight line between them; minimum 25%). With the steps, scores piled up at the band limits (e.g. almost no one between 50% and 75%); now the distribution is gradual.',
         'SR KPI: the chart uses the 5C palette: marsala for the low bands, grey for 75–100% and gold for 100% or more, in light and dark themes.',

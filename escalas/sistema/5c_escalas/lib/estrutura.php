@@ -172,6 +172,19 @@ function escEstruturaPaginasFora(string $hoje): array {
     } catch (Throwable $e) {
         // tabela ainda não criada
     }
+    // Página marcada como "Ignorar" no Funil de entrada (não é página de escala) também não entra sozinha,
+    // a não ser que depois tenha uma entrada ("Pôr na escala"). Ex.: MYM Nicole voltava a cada Gerar.
+    try {
+        foreach (escQ('SELECT pagina, decisao FROM ' . escT('esc_pagina_entrada_checagem') . ' ORDER BY decidido_em, id') as $d) {
+            if ($d['decisao'] === 'IGNORAR') {
+                $saiu[$semEspaco($d['pagina'])] = 'ignorar';
+            } else {
+                unset($saiu[$semEspaco($d['pagina'])]);
+            }
+        }
+    } catch (Throwable $e) {
+        // tabela ainda não criada (ES_138)
+    }
     $lista = array_values(array_filter($lista, static fn($l) => !isset($comCarteira[$semEspaco($l['pagina'])]) && !isset($saiu[$semEspaco($l['pagina'])])
         && ((int) $l['escala'] > 0 || (float) $l['venda'] > 0
             || ($l['imported_at'] !== null && substr((string) $l['imported_at'], 0, 10) >= $novaDe))));

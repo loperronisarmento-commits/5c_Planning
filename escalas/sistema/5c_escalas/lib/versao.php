@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.32.3', 'data' => '2026-11-21', 'titulo' => 'Gerar respeita o "Ignorar" do Funil de entrada', 'sql' => [], 'itens' => [
+    'Gerar escala: a página ativa no site que está marcada como "Ignorar" no Funil de entrada não entra mais sozinha no Capacity antes de gerar. Antes, a MYM Nicole voltava a cada Gerar. Para pôr a página na escala, use "Pôr na escala" no Funil.',
+    ]],
     ['versao' => '1.32.2', 'data' => '2026-11-18', 'titulo' => 'KPI: Kinetic em rampa e cores da 5C; mérito sem página sem meta', 'sql' => [], 'itens' => [
     'KPI dos SRs: a Kinetic deixou de ser em degraus e passou a ser em rampa pelos pontos da tabela do documento (50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%, em linha reta entre eles; mínimo 25%). Com os degraus, os scores se amontoavam no limite das faixas (ex.: quase ninguém entre 50% e 75%); agora a distribuição fica gradual.',
     'KPI dos SRs: o gráfico usa a paleta da 5C: marsala nas faixas baixas, cinza em 75–100% e ouro em 100% ou mais, nos temas claro e escuro.',
