@@ -220,8 +220,9 @@ Simulação do documento "KPI — Kinetic, Process e Integrity" (CEO, nov/2026),
 - Semanas de segunda a domingo; pesos 4 (atual, até ontem), 3, 2 e 1; semana sem dado fica fora da média; corte de 01/11.
 - Kinetic: meta semanal (realizado ÷ meta 5CReps rateado pelas mensagens, a mesma conta da M-10), média ponderada → base em rampa pelos pontos da tabela do documento (`ESC_KPI_KINETIC`, 1.32.2; antes, degraus). Moedas por semana.
 - Process: SLA 5/10/15 do `cap_rep_hora` (o `resp_15min` vem do 5C_Planning_41); esperado 80/90/95% em `ESC_KPI_SLA`; piso 60%.
-- Integrity: dias com ABS no `abs_adh_af` (falta aprovada já sai da escala), −15% cada.
-- Sem dado ainda: Mass por turno, "não seguir o plano", DNR, P&G, multas e loja.
+- Integrity: dias com ABS no `abs_adh_af` (falta aprovada já sai da escala), −15% cada. Quebra de P&G (23/11): avaliação do `5c_quality_db.extracao_base_resumida` com a seção "Model Best Practices" Não Conforme, ligada ao SR pelo nome no headcount; −10% com nota 80 até −30% com nota 0 (`ESC_KPI_PG`), na semana da data do contato.
+- Sem dado ainda: Mass por turno, "não seguir o plano", DNR, multas e loja.
+- Ajustes de 23/11 (CEO e usuário): só semanas fechadas; Kinetic = Σ(peso × realizado) ÷ Σ(peso × meta), moedas seguem por semana e sem teto; desconto de SLA proporcional; novato (< 2 semanas com meta) com 75% provisório; ação de correção só para os 20% de menor score (`escKpiPareto`).
 - 1.32.1: gráfico de SRs por faixa de score (`escGrafColunas`), filtros em botões, ordenação `o`/`d` (padrão: rank pelo score, do maior para o menor) e coluna #. Página e turno sem meta no Intraday ficam fora da meta semanal.
 
 ## Acesso restrito (1.21.0)

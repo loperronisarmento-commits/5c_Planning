@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.33.0' => ['titulo' => 'KPI: CEO adjustments, Pareto, new hires and P&G breaches', 'itens' => [
+        'SR KPI: only the last 4 closed weeks (weights 4-3-2-1); the current week does not count. The weighted goal becomes sum of weight × actual ÷ sum of weight × goal, so a week with a small goal weighs less. Coins stay weekly and uncapped.',
+        'SR KPI: the SLA deduction is now pro rata (e.g. SLA 15 at 90% with 95% expected = −2%), instead of only for every full 10%.',
+        'SR KPI: a new hire (fewer than 2 closed weeks with a goal) gets a provisional 75%, in its own chart column. Corrective actions (fewer shifts, moving, replacing) apply only to the 20% with the lowest score (Pareto); the others in the bands below 75% keep their position.',
+        'SR KPI: Integrity deducts P&G breaches from quality evaluations ("Model Best Practices" non-compliant): −10% at score 80, in a straight line to −30% at score 0. Each SR\'s detail shows the scores and the deduction.',
+    ]],
     '1.32.4' => ['titulo' => 'Unit balance shows Vencel for information only', 'itens' => [
         'Unit balance: Vencel (U4, outsourced) appears in a card and in its own rows by shift, with its pages and 30-day revenue, marked "for information: outside the balance". It is not part of the unit average or deviation, the suggested swaps or the OS split. The 30 days include the days when the pages were still at 5C.',
     ]],

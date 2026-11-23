@@ -3,34 +3,46 @@
 // ARQUIVO: 5c_escalas/lib/kpi.php
 // KPI (Kinetic, Process & Integrity) dos SRs: SIMULAÇÃO, só visualização (pages/kpi.php).
 // Regras do documento "KPI — Kinetic, Process e Integrity" (Versão para Simulação WFM, nov/2026), à risca:
-// - Últimas 4 semanas (segunda a domingo) com pesos 4-3-2-1: a atual (até ontem) 4, a anterior 3, a
-//   antepenúltima 2 e a de 4 semanas atrás 1. Vale para os três pilares.
-// - Kinetic_base: média ponderada da meta semanal, em rampa pelos pontos da tabela do documento
-//   (50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%; piso 25%, teto 120%).
-// - Process: 100% − SLA 15 (−4% a cada 10% abaixo do esperado) − SLA 10 (−2%) − SLA 5 (−1%); piso de 60%.
+// - Últimas 4 semanas FECHADAS (segunda a domingo; a em andamento fica de fora, ajuste de 23/11) com
+//   pesos 4-3-2-1: a última fechada 4, a anterior 3, a antepenúltima 2 e a de 4 semanas atrás 1.
+// - Kinetic_base: meta ponderada = Σ(peso × realizado) ÷ Σ(peso × meta) das semanas (ajuste de 23/11: semana
+//   com meta pequena pesa menos), em rampa pelos pontos da tabela do documento (50% → 50%, 75% → 75%,
+//   90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%; piso 25%, teto 120%). As moedas continuam por semana.
+// - Process: 100% − SLA 15 (−4% a cada 10% abaixo do esperado) − SLA 10 (−2%) − SLA 5 (−1%), proporcional
+//   ao quanto falta (ajuste de 23/11: −0,4 ponto por ponto abaixo no SLA 15); piso de 60%.
 //   Mass por turno e "não seguir plano" ainda sem dado: não calculados.
-// - Integrity: 100% − 15% por falta (abs_adh_af, ABS); pode zerar. DNR e P&G ainda sem dado: não calculados.
-// - Score = Kinetic_base × Process × Integrity (0% a 120%). Moedas = só a meta semanal.
+// - Integrity: 100% − 15% por falta (abs_adh_af, ABS) − quebra de P&G (avaliação de qualidade com a seção
+//   "Model Best Practices" Não Conforme: −10% com nota 80, gradual até −30% com nota 0); pode zerar.
+//   DNR ainda sem dado: não calculado.
+// - Score = Kinetic_base × Process × Integrity (0% a 120%). Moedas = só a meta semanal, sem teto.
+// - Novato (menos de 2 semanas fechadas com meta): score provisório de 75% (ajuste de 23/11).
 // Isolamento: só lê o banco (escQ tem trava de leitura), guarda o resultado em arquivo temporário (escCache)
 // e não alimenta o Gerar, o mérito, pagamentos nem notificações. Não usa nem altera o lib/merito.php
 // além de funções só de leitura.
 // ===============================================
 
-const ESC_KPI_PESOS = [4, 3, 2, 1];                 // semana atual, anterior, antepenúltima, 4 semanas atrás
+const ESC_KPI_PESOS = [4, 3, 2, 1];                 // última semana fechada, anterior, antepenúltima, 4 semanas atrás
+const ESC_KPI_NOVATO_SEMANAS = 2;                   // menos que isso de semanas com meta: score provisório
+const ESC_KPI_NOVATO_SCORE = 0.75;
+const ESC_KPI_PARETO = 0.20;                        // ação de correção só para os 20% de menor score (pages/kpi.php)
 // SLA: minutos => [esperado, desconto a cada 10% abaixo]. Esperado escalonado decidido pelo usuário em 18/11.
 const ESC_KPI_SLA = [15 => [0.95, 0.04], 10 => [0.90, 0.02], 5 => [0.80, 0.01]];
 const ESC_KPI_SLA_PASSO = 0.10;
 const ESC_KPI_PROCESS_PISO = 0.60;
 const ESC_KPI_FALTA = 0.15;                         // Integrity: −15% por falta
+// Integrity: quebra de P&G pela avaliação de qualidade (5c_quality_db, seção "Model Best Practices" Não Conforme).
+// A nota é feita de 5 módulos de 20%: com 80 só falhou o P&G (−10%); cai em linha reta até −30% com nota 0
+// (decisão do usuário em 23/11).
+const ESC_KPI_PG = [80.0, 0.10, 0.30];               // [nota de referência, desconto nela, desconto com nota 0]
 // Kinetic_base em rampa (decisão do usuário em 18/11, opção B): os pontos da tabela do documento
 // [meta, base], ligados em linha reta. Sem os degraus, o score não se amontoa no limite das faixas.
 // Abaixo do primeiro ponto vale 25%; a partir de 200%, 120%.
 const ESC_KPI_KINETIC = [[0.0, 0.25], [0.50, 0.50], [0.75, 0.75], [0.90, 0.90], [1.00, 1.00], [1.50, 1.10], [2.00, 1.20]];
 const ESC_KPI_CACHE_SEG = 3 * 3600;
 
-// As 4 semanas do KPI na data de hoje: [segunda => peso], da atual para trás.
+// As 4 semanas fechadas do KPI na data de hoje: [segunda => peso], da última fechada para trás.
 function escKpiSemanas(?string $hoje = null): array {
-    $seg = segundaDaSemana($hoje ?? date('Y-m-d'));
+    $seg = escMaisDias(segundaDaSemana($hoje ?? date('Y-m-d')), -7);
     $out = [];
     foreach (ESC_KPI_PESOS as $i => $peso) {
         $out[escMaisDias($seg, -7 * $i)] = $peso;
@@ -71,14 +83,20 @@ function escKpiMoedas(?float $meta): ?float {
     return 20 * (1 + log($meta, 2));
 }
 
-// Desconto de um SLA (fração): a cada 10% COMPLETOS abaixo do esperado. Sem dado, null.
+// Desconto de um SLA (fração), proporcional ao quanto falta para o esperado: o desconto do documento
+// "a cada 10%" vale por ponto (ex.: SLA 15 em 90% com esperado de 95% = 5 pontos × 0,4 = −2%). Sem dado, null.
 function escKpiDescontoSla(?float $sla, int $minutos): ?float {
     if ($sla === null) {
         return null;
     }
     [$esperado, $passo] = ESC_KPI_SLA[$minutos];
-    $faixas = $sla < $esperado ? (int) floor(round(($esperado - $sla) / ESC_KPI_SLA_PASSO, 6)) : 0;
-    return $faixas * $passo;
+    return max(0.0, $esperado - $sla) / ESC_KPI_SLA_PASSO * $passo;
+}
+
+// Desconto de uma quebra de P&G pela nota da avaliação: 80 (ou mais) → −10%; 0 → −30%, em linha reta.
+function escKpiDescontoPg(float $nota): float {
+    [$ref, $min, $max] = ESC_KPI_PG;
+    return $min + ($max - $min) * (max(0.0, $ref - min($ref, $nota)) / $ref);
 }
 
 // Comportamento sugerido pelo Score (seção 5 do documento; só um rótulo, não pesa em nada).
@@ -127,7 +145,7 @@ function escKpiCarregar(array $reps): array {
     if (!$reps) {
         return [];
     }
-    $chave = 'kpi_v1_' . date('Y-m-d') . '_' . md5(implode(',', $reps));
+    $chave = 'kpi_v3_' . date('Y-m-d') . '_' . md5(implode(',', $reps));
     return escCache($chave, ESC_KPI_CACHE_SEG, static fn(): array => ['calculado_em' => date('Y-m-d H:i:s'), 'srs' => escKpiCalcular($reps)]);
 }
 
@@ -137,9 +155,8 @@ function escKpiCarregar(array $reps): array {
 //   kinetic_meta (média ponderada), kinetic_base, process, integrity, score, moedas (soma das semanas).
 function escKpiCalcular(array $reps): array {
     $semanas = escKpiSemanas();
-    $ontem = date('Y-m-d', strtotime('-1 day'));
     $de = escCorteDados(min(array_keys($semanas)));
-    $ate = $ontem;
+    $ate = escMaisDias(max(array_keys($semanas)), 6); // domingo da última semana fechada
     $vazio = [];
     foreach ($reps as $rep) {
         $vazio[$rep] = [];
@@ -226,6 +243,23 @@ function escKpiCalcular(array $reps): array {
         }
     }
 
+    // Integrity: quebras de P&G das avaliações de qualidade, pela data do contato avaliado. O avaliado vem pelo
+    // nome; liga ao código pelo headcount (só os SRs pedidos).
+    try {
+        foreach (escQ("SELECT UPPER(h.code) AS rep, DATE(e.data_contato) AS dia, e.codigo_avaliacao AS aval, MIN(e.nota) AS nota
+                         FROM `5c_quality_db`.`extracao_base_resumida` e
+                         JOIN `5c_headcount`.`headcount` h ON LOWER(TRIM(h.name)) COLLATE utf8mb4_unicode_ci = LOWER(TRIM(e.avaliado)) COLLATE utf8mb4_unicode_ci
+                        WHERE e.versao_atual = 1 AND e.secao = 'Model Best Practices' AND e.tipo_resposta = 'Não Conforme'
+                          AND e.data_contato >= ? AND e.data_contato < ? AND h.code IN (" . escIn($reps) . ')
+                        GROUP BY UPPER(h.code), DATE(e.data_contato), e.codigo_avaliacao',
+            array_merge([$de, escMaisDias($ate, 1)], $reps)) as $r) {
+            $sg = $semanaDe(substr((string) $r['dia'], 0, 10));
+            $sem[$r['rep']][$sg]['pg'][] = (float) $r['nota'];
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'KPI: avaliações de qualidade indisponíveis (5c_quality_db)', ['erro' => $e->getMessage()]);
+    }
+
     foreach ($reps as $rep) {
         $vazio[$rep] = $sem[$rep] ?? [];
     }
@@ -237,7 +271,6 @@ function escKpiFechar(array $porRep, array $semanas): array {
     $out = [];
     foreach ($porRep as $rep => $porSemana) {
         $linhas = [];
-        $atg = [];
         $proc = [];
         $integ = [];
         $moedas = null;
@@ -257,27 +290,56 @@ function escKpiFechar(array $porRep, array $semanas): array {
             // Sem respostas na semana não há Process a calcular (Mass e plano ainda não têm dado).
             $p = $resp > 0 ? max(ESC_KPI_PROCESS_PISO, 1 - ($d15 ?? 0) - ($d10 ?? 0) - ($d5 ?? 0)) : null;
             $faltas = (int) ($s['faltas'] ?? 0);
-            $i = max(0.0, 1 - ESC_KPI_FALTA * $faltas);
+            $pg = $s['pg'] ?? [];
+            $descPg = array_sum(array_map('escKpiDescontoPg', $pg));
+            $i = max(0.0, 1 - ESC_KPI_FALTA * $faltas - $descPg);
             $m = escKpiMoedas($at);
             $linhas[$sg] = ['peso' => $peso, 'meta' => $s['meta'] ?? null, 'real' => $s['real'] ?? null, 'atingimento' => $at, 'moedas' => $m,
                 'respostas' => $resp, 'sla5' => $sla5, 'sla10' => $sla10, 'sla15' => $sla15, 'desc5' => $d5, 'desc10' => $d10, 'desc15' => $d15,
-                'process' => $p, 'faltas' => $faltas, 'integrity' => $i];
-            $atg[$sg] = $at;
+                'process' => $p, 'faltas' => $faltas, 'pg' => $pg, 'desc_pg' => $descPg, 'integrity' => $i];
             $proc[$sg] = $p;
             $integ[$sg] = $i;
             if ($m !== null) {
                 $moedas = ($moedas ?? 0) + $m;
             }
         }
-        $kMeta = escKpiMediaPonderada($atg, $semanas);
+        // Meta ponderada pelo tamanho da meta: Σ(peso × realizado) ÷ Σ(peso × meta).
+        $somaReal = 0.0;
+        $somaMeta = 0.0;
+        $semMeta = 0;
+        foreach ($linhas as $w) {
+            if (!empty($w['meta'])) {
+                $somaReal += $w['peso'] * (float) $w['real'];
+                $somaMeta += $w['peso'] * (float) $w['meta'];
+                $semMeta++;
+            }
+        }
+        $kMeta = $somaMeta > 0 ? $somaReal / $somaMeta : null;
         $kBase = escKpiKineticBase($kMeta);
         $pMed = escKpiMediaPonderada($proc, $semanas);
         $iMed = escKpiMediaPonderada($integ, $semanas);
-        $score = $kBase !== null && $pMed !== null && $iMed !== null ? $kBase * $pMed * $iMed : null;
+        $calc = $kBase !== null && $pMed !== null && $iMed !== null ? $kBase * $pMed * $iMed : null;
+        // Novato (ou sem histórico): menos de ESC_KPI_NOVATO_SEMANAS semanas com meta → score provisório.
+        $provisorio = $semMeta < ESC_KPI_NOVATO_SEMANAS;
         $out[$rep] = ['semanas' => $linhas, 'kinetic_meta' => $kMeta, 'kinetic_base' => $kBase, 'process' => $pMed,
-            'integrity' => $iMed, 'score' => $score, 'moedas' => $moedas];
+            'integrity' => $iMed, 'score' => $provisorio ? ESC_KPI_NOVATO_SCORE : $calc, 'score_calculado' => $calc,
+            'provisorio' => $provisorio, 'semanas_meta' => $semMeta, 'moedas' => $moedas];
     }
     return $out;
+}
+
+// Pareto (ajuste de 23/11): só os ESC_KPI_PARETO (20%) de menor score recebem a ação de correção da faixa
+// (menos turnos, realocar, substituir). Conta entre todos os SRs com score calculado (o novato provisório
+// fica de fora). Volta [rep => true].
+function escKpiPareto(array $kpiSr): array {
+    $scores = [];
+    foreach ($kpiSr as $rep => $k) {
+        if (empty($k['provisorio']) && $k['score'] !== null) {
+            $scores[$rep] = (float) $k['score'];
+        }
+    }
+    asort($scores);
+    return array_fill_keys(array_slice(array_keys($scores), 0, (int) ceil(count($scores) * ESC_KPI_PARETO)), true);
 }
 
 // A coluna resp_15min (5C_Planning_41) já existe no cap_rep_hora?

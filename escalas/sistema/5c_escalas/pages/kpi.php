@@ -41,6 +41,16 @@ $kpi = escKpiCarregar(array_column($srs, 'rep'));
 $calculadoEm = $kpi['calculado_em'] ?? null;
 $kpiSr = $kpi['srs'] ?? [];
 $semanas = escKpiSemanas();
+// Pareto: só os 20% de menor score (entre todos os SRs ativos com score calculado) recebem a ação de correção.
+$pareto = escKpiPareto(array_intersect_key($kpiSr, array_flip(array_column($srs, 'rep'))));
+$faixaRuim = ['LT25', '25_50', '50_75'];
+$compDoSr = static function (?array $k, string $rep) use ($pareto, $faixaRuim): array {
+    if ($k && !empty($k['provisorio'])) {
+        return ['PROV', t('Novato: 75% provisório até 2 semanas fechadas'), 'cinza'];
+    }
+    $c = escKpiComportamento($k['score'] ?? null);
+    return in_array($c[0], $faixaRuim, true) && !isset($pareto[$rep]) ? [$c[0], t('Mantém a posição (fora dos 20% piores)'), ''] : $c;
+};
 
 $uSel = in_array((string) ($_GET['u'] ?? ''), ['1', '2', '3'], true) ? (string) $_GET['u'] : '';
 $tSel = in_array((string) ($_GET['t'] ?? ''), ['A', 'C', 'D'], true) ? (string) $_GET['t'] : '';
@@ -62,7 +72,7 @@ foreach ($srs as $s) {
     $l = ['rep' => $s['rep'], 'nome' => $nomes[$s['rep']] ?? $s['rep'], 'u' => (int) $s['unidade'], 't' => $s['turno'], 'nucleo' => $s['nucleo'], 'nivel' => (int) $s['nivel'],
         'posto' => $t['posto'] ?? 0, 'assist' => $t['assistente'] ?? 0, 'buffer' => $t['buffer'] ?? 0, 'overlap' => $t['overlap'] ?? 0,
         'pct' => $base ? $emPosto / $base : null, 'k' => $k, 'score' => $k['score'] ?? null, 'moedas' => $k['moedas'] ?? null,
-        'comp' => escKpiComportamento($k['score'] ?? null)];
+        'comp' => $compDoSr($k, $s['rep']), 'pareto' => isset($pareto[$s['rep']])];
     $todas[] = $l;
     if (($uSel === '' || (string) $s['unidade'] === $uSel) && ($tSel === '' || $s['turno'] === $tSel)) {
         $linhas[] = $l;
@@ -91,10 +101,15 @@ if ($ordem !== 'rank' || $cresc) {
         return ($cresc ? $c : -$c) ?: ($a['rank'] ?? PHP_INT_MAX) <=> ($b['rank'] ?? PHP_INT_MAX);
     });
 }
-$faixas = ['LT25' => '< 25%', '25_50' => '25% – 50%', '50_75' => '50% – 75%', '75_100' => '75% – 100%', '100_120' => '100% – 119%', '120' => '120%', 'SEM' => t('Sem score')];
+$faixas = ['LT25' => '< 25%', '25_50' => '25% – 50%', '50_75' => '50% – 75%', '75_100' => '75% – 100%', '100_120' => '100% – 119%', '120' => '120%', 'PROV' => t('Novato (75%)'), 'SEM' => t('Sem score')];
 $conta = array_fill_keys(array_keys($faixas), 0);
+$contaPareto = array_fill_keys(array_keys($faixas), 0);
 foreach ($linhas as $l) {
     $conta[$l['comp'][0]]++;
+    $contaPareto[$l['comp'][0]] += $l['pareto'] ? 1 : 0;
+}
+if (!$conta['SEM']) {
+    unset($faixas['SEM']);
 }
 $pc = static fn($v, int $c = 0): string => $v === null ? '—' : pct((float) $v, $c);
 $semRot = static fn(string $sg): string => dataBr($sg) . '–' . dataBr(escMaisDias($sg, 6));
@@ -111,7 +126,7 @@ if ($soPdf || isset($_GET['baixar'])) {
             $l['moedas'] !== null ? round($l['moedas'], 1) : null, $l['comp'][1]];
     }
     $filtroTxt = ($uSel !== '' ? 'U' . $uSel : t('Todas as unidades')) . ' · ' . ($tSel !== '' ? t('Turno {t}', ['t' => $tSel]) : t('Todos os turnos'));
-    $infoDoc = t('SIMULAÇÃO') . ' · ' . t('Semanas de {de} a {ate}', ['de' => dataBr(min(array_keys($semanas))), 'ate' => dataBr(date('Y-m-d', strtotime('-1 day')))]) . ' · ' . $filtroTxt
+    $infoDoc = t('SIMULAÇÃO') . ' · ' . t('Semanas de {de} a {ate}', ['de' => dataBr(min(array_keys($semanas))), 'ate' => dataBr(escMaisDias(max(array_keys($semanas)), 6))]) . ' · ' . $filtroTxt
         . ($calculadoEm ? ' · ' . t('Calculado em {quando}', ['quando' => escDataHora((string) $calculadoEm)]) : '');
     $nomeArq = 'KPI SRs simulacao' . ($uSel !== '' ? ' U' . $uSel : '') . ($tSel !== '' ? ' ' . $tSel : '') . ' ' . date('d-m-Y');
 }
@@ -150,32 +165,37 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
 </header>
 
 <?php if (!$soPdf): ?>
-<p class="aviso" role="status"><?php echo h(t('Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR e quebra de P&G (Integrity), multas e loja de moedas.')); ?></p>
+<p class="aviso" role="status"><?php echo h(t('Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR (Integrity), multas e loja de moedas.')); ?></p>
 <?php if (!escAbsOficialOk()): ?><p class="aviso" role="status"><?php echo h(t('O sistema não consegue ler as faltas oficiais (5c_wfm_db_mis.abs_adh_af): a Integrity fica sem desconto de falta.')); ?></p><?php endif; ?>
 <?php endif; ?>
 
 <?php
 // Distribuição: SRs por faixa de score (a população do filtro). Barras em cinza; "Sem score" mais apagada.
 $versaoArq = static fn(string $arq): string => (string) (@filemtime(__DIR__ . '/../assets/' . $arq) ?: time());
-$comScore = count($linhas) - $conta['SEM'];
+$comScore = count($linhas) - $conta['SEM'] - $conta['PROV'];
 $pctPop = static fn(int $n): string => $comScore > 0 ? pct($n / $comScore, 0) : '—';
 $compDe = ['LT25' => 0.1, '25_50' => 0.3, '50_75' => 0.6, '75_100' => 0.8, '100_120' => 1.1, '120' => 1.2];
 // Cores da marca 5C, divergentes: marsala nas faixas baixas (mais forte = pior), cinza neutro em 75–100%
 // e ouro nas faixas de 100% ou mais (mais forte = melhor); "Sem score" num cinza apagado.
-$corFaixa = ['LT25' => 'kf1', '25_50' => 'kf2', '50_75' => 'kf3', '75_100' => 'kf4', '100_120' => 'kf6', '120' => 'kf7', 'SEM' => 'kfsem'];
+$corFaixa = ['LT25' => 'kf1', '25_50' => 'kf2', '50_75' => 'kf3', '75_100' => 'kf4', '100_120' => 'kf6', '120' => 'kf7', 'PROV' => 'kfsem', 'SEM' => 'kfsem'];
 $grupos = [];
 $tabela = [];
 foreach ($faixas as $f => $rot) {
     $n = $conta[$f];
-    $acao = $f === 'SEM' ? t('sem dado nas 4 semanas') : escKpiComportamento($compDe[$f])[1];
+    $extra = in_array($f, ['SEM', 'PROV'], true);
+    $acao = $f === 'SEM' ? t('sem dado nas 4 semanas') : ($f === 'PROV' ? t('menos de 2 semanas fechadas com meta') : escKpiComportamento($compDe[$f])[1]);
+    if (in_array($f, $faixaRuim, true)) {
+        $acao .= ' · ' . t('só para os 20% piores: {n} de {t}', ['n' => $contaPareto[$f], 't' => $n]);
+    }
     $grupos[] = ['rot' => $rot, 'barras' => [['seg' => [['v' => $n, 'cls' => $corFaixa[$f]]],
-        'rotulo' => $n . ($f !== 'SEM' && $n ? ' · ' . $pctPop($n) : ''), 'tip' => $rot . "\n" . tn($n, '{n} SR', '{n} SRs') . ($f !== 'SEM' ? ' (' . $pctPop($n) . ')' : '') . "\n" . $acao]]];
-    $tabela[] = [$rot, (string) $n, $f !== 'SEM' ? $pctPop($n) : '—', $acao];
+        'rotulo' => $n . (!$extra && $n ? ' · ' . $pctPop($n) : ''), 'tip' => $rot . "\n" . tn($n, '{n} SR', '{n} SRs') . (!$extra ? ' (' . $pctPop($n) . ')' : '') . "\n" . $acao]]];
+    $tabela[] = [$rot, (string) $n, !$extra ? $pctPop($n) : '—', $acao];
 }
 $abaixo75 = $conta['LT25'] + $conta['25_50'] + $conta['50_75'];
 $de100 = $conta['100_120'] + $conta['120'];
 $tituloGraf = $comScore > 0
     ? t('{a} dos SRs com score estão abaixo de 75%; {b} estão em 100% ou mais', ['a' => $pctPop($abaixo75), 'b' => $pctPop($de100)])
+        . ' · ' . t('{n} na ação de correção (20% piores)', ['n' => array_sum(array_intersect_key($contaPareto, array_flip($faixaRuim)))])
     : t('Nenhum SR com score neste filtro');
 ?>
 <?php if (!$soPdf): ?>
@@ -231,13 +251,13 @@ $tituloGraf = $comScore > 0
   <h2><?php echo h(t('Como o KPI de {nome} foi calculado', ['nome' => nomeCurto($nomes[$repSel] ?? $repSel)])); ?> <span class="muted small mono"><?php echo h($repSel); ?></span></h2>
   <div class="tabela-rolagem"><table data-sem-ordem>
     <thead><tr><th><?php echo h(t('Semana')); ?></th><th class="num"><?php echo h(t('Peso')); ?></th><th class="num"><?php echo h(t('Meta')); ?></th><th class="num"><?php echo h(t('Moedas')); ?></th>
-      <th class="num">SLA 5</th><th class="num">SLA 10</th><th class="num">SLA 15</th><th class="num">Process</th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">Integrity</th></tr></thead>
+      <th class="num">SLA 5</th><th class="num">SLA 10</th><th class="num">SLA 15</th><th class="num">Process</th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">P&amp;G</th><th class="num">Integrity</th></tr></thead>
     <tbody>
     <?php foreach ($semanas as $sg => $peso): $w = $detalhe['semanas'][$sg] ?? null; ?>
       <tr>
-        <td><?php echo h($semRot($sg)); ?><?php echo $sg === segundaDaSemana(date('Y-m-d')) ? ' <span class="muted small">' . h(t('(até ontem)')) . '</span>' : ''; ?></td>
+        <td><?php echo h($semRot($sg)); ?></td>
         <td class="num"><?php echo $peso; ?></td>
-        <?php if ($w === null): ?><td colspan="8" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
+        <?php if ($w === null): ?><td colspan="9" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
         <?php else: ?>
         <td class="num"><?php echo $pc($w['atingimento'], 1); ?><?php if ($w['meta'] !== null): ?> <span class="muted small"><?php echo num($w['real'], 0); ?> ÷ <?php echo num($w['meta'], 0); ?></span><?php endif; ?></td>
         <td class="num"><?php echo $w['moedas'] !== null ? num($w['moedas'], 1) : '—'; ?></td>
@@ -246,6 +266,7 @@ $tituloGraf = $comScore > 0
         <?php endforeach; ?>
         <td class="num"><strong><?php echo $pc($w['process']); ?></strong></td>
         <td class="num"><?php echo (int) $w['faltas']; ?><?php if ($w['faltas']): ?> <span class="laranja small">−<?php echo pct(ESC_KPI_FALTA * $w['faltas'], 0); ?></span><?php endif; ?></td>
+        <td class="num"><?php if (!empty($w['pg'])): ?><?php echo h(implode(' · ', array_map(static fn($n) => t('nota {n}', ['n' => num($n, 0)]), $w['pg']))); ?> <span class="laranja small">−<?php echo pct($w['desc_pg'], 1); ?></span><?php else: ?>0<?php endif; ?></td>
         <td class="num"><strong><?php echo $pc($w['integrity']); ?></strong></td>
         <?php endif; ?>
       </tr>
@@ -253,10 +274,10 @@ $tituloGraf = $comScore > 0
     </tbody>
   </table></div>
   <ul class="small">
-    <li><strong>Kinetic:</strong> <?php echo h(t('meta ponderada {m} → base {b}.', ['m' => $pc($detalhe['kinetic_meta'], 1), 'b' => $pc($detalhe['kinetic_base'], 1)])); ?></li>
+    <li><strong>Kinetic:</strong> <?php echo h(t('meta ponderada {m} (soma do peso × realizado ÷ soma do peso × meta) → base {b}.', ['m' => $pc($detalhe['kinetic_meta'], 1), 'b' => $pc($detalhe['kinetic_base'], 1)])); ?></li>
     <li><strong>Process:</strong> <?php echo h(t('média ponderada das semanas = {p}. Cada semana: 100% − descontos de SLA, com piso de 60%.', ['p' => $pc($detalhe['process'], 1)])); ?></li>
-    <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta, até 0%.', ['i' => $pc($detalhe['integrity'], 1)])); ?></li>
-    <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base'], 1) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score'], 1)); ?> · <?php echo h(escKpiComportamento($detalhe['score'])[1]); ?></li>
+    <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta − quebra de P&G (−10% com nota 80 até −30% com nota 0), até 0%.', ['i' => $pc($detalhe['integrity'], 1)])); ?></li>
+    <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base'], 1) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score_calculado'] ?? null, 1)); ?><?php if (!empty($detalhe['provisorio'])): ?> · <?php echo h(t('novato: vale o provisório de 75% até ter 2 semanas fechadas com meta')); ?><?php endif; ?> · <?php echo h($compDoSr($detalhe, $repSel)[1]); ?></li>
     <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('{n} nas semanas acima (soma).', ['n' => $detalhe['moedas'] !== null ? num($detalhe['moedas'], 1) : '—'])); ?></li>
   </ul>
   <p class="muted small"><?php echo h(t('A média ponderada usa os pesos só das semanas com dado (soma dos pesos × valor ÷ soma dos pesos). Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?> <a href="<?php echo h(link_tela('kpi', $filtros)); ?>"><?php echo h(t('Fechar')); ?></a></p>
@@ -267,12 +288,13 @@ $tituloGraf = $comScore > 0
   <?php if (!$soPdf): ?>
   <details>
     <summary><strong><?php echo h(t('Como o KPI é calculado')); ?></strong></summary>
-    <p><?php echo h(t('Últimas 4 semanas (segunda a domingo), com pesos 4 (semana atual, até ontem), 3, 2 e 1, nos três pilares. Semana sem dado fica fora da média.')); ?> <?php echo h(t('Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?></p>
+    <p><?php echo h(t('Últimas 4 semanas fechadas (segunda a domingo), com pesos 4 (a última fechada), 3, 2 e 1, nos três pilares. A semana em andamento não entra. Semana sem dado fica fora da média.')); ?> <?php echo h(t('Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?></p>
     <ul class="small">
-      <li><strong>Kinetic:</strong> <?php echo h(t('meta semanal (realizado ÷ meta 5CReps, rateado pelas mensagens do SR). A média ponderada vira a base em rampa, pelos pontos da tabela do documento: 50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110% e 200% → 120%, em linha reta entre eles (ex.: 62% → 62%; 125% → 105%). Mínimo de 25% e máximo de 120%.')); ?></li>
-      <li><strong>Process:</strong> <?php echo h(t('100% menos: SLA 15 −4%, SLA 10 −2% e SLA 5 −1% a cada 10% completos abaixo do esperado (95%, 90% e 80%). Nunca abaixo de 60%. Mass por turno e "não seguir o plano" ainda não são calculados.')); ?></li>
-      <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida). Pode chegar a 0%. DNR e P&G ainda não são calculados.')); ?></li>
-      <li><strong>Score:</strong> <?php echo h(t('Kinetic × Process × Integrity, de 0% a 120%.')); ?></li>
+      <li><strong>Kinetic:</strong> <?php echo h(t('meta das 4 semanas: soma do peso × realizado ÷ soma do peso × meta 5CReps (rateados pelas mensagens do SR), então semana com meta pequena pesa menos. Ela vira a base em rampa, pelos pontos da tabela do documento: 50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110% e 200% → 120%, em linha reta entre eles (ex.: 62% → 62%; 125% → 105%). Mínimo de 25% e máximo de 120%.')); ?></li>
+      <li><strong>Process:</strong> <?php echo h(t('100% menos: SLA 15 −4%, SLA 10 −2% e SLA 5 −1% a cada 10% abaixo do esperado (95%, 90% e 80%), proporcional (ex.: SLA 15 em 90% = −2%). Nunca abaixo de 60%. Mass por turno e "não seguir o plano" ainda não são calculados.')); ?></li>
+      <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida) e menos a quebra de P&G: avaliação de qualidade com "Model Best Practices" Não Conforme tira 10% com nota 80, crescendo em linha reta até 30% com nota 0 (pela data do contato avaliado). Pode chegar a 0%. DNR ainda não é calculado.')); ?></li>
+      <li><strong>Score:</strong> <?php echo h(t('Kinetic × Process × Integrity, de 0% a 120%. Novato (menos de 2 semanas fechadas com meta) fica com 75% provisório.')); ?></li>
+      <li><strong><?php echo h(t('Ação de correção')); ?>:</strong> <?php echo h(t('menos turnos, realocar ou substituir valem só para os 20% de menor score (Pareto); os outros das faixas abaixo de 75% mantêm a posição.')); ?></li>
       <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('por semana, só pela meta: abaixo de 85% = 0; de 85% a 100%, de 1 a 20 em linha reta; acima de 100%, 20 × (1 + log₂(meta)), ou seja, +20 a cada vez que a meta dobra.')); ?></li>
     </ul>
   </details>
@@ -384,7 +406,7 @@ $tituloGraf = $comScore > 0
   function calc() {
     var v = function (n) { var x = parseFloat(String(f.elements[n].value).replace(',', '.')); return isNaN(x) ? 0 : x; };
     var m = v('meta') / 100, k = base(m), p = 1;
-    [15, 10, 5].forEach(function (mi) { var s = v('sla' + mi) / 100, e = sla[mi][0]; if (s < e) { p -= Math.floor(Math.round((e - s) / passo * 1e6) / 1e6) * sla[mi][1]; } });
+    [15, 10, 5].forEach(function (mi) { var s = v('sla' + mi) / 100, e = sla[mi][0]; if (s < e) { p -= (e - s) / passo * sla[mi][1]; } });
     p = Math.max(piso, p);
     var i = Math.max(0, 1 - falta * Math.max(0, Math.floor(v('faltas')))), s = k * p * i, sr = Math.round(s * 1e6) / 1e6;
     f.querySelector('[data-sim="k"]').textContent = pc(k);
