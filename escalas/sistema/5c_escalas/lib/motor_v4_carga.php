@@ -224,7 +224,9 @@ function escV4Carregar(string $dia): array {
             $prioritaria[$pg] = true;
         }
     }
-    $mer = function_exists('escMeritoCarregar') ? escMeritoMotor(escMeritoCarregar()) : ['nota' => [], 'faixa' => [], 'anos' => []];
+    // Desempenho (1.34.0): o KPI (nível 0 a 4 e score) ou, com v4_fonte_desempenho = MERITO, o mérito (faixa 0 a 2 e nota).
+    $mer = function_exists('escDesempenhoMotor') ? escDesempenhoMotor()
+        : (function_exists('escMeritoCarregar') ? escMeritoMotor(escMeritoCarregar()) : ['nota' => [], 'faixa' => [], 'anos' => []]) + ['fonte' => 'MERITO', 'so_cobertura' => [], 'neutro' => 1];
     $equipes = [];
     foreach (escQ('SELECT posto_id, vaga, UPPER(rep_code) AS rep, fatia FROM ' . escT('esc_vaga_equipe') . ' WHERE' . $vig, [$dia, $dia]) as $e) {
         $equipes[(int) $e['posto_id']][$e['vaga']][$e['rep']] = (float) $e['fatia'];
@@ -320,7 +322,8 @@ function escV4Carregar(string $dia): array {
     }
     $overlap = escV4Param('v4_overlap_posicao_ciclo', '');
     return ['modelo' => $modelo, 'conhece_cor' => $conheceCor, 'nucleos' => $nucleos, 'pessoas' => $pessoas, 'postos' => $postos, 'equipes' => $equipes,
-        'historico' => $historico, 'merito' => $mer['nota'], 'faixa' => $mer['faixa'], 'anos' => $mer['anos'], 'prioritaria' => $prioritaria,
+        'historico' => $historico, 'merito' => $mer['nota'], 'faixa' => $mer['faixa'], 'anos' => $mer['anos'], 'fonte_desempenho' => $mer['fonte'] ?? 'MERITO',
+        'faixa_neutra' => $mer['neutro'] ?? 1, 'so_cobertura' => $mer['so_cobertura'] ?? [], 'prioritaria' => $prioritaria,
         'ancora' => escV4Param('v4_rotacao_ancora', '2026-11-02'),
         'overlap_posicoes' => array_map('intval', array_filter(array_map('trim', explode(',', $overlap)), 'strlen')),
         'overlap_pagina' => $pagOverlap ? ['page_id' => (int) $pagOverlap['id'], 'pagina' => $pagOverlap['name']] : null,

@@ -213,6 +213,15 @@ Seção nova do menu, entre Análise e Páginas: **Capacity** (`pages/capacity.p
 
 Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem biblioteca externa, só ZipArchive) e `?p=srs&ver=pdf&imprimir=1` (`@page merito-srs`, A4 paisagem). Valem os filtros `u` e `t`, o acesso é o de `escPodeVerRestrito()` e a versão vem de `escDocVersao('merito_srs', ...)`.
 
+## KPI no lugar do mérito (1.34.0)
+
+Desde a 1.34.0 o KPI é a referência de desempenho da escala (regras em `contexto/regras_escalacao_kpi.md`, K-01 a K-08, decisões D1 a D4 de 23/11).
+
+- `lib/kpi.php`: `escKpiNivel` (nível 0 a 4), `escKpiBanco` (cache `esc_sr_kpi`, ES_198 e ES_199, recalcula a cada 3 h), `escKpiLinhas`, `escDesempenhoMotor` (formato do antigo `escMeritoMotor`: nota = score em %, faixa = nível, anos, `so_cobertura`) e `escDesempenhoNotas`.
+- Motor (`lib/motor_v4.php`): K-03 (tabela de continuidade por nível, `$kpiTira`), D1 (no máximo `v4_kpi_mov_max` dos SRs perdem o posto pelo KPI na semana, `$kpiMovidos`), D2 (`$travaCobertura`: abaixo de `v4_kpi_so_cobertura` entre os 20% piores, nunca regular em posto até o passo 5).
+- Equilíbrio, Funil, Owners (`lib/politica.php`), equipes e tags usam o KPI; o mérito só recalcula quando `v4_fonte_desempenho` = MERITO.
+- Mérito dos SRs e Ajuda › Mérito no Legado (só admin, só leitura).
+
 ## KPI dos SRs (1.32.0)
 
 Simulação do documento "KPI — Kinetic, Process e Integrity" (CEO, nov/2026), em `pages/kpi.php` e `lib/kpi.php`. Só lê o banco (`escQ`), guarda o resultado em arquivo temporário por 3 h (`escCache`; "Recalcular agora" = `recarregar=1`) e não alimenta o Gerar, o mérito, pagamentos nem notificações. Exportações sem número de versão, porque `escDocVersao` grava no banco.

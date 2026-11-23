@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.34.0' => ['titulo' => 'KPI instead of merit in scheduling', 'itens' => [
+        'The SR KPI replaces merit across scheduling. Each SR has a level from 0 to 4: 4 = 120%; 3 = 100% to 119%; 2 = keeps position (75% to 99%, new hires and those outside the worst 20%); 1 and 0 = among the worst 20%, with 50% to 74% and below 50%.',
+        'Generate: each page first picks whoever hit 65% of its goal, then the level, the score and tenure. Whoever is on the post only leaves for a level that displaces them (a 3 only for a 4; a 2 keeps, except for a 4 on priority pages; a 1 for a 3 or 4), and at most 20% of SRs change post because of the KPI in a week. Level 0 stays off priority pages and is last for stacking and overload; below 25%, it only covers.',
+        'Unit balance, the Entry funnel, Owners and teams now use the KPI score; the Grid tags become KPI ↑ and KPI ↓, and the absence, SLA, P&G and goal streak tags come from the KPI.',
+        'The KPI is kept in a database cache (recalculated every 3 h and on Generate). SR merit and Help › Merit moved to Legacy (admin only, read only). The v4_fonte_desempenho = MERITO parameter switches everything back to merit.',
+    ]],
     '1.33.0' => ['titulo' => 'KPI: CEO adjustments, Pareto, new hires and P&G breaches', 'itens' => [
         'SR KPI: only the last 4 closed weeks (weights 4-3-2-1); the current week does not count. The weighted goal becomes sum of weight × actual ÷ sum of weight × goal, so a week with a small goal weighs less. Coins stay weekly and uncapped.',
         'SR KPI: the SLA deduction is now pro rata (e.g. SLA 15 at 90% with 95% expected = −2%), instead of only for every full 10%.',

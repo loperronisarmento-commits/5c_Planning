@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.34.0', 'data' => '2026-11-23', 'titulo' => 'KPI no lugar do mérito na escalação', 'sql' => ['ES_198_kpi_escalacao.sql', 'ES_199_kpi_tags.sql'], 'itens' => [
+    'O KPI dos SRs substitui o mérito em toda a escalação. Cada SR tem um nível de 0 a 4: 4 = 120%; 3 = 100% a 119%; 2 = mantém a posição (75% a 99%, novato e quem está fora dos 20% piores); 1 e 0 = entre os 20% piores, com 50% a 74% e abaixo de 50%.',
+    'Gerar: cada página escolhe primeiro quem bateu 65% da meta nela, depois o nível, o score e o tempo de casa. Quem está no posto só sai para um nível que o tire (o 3 só para o 4; o 2 mantém, salvo o 4 nas páginas prioritárias; o 1 para o 3 ou o 4), e no máximo 20% dos SRs mudam de posto pelo KPI na semana. O nível 0 fica fora das páginas prioritárias e é o último no acúmulo e na sobrecarga; abaixo de 25%, só faz cobertura.',
+    'Equilíbrio, Funil de entrada, Owners e as equipes passam a usar o score do KPI; as tags da Grade viram KPI ↑ e KPI ↓, e as de faltas, SLA, P&G e sequência na meta saem do KPI.',
+    'O KPI fica num cache no banco (recalcula a cada 3 h e no Gerar). O Mérito dos SRs e a Ajuda › Mérito foram para o Legado (só admin, só leitura). O parâmetro v4_fonte_desempenho = MERITO volta tudo ao mérito.',
+    ]],
     ['versao' => '1.33.0', 'data' => '2026-11-23', 'titulo' => 'KPI: ajustes do CEO, Pareto, novato e quebra de P&G', 'sql' => [], 'itens' => [
     'KPI dos SRs: só as 4 últimas semanas fechadas (pesos 4-3-2-1); a semana em andamento não entra. A meta ponderada passa a ser soma do peso × realizado ÷ soma do peso × meta, então semana com meta pequena pesa menos. As moedas continuam por semana e sem teto.',
     'KPI dos SRs: o desconto de SLA ficou proporcional (ex.: SLA 15 em 90% com esperado de 95% = −2%), em vez de só a cada 10% completos.',

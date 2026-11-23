@@ -246,12 +246,9 @@ function escPolAvaliar(string $hoje): array {
     return ['paginas' => $paginas, 'sugestoes' => $sug, 'destaque' => $destaque, 'param' => $p, 'lugares' => $lugares];
 }
 
-// Melhor SR do núcleo para ser owner: nota de mérito mais alta; quem tem prioridade na página primeiro.
+// Melhor SR do núcleo para ser owner: desempenho mais alto (KPI desde a 1.34.0, ou a nota de mérito); quem tem prioridade na página primeiro.
 function escPolCandidatoOwner(int $nucleo, array $excluir, array $lugares, array $prioridade): ?string {
-    $notas = [];
-    foreach (escQ('SELECT UPPER(rep_code) AS rep, nota FROM ' . escT('esc_sr_merito')) as $m) {
-        $notas[$m['rep']] = $m['nota'] !== null ? (float) $m['nota'] : null;
-    }
+    $notas = escDesempenhoNotas();
     $melhor = null;
     $k = null;
     foreach ($lugares as $rep => $l) {

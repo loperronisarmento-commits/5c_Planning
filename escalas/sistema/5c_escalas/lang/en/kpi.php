@@ -80,4 +80,13 @@ return [
     'média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta − quebra de P&G (−10% com nota 80 até −30% com nota 0), até 0%.' => 'weighted average of the weeks = {i}. Each week: 100% − 15% per absence − P&G breach (−10% at score 80 up to −30% at score 0), down to 0%.',
     '100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida) e menos a quebra de P&G: avaliação de qualidade com "Model Best Practices" Não Conforme tira 10% com nota 80, crescendo em linha reta até 30% com nota 0 (pela data do contato avaliado). Pode chegar a 0%. DNR ainda não é calculado.' => '100% minus 15% per day absent (an approved absence is removed from the schedule, so every absence read counts) and minus P&G breaches: a quality evaluation with "Model Best Practices" Non-compliant takes 10% at score 80, rising in a straight line to 30% at score 0 (by the date of the evaluated contact). It can reach 0%. DNR is not calculated yet.',
     'menos turnos, realocar ou substituir valem só para os 20% de menor score (Pareto); os outros das faixas abaixo de 75% mantêm a posição.' => 'fewer shifts, moving or replacing apply only to the 20% with the lowest score (Pareto); the others in the bands below 75% keep their position.',
+    'KPI dos SRs (Kinetic, Process & Integrity)' => 'SR KPI (Kinetic, Process & Integrity)',
+    'Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, de 0% a 120%, e moedas pela meta semanal. Desde a 1.34.0 é a referência da escala no lugar do mérito: o nível de cada SR (0 a 4) define a ordem no Gerar, a continuidade no posto, o remanejamento, o acúmulo e a sobrecarga.' => 'Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, from 0% to 120%, and coins from the weekly goal. Since 1.34.0 it is the schedule reference instead of merit: each SR\'s level (0 to 4) sets the order in Generate, staying on the post, moving up, stacking and overload.',
+    'Calculado em {quando}; recalcula sozinho a cada {h} h e no Gerar.' => 'Calculated on {quando}; recalculates by itself every {h} h and on Generate.',
+    'Nível 4 · 120%' => 'Level 4 · 120%',
+    'Nível 3 · 100% a 119%' => 'Level 3 · 100% to 119%',
+    'Nível 2 · mantém' => 'Level 2 · keeps',
+    'Nível 1 · substituir' => 'Level 1 · replace',
+    'Nível 0 · realocar' => 'Level 0 · move',
+    'Ver as regras' => 'See the rules',
 ];

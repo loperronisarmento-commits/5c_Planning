@@ -17,7 +17,8 @@
 //   - ABS Absenteísmo alto: tag_faltas_min (4) ou mais dias com falta (M-04: −8 ou pior).
 //   - SLA SLA baixo: SLA abaixo de tag_sla_min (60%) (M-05: −4 ou pior).
 //   - INF Infração: alguma infração nos últimos 90 dias (M-09).
-//   - MA / MB Mérito acima / abaixo: faixa do mérito (M-01).
+//   - MA / MB Mérito acima / abaixo: faixa do mérito (M-01). Com o KPI (1.34.0): KPI ↑ (nível 3 ou 4) e KPI ↓
+//     (nível 0 ou 1); ABS, SLA, INF (vira P&G: quebra nas 4 semanas) e SEQ também saem do KPI (esc_sr_kpi).
 //   - SEQ Sequência na meta: tag_seq_semanas (3) ou mais semanas seguidas batendo a meta (M-10).
 // Vermelho e laranja são risco; verde ajuda. Na grade e nas células do PDF só os riscos; no
 // detalhe da célula e na tabela de representantes do PDF, todas.
@@ -28,17 +29,18 @@ const ESC_TAGS_LIVRES = ['INX', 'TRN', 'EXP'];
 // Definição: código => [rótulo curto, nome completo, tom]. A ordem é a de exibição.
 function escTagsDef(): array {
     static $def = null;
+    $kpi = function_exists('escDesempenhoFonte') && escDesempenhoFonte() === 'KPI';
     return $def ??= [
         'NM' => [t('Meta ✗'), t('Não bate meta na modelo'), 'vermelho'],
         'ABS' => [t('Faltas'), t('Absenteísmo alto'), 'vermelho'],
-        'INF' => [t('Infração'), t('Infração nos últimos 90 dias'), 'vermelho'],
-        'MB' => [t('Mérito ↓'), t('Mérito abaixo'), 'vermelho'],
+        'INF' => $kpi ? [t('P&G'), t('Quebra de P&G nas 4 semanas'), 'vermelho'] : [t('Infração'), t('Infração nos últimos 90 dias'), 'vermelho'],
+        'MB' => $kpi ? [t('KPI ↓'), t('KPI nível 0 ou 1 (entre os 20% piores)'), 'vermelho'] : [t('Mérito ↓'), t('Mérito abaixo'), 'vermelho'],
         'INX' => [t('Inexp.'), t('Inexperiente na modelo'), 'laranja'],
         'TRN' => [t('Trainee'), t('Trainee (New Hire nos primeiros 30 dias)'), 'laranja'],
         'SLA' => [t('SLA ↓'), t('SLA baixo'), 'laranja'],
         'BM' => [t('Meta ✓'), t('Bate meta na modelo'), 'verde'],
         'EXP' => [t('Exp.'), t('Experiente na modelo'), 'verde'],
-        'MA' => [t('Mérito ↑'), t('Mérito acima'), 'verde'],
+        'MA' => $kpi ? [t('KPI ↑'), t('KPI nível 3 ou 4 (100% ou mais)'), 'verde'] : [t('Mérito ↑'), t('Mérito acima'), 'verde'],
         'SEQ' => [t('Seq. meta'), t('Semanas seguidas batendo a meta'), 'verde'],
     ];
 }
@@ -61,11 +63,14 @@ function escTagsParam(): array {
 // Leituras das tags, em cache de arquivo por 6 h (as fontes mudam no máximo uma vez por dia):
 // ['sr' => [rep => [códigos]], 'meta' => [modelo][rep] => atingimento, 'dias' => [modelo][rep] => dias em 90].
 function escTagsDados(): array {
-    return escCache('tags_modelo_' . date('Ymd'), 6 * 3600, static function (): array {
+    return escCache('tags_modelo_' . strtolower(escDesempenhoFonte()) . '_' . date('Ymd'), 6 * 3600, static function (): array {
         $p = escTagsParam();
         $sr = [];
         try {
-            foreach (escQ('SELECT UPPER(rep_code) AS rep, faixa, faltas, sla, infracoes, semanas_meta FROM ' . escT('esc_sr_merito')) as $m) {
+            $sqlTags = escDesempenhoFonte() === 'KPI'
+                ? "SELECT UPPER(rep_code) AS rep, CASE WHEN nivel >= 3 THEN 'ACIMA' WHEN nivel <= 1 THEN 'ABAIXO' ELSE 'MEDIA' END AS faixa, faltas, sla5 AS sla, pg AS infracoes, semanas_meta FROM " . escT('esc_sr_kpi')
+                : 'SELECT UPPER(rep_code) AS rep, faixa, faltas, sla, infracoes, semanas_meta FROM ' . escT('esc_sr_merito');
+            foreach (escQ($sqlTags) as $m) {
                 $c = [];
                 if ((int) $m['faltas'] >= $p['faltas_min']) {
                     $c[] = 'ABS';

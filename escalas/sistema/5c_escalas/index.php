@@ -35,6 +35,7 @@ require_once __DIR__ . '/lib/dados.php';
 require_once __DIR__ . '/lib/motor.php';
 require_once __DIR__ . '/lib/motor_v4.php';
 require_once __DIR__ . '/lib/merito.php';
+require_once __DIR__ . '/lib/kpi.php';
 require_once __DIR__ . '/lib/tags.php';
 require_once __DIR__ . '/lib/saida.php';
 require_once __DIR__ . '/lib/equipes.php';
@@ -296,11 +297,11 @@ try {
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
-    'Análise' => ['analise', 'srs', 'kpi', 'sugestoes', 'buffers', 'bot'],
+    'Análise' => array_merge(['analise'], escDesempenhoFonte() === 'MERITO' ? ['srs'] : [], ['kpi', 'sugestoes', 'buffers', 'bot']),
     'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],
-    'Ajuda' => array_merge(['tutorial', 'regras', 'merito', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
+    'Ajuda' => array_merge(['tutorial', 'regras'], escDesempenhoFonte() === 'MERITO' ? ['merito'] : [], ['glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
 ];
 if (!escPodeVerRestrito()) {
     foreach ($menu as $secaoMenu => $itensMenu) {
@@ -309,7 +310,8 @@ if (!escPodeVerRestrito()) {
 }
 $adminMenu = escPode('admin') ? ['acessos', 'parametros', 'modelos', 'diagnostico'] : [];
 // Estrutura antiga (times e parties, trocas do Planner): vale até a virada de 31/10 21:00. Só para o admin.
-$legadoMenu = escPode('admin') ? ['times', 'trocas', 'parametros_legado'] : [];
+// Desde a 1.34.0 (KPI no lugar do mérito) o Mérito dos SRs e a Ajuda › Mérito também ficam no Legado.
+$legadoMenu = escPode('admin') ? array_merge(['times', 'trocas', 'parametros_legado'], escDesempenhoFonte() === 'KPI' ? ['srs', 'merito'] : []) : [];
 $badges = [];
 // Com o banco fora (tela de espera), nem tenta: cada leitura esperaria a conexão por ~15 s.
 if (empty($bancoCaiu)) try {

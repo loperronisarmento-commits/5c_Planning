@@ -66,6 +66,28 @@ function escMotorAlocarV4(array $in): array {
     $abaixoForaTopo = escV4Param('v4_merito_abaixo_fora_topo', '1') === '1';
     $faixaAcumulo = escV4Param('v4_merito_faixa_acumulo', '1') === '1';
     $faixaRemanejar = escV4Param('v4_merito_faixa_remanejar', '1') === '1';
+    // KPI no lugar do mérito (1.34.0, contexto/regras_escalacao_kpi.md): a "faixa" passa a ser o nível do KPI
+    // (0 a 4; o neutro é o 2) e a "nota" o score em %. K-03: tabela de continuidade por nível; D1: no máximo
+    // v4_kpi_mov_max dos SRs perdem o posto por causa do KPI na semana (80:20); D2: quem só faz cobertura
+    // (abaixo de 25% entre os 20% piores) nunca é regular em posto.
+    $fonteKpi = ($est['fonte_desempenho'] ?? 'MERITO') === 'KPI';
+    $neutro = (int) ($est['faixa_neutra'] ?? 1);
+    $soCobertura = $fonteKpi ? ($est['so_cobertura'] ?? []) : [];
+    $kpiMovidos = [];
+    $kpiMovMax = $fonteKpi ? (int) ceil(count($est['faixa'] ?? []) * (float) str_replace(',', '.', escV4Param('v4_kpi_mov_max', '0.20'))) : 0;
+    $nomeFaixa = static function (int $fx) use ($fonteKpi): string {
+        return $fonteKpi ? 'KPI nível ' . $fx : ([2 => 'mérito Acima', 1 => 'mérito Na média', 0 => 'mérito Abaixo'][$fx] ?? 'mérito Na média');
+    };
+    // K-03: o nível de quem está no posto e o nível que o tira dele (null = ninguém tira).
+    $kpiTira = static function (int $antes, int $melhor, bool $prioritaria): bool {
+        return match ($antes) {
+            4 => false,
+            3 => $melhor >= 4,
+            2 => $melhor >= 4 && $prioritaria, // D1: o 120% cresce nas páginas maiores
+            1 => $melhor >= 3,
+            default => $melhor >= 1,
+        };
+    };
     // SR de nível 3 ou mais não trabalha como assistente: posto de assistente ou de apoio só
     // recebe SR até este nível e com "pode ser assistente" no cadastro (em todas as etapas,
     // inclusive a equipe fixa).
@@ -421,7 +443,11 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec, $solo, $comAssist, $dia): bool {
+            $travaCobertura = true; // D2: vale até o passo 5; o acúmulo e a sobrecarga (coberturas) liberam
+            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec, $solo, $comAssist, $dia, $soCobertura, &$travaCobertura): bool {
+                if ($travaCobertura && isset($soCobertura[$rep]) && !in_array($p['tipo'], ['assistente', 'apoio'], true)) {
+                    return false; // KPI abaixo de 25% entre os 20% piores: só cobertura, nunca regular em posto (D2)
+                }
                 foreach ($p['paginas'] as $pg) {
                     if (isset($foraPag[$rep][$pg['pagina']])) {
                         return false; // fora desta página
@@ -727,7 +753,7 @@ function escMotorAlocarV4(array $in): array {
                                 // A-01 com a P-01: depois quem já fez a página em 30 dias (tem meta nela, 03/11),
                                 // a faixa do mérito, a nota em pontos e o tempo de casa.
                                 $fezPagina = isset($mel['meta'][$pag][$rep]) ? 1 : 0;
-                                $k = [$bateu, $fezPagina, $faixaRep[$rep] ?? 1, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
+                                $k = [$bateu, $fezPagina, $faixaRep[$rep] ?? $neutro, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
                             } else {
                                 // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
                                 $naPag = $mel['pagina'][$pag][$rep] ?? null;
@@ -748,24 +774,32 @@ function escMotorAlocarV4(array $in): array {
                             // da dele, que ele esteja abaixo da meta mínima na página ou que nunca a tenha feito
                             // e o melhor já tenha.
                             $antes = $ultimo[(int) $p['id']] ?? null;
+                            $fxAntes = $faixaRep[$antes ?? ''] ?? $neutro;
+                            $fxMelhor = $faixaRep[$melhor] ?? $neutro;
+                            // KPI: K-03 (tabela por nível) e D1 (no máximo v4_kpi_mov_max dos SRs perdem o posto pelo KPI).
+                            $naoTira = $fonteKpi
+                                ? (!$kpiTira($fxAntes, $fxMelhor, isset($est['prioritaria'][$pag])) || (!isset($kpiMovidos[$antes]) && count($kpiMovidos) >= $kpiMovMax))
+                                : $fxMelhor <= $fxAntes;
                             if ($antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && !isset($usado[$antes]) && $pode($antes, $p)
-                                && ($faixaRep[$melhor] ?? 1) <= ($faixaRep[$antes] ?? 1)
+                                && $naoTira
                                 && (isset($mel['meta'][$pag][$antes]) || !isset($mel['meta'][$pag][$melhor]))
                                 && !(isset($mel['meta'][$pag][$antes]) && $mel['meta'][$pag][$antes] < $metaMin)) {
                                 $melhor = $antes;
                                 $fica = true;
+                            } elseif ($fonteKpi && $antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && $fxMelhor > $fxAntes) {
+                                $kpiMovidos[$antes] = true; // saiu do posto pelo KPI (conta no limite de 20%)
                             }
                         }
                         $v['rep'] = $melhor;
                         $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
                         $metaPag = isset($mel['meta'][$pag][$melhor]) ? round($mel['meta'][$pag][$melhor] * 100) . '% da meta na página em 30 dias' : 'sem meta na página em 30 dias';
                         if ($faixaPasso0) {
-                            $fx = [2 => 'Acima', 1 => 'Na média', 0 => 'Abaixo'][$faixaRep[$melhor] ?? 1];
-                            $v['motivo'] = ($fica ? 'continua no posto, ' : 'melhor SR do turno, ') . 'para ' . $pag . ' (' . $metaPag . '; mérito ' . $fx . ', '
-                                . str_replace('.', ',', (string) round($merito[$melhor] ?? 0.0, 1)) . ' pontos)';
-                            // A-02: o SR Abaixo só fica em página prioritária sem outro disponível (ou se bateu a meta nela).
-                            if ($abaixoForaTopo && ($faixaRep[$melhor] ?? 1) === 0 && isset($est['prioritaria'][$pag])) {
-                                $v['motivo'] .= ' · Abaixo em página prioritária';
+                            $fxM = $faixaRep[$melhor] ?? $neutro;
+                            $v['motivo'] = ($fica ? 'continua no posto, ' : 'melhor SR do turno, ') . 'para ' . $pag . ' (' . $metaPag . '; ' . $nomeFaixa($fxM) . ', '
+                                . str_replace('.', ',', (string) round($merito[$melhor] ?? 0.0, 1)) . ($fonteKpi ? '%' : ' pontos') . ')';
+                            // A-02 / K-04: o SR Abaixo (nível 0) só fica em página prioritária sem outro disponível (ou se bateu a meta nela).
+                            if ($abaixoForaTopo && $fxM === 0 && isset($est['prioritaria'][$pag])) {
+                                $v['motivo'] .= $fonteKpi ? ' · nível 0 em página prioritária' : ' · Abaixo em página prioritária';
                             }
                         } else {
                             $v['motivo'] = 'melhor SR do turno para ' . $pag . ' (modelo com US$ ' . number_format($mel['paginas'][$pag], 0, ',', '.')
@@ -1049,7 +1083,7 @@ function escMotorAlocarV4(array $in): array {
                             || ($faixaRemanejar && !empty($w['fixa'])) || !$pode($w['rep'], $alvo5)) {
                             continue;
                         }
-                        $fx = $faixaRep[$w['rep']] ?? 1;
+                        $fx = $faixaRep[$w['rep']] ?? $neutro;
                         $k = [$faixaRemanejar ? $fx : (($abaixoForaTopo && $alvoPrio && $fx === 0) ? 0 : 1), -$receitaPosto[$w['pid']]];
                         if (($kFonte === null || $k > $kFonte) && !$temAssistente($estadoUT[$u]['vagas'], $j)) {
                             $fonte = $j;
@@ -1062,8 +1096,8 @@ function escMotorAlocarV4(array $in): array {
                         $estadoUT[$u]['vagas'][$i]['origem'] = 'BUFFER_NUCLEO';
                         $estadoUT[$u]['vagas'][$i]['motivo'] = 'remanejado de ' . $est['postos'][$w['pid']]['pagina_principal']
                             . ' (faturamento menor) para a página de faturamento maior'
-                            . ($faixaRemanejar ? ' (mérito ' . [2 => 'Acima', 1 => 'Na média', 0 => 'Abaixo'][$faixaRep[$w['rep']] ?? 1] . ')' : '')
-                            . ($abaixoForaTopo && $alvoPrio && ($faixaRep[$w['rep']] ?? 1) === 0 ? ' · Abaixo em página prioritária' : '');
+                            . ($faixaRemanejar ? ' (' . $nomeFaixa($faixaRep[$w['rep']] ?? $neutro) . ')' : '')
+                            . ($abaixoForaTopo && $alvoPrio && ($faixaRep[$w['rep']] ?? $neutro) === 0 ? ($fonteKpi ? ' · nível 0 em página prioritária' : ' · Abaixo em página prioritária') : '');
                         $estadoUT[$u]['vagas'][$fonte]['rep'] = null;
                         $estadoUT[$u]['vagas'][$fonte]['origem'] = null;
                         $estadoUT[$u]['vagas'][$fonte]['motivo'] = null;
@@ -1071,6 +1105,7 @@ function escMotorAlocarV4(array $in): array {
                 }
                 $lacunas = $listarLacunas();
 
+                $travaCobertura = false; // D2: dali em diante são coberturas (acúmulo e sobrecarga)
                 // 6. Ainda vazio: um SR já alocado no turno da unidade acumula o posto inteiro, se a
                 //    Política deixa juntar as páginas (mesma modelo até 3; modelos diferentes até 2) e a
                 //    carga cabe na capacidade. Posto só de página desconsiderada (carga zero) vai para

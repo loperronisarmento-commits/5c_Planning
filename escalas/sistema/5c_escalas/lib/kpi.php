@@ -16,9 +16,10 @@
 //   DNR ainda sem dado: não calculado.
 // - Score = Kinetic_base × Process × Integrity (0% a 120%). Moedas = só a meta semanal, sem teto.
 // - Novato (menos de 2 semanas fechadas com meta): score provisório de 75% (ajuste de 23/11).
-// Isolamento: só lê o banco (escQ tem trava de leitura), guarda o resultado em arquivo temporário (escCache)
-// e não alimenta o Gerar, o mérito, pagamentos nem notificações. Não usa nem altera o lib/merito.php
-// além de funções só de leitura.
+// Desde a 1.34.0 o KPI substitui o mérito na escalação (contexto/regras_escalacao_kpi.md, K-01 a K-08), com o
+// parâmetro v4_fonte_desempenho = KPI (MERITO volta ao mérito). O nível 0 a 4 de cada SR vai para o Gerar, o
+// Equilíbrio, o Funil, os Owners e as tags; o cache fica em esc_sr_kpi (ES_198). A tela guarda o detalhe semana
+// a semana em arquivo temporário (escCache). Não alimenta pagamentos nem notificações.
 // ===============================================
 
 const ESC_KPI_PESOS = [4, 3, 2, 1];                 // última semana fechada, anterior, antepenúltima, 4 semanas atrás
@@ -263,7 +264,20 @@ function escKpiCalcular(array $reps): array {
     foreach ($reps as $rep) {
         $vazio[$rep] = $sem[$rep] ?? [];
     }
-    return escKpiFechar($vazio, $semanas);
+    $out = escKpiFechar($vazio, $semanas);
+    // Anos completos de casa (desempate, como a M-06): só o código e o início do contrato do headcount.
+    try {
+        $hoje = new DateTime(date('Y-m-d'));
+        foreach (escQ('SELECT UPPER(code) AS rep, startContract AS ini FROM `5c_headcount`.`headcount` WHERE code IN (' . escIn($reps) . ')', $reps) as $r) {
+            $d = DateTime::createFromFormat('!d/m/Y', trim((string) $r['ini']));
+            if ($d && $d <= $hoje && isset($out[$r['rep']])) {
+                $out[$r['rep']]['anos'] = max($out[$r['rep']]['anos'] ?? 0, (int) $d->diff($hoje)->y);
+            }
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'KPI: tempo de casa indisponível (headcount)', ['erro' => $e->getMessage()]);
+    }
+    return $out;
 }
 
 // Fecha cada semana (atingimento, moedas, SLA, Process, Integrity) e os pilares ponderados.
@@ -340,6 +354,149 @@ function escKpiPareto(array $kpiSr): array {
     }
     asort($scores);
     return array_fill_keys(array_slice(array_keys($scores), 0, (int) ceil(count($scores) * ESC_KPI_PARETO)), true);
+}
+
+// K-01: nível do SR para a escala (contexto/regras_escalacao_kpi.md). 4 = 120%; 3 = 100% a 119%; 2 = mantém a
+// posição (75% a 99%, novato provisório e quem está abaixo de 75% fora dos 20% piores); 1 = entre os 20% piores
+// com 50% a 74%; 0 = entre os 20% piores abaixo de 50%.
+function escKpiNivel(?float $score, bool $provisorio, bool $pareto): int {
+    if ($provisorio || $score === null) {
+        return 2;
+    }
+    $s = round($score, 6);
+    if ($s >= 1.20) {
+        return 4;
+    }
+    if ($s >= 1.00) {
+        return 3;
+    }
+    if ($s < 0.75 && $pareto) {
+        return $s < 0.50 ? 0 : 1;
+    }
+    return 2;
+}
+
+// Rótulo do nível nas telas e nos motivos da Grade.
+function escKpiNivelRotulo(int $nivel): array {
+    return [4 => [t('Nível 4 · 120%'), 'verde'], 3 => [t('Nível 3 · 100% a 119%'), 'verde'], 2 => [t('Nível 2 · mantém'), ''],
+        1 => [t('Nível 1 · substituir'), 'amarelo'], 0 => [t('Nível 0 · realocar'), 'laranja']][$nivel] ?? [t('Nível 2 · mantém'), ''];
+}
+
+// Fonte do desempenho na escalação: KPI (padrão desde a 1.34.0) ou MERITO (volta à nota em pontos).
+function escDesempenhoFonte(): string {
+    return strtoupper(trim(escV4Param('v4_fonte_desempenho', 'KPI'))) === 'MERITO' ? 'MERITO' : 'KPI';
+}
+
+// SRs ativos da estrutura nova (vigentes ou que começam nas próximas 2 semanas).
+function escKpiSrsAtivos(): array {
+    $d = date('Y-m-d', strtotime('+14 day'));
+    return array_column(escQ('SELECT DISTINCT UPPER(rep_code) AS rep FROM ' . escT('esc_colaborador_config')
+        . " WHERE funcao = 'EQUITE' AND nucleo_id IS NOT NULL AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= CURDATE())", [$d]), 'rep');
+}
+
+// KPI no banco (esc_sr_kpi, K-08): recalcula e grava se estiver com mais de 3 h (ou se $forcar), como o mérito.
+// Volta [rep => linha do cache].
+function escKpiBanco(bool $forcar = false): array {
+    try {
+        $ult = escQ1('SELECT MAX(calculado_em) AS m FROM ' . escT('esc_sr_kpi'));
+    } catch (Throwable $e) {
+        return []; // ES_198 ainda não rodou
+    }
+    $velho = !$ult || $ult['m'] === null || strtotime((string) $ult['m']) < time() - ESC_KPI_CACHE_SEG;
+    if ($forcar || ($velho && (PHP_SAPI === 'cli' || escPodeVerRestrito()))) {
+        try {
+            $agora = date('Y-m-d H:i:s');
+            $linhas = escKpiLinhas(escKpiCalcular(escKpiSrsAtivos()), $agora);
+            if ($linhas) {
+                escTx(static function () use ($linhas, $agora) {
+                    escW('DELETE FROM `' . ESC_SCHEMA . '`.`esc_sr_kpi` WHERE calculado_em < ?', [$agora]);
+                    escInserirLote('esc_sr_kpi', array_keys($linhas[0]), $linhas);
+                });
+            }
+        } catch (Throwable $e) {
+            appLog('error', 'KPI: falha ao recalcular o cache', ['erro' => $e->getMessage()]);
+        }
+    }
+    $out = [];
+    foreach (escQ('SELECT * FROM ' . escT('esc_sr_kpi')) as $r) {
+        $out[strtoupper((string) $r['rep_code'])] = $r;
+    }
+    return $out;
+}
+
+// Para as tags da Grade (ES_199): faltas, SLA 5 e quebras de P&G das 4 semanas, e as semanas fechadas seguidas
+// com 100% ou mais da meta, da última para trás (semana sem meta é pulada, como a M-10).
+function escKpiResumoTags(array $k): array {
+    $sem = is_array($k['semanas'] ?? null) ? $k['semanas'] : [];
+    krsort($sem);
+    $faltas = 0;
+    $resp = 0;
+    $r5 = 0.0;
+    $pg = 0;
+    $seq = 0;
+    $seguindo = true;
+    foreach ($sem as $w) {
+        $faltas += (int) ($w['faltas'] ?? 0);
+        $pg += count($w['pg'] ?? []);
+        if (!empty($w['respostas']) && $w['sla5'] !== null) {
+            $resp += (int) $w['respostas'];
+            $r5 += (float) $w['sla5'] * (int) $w['respostas'];
+        }
+        if ($seguindo && ($w['atingimento'] ?? null) !== null) {
+            if ($w['atingimento'] >= 1.0) {
+                $seq++;
+            } else {
+                $seguindo = false;
+            }
+        }
+    }
+    $semDados = !$sem;
+    return ['faltas' => $semDados ? null : $faltas, 'sla5' => $resp > 0 ? round($r5 / $resp, 4) : null, 'pg' => $semDados ? null : $pg, 'semanas_meta' => $semDados ? null : $seq];
+}
+
+// Linhas do cache esc_sr_kpi a partir do cálculo (nível com o Pareto entre todos os SRs calculados).
+function escKpiLinhas(array $calc, string $agora): array {
+    $pareto = escKpiPareto($calc);
+    $ref = max(array_keys(escKpiSemanas()));
+    $r4 = static fn($v) => $v === null ? null : round((float) $v, 4);
+    $linhas = [];
+    foreach ($calc as $rep => $k) {
+        $par = isset($pareto[$rep]);
+        $linhas[] = ['rep_code' => $rep, 'semana_ref' => $ref, 'kinetic_meta' => $r4($k['kinetic_meta']), 'kinetic' => $r4($k['kinetic_base']),
+            'process' => $r4($k['process']), 'integrity' => $r4($k['integrity']), 'score' => $r4($k['score']), 'score_calculado' => $r4($k['score_calculado']),
+            'provisorio' => !empty($k['provisorio']) ? 1 : 0, 'pareto' => $par ? 1 : 0,
+            'nivel' => escKpiNivel($k['score'] !== null ? (float) $k['score'] : null, !empty($k['provisorio']), $par),
+            'moedas' => $k['moedas'] !== null ? round((float) $k['moedas'], 2) : null] + escKpiResumoTags($k) + ['anos' => $k['anos'] ?? 0, 'calculado_em' => $agora];
+    }
+    return $linhas;
+}
+
+// O que o Gerar usa do desempenho, no mesmo formato de antes (escMeritoMotor): 'nota' (KPI: score em %),
+// 'faixa' (KPI: nível 0 a 4; mérito: 0 a 2), 'anos', 'fonte' e, no KPI, 'so_cobertura' (D2: abaixo de 25%
+// entre os 20% piores). Quem não está no cache fica no meio (nível 2 / Na média).
+function escDesempenhoMotor(): array {
+    if (escDesempenhoFonte() === 'MERITO') {
+        $m = function_exists('escMeritoCarregar') ? escMeritoMotor(escMeritoCarregar()) : ['nota' => [], 'faixa' => [], 'anos' => []];
+        return $m + ['fonte' => 'MERITO', 'so_cobertura' => [], 'neutro' => 1];
+    }
+    $corte = (float) str_replace(',', '.', escV4Param('v4_kpi_so_cobertura', '0.25'));
+    $out = ['nota' => [], 'faixa' => [], 'anos' => [], 'fonte' => 'KPI', 'so_cobertura' => [], 'neutro' => 2];
+    foreach (escKpiBanco() as $rep => $k) {
+        $score = $k['score'] !== null ? (float) $k['score'] : null;
+        $out['nota'][$rep] = $score !== null ? round($score * 100, 2) : 75.0;
+        $out['faixa'][$rep] = (int) $k['nivel'];
+        $out['anos'][$rep] = (int) ($k['anos'] ?? 0);
+        if ((int) $k['nivel'] === 0 && $score !== null && empty($k['provisorio']) && $score < $corte) {
+            $out['so_cobertura'][$rep] = true;
+        }
+    }
+    return $out;
+}
+
+// Nota de desempenho por SR para Equilíbrio, Funil, Owners e equipes: o score do KPI em % (ou a nota de mérito).
+function escDesempenhoNotas(): array {
+    $m = escDesempenhoMotor();
+    return $m['nota'];
 }
 
 // A coluna resp_15min (5C_Planning_41) já existe no cap_rep_hora?

@@ -8,8 +8,12 @@
 // bateu a meta na página) e pesam no remanejamento, no acúmulo e na sobrecarga.
 // ===============================================
 
+$legadoMerito = escDesempenhoFonte() === 'KPI';
+if ($legadoMerito) {
+    escExigir('admin'); // Legado desde a 1.34.0: só admin, só leitura
+}
 if (escPost()) {
-    if (!escPodeReal('planejar')) {
+    if ($legadoMerito || !escPodeReal('planejar')) {
         throw new RuntimeException(t('Bloqueado: seu perfil não pode fazer isso.'));
     }
     escMeritoCarregar(true);
@@ -134,6 +138,7 @@ if (isset($_GET['baixar'])) {
   <span class="muted small"><?php echo h(t('Na impressão, escolha "Salvar como PDF".')); ?></span>
 </div>
 <?php endif; ?>
+<?php if ($legadoMerito && !$soPdf): ?><div class="faixa-legado" role="status"><?php echo h(t('Legado: desde a 1.34.0 a escala usa o KPI dos SRs, não o mérito. Esta tela fica só para consulta.')); ?> <a href="<?php echo h(link_tela('kpi')); ?>"><?php echo h(t('Abrir o KPI dos SRs')); ?></a></div><?php endif; ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Análise')); ?></span>
   <h1><?php echo h(t('Mérito dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
@@ -177,7 +182,7 @@ if (isset($_GET['baixar'])) {
     <select name="u" data-envio-auto aria-label="<?php echo h(t('Unidade')); ?>" data-sem-busca><option value=""><?php echo h(t('Todas as unidades')); ?></option><?php foreach ([1, 2, 3] as $u): ?><option value="<?php echo $u; ?>" <?php echo (string) $u === $uSel ? 'selected' : ''; ?>>U<?php echo $u; ?></option><?php endforeach; ?></select>
     <select name="t" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>" data-sem-busca><option value=""><?php echo h(t('Todos os turnos')); ?></option><?php foreach (['A', 'C', 'D'] as $t): ?><option <?php echo $t === $tSel ? 'selected' : ''; ?>><?php echo $t; ?></option><?php endforeach; ?></select>
   </form>
-  <?php if (escPodeReal('planejar')): ?>
+  <?php if (escPodeReal('planejar') && !$legadoMerito): ?>
   <form method="post" action="<?php echo h(link_tela('srs', array_filter(['plano' => $planoId, 'u' => $uSel, 't' => $tSel]))); ?>" class="acoes">
     <?php echo campoCsrf(); ?><button type="submit" class="botao" data-longo="<?php echo h(t('Recalculando o mérito… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular mérito agora')); ?></button>
     <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) escV4Param('merito_cache_horas', '20')])) : h(t('Ainda não calculado (rode o ES_16).')); ?></span>

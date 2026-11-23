@@ -9,6 +9,10 @@
 // ===============================================
 
 escExigirRestrito(); // Política de mérito: só WFM/Planejamento e Admin.
+$legadoMerito = escDesempenhoFonte() === 'KPI';
+if ($legadoMerito) {
+    escExigir('admin'); // Legado desde a 1.34.0
+}
 $en = escEmIngles();
 $L = static fn(string $pt, string $enTxt): string => $en ? $enTxt : $pt;
 $pts = escMeritoPtsParam();
@@ -99,6 +103,7 @@ $faixaDe = static function (float $nota) use ($pts, $L): array {
 };
 $sinal = static fn($v): string => (int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 ? '−' . abs((int) $v) : '0');
 ?>
+<?php if ($legadoMerito): ?><div class="faixa-legado nao-imprimir" role="status"><?php echo h($L('Legado: desde a 1.34.0 a escala usa o KPI dos SRs, não o mérito. Esta página fica só para consulta.', 'Legacy: since 1.34.0 the schedule uses the SR KPI, not merit. This page is for reference only.')); ?> <a href="<?php echo h(link_tela('kpi')); ?>"><?php echo h($L('Abrir o KPI dos SRs', 'Open the SR KPI')); ?></a></div><?php endif; ?>
 <?php escDocIni(); ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h($L('Ajuda', 'Help')); ?></span>

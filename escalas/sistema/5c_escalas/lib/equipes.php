@@ -243,11 +243,9 @@ function escEquipesCompletar(string $desde, string $ref): array {
     }
     $notas = [];
     try {
-        foreach (escQ('SELECT UPPER(rep_code) AS rep, nota FROM ' . escT('esc_sr_merito')) as $m) {
-            $notas[$m['rep']] = $m['nota'] !== null ? (float) $m['nota'] : null;
-        }
+        $notas = escDesempenhoNotas(); // KPI (score em %) ou mérito
     } catch (Throwable $e) {
-        // sem mérito: só o histórico decide
+        // sem desempenho: só o histórico decide
     }
     // Ordem das vagas (como no montador): dono antes de cobertura; depois a vaga em que alguém do
     // núcleo conhece as páginas (senão quem conhece uma página é gasto noutra); depois a carga.

@@ -1,7 +1,8 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/kpi.php
-// KPI dos SRs (Kinetic, Process & Integrity): SIMULAÇÃO, só visualização. As mesmas funções do Mérito
+// KPI dos SRs (Kinetic, Process & Integrity): desde a 1.34.0 é a referência da escala, no lugar do mérito
+// (contexto/regras_escalacao_kpi.md). A coluna Nível é a que o Gerar usa (cache esc_sr_kpi). As mesmas funções do Mérito
 // dos SRs (pages/tertius.php) e da Ajuda › Mérito (pages/merito.php): semana da escala, filtros de
 // unidade e turno, contagem por faixa, turnos na escala, tabela por SR ordenável, como é calculado,
 // recalcular (só o cache em arquivo), exportar .xlsx e PDF, simulador e resumo por unidade e turno.
@@ -38,6 +39,8 @@ $srs = escQ("SELECT UPPER(c.rep_code) AS rep, c.unidade, c.turno, c.nivel, n.num
                FROM " . escT('esc_colaborador_config') . " c LEFT JOIN " . escT('esc_nucleo') . " n ON n.id = c.nucleo_id
               WHERE c.funcao = 'EQUITE' AND c.nucleo_id IS NOT NULL AND c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)", [$fim, $seg]);
 $kpi = escKpiCarregar(array_column($srs, 'rep'));
+// Nível de cada SR como o Gerar vê (cache no banco; "Recalcular agora" refaz também este cache).
+$kpiDb = escKpiBanco(!empty($_GET['recarregar']) && escPodeReal('planejar'));
 $calculadoEm = $kpi['calculado_em'] ?? null;
 $kpiSr = $kpi['srs'] ?? [];
 $semanas = escKpiSemanas();
@@ -126,15 +129,15 @@ if ($soPdf || isset($_GET['baixar'])) {
             $l['moedas'] !== null ? round($l['moedas'], 1) : null, $l['comp'][1]];
     }
     $filtroTxt = ($uSel !== '' ? 'U' . $uSel : t('Todas as unidades')) . ' · ' . ($tSel !== '' ? t('Turno {t}', ['t' => $tSel]) : t('Todos os turnos'));
-    $infoDoc = t('SIMULAÇÃO') . ' · ' . t('Semanas de {de} a {ate}', ['de' => dataBr(min(array_keys($semanas))), 'ate' => dataBr(escMaisDias(max(array_keys($semanas)), 6))]) . ' · ' . $filtroTxt
+    $infoDoc = t('Semanas de {de} a {ate}', ['de' => dataBr(min(array_keys($semanas))), 'ate' => dataBr(escMaisDias(max(array_keys($semanas)), 6))]) . ' · ' . $filtroTxt
         . ($calculadoEm ? ' · ' . t('Calculado em {quando}', ['quando' => escDataHora((string) $calculadoEm)]) : '');
-    $nomeArq = 'KPI SRs simulacao' . ($uSel !== '' ? ' U' . $uSel : '') . ($tSel !== '' ? ' ' . $tSel : '') . ' ' . date('d-m-Y');
+    $nomeArq = 'KPI SRs' . ($uSel !== '' ? ' U' . $uSel : '') . ($tSel !== '' ? ' ' . $tSel : '') . ' ' . date('d-m-Y');
 }
 if (($_GET['baixar'] ?? '') === 'xlsx') {
     require_once __DIR__ . '/../lib/xlsx.php';
     $col = static fn(string $titulo, float $largura, string $estilo) => ['titulo' => $titulo, 'largura' => $largura, 'estilo' => $estilo];
     escXlsxBaixar($nomeArq . '.xlsx', 'KPI',
-        [t('KPI dos SRs (Kinetic, Process & Integrity) · simulação'), $infoDoc,
+        [t('KPI dos SRs (Kinetic, Process & Integrity)'), $infoDoc,
             implode(' · ', array_map(static fn($f, $n) => $f . ': ' . $n, $faixas, $conta))],
         [$col(t('Rank'), 6, 'inteiro'), $col('SR', 28, 'texto'), $col(t('Código'), 10, 'texto'), $col(t('Unidade'), 8, 'texto'), $col(t('Turno'), 7, 'texto'), $col(t('Núcleo'), 7, 'inteiro'), $col(t('Nível'), 7, 'inteiro'),
             $col(t('Em posto'), 8, 'inteiro'), $col(t('Assistente'), 10, 'inteiro'), $col('Buffer (-2)', 8, 'inteiro'), $col('Overlap (-5)', 8, 'inteiro'), $col(t('% em posto'), 8, 'pct'),
@@ -158,10 +161,10 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
 </div>
 <?php endif; ?>
 <header class="cabecalho">
-  <span class="eyebrow"><?php echo h(t('Análise')); ?> · <?php echo h(t('Simulação')); ?></span>
+  <span class="eyebrow"><?php echo h(t('Análise')); ?></span>
   <h1><?php echo h(t('KPI dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
   <?php if ($soPdf): ?><p class="muted small"><?php echo h($infoDoc); ?></p>
-  <?php else: ?><p class="muted"><?php echo h(t('Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, de 0% a 120%, e moedas pela meta semanal. É só uma simulação: não pesa no Gerar, no mérito, em pagamento nem em notificação.')); ?></p><?php endif; ?>
+  <?php else: ?><p class="muted"><?php echo h(t('Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, de 0% a 120%, e moedas pela meta semanal. Desde a 1.34.0 é a referência da escala no lugar do mérito: o nível de cada SR (0 a 4) define a ordem no Gerar, a continuidade no posto, o remanejamento, o acúmulo e a sobrecarga.')); ?> <a href="<?php echo h(link_tela('regras')); ?>"><?php echo h(t('Ver as regras')); ?></a></p><?php endif; ?>
 </header>
 
 <?php if (!$soPdf): ?>
@@ -300,7 +303,7 @@ $tituloGraf = $comScore > 0
   </details>
   <div class="acoes">
     <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['recarregar' => 1])); ?>" data-longo="<?php echo h(t('Recalculando o KPI… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular agora')); ?></a>
-    <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h. Nada é gravado no banco.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) (ESC_KPI_CACHE_SEG / 3600)])) : ''; ?></span>
+    <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h e no Gerar.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) (ESC_KPI_CACHE_SEG / 3600)])) : ''; ?></span>
   </div>
   <div class="acoes">
     <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['baixar' => 'xlsx'])); ?>"><?php echo h(t('Exportar .xlsx')); ?></a>
@@ -311,7 +314,7 @@ $tituloGraf = $comScore > 0
   <div class="tabela-rolagem">
   <table<?php echo $soPdf ? ' data-sem-ordem' : ''; ?>>
     <thead><tr><th class="num"><abbr title="<?php echo h(t('Rank pelo score no filtro escolhido')); ?>">#</abbr></th><th>SR</th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th class="num"><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Em posto')); ?></th><th class="num"><?php echo h(t('Assistente')); ?></th><th class="num">Buffer (-2)</th><th class="num">Overlap (-5)</th>
-      <th class="num"><?php echo h(t('Meta ponderada')); ?></th><th class="num">Kinetic</th><th class="num">Process</th><th class="num">Integrity</th><th class="num">Score</th><th class="num"><?php echo h(t('Moedas')); ?></th><th><?php echo h(t('Comportamento sugerido')); ?></th></tr></thead>
+      <th class="num"><?php echo h(t('Meta ponderada')); ?></th><th class="num">Kinetic</th><th class="num">Process</th><th class="num">Integrity</th><th class="num">Score</th><th><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Moedas')); ?></th><th><?php echo h(t('Comportamento sugerido')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($linhas as $l): $k = $l['k'] ?? []; ?>
       <tr>
@@ -328,11 +331,12 @@ $tituloGraf = $comScore > 0
         <td class="num"><?php echo $pc($k['process'] ?? null, 1); ?></td>
         <td class="num <?php echo isset($k['integrity']) && $k['integrity'] < 1 ? 'laranja' : ''; ?>"><?php echo $pc($k['integrity'] ?? null, 1); ?></td>
         <td class="num"><strong><?php echo $pc($l['score'], 1); ?></strong></td>
+        <?php [$nvRot, $nvCls] = escKpiNivelRotulo((int) ($kpiDb[$l['rep']]['nivel'] ?? 2)); ?><td><span class="tag <?php echo h($nvCls); ?>"><?php echo h($nvRot); ?></span></td>
         <td class="num"><?php echo $l['moedas'] !== null ? num($l['moedas'], 1) : '—'; ?></td>
         <td><span class="tag <?php echo h($l['comp'][2]); ?>"><?php echo h($l['comp'][1]); ?></span></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$linhas): ?><tr><td colspan="15" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
+    <?php if (!$linhas): ?><tr><td colspan="16" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>

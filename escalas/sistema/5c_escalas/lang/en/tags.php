@@ -40,4 +40,10 @@ return [
     'Bate meta na modelo' => 'Hits target on the model',
     'Experiente na modelo' => 'Experienced on the model',
     'Meta na modelo (todas as páginas dela) nos últimos 30 dias (✓ {bate}% ou mais, ✗ abaixo de {nao}%); experiente com {exp} dias ou mais na modelo em 90 dias, inexperiente com menos de {conhece}; faltas com {faltas} dias ou mais em 28; SLA abaixo de {sla}%; sequência de {seq} semanas ou mais.' => 'Target on the model (all its pages) in the last 30 days (✓ {bate}% or more, ✗ below {nao}%); experienced with {exp} days or more on the model in 90 days, inexperienced with fewer than {conhece}; absences with {faltas} days or more in 28; SLA below {sla}%; streak of {seq} weeks or more.',
+    'P&G' => 'P&G',
+    'Quebra de P&G nas 4 semanas' => 'P&G breach in the 4 weeks',
+    'KPI ↓' => 'KPI ↓',
+    'KPI nível 0 ou 1 (entre os 20% piores)' => 'KPI level 0 or 1 (among the worst 20%)',
+    'KPI ↑' => 'KPI ↑',
+    'KPI nível 3 ou 4 (100% ou mais)' => 'KPI level 3 or 4 (100% or more)',
 ];

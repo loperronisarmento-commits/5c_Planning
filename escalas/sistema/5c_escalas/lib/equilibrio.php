@@ -362,7 +362,7 @@ function escEqDados(string $hoje, ?string $dia = null): array {
         $srs[(int) $c['unidade']][$c['turno']] = ($srs[(int) $c['unidade']][$c['turno']] ?? 0) + 1;
         $pessoas[(int) $c['unidade']][$c['turno']][$c['rep']] = ['num' => (int) $c['numero'], 'nivel' => (int) $c['nivel'], 'nota' => null];
     }
-    $notas = array_change_key_case(escMeritoNotasMotor(escMeritoCarregar()), CASE_UPPER);   // sem mérito: só o nível ordena
+    $notas = array_change_key_case(escDesempenhoNotas(), CASE_UPPER);   // KPI (score em %) ou mérito; sem dado: só o nível ordena
     // Páginas que cada SR conhece: dias escalado nelas nas últimas 8 semanas (5C Schedule).
     $conhece = [];
     $reps = [];
