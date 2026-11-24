@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.38.1' => ['titulo' => 'Action Plan: exits already applied left the list', 'itens' => [
+    'Action Plan: a page exit to check is only listed while the page is still in the structure (the same rule as Generate). The 41 exits already applied, or of pages outside Capacity, left the list by themselves.',
+    ]],
     '1.38.0' => ['titulo' => 'Full review: official KPI, Action Plan, automatic Capacity and new Grid', 'itens' => [
     'The SR KPI is the official performance indicator. Merit moved to the Legacy area (admin only, read only, data preserved), and coins were removed from the KPI, the export and the simulator.',
     'The Follow-up bot was removed (it was a one-off analysis). The data was exported first.',

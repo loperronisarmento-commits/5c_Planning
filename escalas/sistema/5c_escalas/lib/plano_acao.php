@@ -283,13 +283,15 @@ function escAcoesSincronizar(bool $forcar = false): array {
         return count($refs);
     });
 
-    // 5. Saídas de página a conferir (detectadas pelo Capacity, sem decisão).
+    // 5. Saídas de página a conferir (detectadas pelo Capacity, sem decisão) de página que ainda está
+    //    na estrutura (o mesmo critério da verificação do Gerar): a que já saiu não tem o que conferir.
     $rodar('saidas', static function () use ($uDe): int {
         $refs = [];
         foreach (escQ("SELECT e.id, e.pagina, DATE(e.data_evento) AS dia FROM `5c_planning`.`fc_pagina_eventos` e
                         LEFT JOIN " . escT('esc_saida_checagem') . " c ON c.evento_id = e.id
                        WHERE e.tipo = 'SAIDA' AND IFNULL(e.status, '') <> 'CANCELADA' AND e.data_evento >= CURDATE() - INTERVAL 45 DAY
-                         AND IFNULL(c.decisao, 'PENDENTE') = 'PENDENTE'") as $s) {
+                         AND IFNULL(c.decisao, 'PENDENTE') = 'PENDENTE'
+                         AND EXISTS (SELECT 1 FROM `5c_planning`.`fc_pagina_carteira` pc WHERE pc.pagina = e.pagina AND pc.vigente_ate IS NULL)") as $s) {
             $ref = 'sai:' . (int) $s['id'];
             $refs[] = $ref;
             escAcaoRegistrar(['ref' => $ref, 'tipo' => 'SAIDA_PAGINA', 'origem' => 'saidas', 'unidade' => $uDe((string) $s['pagina']), 'dia' => (string) $s['dia'],
