@@ -221,6 +221,12 @@ Regras em `contexto/regras_base_semana_8020_anjo.md` (ES_213).
 - Motor (`lib/motor_v4.php`): rodada da base depois da equipe fixa e antes do melhor SR; quem fez a página na semana anterior conta como quem a conhece (P-02).
 - Tela Escala › Movimentações e Anjos (`pages/movimentos.php`, restrita).
 
+## Grade da escala (1.38.0, item E)
+
+- **E1, pacote de postagem:** `?p=grade&baixar=lote&desde=<slot>` traz `delete_range` (do dia do "CSV a partir de" ao fim da semana, todas as páginas do plano e as que só estão no site, `so_apagar`) antes de `paginas`. O site apaga o dia inteiro: o CSV do dia do corte leva os blocos de antes do corte iguais ao site (`5c_schedule.scheduleday`) ou, se a importação do site ainda não cobre esse dia, iguais à versão (`corte.fonte_antes_do_corte`). O favorito "Postar CSV em lote" apaga cada página logo antes de postá-la.
+- **E2:** as páginas vêm do maior para o menor faturamento real de 30 dias (`escTierDiagnostico`, a fonte do Gerar, US$), sem coluna de faturamento. O Tier do site aparece depois do nome ("Charlie 306m - C"). Quando o Tier não bate com a faixa de `5c_crm.tiers`, a página leva ⚑ e uma ação "Recalcular Tier" no Plano de Ação (`escAcaoSincronizarTier`, no máximo a cada 30 min; fecha sozinha quando volta a bater).
+- **E3 a E5:** os turnos A, C e D viram coluna (o nome aparece uma vez), e turno sem ninguém aparece como "vago". Os filtros de turno e unidade ficam no navegador (`assets/escalas.js`), sem recarregar e sem perder a rolagem; o filtro vai para a URL (`?turno=`, `?u=`). A aba Por pessoa tem a mesma estrutura.
+
 ## KPI oficial, Mérito em Legacy e sem moedas (1.38.0)
 
 Revisão de 24/11/2026 (item A):

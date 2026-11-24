@@ -133,3 +133,12 @@ Depois do teste, o ajax, o confirm, o painel e o `localStorage` foram restaurado
 - Ler, do sistema do 5C Planning, a lista de páginas que estão "no site" na semana e marcar só essas automaticamente.
 - Depois do Delete Range, colar o CSV de cada página e clicar em Save Schedule CSV, com confirmação humana.
 - Registrar "Apaguei" e "Postei" no sistema de escalas.
+
+## JSON de delete (09/11/2026)
+- **No painel:** o painel tem "Carregar JSON de delete", por arquivo ou colando o conteúdo. O JSON preenche De e Até e marca só as páginas dele; as outras ficam desmarcadas.
+  - Página que não está na lista de Models do site aparece no aviso e no log, e não é marcada.
+- **Formato:** `{"tipo": "delete_range", "descricao": "...", "de": "dd/mm/aaaa", "ate": "dd/mm/aaaa", "paginas": [{"id": 92, "nome": "Abg"}, ...]}`.
+  - Também aceita `date_schedule` e `date_end` no lugar de `de` e `ate`.
+- **Primeiro uso:** `resultados/escala_u3_0911/postagem_v2/delete_U3_10-11_a_15-11.json`, com as 24 páginas da U3 que mudam de 10/11 T2 em diante.
+- **Teste:** feito numa página local que imita a Schedule Tools, sem apagar nada. Marcou 23 de 23, preencheu as datas e avisou a página que faltava.
+- **Depois de mudar o `delete_range.js`:** rodar `node build_bookmarklet.js` e reinstalar o favorito pelo `instalar_delete_range.html`.

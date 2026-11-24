@@ -37,6 +37,7 @@ require_once __DIR__ . '/lib/motor_v4.php';
 require_once __DIR__ . '/lib/atingimento.php';
 require_once __DIR__ . '/lib/merito.php';
 require_once __DIR__ . '/lib/kpi.php';
+require_once __DIR__ . '/lib/plano_acao.php';
 require_once __DIR__ . '/lib/tags.php';
 require_once __DIR__ . '/lib/saida.php';
 require_once __DIR__ . '/lib/equipes.php';

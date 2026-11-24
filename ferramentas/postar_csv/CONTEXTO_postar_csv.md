@@ -33,6 +33,7 @@ Para cada página marcada:
 1. Lê no site o T6 de domingo real (`ScheduleDay2CSV` da semana anterior, linha T6, coluna de domingo) e põe essas pessoas no T1 de segunda do CSV, o regular primeiro e sem o `$`.
    - O T1 de segunda fecha o turno D que começou no T6 de domingo, e o T6 pode ter mudado à mão depois da geração.
    - Se a leitura falhar, fica o T1 da Grade e o log avisa.
+   - Se a leitura vier vazia e o pacote tiver T1, fica o T1 do pacote e o log avisa (22/11: na 5C Schedule a leitura veio vazia e o T1 de 23/11 foi postado sem ninguém).
    - O CSV vai sempre completo. O T1 de amanhã, que o Delete Range não apaga, o site descarta sozinho quando vem duplicado.
 2. Fecha qualquer popup aberto.
 3. Seleciona o Model, preenche o Date Schedule e cola o CSV no `schedule-csv-text-area`.
@@ -59,3 +60,11 @@ Depois de mudar o `postar_csv.js`, rode `node build_bookmarklet.js` e reinstale 
 - **Refeito em 01/11:** as duas páginas passaram por Delete Range de 02 a 08/11 e foram repostadas com o regular primeiro. Agora todas as células estão certas, menos uma.
   - **O T1 de 02/11 da Nicole Doshi.** O Delete Range não apaga turno protegido ("This Shift dont delete: T1 Day: 02/11/2026"). O D422040# ficou e o I122095 entrou depois dele como assistente. Essa célula precisa de ajuste à mão no 5C Schedule.
 - **Lição:** a primeira célula do CSV define o regular. Turno protegido (o T1 de amanhã) não sai no Delete Range, então a postagem precisa evitar duplicar quem ficou lá.
+
+## Delete Range dentro do pacote (1.38.0, 24/11/2026)
+
+- O pacote da Grade traz `delete_range` (do dia do "CSV a partir de" ao fim da semana) antes de `paginas`.
+- Com a caixa "Delete Range ... antes de postar" marcada (padrão), o favorito apaga cada página nesse range logo antes de postá-la e, no fim, só apaga as páginas marcadas `so_apagar` (estão no site, fora do plano).
+- O site apaga o dia inteiro; o CSV do dia do corte já traz os blocos de antes do corte iguais ao site (`corte.fonte_antes_do_corte` = site) ou, se o site ainda não foi importado para esse dia, iguais à versão postada (`versao`).
+- O T1 de segunda (T6 de domingo lido do site) só entra quando a postagem começa na segunda.
+- O favorito "Delete Range em lote" também aceita o pacote inteiro (usa a parte `delete_range`).

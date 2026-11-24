@@ -3,6 +3,9 @@
  * seleciona o Model, preenche Date Schedule e Date End, clica em Delete Range,
  * confirma (Delete All Reasons no 5C Schedule, OK nos outros) e espera o "Success".
  * Se vier "Error", espera e tenta de novo.
+ * Desde 09/11: carrega um JSON de delete (arquivo ou colado) que já traz o range e as páginas:
+ *   {"tipo": "delete_range", "de": "dd/mm/aaaa", "ate": "dd/mm/aaaa", "paginas": [{"id": 92, "nome": "Abg"}, ...]}
+ * Aceita também "date_schedule"/"date_end" no lugar de "de"/"ate". Marca só as páginas do arquivo.
  */
 (function () {
   if (window.__drPanel) { window.__drPanel.style.display = 'block'; return; }
@@ -114,6 +117,15 @@
       <b style="color:#8b0a50;font-size:15px">Delete Range em lote</b>
       <button data-x style="border:0;background:none;font-size:18px;cursor:pointer">×</button>
     </div>
+    <div style="margin-bottom:8px;padding:6px 8px;background:#fbf3f7;border:1px solid #e9cfdc;border-radius:4px">
+      <label style="display:block">Carregar JSON de delete <input type="file" data-file accept=".json,application/json" style="max-width:100%"></label>
+      <a href="#" data-colar>ou colar o conteúdo</a>
+      <div data-colar-box style="display:none;margin-top:4px">
+        <textarea data-json rows="4" style="width:100%;font:11px monospace" placeholder='{"tipo":"delete_range","de":"10/11/2026","ate":"15/11/2026","paginas":[{"id":92,"nome":"Abg"}]}'></textarea>
+        <button data-aplicar style="margin-top:4px;cursor:pointer">Aplicar</button>
+      </div>
+      <div data-json-info style="margin-top:4px;color:#8b0a50"></div>
+    </div>
     <div style="display:flex;gap:8px">
       <label style="flex:1">De (Date Schedule)<br><input data-ini placeholder="dd/mm/aaaa" style="width:100%"></label>
       <label style="flex:1">Até (Date End)<br><input data-end placeholder="dd/mm/aaaa" style="width:100%"></label>
@@ -148,6 +160,33 @@
   const markVisible = v => ev => { ev.preventDefault(); boxes().forEach(c => { if (c.parentElement.style.display !== 'none') c.checked = v; }); updCount(); };
   $('[data-all]').onclick = markVisible(true);
   $('[data-none]').onclick = markVisible(false);
+
+  // ---------- JSON de delete ----------
+  function aplicarJson(txt, origem) {
+    let j;
+    try { j = JSON.parse(txt); } catch (err) { return alert('Não é um JSON válido: ' + err.message); }
+    if (j && j.delete_range && Array.isArray(j.delete_range.paginas)) j = j.delete_range; // pacote da Grade (1.38.0): usa a parte do delete
+    const pags = Array.isArray(j.paginas) ? j.paginas : [];
+    const ini = String(j.de || j.date_schedule || '').trim(), end = String(j.ate || j.date_end || '').trim();
+    if (!pags.length) return alert('O JSON não tem a lista "paginas".');
+    if (!dateOk(ini) || !dateOk(end)) return alert('O JSON precisa de "de" e "ate" no formato dd/mm/aaaa.');
+    const ids = pags.map(p => String(p.id));
+    const existe = new Set(opts.map(o => o.id));
+    const faltam = pags.filter(p => !existe.has(String(p.id))).map(p => `${p.nome || '?'} (${p.id})`);
+    $('[data-filter]').value = '';
+    boxes().forEach(c => { c.parentElement.style.display = 'block'; c.checked = ids.includes(c.value); });
+    $('[data-ini]').value = ini; $('[data-end]').value = end;
+    updCount();
+    const info = `${origem}: ${ids.length - faltam.length} página(s), de ${ini} até ${end}` + (j.descricao ? ` · ${j.descricao}` : '');
+    $('[data-json-info]').textContent = info + (faltam.length ? ` · fora da lista do site: ${faltam.join(', ')}` : '');
+    log(info); if (faltam.length) log('  Não estão na lista de Models do site: ' + faltam.join(', '));
+  }
+  $('[data-file]').onchange = ev => {
+    const f = ev.target.files && ev.target.files[0]; if (!f) return;
+    const r = new FileReader(); r.onload = () => aplicarJson(String(r.result), f.name); r.readAsText(f, 'utf-8');
+  };
+  $('[data-colar]').onclick = ev => { ev.preventDefault(); const b = $('[data-colar-box]'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; };
+  $('[data-aplicar]').onclick = () => aplicarJson($('[data-json]').value, 'JSON colado');
 
   $('[data-x]').onclick = () => { panel.style.display = 'none'; };
   let stop = false;

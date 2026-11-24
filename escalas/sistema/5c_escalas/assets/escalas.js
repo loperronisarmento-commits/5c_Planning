@@ -903,3 +903,53 @@ document.addEventListener('click', function (ev) {
     if (pendente && e.target === pendente) { enviar(pendente); }
   });
 })();
+
+// Grade da escala (1.38.0, E3–E5): filtros de turno e unidade no navegador, sem recarregar a página e
+// sem mexer na rolagem. Cada página (ou pessoa) é um <tbody class="grupo-grade"> com uma linha por turno;
+// o nome e os botões (rowspan) vão para a primeira linha que fica visível. O filtro fica na URL (?turno=, ?u=).
+(function () {
+  var barra = document.querySelector('[data-grade-filtros]');
+  var tabela = document.querySelector('table[data-grade-agrupada]');
+  if (!barra || !tabela) { return; }
+  var url = new URL(window.location.href);
+  var estado = { turno: url.searchParams.get('turno') || '', u: url.searchParams.get('u') || '' };
+  var grupos = Array.prototype.slice.call(tabela.querySelectorAll('tbody.grupo-grade')).map(function (tb) {
+    return { tb: tb, linhas: Array.prototype.slice.call(tb.querySelectorAll('tr[data-turno]')),
+      fixas: Array.prototype.slice.call(tb.querySelectorAll('td[rowspan]')) };
+  });
+  var vazio = document.querySelector('[data-grade-vazio]');
+  function aplicar() {
+    var algum = false;
+    grupos.forEach(function (g) {
+      var un = g.tb.getAttribute('data-unidade') || '0';
+      var okU = estado.u === '' || un === estado.u;
+      var vis = g.linhas.filter(function (tr) { return okU && (estado.turno === '' || tr.getAttribute('data-turno') === estado.turno); });
+      g.linhas.forEach(function (tr) { tr.hidden = vis.indexOf(tr) < 0; });
+      g.tb.hidden = vis.length === 0;
+      if (vis.length) {
+        algum = true;
+        var primeira = vis[0];
+        g.fixas.forEach(function (td) {
+          td.rowSpan = vis.length;
+          if (td.parentNode !== primeira) {
+            if (td.classList.contains('col-pagina')) { primeira.insertBefore(td, primeira.firstChild); } else { primeira.appendChild(td); }
+          }
+        });
+      }
+    });
+    if (vazio) { vazio.hidden = algum; }
+    barra.querySelectorAll('[data-filtro-turno]').forEach(function (b) { var on = b.getAttribute('data-filtro-turno') === estado.turno; b.classList.toggle('ativo', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    barra.querySelectorAll('[data-filtro-unidade]').forEach(function (b) { var on = b.getAttribute('data-filtro-unidade') === estado.u; b.classList.toggle('ativo', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    var nova = new URL(window.location.href);
+    if (estado.turno) { nova.searchParams.set('turno', estado.turno); } else { nova.searchParams.delete('turno'); }
+    if (estado.u) { nova.searchParams.set('u', estado.u); } else { nova.searchParams.delete('u'); }
+    try { history.replaceState(history.state, '', nova.toString()); } catch (e) { /* sem history: o filtro só não fica na URL */ }
+  }
+  barra.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-filtro-turno], button[data-filtro-unidade]');
+    if (!b) { return; }
+    if (b.hasAttribute('data-filtro-turno')) { estado.turno = b.getAttribute('data-filtro-turno'); } else { estado.u = b.getAttribute('data-filtro-unidade'); }
+    aplicar();
+  });
+  aplicar();
+})();

@@ -430,6 +430,14 @@ table.grade td.celula { min-width: 118px; font-size: 12px; line-height: 1.55; }
 .grade-rolagem table.grade .col-pagina { position: sticky; left: 0; z-index: 1; background: var(--panel-bg); min-width: 170px; box-shadow: inset -1px 0 0 var(--panel-border); }
 .grade-rolagem table.grade thead th.col-pagina { z-index: 3; background: var(--cab-tabela); }
 .grade-rolagem table.grade tbody tr:hover td.col-pagina { background: var(--cab-hover); }
+/* Grade agrupada (1.38.0, E3–E5): o nome uma vez, um turno por linha (A, C, D) e uma linha entre as páginas. */
+table.grade-agrupada td.col-turno, table.grade-agrupada th.col-turno { width: 1%; white-space: nowrap; text-align: center; }
+table.grade-agrupada tbody.grupo-grade { border-top: 2px solid var(--panel-border); }
+table.grade-agrupada tbody.grupo-grade td.col-pagina { vertical-align: top; }
+table.grade-agrupada .vago { font-style: italic; }
+.tier-diverge { display: inline-block; margin-left: 4px; padding: 0 5px; border-radius: 6px; font-size: 12px; line-height: 18px; color: var(--aviso-texto); background: var(--bg-aviso); border: 1px solid var(--bd-aviso); cursor: help; }
+.grade-filtros { align-items: center; gap: 6px; margin: 4px 0 8px; }
+.grade-filtros .muted { margin-left: 6px; }
 .he-form { flex-wrap: nowrap; }
 .he-form input[type="search"] { min-width: 220px; height: 34px; font-size: 13px; }
 .he-inline { display: inline; }

@@ -18,9 +18,9 @@ li{margin:6px 0}</style></head><body>
 <p><a class="bm" href="${href.replace(/"/g, '&quot;')}">Delete Range em lote</a></p>
 <ol><li>No WebPortal, abra <b>Shifts and Schedule &gt; Schedule Tools</b>.</li>
 <li>Clique no favorito <b>Delete Range em lote</b>: abre um painel no canto da tela.</li>
-<li>Preencha <b>De</b> e <b>Até</b> (dd/mm/aaaa), marque as páginas (dá para filtrar) e clique em <b>Apagar range</b>.</li>
+<li>Carregue o <b>JSON de delete</b> (arquivo ou colado), que já marca as páginas e preenche as datas; ou preencha <b>De</b> e <b>Até</b> (dd/mm/aaaa) e marque as páginas à mão (dá para filtrar). Depois clique em <b>Apagar range</b>.</li>
 <li>Confirme. Para cada página ele seleciona o Model, preenche as datas, clica em Delete Range, confirma (<b>Delete All Reasons</b> no 5C Schedule, <b>OK</b> nos outros) e espera o Success. Se vier Error, espera 8 s e tenta de novo (até 5 vezes).</li></ol>
-<p>O painel lembra as últimas datas e páginas marcadas.</p></body></html>`;
+<p>O painel lembra as últimas datas e páginas marcadas. Formato do JSON de delete: <code>{"tipo": "delete_range", "de": "dd/mm/aaaa", "ate": "dd/mm/aaaa", "paginas": [{"id": 92, "nome": "Abg"}]}</code>.</p></body></html>`;
 
 fs.writeFileSync(path.join(dir, 'instalar_delete_range.html'), html);
 console.log('instalar_delete_range.html gerado (' + href.length + ' caracteres no favorito)');

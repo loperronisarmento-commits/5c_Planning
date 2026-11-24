@@ -2,7 +2,10 @@
  * Lê o pacote da última versão publicada da semana (Grade do 5C Escalas > "Pacote para postar
  * em lote (.json)") e, para cada página marcada: seleciona o Model, preenche o Date Schedule,
  * cola o CSV no Code CSV, clica em Save Schedule CSV e espera o "Success".
- * Faça antes o Delete Range (favorito "Delete Range em lote") nas páginas que já têm escala.
+ * Desde a 1.38.0 (E1) o pacote traz o "delete_range" (do dia do "CSV a partir de" ao fim da semana):
+ * com ele, cada página é apagada nesse range logo antes de ser postada, e as páginas que só existem
+ * no site ("so_apagar") são apagadas no fim. O CSV do dia do corte já traz os blocos de antes do
+ * corte iguais ao site, então nada antes do corte se perde nem duplica.
  */
 (function () {
   if (window.__pcPanel) { window.__pcPanel.style.display = 'flex'; return; }
@@ -23,6 +26,8 @@
   const els = () => ({
     model: document.getElementById('select-model-schedule'),
     date: document.getElementById('schedule-set-date'),
+    dateEnd: document.getElementById('schedule-set-date-end'),
+    btnDelete: document.getElementById('deleteRange'),
     csv: document.getElementById('schedule-csv-text-area'),
     btnSave: [...document.querySelectorAll('button, input[type=button], a')].find(b =>
       /submitScheduleCSV/.test(b.getAttribute('onclick') || '') || norm(b.textContent || b.value) === 'save schedule csv'),
@@ -41,6 +46,7 @@
   }
   const popupTitle = p => norm(p.querySelector('.swal-title')?.textContent);
   const popupText = p => (p.querySelector('.swal-text')?.textContent || '').trim();
+  const popupButton = (p, text) => [...p.querySelectorAll('.swal-button')].find(b => norm(b.textContent) === norm(text));
   async function waitFor(fn, timeout, step = 250) {
     const end = Date.now() + timeout;
     while (Date.now() < end) { const v = fn(); if (v) return v; await sleep(step); }
@@ -81,13 +87,44 @@
   }
   const comT1 = (csv, cel) => { const l = csv.split('\n'); const c = l[0].split(';'); c[0] = cel; l[0] = c.join(';'); return l.join('\n'); };
 
+  // ---------- Delete Range de uma página (o mesmo passo do favorito "Delete Range em lote") ----------
+  async function deleteOne(id, ini, end, log) {
+    for (let attempt = 1; attempt <= CFG.maxRetries; attempt++) {
+      await closePopup();
+      const e = els();
+      if (!e.model || !e.date || !e.dateEnd || !e.btnDelete) throw new Error('Não achei os campos do Delete Range. Abra a tela Schedule Tools.');
+      setValue(e.model, String(id));
+      if (e.model.value !== String(id)) throw new Error('Model não existe na lista do site');
+      setValue(e.date, ini);
+      setValue(e.dateEnd, end);
+      await sleep(200);
+      e.btnDelete.click();
+      // 5C Schedule (id 3): "Delete All Reasons"; os outros: "Are you sure?" -> OK
+      const ask = await waitFor(() => { const p = popup(); return p && (popupButton(p, 'Delete All Reasons') || popupButton(p, 'OK')) ? p : null; }, 10000);
+      if (!ask) throw new Error('A confirmação do Delete Range não abriu');
+      if (!popupButton(ask, 'Delete All Reasons') && !popupTitle(ask).startsWith('are you sure')) throw new Error(`${popupTitle(ask)}: ${popupText(ask)}`);
+      (popupButton(ask, 'Delete All Reasons') || popupButton(ask, 'OK')).click();
+      await waitFor(() => !popup(), 5000);
+      const res = await waitFor(resultado, CFG.waitResultMs, 400);
+      if (!res) throw new Error('Delete Range sem resposta dentro do tempo limite');
+      await closePopup();
+      if (res.ok) { setValue(els().dateEnd, ''); return res.msg; }
+      log(`  Delete com erro (tentativa ${attempt}/${CFG.maxRetries}): ${res.msg}`);
+      if (attempt < CFG.maxRetries) await sleep(CFG.retryWaitMs);
+    }
+    throw new Error('Delete Range falhou depois de ' + CFG.maxRetries + ' tentativas');
+  }
+
   // ---------- uma página ----------
   async function postOne(pg, data, log) {
-    const t6 = await t6Domingo(pg.id);
     let csv = pg.csv;
-    if (t6 === null) log('  (não consegui ler o T6 de domingo no site: vai o T1 da Grade)');
+    // O T1 de segunda só entra quando a postagem começa na segunda (sem corte no meio da semana).
+    const t6 = data === ddmmaaaa(pacote.semana, 0) ? await t6Domingo(pg.id) : undefined;
+    const antes = (csv.split('\n')[0] || '').split(';')[0] || '';
+    if (t6 === undefined) { /* corte no meio da semana: o CSV do pacote vale como está */ }
+    else if (t6 === null) log('  (não consegui ler o T6 de domingo no site: vai o T1 da Grade)');
+    else if (!t6.trim() && antes.trim()) log(`  (o T6 de domingo veio vazio do site: fica o T1 do pacote: ${antes})`);
     else {
-      const antes = (csv.split('\n')[0] || '').split(';')[0] || '';
       csv = comT1(csv, t6);
       if (antes.replace(/\s/g, '') !== t6.replace(/\s/g, '')) log(`  T1 de segunda = T6 de domingo do site: ${t6 || '(vazio)'} (na Grade: ${antes || '(vazio)'})`);
     }
@@ -179,8 +216,12 @@
     if (p.treino) return alert('Este pacote é do Modo Treino e não pode ser postado no site real.');
     pacote = p;
     const feitas = lerFeitas();
+    const dr = p.delete_range && Array.isArray(p.delete_range.paginas) ? p.delete_range : null;
     $('[data-info]').innerHTML = `Semana <b>${esc(p.semana)}</b> · versão <b>${esc(p.versao)}</b>` +
-      (p.treino ? ' · <b style="color:#dc3545">MODO TREINO</b>' : '') + ` · ${p.paginas.length} páginas`;
+      (p.treino ? ' · <b style="color:#dc3545">MODO TREINO</b>' : '') + ` · ${p.paginas.length} páginas` +
+      (dr ? `<br><label style="color:#8b0a50"><input type="checkbox" data-del checked> Delete Range de <b>${esc(dr.de)}</b> a <b>${esc(dr.ate)}</b> antes de postar cada página` +
+        (dr.paginas.some(x => x.so_apagar) ? ` (e só apagar ${dr.paginas.filter(x => x.so_apagar).length} página(s) fora do plano)` : '') + '</label>' +
+        (p.corte && p.corte.blocos_antes_do_corte && p.corte.blocos_antes_do_corte.length ? `<br><small>Em ${esc(p.corte.dia)}, os blocos ${esc(p.corte.blocos_antes_do_corte.join(', '))} voltam iguais ${p.corte.fonte_antes_do_corte === 'site' ? 'ao site' : 'à versão postada'}.</small>` : '') : '');
     $('[data-date]').value = p.date_schedule || '';
     $('[data-list]').innerHTML = p.paginas.map(pg => {
       const id = String(pg.id), existe = noSite.has(id), feita = feitas.includes(id);
@@ -216,8 +257,9 @@
     if (!/^\d{2}\/\d{2}\/\d{4}$/.test(data)) return alert('Date Schedule no formato dd/mm/aaaa.');
     if (!paginas.length) return alert('Marque pelo menos uma página.');
     const lista = paginas.length > 25 ? paginas.slice(0, 25).map(p => p.nome).join('\n') + `\n... e mais ${paginas.length - 25}` : paginas.map(p => p.nome).join('\n');
+    const dr = pacote.delete_range && $('[data-del]') && $('[data-del]').checked ? pacote.delete_range : null;
     if (!confirm(`Postar a ${pacote.versao} da semana ${pacote.semana} (Date Schedule ${data}) em ${paginas.length} página(s)?\n` +
-      `O Delete Range dessas páginas já foi feito?\n\n${lista}`)) return;
+      (dr ? `Cada página é apagada de ${dr.de} a ${dr.ate} (Delete Range) logo antes de ser postada.` : `O Delete Range dessas páginas já foi feito?`) + `\n\n${lista}`)) return;
 
     stop = false;
     $('[data-go]').disabled = true; $('[data-stop]').style.display = 'block';
@@ -227,6 +269,7 @@
       if (stop) { log('Parado.'); break; }
       log(`▶ (${i + 1}/${paginas.length}) ${pg.nome}`);
       try {
+        if (dr && dr.paginas.some(x => String(x.id) === String(pg.id))) log(`  Delete Range: ${await deleteOne(pg.id, dr.de, dr.ate, log)}`);
         const msg = await postOne(pg, data, log);
         log(`  ✔ ${msg}`); ok.push(pg.nome); marcarFeita(pg.id);
         const c = panel.querySelector(`[data-list] input[value="${CSS.escape(String(pg.id))}"]`);
@@ -236,6 +279,14 @@
         await closePopup();
       }
       await sleep(CFG.pauseBetweenMs);
+    }
+    // Páginas que só existem no site (fora deste plano): só apagar, no fim.
+    if (dr && !stop) {
+      for (const x of dr.paginas.filter(x => x.so_apagar && noSite.has(String(x.id)))) {
+        log(`▶ só apagar: ${x.nome}`);
+        try { log(`  ✔ ${await deleteOne(x.id, dr.de, dr.ate, log)}`); } catch (err) { log(`  ✖ ${err.message}`); fail.push(x.nome + ' (delete)'); await closePopup(); }
+        await sleep(CFG.pauseBetweenMs);
+      }
     }
     updCount();
     log(`\nFim: ${ok.length} ok, ${fail.length} com falha.` + (fail.length ? `\nFalharam: ${fail.join(', ')}` : '') +

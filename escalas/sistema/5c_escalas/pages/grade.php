@@ -235,10 +235,15 @@ foreach ($alocCsv as $a) {
 }
 // No dia do corte do CSV, os blocos antes dele saem iguais ao site (5c_schedule.scheduleday), qualquer que
 // seja a versão (pedido de 04/11: "T1, T2 e T3 idênticos ao site"). Na 5C Schedule o sufixo vem da versão ou do cargo.
+// A importação do site (scheduleday) só vai até o dia de hoje: se ela ainda não cobre os blocos de antes
+// do corte, eles saem pela própria versão (a que está postada), para o Delete Range do dia não apagá-los.
+$preCorteFonte = '';
 if ($corteCsv !== '') {
     $diaCorte = substr($corteCsv, 0, 10);
     $antes = array_values(array_filter(array_map(static fn($h) => $diaCorte . 'T' . $h . ':00:00', array_keys(ESC_BLOCOS)), static fn($sl) => $sl < $corteCsv));
-    if ($antes) {
+    $siteAte = $antes ? (string) (escQ1('SELECT MAX(shiftDateAndHour) AS m FROM `5c_schedule`.`scheduleday` WHERE shiftDateAndHour >= ?', [$diaCorte . 'T00:00:00'])['m'] ?? '') : '';
+    $preCorteFonte = $antes ? ($siteAte !== '' && str_replace(' ', 'T', $siteAte) >= end($antes) ? 'site' : 'versao') : '';
+    if ($antes && $preCorteFonte === 'site') {
         foreach ($porPagina as &$pgC) {
             foreach ($antes as $sl) {
                 unset($pgC['cel'][$sl]);
@@ -247,9 +252,12 @@ if ($corteCsv !== '') {
         unset($pgC);
         $refAloc = array_map(static fn($a) => ['dia' => substr((string) $a['dia'], 0, 10)] + $a, $aloc);
         foreach (escMotorPreCorteDoSite($seg, $corteCsv, $refAloc) as $a) {
-            if ($a['dia'] !== $diaCorte || strpos((string) $a['motivo'], 'igual ao site') !== 0 || !isset($porPagina[(int) $a['page_id']])) {
+            if ($a['dia'] !== $diaCorte || strpos((string) $a['motivo'], 'igual ao site') !== 0) {
                 continue;
             }
+            // Página que está no site e não neste plano também entra: o Delete Range apaga o dia do corte
+            // inteiro, e os blocos dela antes do corte têm de voltar iguais.
+            $porPagina[(int) $a['page_id']]['nome'] ??= $a['pagina'];
             $porPagina[(int) $a['page_id']]['cel'][$a['dia'] . 'T' . escHoraDoBloco($a['bloco']) . ':00:00'][$a['rep_code']] = escMarcaCsv($a);
         }
     }
@@ -307,31 +315,55 @@ if (isset($_GET['baixar'])) {
             return;
         }
         if ((int) $pub['id'] !== $planoId) {
-            header('Location: ' . link_tela('grade', ['plano' => (int) $pub['id'], 'baixar' => 'lote']));
+            header('Location: ' . link_tela('grade', ['plano' => (int) $pub['id'], 'baixar' => 'lote'] + $linkDesde));
             return;
         }
-        $corte = $corteCsv;
-        $postadoLote = [];
-        foreach (escQ('SELECT pp.plano_id, pp.page_id, pp.csv_hash FROM ' . escT('esc_plano_postagem') . ' pp
-                        WHERE pp.semana = ? AND pp.postado_em IS NOT NULL ORDER BY pp.postado_em', [$seg]) as $pp) {
-            $postadoLote[(int) $pp['page_id']] = $pp;
-        }
+        // Pacote único (E1, 1.38): primeiro o Delete Range, depois a postagem. O site apaga por dia
+        // inteiro, então o Delete Range vai do dia do corte ("CSV a partir de") ao fim da semana, e o
+        // CSV do dia do corte traz os blocos de antes dele iguais ao site (escMotorPreCorteDoSite):
+        // nada antes do corte muda nem duplica. Como tudo do corte em diante é apagado, todas as páginas
+        // do plano são postadas de novo (estado "afazer"); as que só existem no site entram só no delete.
+        $inicio = $corteCsv !== '' ? substr($corteCsv, 0, 10) : $seg;
+        $fimLote = escMaisDias($seg, 6);
         $paginas = [];
         foreach ($porPagina as $pid => $pg) {
-            $csv = escCsvT1T6($pg['cel'], $seg, $corteCsv);
-            $pp = $postadoLote[$pid] ?? null;
-            $estado = !$pp ? 'afazer' : ((int) $pp['plano_id'] === $planoId ? 'postado' : (hash_equals((string) $pp['csv_hash'], hash('sha256', $csv)) ? 'igual' : 'afazer'));
-            $paginas[] = ['id' => $pid, 'nome' => $pg['nome'], 'estado' => $estado, 'csv' => $csv];
+            $paginas[] = ['id' => $pid, 'nome' => $pg['nome'], 'estado' => 'afazer', 'csv' => escCsvT1T6($pg['cel'], $seg, $corteCsv)];
         }
         usort($paginas, static fn($a, $b) => strnatcasecmp($a['nome'], $b['nome']));
-        $inicio = $corte !== '' ? substr($corte, 0, 10) : $seg;
+        $apagar = array_column($paginas, 'nome', 'id');
+        $soSite = [];
+        foreach (escQ('SELECT DISTINCT modeloId FROM `5c_schedule`.`scheduleday` WHERE shiftDateAndHour >= ? AND shiftDateAndHour < ?',
+                      [$inicio . 'T01:00:00', escMaisDias($seg, 7) . 'T01:00:00']) as $r) {
+            if (!isset($apagar[(int) $r['modeloId']])) {
+                $soSite[(int) $r['modeloId']] = '';
+            }
+        }
+        if ($soSite) {
+            foreach (escQ('SELECT id, name FROM `5c_pages`.`pages` WHERE id IN (' . escIn(array_keys($soSite)) . ')', array_keys($soSite)) as $r) {
+                $soSite[(int) $r['id']] = (string) $r['name'];
+            }
+            foreach ($soSite as $pid => $nome) {
+                $apagar[$pid] = $nome !== '' ? $nome : t('modelo {id}', ['id' => $pid]);
+            }
+        }
+        $listaApagar = [];
+        foreach ($apagar as $pid => $nome) {
+            $listaApagar[] = ['id' => (int) $pid, 'nome' => $nome] + (isset($soSite[$pid]) ? ['so_apagar' => true] : []);
+        }
+        usort($listaApagar, static fn($a, $b) => strnatcasecmp($a['nome'], $b['nome']));
+        $antesDoCorte = $corteCsv !== '' ? array_values(array_filter(array_map(static fn($h) => ESC_BLOCOS[$h], array_keys(ESC_BLOCOS)),
+            static fn($b) => $inicio . 'T' . escHoraDoBloco($b) . ':00:00' < $corteCsv)) : [];
+        $pacote = ['semana' => $seg, 'versao' => escPlanoRotulo($plano), 'publicado_em' => $plano['publicado_em'] ?? null, 'treino' => escModoTreino(),
+            'corte' => ['dia' => date('d/m/Y', strtotime($inicio)), 'hora' => $corteCsv !== '' ? substr($corteCsv, 11, 5) : '01:00',
+                'blocos_antes_do_corte' => $antesDoCorte, 'fonte_antes_do_corte' => $antesDoCorte ? ($preCorteFonte === 'site' ? 'site' : 'versao') : null],
+            'delete_range' => ['tipo' => 'delete_range', 'descricao' => t('{versao}: apaga de {de} a {ate} antes de postar', ['versao' => escPlanoRotulo($plano), 'de' => dataBr($inicio), 'ate' => dataBr($fimLote)]),
+                'de' => date('d/m/Y', strtotime($inicio)), 'ate' => date('d/m/Y', strtotime($fimLote)), 'paginas' => $listaApagar],
+            'date_schedule' => date('d/m/Y', strtotime($inicio)), 'date_end' => date('d/m/Y', strtotime($fimLote)), 'paginas' => $paginas];
         escW('INSERT INTO ' . escT('esc_exportacao') . " (plano_id, formato, semana, date_schedule, date_end, csv_hash, gerado_por) VALUES (?, 'T1T6', ?, ?, ?, ?, ?)",
-            [$planoId, $seg, $inicio, escMaisDias($seg, 6), hash('sha256', json_encode($paginas)), escUserId()]);
+            [$planoId, $seg, $inicio, $fimLote, hash('sha256', json_encode($pacote)), escUserId()]);
         header('Content-Type: application/json; charset=utf-8');
-        header('Content-Disposition: attachment; filename="' . (escModoTreino() ? 'TREINO_' : '') . 'postar_' . $seg . '_' . escPlanoRotulo($plano) . '.json"');
-        echo json_encode(['semana' => $seg, 'versao' => escPlanoRotulo($plano), 'publicado_em' => $plano['publicado_em'] ?? null,
-            'treino' => escModoTreino(), 'date_schedule' => date('d/m/Y', strtotime($inicio)), 'paginas' => $paginas],
-            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        header('Content-Disposition: attachment; filename="' . (escModoTreino() ? 'TREINO_' : '') . 'postar_' . $seg . '_' . escPlanoRotulo($plano) . '_desde_' . str_replace('-', '', $inicio) . '.json"');
+        echo json_encode($pacote, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
         return;
     }
     http_response_code(400);
@@ -771,10 +803,10 @@ if (escPost()) {
 }
 
 $aba = is_string($_GET['aba'] ?? null) ? $_GET['aba'] : 'pagina';
-$turnoSel = is_string($_GET['turno'] ?? null) ? $_GET['turno'] : 'C';
-if (!isset(ESC_TURNOS[$turnoSel])) {
-    $turnoSel = 'C';
-}
+// Turno e unidade (E3, 1.38.0): a grade mostra os 3 turnos em coluna e filtra no navegador, sem
+// recarregar. ?turno= e ?u= só dizem o filtro inicial (e o turno da célula aberta no ajuste).
+$turnoSel = is_string($_GET['turno'] ?? null) && isset(ESC_TURNOS[$_GET['turno']]) ? $_GET['turno'] : '';
+$uFiltro = in_array((string) ($_GET['u'] ?? ''), ['1', '2', '3'], true) ? (string) $_GET['u'] : '';
 $paginasBot = escMotorPaginas();
 $porId = [];
 foreach ($paginasBot as $pg) {
@@ -795,18 +827,22 @@ $nomeCelula = static function (string $c) use ($nomes, $curtos): string {
     return count($curtos[$curto] ?? []) > 1 ? $curto . ' · ' . $c : $curto;
 };
 
-// Primeiro bloco do turno representa o turno na grade.
-$blocoRef = ESC_TURNOS[$turnoSel][0];
-$grade = [];
+// O primeiro bloco de cada turno representa o turno na grade: $gradeT[turno][página][dia].
+$blocoDoTurno = array_map(static fn($b) => $b[0], ESC_TURNOS);
+$gradeT = ['A' => [], 'C' => [], 'D' => []];
 $paginasPlano = [];
 foreach ($aloc as $a) {
     $pid = (int) $a['page_id'];
     $paginasPlano[$pid] = $a['pagina'];
-    if ($a['bloco'] !== $blocoRef) {
+    $tu = (string) $a['turno'];
+    if (!isset($blocoDoTurno[$tu]) || $a['bloco'] !== $blocoDoTurno[$tu]) {
         continue;
     }
-    $grade[$pid][substr($a['dia'], 0, 10)][] = $a;
+    $gradeT[$tu][$pid][substr($a['dia'], 0, 10)][] = $a;
 }
+// Célula aberta no ajuste: o turno vem do link da célula.
+$blocoRef = $turnoSel !== '' ? $blocoDoTurno[$turnoSel] : 'T4';
+$grade = $gradeT[$turnoSel !== '' ? $turnoSel : 'C'];
 // Estrutura nova: a linha mostra a carteira da página (dos postos da semana), não a party.
 $ehV4 = ($plano['estrutura'] ?? 'V3') === 'V4';
 $carteiraDe = [];
@@ -827,9 +863,28 @@ foreach ($paginasPlano as $pid => $nome) {
     $rotulo = $ehV4
         ? ($nome === $pagOverlap ? t('buffer de plantão (-2) · Overlap (-5)') : (implode(' · ', array_unique($carteiraDe[$pid] ?? [])) ?: t('fora dos postos')))
         : ($porId[$pid]['party'] ?? '');
-    $listaPaginas[] = ['id' => $pid, 'nome' => $nome, 'time' => $ehV4 ? '' : $time, 'party' => $rotulo];
+    $cart = $carteiraDe[$pid][0] ?? '';
+    $listaPaginas[] = ['id' => $pid, 'nome' => $nome, 'time' => $ehV4 ? '' : $time, 'party' => $rotulo,
+        'unidade' => preg_match('~^U(\d)~', $cart, $mU) ? (int) $mU[1] : 0, 'overlap' => $nome === $pagOverlap];
 }
-usort($listaPaginas, static fn($a, $b) => [$a['time'], $a['party'], $a['nome']] <=> [$b['time'], $b['party'], $b['nome']]);
+// Faturamento × Tier (E2): ordem pelo faturamento de 30 dias, do maior para o menor (no servidor; a tela
+// não mostra o valor), o Tier depois do nome e o sinal quando o Tier não bate com a faixa do faturamento.
+// Cada discrepância vira (ou atualiza) a ação "Recalcular Tier" no Plano de Ação, no máximo a cada 30 min.
+$tierDiag = [];
+if ($ehV4) {
+    try {
+        $tierDiag = escTierDiagnostico(array_column(array_filter($listaPaginas, static fn($pg) => !$pg['overlap']), 'nome', 'id'));
+        escCache('acao_tier_' . ESC_SCHEMA, 1800, static function () use ($tierDiag, $listaPaginas): array {
+            escAcaoSincronizarTier($tierDiag, array_column($listaPaginas, 'nome', 'id'), array_column($listaPaginas, 'unidade', 'id'));
+            return [true];
+        });
+    } catch (Throwable $e) {
+        appLog('warning', 'Grade: faturamento × Tier indisponível', ['erro' => $e->getMessage()]);
+    }
+}
+usort($listaPaginas, static fn($a, $b) => $ehV4
+    ? [$a['overlap'], -($tierDiag[$a['id']]['receita'] ?? 0), $a['nome']] <=> [$b['overlap'], -($tierDiag[$b['id']]['receita'] ?? 0), $b['nome']]
+    : [$a['time'], $a['party'], $a['nome']] <=> [$b['time'], $b['party'], $b['nome']]);
 
 $sel = null;
 if (isset($_GET['pg'], $_GET['dia'])) {
@@ -838,21 +893,24 @@ if (isset($_GET['pg'], $_GET['dia'])) {
 // Tags de leitura (lib/tags.php): na grade, só os riscos por padrão; "todas" ou "nao" pela tela.
 $tagsModo = in_array($_GET['tags'] ?? '', ['todas', 'nao'], true) ? $_GET['tags'] : 'riscos';
 $soRisco = $ehV4 && !empty($_GET['risco']);
-$params = ['plano' => $planoId, 'turno' => $turnoSel, 'time' => $timeSel] + ($tagsModo !== 'riscos' ? ['tags' => $tagsModo] : []) + ($soRisco ? ['risco' => 1] : []);
-// Por página, no turno da tela: os SRs com alguma tag vermelha (ameaça ao resultado).
-$riscoPag = [];
+$params = ['plano' => $planoId, 'time' => $timeSel] + ($turnoSel !== '' ? ['turno' => $turnoSel] : []) + ($uFiltro !== '' ? ['u' => $uFiltro] : [])
+    + ($tagsModo !== 'riscos' ? ['tags' => $tagsModo] : []) + ($soRisco ? ['risco' => 1] : []);
+// Por página e turno: os SRs com alguma tag vermelha (ameaça ao resultado).
+$riscoPagT = ['A' => [], 'C' => [], 'D' => []];
 if ($ehV4) {
-    foreach ($grade as $pid => $porDia) {
-        foreach ($porDia as $cel) {
-            foreach ($cel as $x) {
-                if ($x['rep_code'] !== null && array_filter(escTagsDe($x['rep_code'], $x['pagina']), static fn($c) => (escTagsDef()[$c][2] ?? '') === 'vermelho')) {
-                    $riscoPag[$pid][$x['rep_code']] = true;
+    foreach ($gradeT as $tu => $porPag) {
+        foreach ($porPag as $pid => $porDia) {
+            foreach ($porDia as $cel) {
+                foreach ($cel as $x) {
+                    if ($x['rep_code'] !== null && array_filter(escTagsDe($x['rep_code'], $x['pagina']), static fn($c) => (escTagsDef()[$c][2] ?? '') === 'vermelho')) {
+                        $riscoPagT[$tu][$pid][$x['rep_code']] = true;
+                    }
                 }
             }
         }
     }
     if ($soRisco) {
-        $listaPaginas = array_values(array_filter($listaPaginas, static fn($pg) => !empty($riscoPag[$pg['id']])));
+        $listaPaginas = array_values(array_filter($listaPaginas, static fn($pg) => !empty($riscoPagT['A'][$pg['id']]) || !empty($riscoPagT['C'][$pg['id']]) || !empty($riscoPagT['D'][$pg['id']])));
     }
 }
 $ehRascunho = $plano['status'] === 'RASCUNHO';
@@ -925,20 +983,28 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
         <a class="chip-filtro <?php echo $aba === $k ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', $params + ['aba' => $k])); ?>"><?php echo h($rot); ?></a>
       <?php endforeach; ?>
     </div>
+    <?php if (!$ehV4): ?>
     <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes">
       <input type="hidden" name="p" value="grade"><input type="hidden" name="plano" value="<?php echo $planoId; ?>"><input type="hidden" name="aba" value="<?php echo h($aba); ?>">
-      <?php foreach (array_intersect_key($params, ['tags' => 1, 'risco' => 1]) as $k => $v): ?><input type="hidden" name="<?php echo h($k); ?>" value="<?php echo h((string) $v); ?>"><?php endforeach; ?>
-      <select name="turno" data-envio-auto aria-label="<?php echo h(t('Turno')); ?>">
-        <?php foreach (['A' => t('Turno {turno} ({horas})', ['turno' => 'A', 'horas' => '05–13']), 'C' => t('Turno {turno} ({horas})', ['turno' => 'C', 'horas' => '13–21']), 'D' => t('Turno {turno} ({horas})', ['turno' => 'D', 'horas' => '21–05'])] as $t => $rot): ?><option value="<?php echo $t; ?>" <?php echo $t === $turnoSel ? 'selected' : ''; ?>><?php echo h($rot); ?></option><?php endforeach; ?>
-      </select>
-      <?php if (!$ehV4): ?>
       <select name="time" data-envio-auto aria-label="<?php echo h(t('Time')); ?>">
         <option value=""><?php echo h(t('Todos os times')); ?></option>
         <?php foreach ($times as $t): ?><option <?php echo $t === $timeSel ? 'selected' : ''; ?>><?php echo h($t); ?></option><?php endforeach; ?>
       </select>
-      <?php endif; ?>
     </form>
+    <?php endif; ?>
   </div>
+  <?php if (in_array($aba, ['pagina', 'pessoa'], true)): ?>
+  <div class="grade-filtros chips" data-grade-filtros>
+    <span class="muted small"><?php echo h(t('Turno')); ?></span>
+    <?php foreach (['' => t('Todos'), 'A' => 'A · 05–13', 'C' => 'C · 13–21', 'D' => 'D · 21–05'] as $k => $rot): ?>
+    <button type="button" class="chip-filtro<?php echo $k === $turnoSel ? ' ativo' : ''; ?>" aria-pressed="<?php echo $k === $turnoSel ? 'true' : 'false'; ?>" data-filtro-turno="<?php echo h($k); ?>"><?php echo h($rot); ?></button>
+    <?php endforeach; ?>
+    <span class="muted small"><?php echo h(t('Unidade')); ?></span>
+    <?php foreach (['' => t('Todas'), '1' => 'U1', '2' => 'U2', '3' => 'U3'] as $k => $rot): ?>
+    <button type="button" class="chip-filtro<?php echo (string) $k === $uFiltro ? ' ativo' : ''; ?>" aria-pressed="<?php echo (string) $k === $uFiltro ? 'true' : 'false'; ?>" data-filtro-unidade="<?php echo h((string) $k); ?>"><?php echo h($rot); ?></button>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
 
   <?php if ($ehV4): ?>
   <form method="get" action="<?php echo h(MODULE_URL); ?>/index.php" class="acoes small">
@@ -985,35 +1051,43 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
 
 <?php if ($aba === 'pagina'): ?>
   <div class="tabela-rolagem grade-rolagem">
-  <table class="grade">
-    <thead><tr><th class="col-pagina"><?php echo h(t('Página')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
-    <tbody>
+  <table class="grade grade-agrupada" data-grade-agrupada>
+    <thead><tr><th class="col-pagina"><?php echo h(t('Página')); ?></th><th class="col-turno"><?php echo h(t('Turno')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?><th aria-label="<?php echo h(t('Ações')); ?>"></th></tr></thead>
     <?php $letraOrigem = ['vaga_dono' => 'D', 'party_dona' => 'D', 'vaga_cobertura' => 'C', 'outra_party' => 'C', 'buffer_nucleo' => 'B', 'buffer' => 'B', 'transicao' => 'T', 'manual' => 'M', 'overlap' => 'O']; ?>
-    <?php foreach ($listaPaginas as $pg): ?>
-      <tr>
-        <td class="col-pagina" role="rowheader"><strong><?php echo h($pg['nome']); ?></strong><br><span class="muted small"><?php echo h($pg['party'] ?: t('sem party')); ?></span><?php if (!empty($riscoPag[$pg['id']])): $nr = count($riscoPag[$pg['id']]); ?> <span class="tag-sr tag-sr-vermelho" title="<?php echo h(tn($nr, '{n} SR com tag vermelha neste turno', '{n} SRs com tag vermelha neste turno')); ?>">⚠ <?php echo $nr; ?></span><?php endif; ?></td>
-        <?php foreach ($dias as $d): $cel = $grade[$pg['id']][$d] ?? []; $lac = $cel && !array_filter($cel, static fn($x) => $x['rep_code'] !== null || $x['origem'] === 'TREINO'); ?>
+    <?php foreach ($listaPaginas as $pg): $td = $tierDiag[$pg['id']] ?? null; ?>
+    <tbody class="grupo-grade" data-unidade="<?php echo (int) $pg['unidade']; ?>">
+      <?php foreach (['A', 'C', 'D'] as $iTu => $tu): $rp = $riscoPagT[$tu][$pg['id']] ?? []; ?>
+      <tr data-turno="<?php echo $tu; ?>">
+        <?php if ($iTu === 0): ?>
+        <td class="col-pagina" role="rowheader" rowspan="3"><strong><?php echo h($pg['nome']); ?><?php if ($td && $td['tier'] !== ''): ?> - <?php echo h($td['tier']); ?><?php endif; ?></strong><?php if ($td && $td['diverge']): ?> <span class="tier-diverge" role="img" aria-label="<?php echo h(t('Tier fora da faixa do faturamento')); ?>" title="<?php echo h(t('Tier {tier} no cadastro, mas o faturamento de 30 dias (US$ {receita}) é da faixa {faixa}. Há uma ação "Recalcular Tier" no Plano de Ação.', ['tier' => $td['tier'], 'receita' => num($td['receita'], 0), 'faixa' => $td['tier_receita']])); ?>">⚑</span><?php endif; ?><br><span class="muted small"><?php echo h($pg['party'] ?: t('sem party')); ?></span></td>
+        <?php endif; ?>
+        <td class="col-turno"><?php echo chipTurno($tu); ?><?php if ($rp): $nr = count($rp); ?> <span class="tag-sr tag-sr-vermelho" title="<?php echo h(tn($nr, '{n} SR com tag vermelha neste turno', '{n} SRs com tag vermelha neste turno')); ?>">⚠ <?php echo $nr; ?></span><?php endif; ?></td>
+        <?php foreach ($dias as $d): $cel = $gradeT[$tu][$pg['id']][$d] ?? []; $temGente = (bool) array_filter($cel, static fn($x) => $x['rep_code'] !== null || $x['origem'] === 'TREINO'); $lac = $cel && !$temGente; ?>
           <td class="celula <?php echo $lac ? 'lacuna' : ''; ?> <?php $temTrava = (bool) array_filter($cel, static fn($x) => (int) $x['travada'] === 1); echo $temTrava ? 'travada' : ''; ?>">
-            <a href="<?php echo h(link_tela('grade', $params + ['pg' => $pg['id'], 'dia' => $d])); ?>" data-manter-rolagem>
-            <span class="so-leitor"><?php echo h($pg['nome'] . ', ' . dataBr($d) . ': '); ?></span><?php if ($temTrava): ?><span class="trava-icone" aria-hidden="true">🔒</span><span class="so-leitor"><?php echo h(t('Célula travada')); ?>: </span><?php endif; ?>
-            <?php if (!$cel): ?><span class="muted">—</span><?php endif; ?>
+            <a href="<?php echo h(link_tela('grade', ['turno' => $tu] + $params + ['pg' => $pg['id'], 'dia' => $d])); ?>" data-manter-rolagem>
+            <span class="so-leitor"><?php echo h($pg['nome'] . ', ' . t('turno {turno}', ['turno' => $tu]) . ', ' . dataBr($d) . ': '); ?></span><?php if ($temTrava): ?><span class="trava-icone" aria-hidden="true">🔒</span><span class="so-leitor"><?php echo h(t('Célula travada')); ?>: </span><?php endif; ?>
+            <?php if (!$temGente): ?><span class="vago<?php echo $lac ? ' laranja' : ' muted'; ?>"<?php echo $lac ? ' title="' . h(t('lacuna: o posto precisa de gente e ninguém foi escalado')) . '"' : ''; ?>><?php echo h(t('vago')); ?></span><?php endif; ?>
             <?php foreach ($cel as $x): ?>
               <?php if ($x['rep_code'] === null && $x['origem'] === 'TREINO'): ?><span class="origem-treino" title="<?php echo h($x['motivo']); ?>"><?php echo h(t('treinamento')); ?></span><br>
-              <?php elseif ($x['rep_code'] === null): ?><span class="laranja"><?php echo h(t('lacuna')); ?></span><br>
+              <?php elseif ($x['rep_code'] === null): ?>
               <?php else: ?><span class="pessoa-cel origem-<?php echo h(strtolower($x['origem'])); ?>" title="<?php echo h(($nomes[$x['rep_code']] ?? '') . ' · ' . $x['motivo']); ?>"><?php $mc = escMarcaCsv($x); echo $mc === true ? '# ' : ''; ?><?php echo h($nomeCelula($x['rep_code'])); ?><?php echo is_string($mc) ? ' ' . $mc : ''; ?><?php echo $x['origem'] === 'SOBRECARGA' ? ' ⚠' : ''; ?><?php $lo = $letraOrigem[strtolower((string) $x['origem'])] ?? ''; echo $lo !== '' ? ' <sup class="origem-letra" aria-hidden="true">' . $lo . '</sup>' : ''; ?><span class="so-leitor"> (<?php echo h(mb_strtolower(str_replace('_', ' ', (string) $x['origem']))); ?>)</span></span><?php echo $ehV4 ? escTagsHtml(escTagsDe($x['rep_code'], $x['pagina']), $tagsModo) : ''; ?><br><?php endif; ?>
             <?php endforeach; ?>
             </a>
           </td>
         <?php endforeach; ?>
-        <td class="grade-baixar"><?php if (escPode('planejar')): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <?php endif; ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a><?php if (escPodeVerRestrito()): ?> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a><?php endif; ?></td>
+        <?php if ($iTu === 0): ?>
+        <td class="grade-baixar" rowspan="3"><?php if (escPode('planejar')): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'csv', 'pagina' => $pg['id']] + $linkDesde)); ?>">CSV</a> <?php endif; ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'pdf', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF da escala de {pagina}', ['pagina' => $pg['nome']])); ?>">PDF</a><?php if (escPodeVerRestrito()): ?> <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'ver' => 'metas', 'pagina' => $pg['id'], 'imprimir' => 1] + $linkDesde)); ?>" target="_blank" rel="noopener" aria-label="<?php echo h(t('PDF de metas de {pagina}', ['pagina' => $pg['nome']])); ?>"><?php echo h(t('Metas')); ?></a><?php endif; ?></td>
+        <?php endif; ?>
       </tr>
-    <?php endforeach; ?>
-    <?php if (!$listaPaginas): ?><tr><td colspan="9" class="muted"><?php echo h(t('Nenhuma página neste filtro.')); ?></td></tr><?php endif; ?>
+      <?php endforeach; ?>
     </tbody>
+    <?php endforeach; ?>
+    <?php if (!$listaPaginas): ?><tbody><tr><td colspan="10" class="muted"><?php echo h(t('Nenhuma página neste filtro.')); ?></td></tr></tbody><?php endif; ?>
   </table>
   </div>
+  <p class="muted small" data-grade-vazio hidden><?php echo h(t('Nenhuma página neste filtro.')); ?></p>
   <div class="legenda small">
-    <span class="muted"><?php echo h(t('Bloco {bloco} do turno {turno}', ['bloco' => $blocoRef, 'turno' => $turnoSel])); ?> ·</span>
+    <span class="muted"><?php echo h(t('Cada turno mostra o primeiro bloco (A = T2, C = T4, D = T6). Páginas do maior para o menor faturamento de 30 dias; ⚑ = Tier fora da faixa do faturamento.')); ?> ·</span>
     <?php foreach ($ehV4
         ? ['vaga_dono' => t('vaga do dono'), 'vaga_cobertura' => t('cobertura'), 'buffer_nucleo' => t('buffer do núcleo'), 'transicao' => t('transição'), 'buffer' => t('buffer de plantão (-2)'), 'overlap' => 'Overlap (-5)', 'lider_os' => t('liderança (OA -6, OC -7, OS -8)'), 'treino' => t('trainee New Hire (-4)'), 'sobrecarga' => t('acima da capacidade ⚠'), 'manual' => t('ajuste manual')]
         : ['party_dona' => t('party dona'), 'outra_party' => t('outra party'), 'tertius' => t('rodízio'), 'buffer' => t('Buffer'), 'manual' => t('ajuste manual')] as $cls => $rot): ?>
@@ -1077,15 +1151,18 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <?php endif; ?>
 
 <?php elseif ($aba === 'pessoa'):
+    // Por pessoa (E5, 1.38.0): a mesma estrutura da aba Por página. O nome aparece uma vez e cada turno
+    // em que a pessoa está (o do cadastro e os em que foi escalada) vem numa linha, em A, C e D.
+    // Dia sem página e sem folga = "vago". Filtros de turno e unidade no navegador, sem recarregar.
     $config = escMotorConfig($seg);
     $estrutura = escEstrutura();
-    $porPessoa = [];
+    $porPessoa = []; // [rep][turno][dia] = [páginas]
     foreach ($aloc as $a) {
-        if ($a['rep_code'] === null || $a['bloco'] !== ESC_TURNOS[$a['turno']][0]) {
+        if ($a['rep_code'] === null || !isset(ESC_TURNOS[$a['turno']]) || $a['bloco'] !== ESC_TURNOS[$a['turno']][0]) {
             continue;
         }
         $mc = escMarcaCsv($a);
-        $porPessoa[$a['rep_code']][substr($a['dia'], 0, 10)][] = $a['pagina'] . (is_string($mc) ? ' ' . $mc : ($mc ? ' #' : ''));
+        $porPessoa[$a['rep_code']][$a['turno']][substr($a['dia'], 0, 10)][] = $a['pagina'] . (is_string($mc) ? ' ' . $mc : ($mc ? ' #' : ''));
     }
     $folgas = [];
     foreach (escQ('SELECT rep_code, dia, tipo FROM ' . escT('esc_plano_folga') . ' WHERE plano_id = ?', [$planoId]) as $f) {
@@ -1101,44 +1178,53 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
         }
     }
     foreach ($config as $rep => $c) {
-        if ($c['turno'] !== $turnoSel) {
+        $turnosPs = array_values(array_intersect(['A', 'C', 'D'], array_unique(array_merge([(string) $c['turno']], array_keys($porPessoa[$rep] ?? [])))));
+        if (!$turnosPs) {
             continue;
         }
         if ($ehV4) {
             $x = $extraV4[$rep] ?? [];
             $papel = ($x['funcao'] ?? '') === 'DECURIO' ? 'OS' : (($x['funcao'] ?? '') === 'EQUITE' ? 'SR ' . ($x['nivel'] ?? '?') : t('fora da estrutura'));
             $onde = !empty($x['unidade']) ? t('U{unidade} · {turno} · núcleo {nucleo}', ['unidade' => $x['unidade'], 'turno' => $x['turno'], 'nucleo' => $x['numero']]) : '';
-            $pessoas[] = ['rep' => $rep, 'nome' => $nomes[$rep] ?? $rep, 'papel' => $papel, 'party' => $onde, 'modelo' => $c['modelo']];
+            $pessoas[] = ['rep' => $rep, 'nome' => $nomes[$rep] ?? $rep, 'papel' => $papel, 'party' => $onde, 'modelo' => $c['modelo'],
+                'unidade' => (int) ($x['unidade'] ?? 0), 'turnos' => $turnosPs, 'ordem' => [(int) ($x['unidade'] ?? 9), array_search((string) $c['turno'], ['A', 'C', 'D'], true), (int) ($x['numero'] ?? 9)]];
             continue;
         }
         $e = $estrutura[$rep] ?? null;
         if ($timeSel !== '' && ($e['team'] ?? '') !== $timeSel) {
             continue;
         }
-        $pessoas[] = ['rep' => $rep, 'nome' => $nomes[$rep] ?? $rep, 'papel' => $c['tipo'] === 'BUFFER' ? t('Buffer') : ($e['role'] ?? t('fora da estrutura')), 'party' => $e['party'] ?? '', 'modelo' => $c['modelo']];
+        $pessoas[] = ['rep' => $rep, 'nome' => $nomes[$rep] ?? $rep, 'papel' => $c['tipo'] === 'BUFFER' ? t('Buffer') : ($e['role'] ?? t('fora da estrutura')), 'party' => $e['party'] ?? '', 'modelo' => $c['modelo'],
+            'unidade' => 0, 'turnos' => $turnosPs, 'ordem' => [9, 0, 9]];
     }
-    usort($pessoas, static fn($a, $b) => [$a['party'], $a['nome']] <=> [$b['party'], $b['nome']]);
+    usort($pessoas, static fn($a, $b) => [$a['ordem'], $a['nome']] <=> [$b['ordem'], $b['nome']]);
 ?>
-  <div class="tabela-rolagem">
-  <table class="grade">
-    <thead><tr><th><?php echo h(t('Pessoa')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
-    <tbody>
-    <?php foreach ($pessoas as $ps): ?>
-      <tr>
-        <td><strong><?php echo h(nomeCurto($ps['nome'])); ?></strong><br><span class="muted small"><?php echo h($ps['rep'] . ' · ' . $ps['papel'] . ($ps['party'] ? ' · ' . $ps['party'] : '') . ' · ' . $ps['modelo']); ?></span></td>
-        <?php foreach ($dias as $d): ?>
+  <div class="tabela-rolagem grade-rolagem">
+  <table class="grade grade-agrupada" data-grade-agrupada>
+    <thead><tr><th class="col-pagina"><?php echo h(t('Pessoa')); ?></th><th class="col-turno"><?php echo h(t('Turno')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
+    <?php foreach ($pessoas as $ps): $nT = count($ps['turnos']); ?>
+    <tbody class="grupo-grade" data-unidade="<?php echo (int) $ps['unidade']; ?>">
+      <?php foreach ($ps['turnos'] as $iTu => $tu): ?>
+      <tr data-turno="<?php echo $tu; ?>">
+        <?php if ($iTu === 0): ?>
+        <td class="col-pagina" role="rowheader" rowspan="<?php echo $nT; ?>"><strong><?php echo h(nomeCurto($ps['nome'])); ?></strong><br><span class="muted small"><?php echo h($ps['rep'] . ' · ' . $ps['papel'] . ($ps['party'] ? ' · ' . $ps['party'] : '') . ' · ' . $ps['modelo']); ?></span></td>
+        <?php endif; ?>
+        <td class="col-turno"><?php echo chipTurno($tu); ?></td>
+        <?php foreach ($dias as $d): $pgs = $porPessoa[$ps['rep']][$tu][$d] ?? []; ?>
           <td class="celula small">
-            <?php if (isset($folgas[$ps['rep']][$d])): ?><span class="muted"><?php echo h($folgas[$ps['rep']][$d] === 'INDISPONIBILIDADE' ? t('indisponível') : t('folga')); ?></span>
-            <?php elseif (!empty($porPessoa[$ps['rep']][$d])): ?><?php echo h(implode(', ', array_unique($porPessoa[$ps['rep']][$d]))); ?>
-            <?php else: ?><span class="laranja"><?php echo h(t('sem página')); ?></span><?php endif; ?>
+            <?php if ($pgs): ?><?php echo h(implode(', ', array_unique($pgs))); ?>
+            <?php elseif (isset($folgas[$ps['rep']][$d])): ?><span class="muted"><?php echo h($folgas[$ps['rep']][$d] === 'INDISPONIBILIDADE' ? t('indisponível') : t('folga')); ?></span>
+            <?php else: ?><span class="vago muted"><?php echo h(t('vago')); ?></span><?php endif; ?>
           </td>
         <?php endforeach; ?>
       </tr>
-    <?php endforeach; ?>
-    <?php if (!$pessoas): ?><tr><td colspan="8" class="muted"><?php echo h(t('Ninguém neste turno e filtro.')); ?></td></tr><?php endif; ?>
+      <?php endforeach; ?>
     </tbody>
+    <?php endforeach; ?>
+    <?php if (!$pessoas): ?><tbody><tr><td colspan="9" class="muted"><?php echo h(t('Ninguém neste filtro.')); ?></td></tr></tbody><?php endif; ?>
   </table>
   </div>
+  <p class="muted small" data-grade-vazio hidden><?php echo h(t('Ninguém neste filtro.')); ?></p>
 
 <?php else:
     $tipoSel = is_string($_GET['tipo'] ?? null) ? $_GET['tipo'] : '';
@@ -1258,9 +1344,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <li><?php echo $corteVirada
         ? t('Semana da virada ({virada}): antes disso vale a escala já postada no site; não apague nem poste nada antes da virada.', ['virada' => '<strong>' . h(dataBr($diaCorte) . ' ' . substr($corte, 11, 2) . ':00') . '</strong>'])
         : t('CSV a partir de {quando}: antes disso vale a escala já postada no site; não apague nem poste nada antes desse horário. Os passos abaixo chamam esse horário de virada.', ['quando' => '<strong>' . h(dataBr($diaCorte) . ' ' . substr($corte, 11, 2) . ':00') . '</strong>']); ?></li>
-    <li><?php echo $diaCorte < $fimSem
-        ? t('{acao} de {de} a {ate} e, {aMao}, em {dia} só os blocos {blocos}, nas {n} páginas que já têm escala depois da virada, antes de postar qualquer uma.', ['acao' => '<strong>Delete Range</strong>', 'de' => h(dataBr(escMaisDias($diaCorte, 1))), 'ate' => h(dataBr($fimSem)), 'aMao' => '<strong>' . h(t('à mão')) . '</strong>', 'dia' => h(dataBr($diaCorte, true)), 'blocos' => h(implode(', ', $blocosMao)), 'n' => $comSite + count($soApagar)])
-        : t('Apague {aMao}, em {dia}, só os blocos {blocos}, nas {n} páginas que já têm escala depois da virada, antes de postar qualquer uma.', ['aMao' => '<strong>' . h(t('à mão')) . '</strong>', 'dia' => h(dataBr($diaCorte, true)), 'blocos' => h(implode(', ', $blocosMao)), 'n' => $comSite + count($soApagar)]); ?><?php if ($soApagar): ?> <?php echo h(tn(count($soApagar), 'Inclui {n} página fora deste plano: só apagar.', 'Inclui {n} páginas fora deste plano: só apagar.')); ?><?php endif; ?></li>
+    <li><?php echo t('{acao} de {de} a {ate} nas {n} páginas que já têm escala a partir de {de}, antes de postar qualquer uma. O site apaga o dia inteiro; os blocos de {de} antes da virada voltam no CSV iguais ao site. O pacote (.json) já traz esse Delete Range antes da postagem.', ['acao' => '<strong>Delete Range</strong>', 'de' => h(dataBr($diaCorte)), 'ate' => h(dataBr($fimSem)), 'n' => $comSite + count($soApagar)]); ?><?php if ($soApagar): ?> <?php echo h(tn(count($soApagar), 'Inclui {n} página fora deste plano: só apagar.', 'Inclui {n} páginas fora deste plano: só apagar.')); ?><?php endif; ?></li>
     <?php else: ?>
     <li><?php echo t('{acao} de {de} a {ate} nas {n} páginas que já têm escala na semana (marcadas "no site"), antes de postar qualquer uma.', ['acao' => '<strong>Delete Range</strong>', 'de' => h(dataBr($seg)), 'ate' => h(dataBr($fimSem)), 'n' => $comSite + count($soApagar)]); ?><?php if ($soApagar): ?> <?php echo h(tn(count($soApagar), 'Inclui {n} página fora deste plano: só apagar.', 'Inclui {n} páginas fora deste plano: só apagar.')); ?><?php endif; ?></li>
     <?php endif; ?>
@@ -1268,7 +1352,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     <li><?php echo h(t('A semana ainda não tem escala no site: não precisa apagar nada.')); ?></li>
     <?php endif; ?>
     <?php if ($corte !== ''): ?>
-    <li><?php echo t('{acao} em cada página: Model = a página, Date Schedule {inicio}, Date End {fim}. No dia {inicio} só vão os blocos a partir da virada; antes disso o CSV fica em branco (continua o que já está no site).', ['acao' => '<strong>Save Schedule CSV</strong>', 'inicio' => '<strong>' . h($dataSite($diaCorte)) . '</strong>', 'fim' => '<strong>' . h($dataSite($fimSem)) . '</strong>']); ?></li>
+    <li><?php echo t('{acao} em cada página: Model = a página, Date Schedule {inicio}, Date End {fim}. No dia {inicio}, os blocos antes da virada saem iguais ao site e os demais pela versão; os dias anteriores ficam em branco (o site continua com o que já tem).', ['acao' => '<strong>Save Schedule CSV</strong>', 'inicio' => '<strong>' . h($dataSite($diaCorte)) . '</strong>', 'fim' => '<strong>' . h($dataSite($fimSem)) . '</strong>']); ?></li>
     <?php else: ?>
     <li><?php echo t('{acao} em cada página: Model = a página, Date Schedule {inicio}, Date End {fim}. O CSV traz os blocos T1 a T6 dos 7 dias, todos os turnos juntos.', ['acao' => '<strong>Save Schedule CSV</strong>', 'inicio' => '<strong>' . h($dataSite($seg)) . '</strong>', 'fim' => '<strong>' . h($dataSite($fimSem)) . '</strong>']); ?></li>
     <?php endif; ?>
@@ -1289,7 +1373,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
       </div>
     </div>
     <a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'zip'] + $linkDesde)); ?>"><?php echo h(t('Baixar todos (.zip)')); ?></a>
-    <?php if ($publicado): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'lote'])); ?>" title="<?php echo h(t('Arquivo para o favorito "Postar CSV em lote" no site da 5C')); ?>"><?php echo h(t('Pacote para postar em lote (.json)')); ?></a><?php endif; ?>
+    <?php if ($publicado): ?><a class="botao" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'baixar' => 'lote'] + $linkDesde)); ?>" title="<?php echo h(t('Arquivo para o favorito "Postar CSV em lote" no site da 5C: Delete Range e depois a postagem, a partir do "CSV a partir de"')); ?>"><?php echo h(t('Pacote para postar em lote (.json)')); ?></a><?php endif; ?>
   </div>
 
   <div class="postar-lista">
