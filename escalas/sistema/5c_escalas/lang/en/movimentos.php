@@ -14,6 +14,8 @@ return [
     'troca do motor' => 'engine swap',
     'mudou de unidade, turno ou núcleo' => 'changed unit, shift or core',
     'obrigatória' => 'mandatory',
+    'troca fora dos 20%' => 'swap outside the 20%',
+    'escolhido pelo OS' => 'picked by the OS',
     'A semana anterior é a base: cada SR fica nas páginas em que estava. Das trocas que o motor propõe, só 20% acontecem, as de maior impacto (faturamento da página × ganho de KPI); mudança de unidade, turno ou núcleo conta nesses 20%. Saída, página que saiu e equipe fixa nova ficam fora da conta. Cada OS pode escolher 1 Anjo: um SR que ia mudar e fica mais uma semana na página.' => 'The previous week is the baseline: each SR stays on the pages they had. Of the swaps the engine proposes, only 20% happen, the ones with the biggest impact (page revenue × KPI gain); a change of unit, shift or core counts in those 20%. Exits, pages that left and new fixed teams are left out of the count. Each OS can pick 1 Angel: an SR who was going to move and stays one more week on the page.',
     'Semana' => 'Week',
     'Esta semana ainda não tem escala gerada.' => 'This week has no schedule generated yet.',

@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.37.1', 'data' => '2026-11-24', 'titulo' => 'Movimentações e Anjos: ajustes da tela', 'sql' => [], 'itens' => [
+    'Movimentações e Anjos: em cada núcleo, primeiro quem muda (e o Anjo), depois quem fica pelo 80/20 e por último as obrigatórias, do maior impacto para o menor.',
+    'A escolha do Anjo só aparece quando há quem escolher, e cabe na tela do celular.',
+    ]],
     ['versao' => '1.37.0', 'data' => '2026-11-24', 'titulo' => 'Semana anterior como base, 80/20 e Anjo do OS', 'sql' => ['ES_213_base_semana_8020_anjo.sql'], 'itens' => [
     'Gerar escala: a escala da semana anterior (a publicada) é a base. Cada SR fica nas páginas em que estava nela, e quem fez a página conta como quem a conhece (página vermelha).',
     'O motor roda uma vez livre e lista as trocas sobre a base. Só 20% delas acontecem, as de maior impacto: faturamento da página no turno × (score do KPI de quem entra − de quem sai). Mudança de unidade, turno ou núcleo conta nesses 20%. Saída, página que saiu, equipe fixa e célula travada à mão ficam fora da conta.',

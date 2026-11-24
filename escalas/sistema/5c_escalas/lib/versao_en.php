@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.37.1' => ['titulo' => 'Moves and Angels: screen adjustments', 'itens' => [
+    'Moves and Angels: in each core, first those who move (and the Angel), then those who stay by the 80/20 and last the mandatory ones, from the biggest impact to the smallest.',
+    'The Angel choice only shows when there is someone to pick, and fits the phone screen.',
+    ]],
     '1.37.0' => ['titulo' => 'Previous week as baseline, 80/20 and OS Angel', 'itens' => [
     'Generate schedule: the previous week schedule (the published one) is the baseline. Each SR stays on the pages they had in it, and whoever worked the page counts as knowing it (red page).',
     'The engine runs once freely and lists the swaps over the baseline. Only 20% of them happen, the ones with the biggest impact: page revenue in the shift × (KPI score of who comes in − of who leaves). A change of unit, shift or core counts in those 20%. Exits, pages that left, fixed teams and cells locked by hand are left out of the count.',

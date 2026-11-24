@@ -64,9 +64,21 @@ $porNucleo = [];
 foreach ($movs as $m) {
     $porNucleo[(int) $m['nucleo_id']][] = $m;
 }
+// Primeiro quem muda (e o Anjo), depois quem fica pelo 80/20 e por último as obrigatórias; dentro, o maior impacto.
+$ordemSit = ['MUDA' => 0, 'ANJO' => 1, 'FICA' => 2, 'FORCADA' => 3];
+foreach ($porNucleo as &$lsN) {
+    usort($lsN, static fn($a, $b) => [$ordemSit[$a['situacao']] ?? 9, -(float) $a['impacto'], $a['rep_code']] <=> [$ordemSit[$b['situacao']] ?? 9, -(float) $b['impacto'], $b['rep_code']]);
+}
+unset($lsN);
 $rotSit = ['MUDA' => t('Muda'), 'FICA' => t('Fica (80/20)'), 'ANJO' => t('Anjo'), 'FORCADA' => t('Obrigatória')];
 $clsSit = ['MUDA' => 'laranja', 'FICA' => 'verde', 'ANJO' => 'azul', 'FORCADA' => 'cinza'];
-$rotTipo = ['OPCIONAL' => t('troca do motor'), 'NUCLEO' => t('mudou de unidade, turno ou núcleo'), 'FORCADA' => t('obrigatória')];
+$subSit = static fn(array $m): string => match (true) {
+    $m['tipo'] === 'NUCLEO' => t('mudou de unidade, turno ou núcleo'),
+    $m['situacao'] === 'MUDA' => t('troca do motor'),
+    $m['situacao'] === 'FICA' => t('troca fora dos 20%'),
+    $m['situacao'] === 'ANJO' => t('escolhido pelo OS'),
+    default => '',
+};
 $us = static fn($v): string => $v === null ? '—' : 'US$ ' . number_format((float) $v, 0, ',', '.');
 ?>
 <header class="cabecalho">
@@ -118,7 +130,7 @@ $us = static fn($v): string => $v === null ? '—' : 'US$ ' . number_format((flo
     <?php foreach ($lista as $m): ?>
       <tr>
         <td><?php echo h($nome($m['rep_code'])); ?> <span class="muted small"><?php echo h($m['rep_code']); ?></span></td>
-        <td><span class="tag <?php echo h($clsSit[$m['situacao']] ?? ''); ?>"><?php echo h($rotSit[$m['situacao']] ?? $m['situacao']); ?></span><br><span class="muted small"><?php echo h($rotTipo[$m['tipo']] ?? $m['tipo']); ?></span></td>
+        <td><span class="tag <?php echo h($clsSit[$m['situacao']] ?? ''); ?>"><?php echo h($rotSit[$m['situacao']] ?? $m['situacao']); ?></span><?php if ($subSit($m) !== ''): ?><br><span class="muted small"><?php echo h($subSit($m)); ?></span><?php endif; ?></td>
         <td><?php echo h((string) $m['paginas_base']); ?></td>
         <td><?php echo h($m['pagina_para'] ?? t('sem página (buffer)')); ?></td>
         <td><?php echo h($nome($m['entra_rep'])); ?></td>
@@ -131,14 +143,14 @@ $us = static fn($v): string => $v === null ? '—' : 'US$ ' . number_format((flo
   </table>
   </div>
   <?php endif; ?>
-  <?php if (escPode('planejar')): ?>
+  <?php if (escPode('planejar') && ($candidatos || $anjo)): ?>
   <form method="post" action="<?php echo h(link_tela('movimentos', ['semana' => $seg])); ?>" class="acoes nao-imprimir">
     <?php echo campoCsrf(); ?><input type="hidden" name="semana" value="<?php echo h($seg); ?>"><input type="hidden" name="nucleo_id" value="<?php echo (int) $nid; ?>">
-    <label><?php echo h(t('Anjo do OS')); ?>
-      <select name="rep_code">
+    <label style="min-width:0;max-width:100%"><?php echo h(t('Anjo do OS')); ?>
+      <select name="rep_code" style="max-width:100%">
         <option value=""><?php echo h(t('— sem Anjo —')); ?></option>
         <?php $tem = false; foreach ($candidatos as $c): $tem = $tem || $c['rep_code'] === $anjo; ?>
-        <option value="<?php echo h($c['rep_code']); ?>"<?php echo $c['rep_code'] === $anjo ? ' selected' : ''; ?>><?php echo h($nome($c['rep_code']) . ' · ' . $c['paginas_base']); ?></option>
+        <option value="<?php echo h($c['rep_code']); ?>"<?php echo $c['rep_code'] === $anjo ? ' selected' : ''; ?>><?php echo h($nome($c['rep_code']) . ' · ' . mb_strimwidth((string) $c['paginas_base'], 0, 40, '…')); ?></option>
         <?php endforeach; ?>
         <?php if ($anjo && !$tem): ?><option value="<?php echo h($anjo); ?>" selected><?php echo h($nome($anjo) . ' · ' . t('não muda nesta versão')); ?></option><?php endif; ?>
       </select>
@@ -146,7 +158,8 @@ $us = static fn($v): string => $v === null ? '—' : 'US$ ' . number_format((flo
     <label><?php echo h(t('Observação')); ?><input type="text" name="observacao" maxlength="255"></label>
     <button type="submit" class="botao"><?php echo h(t('Salvar Anjo')); ?></button>
   </form>
-  <?php if (!$candidatos && !$anjo): ?><p class="muted small"><?php echo h(t('Ninguém deste núcleo muda de página por troca do motor nesta versão: não há quem escolher.')); ?></p><?php endif; ?>
+  <?php elseif (escPode('planejar')): ?>
+  <p class="muted small"><?php echo h(t('Ninguém deste núcleo muda de página por troca do motor nesta versão: não há quem escolher.')); ?></p>
   <?php endif; ?>
 </section>
 <?php endforeach; ?>
