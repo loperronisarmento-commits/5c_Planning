@@ -772,3 +772,85 @@ function escEstruturaAviso(): string {
     }
     return $txt;
 }
+
+// ---------- Capacity automático (1.38.0, item D da revisão de 24/11) ----------
+// Toda gravação que muda pessoas, páginas ou postos (as ações do esc_log em ESC_CAPACITY_GATILHOS)
+// agenda um recálculo para o fim da requisição: um só, mesmo com várias mudanças, depois do commit.
+// Com PHP-FPM a resposta sai antes (fastcgi_finish_request). Usa a trava do Gerar: se outro recálculo
+// ou um Gerar estiver rodando, não espera; registra "Capacity pendente" no Plano de Ação, e o próximo
+// gatilho, o Gerar ou o diário resolvem. Entrada e saída de página e troca de unidade já recalculam
+// no próprio fluxo (lib/saida.php, lib/funil_entrada.php, lib/politica.php). O Modo Treino não recalcula.
+const ESC_CAPACITY_GATILHOS = [
+    'colaborador.salvar',                                   // Colaboradores, Fora das unidades, Turmas › Cadastrar todos
+    'roster.trocar', 'roster.incluir_oa', 'roster.tirar_oa', // SR que vira OS ou OA
+    'solicitacao.aplicar',                                  // mudança de unidade, turno ou núcleo pedida pelo SR
+    'casal.incluir', 'casal.ajuste', 'casal.encerrar',     // Folga juntos (pode mudar o núcleo)
+    'treinamento.destino', 'treinamento.confirmar', 'treinamento.cancelar',
+    'pagina.config',                                        // alocação da página (Equipe, On demand, Exclusiva)
+    'equilibrio.divisao',                                   // divisão dos OS (dono dos postos)
+    'requisicao.turma_nova', 'requisicao.turma_salvar', 'requisicao.plano_salvar_todas', 'requisicao.turma_apagar',
+    'requisicao.abrir', 'requisicao.contratar', 'requisicao.cancelar', // plano de turmas (fc_contratacoes)
+];
+
+function escCapacityAgendar(string $motivo): void {
+    if (escModoTreino()) {
+        return;
+    }
+    $GLOBALS['ESC_CAPACITY_MOTIVOS'][$motivo] = true;
+    if (empty($GLOBALS['ESC_CAPACITY_AGENDADO'])) {
+        $GLOBALS['ESC_CAPACITY_AGENDADO'] = true;
+        register_shutdown_function('escCapacityAutoRodar');
+    }
+}
+
+function escCapacityAutoRodar(): void {
+    $motivos = array_keys($GLOBALS['ESC_CAPACITY_MOTIVOS'] ?? []);
+    if (!$motivos || escModoTreino()) {
+        return;
+    }
+    // A requisição já respondeu (redirect); o recálculo segue sem o usuário esperar, onde o servidor deixa.
+    if (function_exists('fastcgi_finish_request')) {
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_write_close();
+        }
+        fastcgi_finish_request();
+    }
+    ignore_user_abort(true);
+    @set_time_limit(300);
+    $hoje = date('Y-m-d');
+    $texto = mb_substr('Automático (5C Escalas): ' . implode(', ', $motivos), 0, 255);
+    try {
+        if (escDbW()->inTransaction()) {
+            escDbW()->rollBack(); // transação que ficou aberta por erro: nada a recalcular sobre ela
+            return;
+        }
+        if (!escGerarTravar()) {
+            escAcaoRegistrar(['ref' => 'capacity:pendente', 'tipo' => 'ALERTA', 'origem' => 'capacity', 'dia' => $hoje,
+                'titulo' => t('Capacity pendente: recalcular depois de mudanças em pessoas ou páginas'),
+                'detalhe' => t('Outro recálculo ou um Gerar estava rodando: o recálculo automático ({motivo}) ficou para o próximo gatilho, o Gerar ou o diário.', ['motivo' => implode(', ', $motivos)]),
+                'link_tela' => 'capacity', 'link_params' => []], true);
+            return;
+        }
+        $desde = max(escV4DiaEstrutura(), escMaisDias($hoje, 1));
+        escCapacityGravar('recalcular_versao', [$hoje, $texto]);
+        $sinc = escEstruturaSincronizar($hoje, $desde);
+        escLog('capacity.auto', 'fc_capacity_versao', (string) (escQdUltimaVersao()['versao'] ?? ''), null, ['motivos' => $motivos, 'postos' => array_diff_key($sinc, ['apoios' => 1])]);
+        escAcaoResolverAusentes('capacity:', []);
+    } catch (Throwable $e) {
+        appLog('error', 'Capacity automático falhou', ['motivos' => $motivos, 'erro' => $e->getMessage(), 'onde' => basename($e->getFile()) . ':' . $e->getLine()]);
+        try {
+            escAcaoRegistrar(['ref' => 'capacity:pendente', 'tipo' => 'ALERTA', 'origem' => 'capacity', 'dia' => $hoje,
+                'titulo' => t('Capacity pendente: o recálculo automático falhou'),
+                'detalhe' => mb_substr(t('Depois de {motivo}: {erro}. O Gerar ou o diário recalculam.', ['motivo' => implode(', ', $motivos), 'erro' => $e->getMessage()]), 0, 1000),
+                'link_tela' => 'capacity', 'link_params' => []], true);
+        } catch (Throwable $e2) {
+            // banco fora: o Gerar e o diário recalculam de qualquer jeito
+        }
+    } finally {
+        try {
+            escDbW()->query("SELECT RELEASE_LOCK('" . escGerarTravaNome() . "')");
+        } catch (Throwable $e) {
+            // a trava cai sozinha com a conexão
+        }
+    }
+}

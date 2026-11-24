@@ -9,28 +9,12 @@
 //   - as versões e o que mudou em cada uma.
 // O Capacity não entra no corte de 01/11 (escCorteDados): todas as versões contam.
 // Faturamento por carteira só para WFM/Planejamento e Admin (escPodeVerRestrito).
-// Recalcular (1.27.0): o botão chama sp_fc_recalcular_postos para hoje e grava uma versão nova,
-// sem precisar gerar a escala. Pede o perfil de planejar e não roda no Modo Treino (o Capacity é um só).
+// Recalcular: desde a 1.38.0 é automático (sem botão); ver escCapacityAgendar em lib/estrutura.php.
 // ===============================================
 
-$podeRecalcular = escPode('planejar') && !escModoTreino();
-if (escPost() && ($_POST['acao'] ?? '') === 'recalcular') {
-    escExigir('planejar');
-    if (escModoTreino()) {
-        throw new RuntimeException(t('No Modo Treino o Capacity não é recalculado: ele é o mesmo do sistema real.'));
-    }
-    @set_time_limit(max(300, (int) ini_get('max_execution_time')));
-    $antes = escQdUltimaVersao();
-    $nome = (string) ($GLOBALS['ESC_USUARIO']['nome'] ?? ('usuário ' . escUserId()));
-    escCapacityGravar('recalcular_versao', [date('Y-m-d'), mb_substr('Recalculado na tela Capacity por ' . $nome . ' (5C Escalas)', 0, 255)]);
-    $depois = escQdUltimaVersao();
-    escLog('capacity.recalcular', 'fc_capacity_versao', (string) ($depois['versao'] ?? ''), $antes ? ['versao' => (int) $antes['versao'], 'precisa' => (int) $antes['precisa']] : null,
-        $depois ? ['versao' => (int) $depois['versao'], 'precisa' => (int) $depois['precisa'], 'buffer' => (int) $depois['buffer']] : null);
-    $volta = array_filter(['unidade' => $_GET['unidade'] ?? null, 'turno' => $_GET['turno'] ?? null, 'periodo' => $_GET['periodo'] ?? null, 'semana' => $_GET['semana'] ?? null], 'is_string');
-    escVoltar('capacity', $volta, $depois
-        ? t('Capacity recalculado: versão {v}. Precisa {p} (antes {a}), buffer {b}.', ['v' => (int) $depois['versao'], 'p' => (int) $depois['precisa'], 'a' => (int) ($antes['precisa'] ?? 0), 'b' => (int) $depois['buffer']])
-        : t('Capacity recalculado.'));
-}
+// Capacity automático (1.38.0, item D): sem botão de recálculo. Toda mudança em pessoas, páginas ou postos
+// recalcula sozinha no fim da requisição (lib/estrutura.php, escCapacityAgendar), além do Gerar e do diário.
+$ultAuto = escQ1('SELECT quando, depois FROM ' . escT('esc_log') . " WHERE acao = 'capacity.auto' ORDER BY id DESC LIMIT 1");
 
 $unSel =(int) (is_string($_GET['unidade'] ?? null) ? $_GET['unidade'] : 0);
 $unSel = in_array($unSel, [1, 2, 3], true) ? $unSel : 0;
@@ -139,12 +123,7 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
   <?php if ($ult): ?>
   <span class="muted small"><?php echo h(t('Versão {v} do Capacity, calculada em {dia} ({origem}).', ['v' => (int) $ult['versao'], 'dia' => escDataHora($ult['gerado_em']), 'origem' => strtolower((string) $ult['origem'])])); ?></span>
   <?php endif; ?>
-  <?php if ($podeRecalcular): ?>
-  <form method="post" action="<?php echo h(link_tela('capacity', $params)); ?>" class="acoes" data-longo="<?php echo h(t('Recalculando o Capacity…')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular">
-    <button type="submit" class="botao"><?php echo h(t('Recalcular agora')); ?></button>
-    <span class="muted small"><?php echo h(t('Grava uma versão nova para hoje com os postos, o quadro e os parâmetros atuais. Não mexe na escala.')); ?></span>
-  </form>
-  <?php endif; ?>
+  <p class="muted small"><?php echo h(t('Recalcula sozinho a cada mudança em pessoas, páginas ou postos, a cada Gerar e todo dia (diário).')); ?><?php if ($ultAuto): $dAuto = json_decode((string) $ultAuto['depois'], true) ?: []; ?> <?php echo h(t('Último recálculo automático: {quando} ({motivo}).', ['quando' => escDataHora((string) $ultAuto['quando']), 'motivo' => implode(', ', $dAuto['motivos'] ?? [])])); ?><?php endif; ?></p>
 </section>
 
 <?php if (!$ult): ?>
@@ -330,7 +309,7 @@ if ($plano && $linhasO) {
     <?php endforeach; ?>
     </tbody>
   </table></div>
-  <p class="muted small"><?php echo h(t('O Capacity é recalculado sozinho todo dia, a cada Gerar, em entradas e saídas de página e pelo botão Recalcular agora.')); ?>
+  <p class="muted small"><?php echo h(t('O Capacity é recalculado sozinho todo dia, a cada Gerar e a cada mudança em pessoas, páginas ou postos (entradas e saídas de página, cadastro, turmas, alocação das páginas).')); ?>
     <?php echo h(t('Parâmetros do buffer (5c_planning.fc_parametros): absenteísmo desde {desde}{dmed}, mínimo de {tur} por turno e {min} por núcleo, pico coberto no percentil {pct}.', [
         'tur' => num($parBuf['buffer_minimo_turno'] ?? 0, 0),
         'desde' => !empty($parBuf['abs_desde']) ? dataBr(substr((string) (int) $parBuf['abs_desde'], 0, 4) . '-' . substr((string) (int) $parBuf['abs_desde'], 4, 2) . '-' . substr((string) (int) $parBuf['abs_desde'], 6, 2)) : t('a janela toda'),

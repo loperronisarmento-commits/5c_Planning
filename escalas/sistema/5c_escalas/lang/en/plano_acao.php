@@ -70,4 +70,8 @@ return [
     'Postar a {versao} da semana de {dia} no site da 5C' => 'Post {versao} for the week of {dia} on the 5C site',
     'Nenhuma página marcada como postada. Use o pacote (.json) da Grade.' => 'No page marked as posted. Use the Grid package (.json).',
     'O diário do Capacity de hoje falhou na etapa {etapa}' => 'Today\'s Capacity daily run failed at step {etapa}',
+    'Capacity pendente: recalcular depois de mudanças em pessoas ou páginas' => 'Capacity pending: recalculate after changes to people or pages',
+    'Outro recálculo ou um Gerar estava rodando: o recálculo automático ({motivo}) ficou para o próximo gatilho, o Gerar ou o diário.' => 'Another recalculation or a Generate was running: the automatic recalculation ({motivo}) was left for the next trigger, Generate or the daily run.',
+    'Capacity pendente: o recálculo automático falhou' => 'Capacity pending: the automatic recalculation failed',
+    'Depois de {motivo}: {erro}. O Gerar ou o diário recalculam.' => 'After {motivo}: {erro}. Generate or the daily run will recalculate.',
 ];

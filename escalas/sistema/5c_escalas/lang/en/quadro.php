@@ -250,4 +250,7 @@ return [
     '{n} trainee sem destino confirmado fica de fora: confirme a turma dele antes.' => '{n} trainee without a confirmed destination is left out: confirm their class first.',
     '{n} trainees sem destino confirmado ficam de fora: confirme a turma deles antes.' => '{n} trainees without a confirmed destination are left out: confirm their classes first.',
     'Todos com destino confirmado. Cada um entra a partir do dia disponível da sua turma.' => 'All with a confirmed destination. Each one starts on their class\'s available day.',
+    'Recalcula sozinho a cada mudança em pessoas, páginas ou postos, a cada Gerar e todo dia (diário).' => 'Recalculates by itself on every change to people, pages or posts, on every Generate and every day (daily run).',
+    'Último recálculo automático: {quando} ({motivo}).' => 'Last automatic recalculation: {quando} ({motivo}).',
+    'O Capacity é recalculado sozinho todo dia, a cada Gerar e a cada mudança em pessoas, páginas ou postos (entradas e saídas de página, cadastro, turmas, alocação das páginas).' => 'Capacity is recalculated by itself every day, on every Generate and on every change to people, pages or posts (page entries and exits, records, classes, page allocation).',
 ];

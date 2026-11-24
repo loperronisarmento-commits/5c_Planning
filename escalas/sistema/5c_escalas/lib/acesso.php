@@ -239,6 +239,10 @@ function escLog(string $acao, string $entidade, $entidadeId, $antes = null, $dep
         $depois === null ? null : json_encode($depois, JSON_UNESCAPED_UNICODE),
         substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45),
     ]);
+    // Capacity automático (1.38.0): mudança em pessoas, páginas ou postos agenda um recálculo para o fim da requisição.
+    if (defined('ESC_CAPACITY_GATILHOS') && in_array($acao, ESC_CAPACITY_GATILHOS, true) && function_exists('escCapacityAgendar')) {
+        escCapacityAgendar($acao);
+    }
 }
 
 // ---------- banco fora do ar (o MySQL do .11 reinicia de vez em quando) ----------

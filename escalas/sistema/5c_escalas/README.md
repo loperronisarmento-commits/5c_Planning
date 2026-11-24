@@ -221,6 +221,13 @@ Regras em `contexto/regras_base_semana_8020_anjo.md` (ES_213).
 - Motor (`lib/motor_v4.php`): rodada da base depois da equipe fixa e antes do melhor SR; quem fez a página na semana anterior conta como quem a conhece (P-02).
 - Tela Escala › Movimentações e Anjos (`pages/movimentos.php`, restrita).
 
+## Capacity automático (1.38.0, item D)
+
+- Sem o botão "Recalcular agora". As ações do `esc_log` em `ESC_CAPACITY_GATILHOS` (`lib/estrutura.php`) agendam um recálculo para o fim da requisição (`escCapacityAgendar` → `escCapacityAutoRodar`): `sp_fc_recalcular_postos` de hoje, com o motivo na versão, e `escEstruturaSincronizar`, um só por requisição. Os gatilhos são: Colaboradores (também Fora das unidades e Cadastrar todos), Roster (SR ↔ OS/OA), Solicitações aplicadas, Folga juntos, destino dos novatos, Configuração das páginas, divisão dos OS e plano de turmas.
+- Entrada e saída de página e troca de unidade já recalculavam no próprio fluxo. O Gerar e o diário (06:30) seguem recalculando.
+- Usa a trava do Gerar. Se outro recálculo ou um Gerar estiver rodando, ou se o recálculo falhar, aparece "Capacity pendente" no Plano de Ação, que fecha sozinho no próximo recálculo automático.
+- Com PHP-FPM, a resposta sai antes do recálculo (`fastcgi_finish_request`). Sem ele, o usuário espera o recálculo depois de salvar. O Modo Treino não recalcula.
+
 ## Plano de Ação (1.38.0, item C)
 
 A antiga tela "Sugestões de troca" (`?p=sugestoes`, que agora abre `?p=plano_acao`) virou o Plano de Ação: `pages/plano_acao.php`, `lib/plano_acao.php` e a tabela `esc_acao` (ES_220). Cada ação tem tipo, o que ou quem envolve, origem (com link), data e status (pendente, feita ou descartada), com filtro por tipo, unidade e status.
