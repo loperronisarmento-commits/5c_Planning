@@ -410,6 +410,43 @@ function escV4PresentesTransicao(string $dia): array {
 // fica com o dia de Overlap do outro (o do SR de menor código; com OC, OS ou OA, o da liderança),
 // para os dois folgarem nos mesmos dias. $pares = [[rep_a, rep_b]];
 // $lider[rep] = ['deslocamento' => n, 'overlap' => posição] de quem do par é da liderança.
+// Posição de Overlap gravada de cada SR (esc_sr_overlap, ES_211): [rep => posição]. Sem a tabela, vazio (comportamento antigo).
+function escV4OverlapFixos(bool $recarregar = false): array {
+    static $cache = null;
+    if ($cache === null || $recarregar) {
+        $cache = [];
+        if (escQ1("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_sr_overlap'", [ESC_SCHEMA])) {
+            foreach (escQ('SELECT UPPER(rep_code) AS rep, posicao FROM ' . escT('esc_sr_overlap')) as $r) {
+                $cache[$r['rep']] = (int) $r['posicao'];
+            }
+        }
+    }
+    return $cache;
+}
+
+// Grava a posição de Overlap de quem ainda não tem (SR novo no núcleo), antes de gerar: daí em diante ela não muda.
+// Fora do modo treino e fora de transação. Devolve quantos gravou.
+function escV4OverlapFixarNovos(array $est): int {
+    if (escModoTreino() || escDbW()->inTransaction() || empty($est['overlap_posicoes'])) {
+        return 0;
+    }
+    $fixos = escV4OverlapFixos();
+    if (!escQ1("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_sr_overlap'", [ESC_SCHEMA])) {
+        return 0;
+    }
+    $n = 0;
+    foreach (escV4OverlapDe($est['pessoas'], $est['overlap_posicoes'], $est['nucleos']) as $rep => $pos) {
+        if (!isset($fixos[$rep])) {
+            escW('INSERT IGNORE INTO ' . escT('esc_sr_overlap') . " (rep_code, posicao, origem) VALUES (?, ?, 'GERAR')", [$rep, (int) $pos]);
+            $n++;
+        }
+    }
+    if ($n) {
+        escV4OverlapFixos(true);
+    }
+    return $n;
+}
+
 function escV4OverlapDe(array $pessoas, array $posicoes, array $nucleos, array $pares = [], array $lider = []): array {
     $de = [];
     if (!$posicoes) {
@@ -419,10 +456,37 @@ function escV4OverlapDe(array $pessoas, array $posicoes, array $nucleos, array $
     foreach ($pessoas as $rep => $p) {
         $porNucleo[$p['nucleo']][] = (string) $rep;
     }
+    // Dia de Overlap fixo por SR (1.36.0, ES_211): quem tem posição gravada em esc_sr_overlap fica com ela (não muda quando
+    // alguém entra ou sai do núcleo). Quem não tem recebe a posição menos usada no núcleo, na proporção da lista do parâmetro
+    // (ex.: 7,17,7,16,17 = segunda 2/5, quinta 2/5, quarta 1/5); o Gerar grava essa escolha (escV4OverlapFixarNovos).
+    $fixos = escV4OverlapFixos();
+    $peso = array_count_values($posicoes);
+    $validas = array_keys($peso);
     foreach ($porNucleo as $reps) {
         sort($reps);
-        foreach ($reps as $i => $rep) {
-            $de[$rep] = $posicoes[$i % count($posicoes)];
+        $conta = array_fill_keys($validas, 0);
+        $semFixo = [];
+        foreach ($reps as $rep) {
+            $f = $fixos[$rep] ?? null;
+            if ($f !== null && isset($peso[$f])) {
+                $de[$rep] = $f;
+                $conta[$f]++;
+            } else {
+                $semFixo[] = $rep;
+            }
+        }
+        foreach ($semFixo as $rep) {
+            $melhor = null;
+            $kMelhor = null;
+            foreach ($validas as $ordem => $p) {
+                $k = [$conta[$p] / $peso[$p], $ordem];
+                if ($kMelhor === null || $k < $kMelhor) {
+                    $kMelhor = $k;
+                    $melhor = $p;
+                }
+            }
+            $de[$rep] = $melhor;
+            $conta[$melhor]++;
         }
     }
     $desl = static fn(string $r): ?int => isset($pessoas[$r]) ? (int) ($nucleos[$pessoas[$r]['nucleo']]['deslocamento'] ?? -1)

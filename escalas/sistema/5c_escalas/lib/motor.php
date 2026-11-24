@@ -296,6 +296,12 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         }
         $GLOBALS['ESC_EQUIPES_AUTO'] = escEquipesCompletar($inicio, $dias[count($dias) - 1]);
         $est = escV4Carregar(end($dias));
+        // Dia de Overlap fixo (1.36.0): quem entrou no núcleo sem posição recebe uma agora, e ela fica gravada.
+        try {
+            escV4OverlapFixarNovos($est);
+        } catch (Throwable $e) {
+            appLog('error', 'Overlap: falha ao gravar a posição de quem entrou', ['erro' => $e->getMessage()]);
+        }
         // New Hires (lib/treinamento.php): fora da escala normal até o dia em que ficam
         // disponíveis, mesmo que alguém já tenha cadastrado a pessoa num núcleo. E quem ficou
         // sem página depois de uma saída, até a página nova entrar, com decisão "remover" (ES_37).

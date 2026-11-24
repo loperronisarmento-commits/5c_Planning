@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.36.0' => ['titulo' => 'Fixed Overlap day per SR', 'itens' => [
+    'Each SR now has a fixed Overlap day (Monday, Wednesday or Thursday of the cycle week), kept in the esc_sr_overlap table. Before, the day came from the code order within the group, and whoever joined or left the group changed the Overlap of other people (on 11/23, moving Giovanna Melo to U3 changed the day of 11 SRs).',
+    'The table started with the day each SR already had (224 SRs), so nothing changed now. Whoever joins a group without a day gets the least used day of the group on Generate, and it stays saved.',
+    'The Folga juntos pair keeps the same Overlap as the pair, and Overlap never falls on the Saturday or Sunday of the full weekend off.',
+    ]],
     '1.35.0' => ['titulo' => 'SR only on pages of their own unit', 'itens' => [
     'Generate schedule: an SR only goes on pages of their own unit. A U1 buffer only covers gaps in U1, and so on. It applies to buffers, to people on Overlap, to the SR split (e.g. 50/50) and to the fixed team: someone from another unit no longer comes in, not even as a last resort. Request of 11/23, after the U2 OM comparison (U1 and U3 buffers covering U2 pages).',
     '"Recalculate with minimal changes" also no longer keeps someone from another unit in the cell.',

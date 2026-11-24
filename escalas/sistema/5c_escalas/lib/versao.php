@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.36.0', 'data' => '2026-11-23', 'titulo' => 'Dia de Overlap fixo por SR', 'sql' => ['ES_211_overlap_fixo_por_sr.sql'], 'itens' => [
+    'Cada SR passa a ter um dia de Overlap fixo (segunda, quarta ou quinta da semana do ciclo), guardado na tabela esc_sr_overlap. Antes o dia saía da ordem do código dentro do núcleo, e quem entrava ou saía do núcleo mudava o Overlap de outras pessoas (em 23/11, a ida da Giovanna Melo para a U3 mudou o dia de 11 SRs).',
+    'A tabela começou com o dia que cada SR já tinha (224 SRs), então nada mudou agora. Quem entrar no núcleo sem dia recebe no Gerar o dia menos usado do núcleo e ele fica gravado.',
+    'O par de Folga juntos continua com o mesmo Overlap do par, e o Overlap nunca cai no sábado ou no domingo do fim de semana completo.',
+    ]],
     ['versao' => '1.35.0', 'data' => '2026-11-23', 'titulo' => 'SR só em página da própria unidade', 'sql' => ['ES_209_so_propria_unidade.sql'], 'itens' => [
     'Gerar escala: o SR só entra em página da unidade dele. Buffer da U1 só cobre lacuna na U1, e assim por diante. Vale para o buffer, para quem está de Overlap, para a divisão do SR (ex.: 50/50) e para a equipe fixa: quem é de outra unidade não entra mais nem como última opção. Pedido de 23/11, depois do comparativo do OM da U2 (buffers da U1 e da U3 cobrindo páginas da U2).',
     'O "Recalcular com o mínimo de mudanças" também não mantém na célula quem é de outra unidade.',
