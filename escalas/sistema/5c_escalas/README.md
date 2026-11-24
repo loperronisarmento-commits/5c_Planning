@@ -52,6 +52,7 @@ Tabela `5c_escalas.esc_acesso`. No primeiro acesso, se ela estiver vazia, o mód
 | Gerar escala | Nova versão, recálculo manual, verificar mudanças, histórico de versões e De→Para. Gerar e recalcular passam por três etapas (verificação, Capacity, escala) numa tela de progresso que trava o sistema (lib/gerar_etapas.php) | `esc_plano*`, `esc_sugestao`, `esc_ciclo_estado` |
 | Grade da escala | Por página, por pessoa e De→Para; ajuste manual de célula (fica travado); publicar; CSV por página ou .zip; PDF da escala das páginas e PDF de metas (atingimento de cada pessoa escalada na página nas 4 semanas anteriores); abaixo da grade, **Postar no site**: um cartão por página com o CSV para copiar, Date Schedule/Date End, "1 · Apaguei" e "2 · Postei" e o aviso de quais páginas mudaram desde a versão já postada | `esc_plano_alocacao`, `esc_plano`, `esc_exportacao`, `esc_plano_postagem` |
 | Escala da liderança | OC e OS em 5x2 no ciclo de 21 dias (cada um num turno só), com o dia de Overlap em que os 3 do grupo estão no turno; OA numa semana fixa, 1 por turno todo dia; OM sem escala; CSV da semana | não grava |
+| Movimentações e Anjos | O que o Gerar mudou em relação à semana anterior (a base), o corte 80/20 (só 20% das trocas, as de maior impacto) e o Anjo de cada OS (1 SR por núcleo que fica mais uma semana); só WFM/Planejamento e Admin (1.37.0, `lib/base_semana.php`) | `esc_anjo`, `esc_base_movimento` (pelo Gerar) |
 | Horas extras | Postos sem ninguém (por faturamento) e buffers que faltam (Capacity × plantão); texto para pedir hora extra; PDF de anúncio do Overtime a partir de um dia e turno, no padrão visual 5C (papel timbrado, desde a 1.20.0; `lib/overtime_pdf.php`, `?p=horas&baixar=overtime&de=&turno=`); registrar quem se ofereceu e alocar no rascunho (trava turno repetido, mais de 12 h seguidas e mais de 52 h na semana) | `esc_hora_extra`, `esc_plano_alocacao` |
 | Análise (WFM) | Abas Escala (horas necessárias × previstas, buffers, escalados, absenteísmo previsto e realizado), Demanda (previsão do Capacity, fluxo por página, funil do CRM) e Escala × demanda por unidade e turno | não grava |
 | Mérito dos SRs | Turnos de cada SR (em posto, assistente, buffer -2, Overlap -5) × fatia do nível, e o mérito em pontos (desde a 1.19.0, regras M-01 a M-10): os pontos de cada componente com o dado ao lado, a nota e a faixa (Acima, Na média, Abaixo); o mérito aparece só para Planejamento e Admin | `esc_sr_merito` (cache) |
@@ -213,6 +214,15 @@ Seção nova do menu, entre Análise e Páginas: **Capacity** (`pages/capacity.p
 ## Exportar o Mérito dos SRs (1.22.0)
 
 Na tela Mérito dos SRs: `?p=srs&baixar=xlsx` (`lib/xlsx.php`, planilha sem biblioteca externa, só ZipArchive) e `?p=srs&ver=pdf&imprimir=1` (`@page merito-srs`, A4 paisagem). Valem os filtros `u` e `t`, o acesso é o de `escPodeVerRestrito()` e a versão vem de `escDocVersao('merito_srs', ...)`.
+
+## Semana anterior como base, 80/20 e Anjo (1.37.0)
+
+Regras em `contexto/regras_base_semana_8020_anjo.md` (ES_213).
+
+- `lib/base_semana.php`: `escBaseCarregar` (páginas de cada SR no plano da semana anterior, publicado ou atual; página da base = `v4_base_min_fatia` dos blocos), `escBaseMovimentos` (compara com a proposta livre do motor; FORCADA, NUCLEO ou OPCIONAL; impacto = faturamento da página no turno × diferença de score do KPI; no máximo `v4_base_mov_max` das NUCLEO + OPCIONAL mudam; Anjo em `esc_anjo`), `escBaseParaMotor` e `escBaseGravar` (`esc_base_movimento`, por plano).
+- Gerar (`lib/motor.php`): com `v4_base_semana_anterior` = 1 e fora da transição, o motor roda duas vezes (proposta e final); `$GLOBALS['ESC_SO_PREVIA']` calcula sem gravar (`deploy/base_previa.php`, fora do commit).
+- Motor (`lib/motor_v4.php`): rodada da base depois da equipe fixa e antes do melhor SR; quem fez a página na semana anterior conta como quem a conhece (P-02).
+- Tela Escala › Movimentações e Anjos (`pages/movimentos.php`, restrita).
 
 ## KPI no lugar do mérito (1.34.0)
 

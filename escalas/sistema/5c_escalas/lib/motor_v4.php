@@ -253,6 +253,12 @@ function escMotorAlocarV4(array $in): array {
     // A cota da amarela fica desligada por enquanto (decisão de 04/11): liga com v4_cor_amarela_ativa = 1.
     $amarelaCota = escV4Param('v4_cor_amarela_ativa', '0') === '1';
     $conheceCor = $est['conhece_cor'] ?? [];
+    // Base da semana anterior (1.37.0): quem fez a página na semana anterior conhece a página (P-02), mesmo com menos de 7 dias.
+    foreach ($est['base']['conhece'] ?? [] as $repB => $pagsB) {
+        foreach ($pagsB as $pgB => $_) {
+            $conheceCor[$repB][$pgB] = true;
+        }
+    }
     $quotaAmarela = max(1, (int) floor((float) str_replace(',', '.', escV4Param('v4_cor_amarela_novos', '0.20')) * count($dias) + 1e-9));
     $novatosAmarela = []; // [página|turno] = turnos da semana com quem não conhece
     $fixoNaPag = static function (string $rep, string $pag, string $dia) use ($est): bool {
@@ -667,6 +673,49 @@ function escMotorAlocarV4(array $in): array {
                     }
                 }
                 unset($v, $st);
+            }
+
+            // Base da semana anterior (1.37.0, lib/base_semana.php): depois da equipe fixa, quem estava na página na semana
+            // anterior e não está entre as trocas escolhidas (80/20) fica com ela, antes do melhor SR; o Anjo do OS também.
+            // Não sai da página para remanejar.
+            if (!$transicao && !empty($est['base']['paginas'])) {
+                foreach (array_keys($estadoUT) as $u) {
+                    $st = &$estadoUT[$u];
+                    foreach ($st['vagas'] as &$v) {
+                        if ($v['rep'] !== null) {
+                            continue;
+                        }
+                        $p = $est['postos'][$v['pid']];
+                        $melhor = null;
+                        $kMelhor = null;
+                        $pagMelhor = null;
+                        foreach ($p['paginas'] as $pg) {
+                            if (!empty($pg['apoio'])) {
+                                continue;
+                            }
+                            foreach ($est['base']['paginas'][(int) $pg['page_id']] ?? [] as $rep => $blocosBase) {
+                                if (!isset($st['disp'][$rep]) || isset($usado[$rep]) || !$pode($rep, $p)) {
+                                    continue;
+                                }
+                                $k = [($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, (int) $blocosBase, $rep];
+                                if ($kMelhor === null || $k > $kMelhor) {
+                                    $kMelhor = $k;
+                                    $melhor = $rep;
+                                    $pagMelhor = (string) $pg['pagina'];
+                                }
+                            }
+                        }
+                        if ($melhor !== null) {
+                            $v['rep'] = $melhor;
+                            $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
+                            $v['motivo'] = (isset($est['base']['anjo'][$melhor]) ? 'Anjo do OS: fica mais uma semana em ' : 'mantido da semana anterior em ') . $pagMelhor
+                                . ' (80/20)';
+                            $v['fixa'] = true; // não sai da página para remanejar
+                            $usado[$melhor] = true;
+                        }
+                    }
+                    unset($v, $st);
+                }
             }
 
             // P-02 Reserva de quem conhece (vermelhas e depois amarelas): antes do melhor SR de cima para baixo,

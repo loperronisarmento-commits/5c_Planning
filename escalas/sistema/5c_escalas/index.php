@@ -61,6 +61,7 @@ require_once __DIR__ . '/lib/graficos.php';
 require_once __DIR__ . '/lib/quadro.php';
 require_once __DIR__ . '/lib/fora_unidades.php';
 require_once __DIR__ . '/lib/bot_cobranca.php';
+require_once __DIR__ . '/lib/base_semana.php';
 
 // ---------- nível 1: logado no MIS Portal? ----------
 startSecureSession();
@@ -85,6 +86,7 @@ $telas = [
     'grade'        => ['Grade da escala', 'pages/grade.php'],
     'lideranca'    => ['Escala da liderança', 'pages/lideranca.php'],
     'horas'        => ['Horas extras', 'pages/horas.php'],
+    'movimentos'   => ['Movimentações e Anjos', 'pages/movimentos.php'],
     'analise'      => ['Análise', 'pages/analise.php'],
     'srs'          => ['Mérito dos SRs', 'pages/tertius.php'],
     'kpi'          => ['KPI dos SRs', 'pages/kpi.php'],
@@ -296,7 +298,7 @@ try {
 
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
-    'Escala' => ['painel', 'gerar', 'grade', 'lideranca', 'horas'],
+    'Escala' => ['painel', 'gerar', 'grade', 'movimentos', 'lideranca', 'horas'],
     'Análise' => array_merge(['analise'], escDesempenhoFonte() === 'MERITO' ? ['srs'] : [], ['kpi', 'sugestoes', 'buffers', 'bot']),
     'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],

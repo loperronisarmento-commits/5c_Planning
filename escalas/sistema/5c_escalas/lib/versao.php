@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.37.0', 'data' => '2026-11-24', 'titulo' => 'Semana anterior como base, 80/20 e Anjo do OS', 'sql' => ['ES_213_base_semana_8020_anjo.sql'], 'itens' => [
+    'Gerar escala: a escala da semana anterior (a publicada) é a base. Cada SR fica nas páginas em que estava nela, e quem fez a página conta como quem a conhece (página vermelha).',
+    'O motor roda uma vez livre e lista as trocas sobre a base. Só 20% delas acontecem, as de maior impacto: faturamento da página no turno × (score do KPI de quem entra − de quem sai). Mudança de unidade, turno ou núcleo conta nesses 20%. Saída, página que saiu, equipe fixa e célula travada à mão ficam fora da conta.',
+    'Anjo: cada OS pode escolher 1 SR do núcleo que ia mudar de página para ficar mais uma semana. O Planejamento registra na tela nova Escala › Movimentações e Anjos, que mostra quem muda, quem fica e por quê; vale no próximo Gerar ou recálculo.',
+    'Parâmetros novos: v4_base_semana_anterior (1 = ligado), v4_base_min_fatia (0,25) e v4_base_mov_max (0,20).',
+    ]],
     ['versao' => '1.36.0', 'data' => '2026-11-23', 'titulo' => 'Dia de Overlap fixo por SR', 'sql' => ['ES_211_overlap_fixo_por_sr.sql'], 'itens' => [
     'Cada SR passa a ter um dia de Overlap fixo (segunda, quarta ou quinta da semana do ciclo), guardado na tabela esc_sr_overlap. Antes o dia saía da ordem do código dentro do núcleo, e quem entrava ou saía do núcleo mudava o Overlap de outras pessoas (em 23/11, a ida da Giovanna Melo para a U3 mudou o dia de 11 SRs).',
     'A tabela começou com o dia que cada SR já tinha (224 SRs), então nada mudou agora. Quem entrar no núcleo sem dia recebe no Gerar o dia menos usado do núcleo e ele fica gravado.',

@@ -294,10 +294,12 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                 $GLOBALS['ESC_OM_ORFAS'] = [];
             }
         }
-        $GLOBALS['ESC_EQUIPES_AUTO'] = escEquipesCompletar($inicio, $dias[count($dias) - 1]);
+        // Prévia (ESC_SO_PREVIA, deploy/base_previa.php): calcula sem gravar nada (nem equipes, nem Overlap, nem plano).
+        $soPrevia = !empty($GLOBALS['ESC_SO_PREVIA']);
+        $GLOBALS['ESC_EQUIPES_AUTO'] = $soPrevia ? [] : escEquipesCompletar($inicio, $dias[count($dias) - 1]);
         $est = escV4Carregar(end($dias));
         // Dia de Overlap fixo (1.36.0): quem entrou no núcleo sem posição recebe uma agora, e ela fica gravada.
-        try {
+        if (!$soPrevia) try {
             escV4OverlapFixarNovos($est);
         } catch (Throwable $e) {
             appLog('error', 'Overlap: falha ao gravar a posição de quem entrou', ['erro' => $e->getMessage()]);
@@ -342,7 +344,7 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
                 }
             }
         }
-        $saida = escMotorAlocarV4([
+        $inMotor = [
             'dias' => $dias, 'est' => $est, 'indisp' => $indisp,
             'travadas' => $travadas, 'virada' => $virada, 'turno_virada' => $turnoVirada, 'transicao' => $transicoes,
             'treino_cobre' => escTrnCobertura($dias),
@@ -350,7 +352,25 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
             'ultimo' => escV4UltimoDoPlanoAnterior($seg),
             // Até o dia da virada inclusive: quem fez o A ou o C antigo de 31/10 conta nos dias seguidos de 01/11.
             'realizado' => escMotorRealizado(escMaisDias($inicio, -14), max(escMaisDias($inicio, -1), min($virada, escMaisDias($inicio, 6)))),
-        ]);
+        ];
+        // Base da semana anterior, 80/20 e Anjo (1.37.0, lib/base_semana.php): o motor roda livre uma vez (proposta),
+        // as trocas sobre a semana anterior são escolhidas e ele roda de novo mantendo quem não troca.
+        $baseMov = null;
+        if (function_exists('escBaseAtiva') && escBaseAtiva() && !array_intersect($dias, $transicoes)) {
+            $baseSem = escBaseCarregar($seg, isset($est['overlap_pagina']['page_id']) ? (int) $est['overlap_pagina']['page_id'] : null);
+            if ($baseSem['sr']) {
+                $inMotor['est']['base'] = ['conhece' => escBaseConhece($baseSem)];
+                $proposta = escMotorAlocarV4($inMotor);
+                $baseMov = escBaseMovimentos($seg, $baseSem, $est, $proposta['alocacoes']);
+                $inMotor['est']['base'] = escBaseParaMotor($baseSem, $baseMov);
+                unset($proposta);
+            }
+        }
+        $saida = escMotorAlocarV4($inMotor);
+        if ($baseMov) {
+            $saida['resumo']['base_semana'] = $baseMov['resumo'];
+            $saida['base_movimentos'] = $baseMov;
+        }
         // Liderança (OS, OC e OA) no mesmo plano, na página 5C Schedule (-8, -7, -6 no CSV).
         $lider = escLiderancaAlocacoes($seg, $travadas, $est['overlap_pagina'] ?? null);
         // Trainees das turmas confirmadas, na mesma página 5C Schedule (-4 no CSV).
@@ -399,6 +419,10 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         // Folgas antes do dia do corte: as da versão de referência.
         $diaCorte = substr($desde, 0, 10);
         $saida['folgas'] = array_merge($refFolgas, array_values(array_filter($saida['folgas'] ?? [], static fn($f) => substr((string) $f['dia'], 0, 10) >= $diaCorte)));
+    }
+    if (!empty($GLOBALS['ESC_SO_PREVIA'])) {
+        $GLOBALS['ESC_PREVIA_SAIDA'] = $saida;
+        return 0;
     }
     return escTx(function () use ($travasBase, $seg, $dias, $modo, $base, $userId, $recalculoId, $saida, $cap, $fotoIds, $estado, $estruturaPlano, $travadas, $minimo, $est, $desde, $refPre, $refDesde) {
         // Releitura do realizado.
@@ -507,6 +531,9 @@ function escMotorGerar(string $seg, string $modo, ?int $userId, ?int $recalculoI
         }
         unset($a);
         escInserirLote('esc_plano_alocacao', ['plano_id', 'dia', 'bloco', 'turno', 'page_id', 'pagina', 'posto_id', 'vaga', 'rep_code', 'papel', 'origem', 'travada', 'motivo'], $alocacoes);
+        if (function_exists('escBaseGravar')) {
+            escBaseGravar($planoId, $seg, $saida['base_movimentos'] ?? null);
+        }
 
         // Folga de emenda (ES_22): sem o tipo novo no banco, grava como folga da rotação.
         $temEmenda = strpos((string) (escQW("SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_plano_folga' AND COLUMN_NAME = 'tipo'", [ESC_SCHEMA])[0]['t'] ?? ''), 'EMENDA') !== false;

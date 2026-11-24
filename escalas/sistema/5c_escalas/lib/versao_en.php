@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.37.0' => ['titulo' => 'Previous week as baseline, 80/20 and OS Angel', 'itens' => [
+    'Generate schedule: the previous week schedule (the published one) is the baseline. Each SR stays on the pages they had in it, and whoever worked the page counts as knowing it (red page).',
+    'The engine runs once freely and lists the swaps over the baseline. Only 20% of them happen, the ones with the biggest impact: page revenue in the shift × (KPI score of who comes in − of who leaves). A change of unit, shift or core counts in those 20%. Exits, pages that left, fixed teams and cells locked by hand are left out of the count.',
+    'Angel: each OS can pick 1 SR from the core who was going to change page to stay one more week. Planning records it on the new Schedule › Moves and Angels screen, which shows who moves, who stays and why; it applies at the next Generate or recalculation.',
+    'New parameters: v4_base_semana_anterior (1 = on), v4_base_min_fatia (0.25) and v4_base_mov_max (0.20).',
+    ]],
     '1.36.0' => ['titulo' => 'Fixed Overlap day per SR', 'itens' => [
     'Each SR now has a fixed Overlap day (Monday, Wednesday or Thursday of the cycle week), kept in the esc_sr_overlap table. Before, the day came from the code order within the group, and whoever joined or left the group changed the Overlap of other people (on 11/23, moving Giovanna Melo to U3 changed the day of 11 SRs).',
     'The table started with the day each SR already had (224 SRs), so nothing changed now. Whoever joins a group without a day gets the least used day of the group on Generate, and it stays saved.',
