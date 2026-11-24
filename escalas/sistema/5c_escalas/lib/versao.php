@@ -8,6 +8,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.38.0', 'data' => '2026-11-24', 'titulo' => 'Revisão completa: KPI oficial, Plano de Ação, Capacity automático e Grade nova', 'sql' => ['ES_216_vagas_equipe_sobrepostas.sql', 'ES_217_parametros_kpi_oficial.sql', 'ES_220_plano_de_acao.sql', 'ES_221_plano_acao_carga_inicial.sql', '5C_Planning_42_sla_posto_duplo.sql', '5C_Planning_43_diario_nova_tentativa.sql'], 'itens' => [
+    'KPI dos SRs é o indicador oficial de desempenho. O Mérito foi para a área Legacy (só admin, só leitura, dados preservados), e as moedas saíram do KPI, da exportação e do simulador.',
+    'O Bot de cobrança saiu do sistema (era uma análise pontual). Os dados foram exportados antes.',
+    'Plano de Ação no lugar de Sugestões de troca: todas as ações sugeridas ou pendentes numa lista só (lacunas, carga, trocas de pessoas e de páginas, Recalcular Tier, entradas e saídas de página, pedidos e alertas), com tipo, quem ou o quê, origem, data e status, e filtro por tipo, unidade e status. A ação fecha sozinha quando a origem resolve.',
+    'Capacity automático: recalcula sozinho a cada mudança em pessoas, páginas ou postos, sem botão. O diário tenta de novo às 07:00 e às 08:00 se falhar.',
+    'Grade da escala: os turnos A, C e D viram coluna (nome uma vez, turno sem ninguém = vago), filtro de turno e de unidade sem recarregar, páginas pelo faturamento de 30 dias, Tier depois do nome e ⚑ quando o Tier não bate com o faturamento (vira ação no Plano de Ação). A aba Por pessoa tem a mesma estrutura.',
+    'Pacote para postar em lote (.json) com o Delete Range antes da postagem, a partir do "CSV a partir de": os blocos de antes do corte voltam iguais ao site. O favorito "Postar CSV em lote" apaga e posta cada página na sequência (reinstale o favorito).',
+    'Correções: o plano de turmas da Requisição de vagas grava; o diário do Capacity deixou de falhar na etapa SLA; o Gerar não duplica mais vagas de equipe; o KPI passou a contar Brandi Love FREE e Eden The Doll.',
+    ]],
     ['versao' => '1.37.1', 'data' => '2026-11-24', 'titulo' => 'Movimentações e Anjos: ajustes da tela', 'sql' => [], 'itens' => [
     'Movimentações e Anjos: em cada núcleo, primeiro quem muda (e o Anjo), depois quem fica pelo 80/20 e por último as obrigatórias, do maior impacto para o menor.',
     'A escolha do Anjo só aparece quando há quem escolher, e cabe na tela do celular.',

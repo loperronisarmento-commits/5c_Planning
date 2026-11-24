@@ -6,6 +6,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.38.0' => ['titulo' => 'Full review: official KPI, Action Plan, automatic Capacity and new Grid', 'itens' => [
+    'The SR KPI is the official performance indicator. Merit moved to the Legacy area (admin only, read only, data preserved), and coins were removed from the KPI, the export and the simulator.',
+    'The Follow-up bot was removed (it was a one-off analysis). The data was exported first.',
+    'Action Plan instead of Swap suggestions: every suggested or pending action in one list (gaps, workload, people and page swaps, Recalculate Tier, page entries and exits, requests and alerts), with type, who or what, source, date and status, filtered by type, unit and status. An action closes by itself when its source is solved.',
+    'Automatic Capacity: it recalculates by itself on every change to people, pages or posts, with no button. The daily run retries at 07:00 and 08:00 if it fails.',
+    'Schedule grid: shifts A, C and D become a column (name once, shift with nobody = open), shift and unit filters without reloading, pages by 30-day revenue, Tier after the name and ⚑ when the Tier does not match the revenue (it becomes an Action Plan item). The By person tab has the same structure.',
+    'Batch posting package (.json) with the Delete Range before posting, from the "CSV from" point: blocks before the cut come back exactly as on the site. The "Batch CSV post" bookmark deletes and posts each page in sequence (reinstall the bookmark).',
+    'Fixes: the class plan in Job requisitions saves; the Capacity daily run no longer fails at the SLA step; Generate no longer duplicates team slots; the KPI now counts Brandi Love FREE and Eden The Doll.',
+    ]],
     '1.37.1' => ['titulo' => 'Moves and Angels: screen adjustments', 'itens' => [
     'Moves and Angels: in each core, first those who move (and the Angel), then those who stay by the 80/20 and last the mandatory ones, from the biggest impact to the smallest.',
     'The Angel choice only shows when there is someone to pick, and fits the phone screen.',
