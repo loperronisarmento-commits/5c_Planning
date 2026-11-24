@@ -253,4 +253,9 @@ return [
     'Recalcula sozinho a cada mudança em pessoas, páginas ou postos, a cada Gerar e todo dia (diário).' => 'Recalculates by itself on every change to people, pages or posts, on every Generate and every day (daily run).',
     'Último recálculo automático: {quando} ({motivo}).' => 'Last automatic recalculation: {quando} ({motivo}).',
     'O Capacity é recalculado sozinho todo dia, a cada Gerar e a cada mudança em pessoas, páginas ou postos (entradas e saídas de página, cadastro, turmas, alocação das páginas).' => 'Capacity is recalculated by itself every day, on every Generate and on every change to people, pages or posts (page entries and exits, records, classes, page allocation).',
+    'Recalcula sozinho a cada mudança em pessoas, páginas ou postos (em até 2 min), a cada Gerar e todo dia (diário).' => 'Recalculates by itself on every change to people, pages or posts (within 2 min), on every Generate and every day (daily run).',
+    'Último recálculo automático: {quando}.' => 'Last automatic recalculation: {quando}.',
+    'O último recálculo automático falhou: {erro}. O Gerar e o diário recalculam.' => 'The last automatic recalculation failed: {erro}. Generate and the daily run will recalculate.',
+    '{n} mudança esperando o recálculo.' => '{n} change waiting for the recalculation.',
+    '{n} mudanças esperando o recálculo.' => '{n} changes waiting for the recalculation.',
 ];

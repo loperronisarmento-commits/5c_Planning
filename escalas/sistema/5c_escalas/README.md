@@ -223,10 +223,10 @@ Regras em `contexto/regras_base_semana_8020_anjo.md` (ES_213).
 
 ## Capacity automático (1.38.0, item D)
 
-- Sem o botão "Recalcular agora". As ações do `esc_log` em `ESC_CAPACITY_GATILHOS` (`lib/estrutura.php`) agendam um recálculo para o fim da requisição (`escCapacityAgendar` → `escCapacityAutoRodar`): `sp_fc_recalcular_postos` de hoje, com o motivo na versão, e `escEstruturaSincronizar`, um só por requisição. Os gatilhos são: Colaboradores (também Fora das unidades e Cadastrar todos), Roster (SR ↔ OS/OA), Solicitações aplicadas, Folga juntos, destino dos novatos, Configuração das páginas, divisão dos OS e plano de turmas.
-- Entrada e saída de página e troca de unidade já recalculavam no próprio fluxo. O Gerar e o diário (06:30) seguem recalculando.
-- Usa a trava do Gerar. Se outro recálculo ou um Gerar estiver rodando, ou se o recálculo falhar, aparece "Capacity pendente" no Plano de Ação, que fecha sozinho no próximo recálculo automático.
-- Com PHP-FPM, a resposta sai antes do recálculo (`fastcgi_finish_request`). Sem ele, o usuário espera o recálculo depois de salvar. O Modo Treino não recalcula.
+- Sem o botão "Recalcular agora". As ações do `esc_log` em `ESC_CAPACITY_GATILHOS` (`lib/estrutura.php`) gravam um pedido em `esc_capacity_fila` na mesma transação da mudança (`escCapacityAgendar`). Os gatilhos são: Colaboradores (também Fora das unidades e Cadastrar todos), Roster (SR ↔ OS/OA), Solicitações aplicadas, Folga juntos, destino dos novatos, Configuração das páginas, divisão dos OS e plano de turmas.
+- O evento `ev_esc_capacity_fila` (ES_222) roda a cada 2 minutos. Se há pedido, chama `sp_fc_recalcular_postos` de hoje uma vez, com os motivos na versão, na trava do Gerar (`5c_escalas.gerar`). Se um Gerar estiver rodando, tenta na volta seguinte. O usuário não espera.
+- A tela Capacity mostra o último recálculo automático e os pedidos na fila. Pedido parado há mais de 10 minutos ou erro nas últimas 24 h vira alerta "Capacity pendente" no Plano de Ação.
+- Entrada e saída de página e troca de unidade continuam recalculando no próprio fluxo. O Gerar (que também sincroniza os postos da escala) e o diário seguem iguais; o diário tenta de novo às 07:00 e às 08:00 se falhar (5C_Planning_43). O Modo Treino não pede recálculo.
 
 ## Plano de Ação (1.38.0, item C)
 

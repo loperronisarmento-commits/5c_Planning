@@ -74,4 +74,8 @@ return [
     'Outro recálculo ou um Gerar estava rodando: o recálculo automático ({motivo}) ficou para o próximo gatilho, o Gerar ou o diário.' => 'Another recalculation or a Generate was running: the automatic recalculation ({motivo}) was left for the next trigger, Generate or the daily run.',
     'Capacity pendente: o recálculo automático falhou' => 'Capacity pending: the automatic recalculation failed',
     'Depois de {motivo}: {erro}. O Gerar ou o diário recalculam.' => 'After {motivo}: {erro}. Generate or the daily run will recalculate.',
+    'Capacity pendente: o recálculo automático não rodou' => 'Capacity pending: the automatic recalculation did not run',
+    'Último erro: {erro}. O Gerar e o diário recalculam.' => 'Last error: {erro}. Generate and the daily run will recalculate.',
+    '{n} mudança esperando desde {quando} (outro recálculo ou um Gerar rodando?).' => '{n} change waiting since {quando} (another recalculation or a Generate running?).',
+    '{n} mudanças esperando desde {quando} (outro recálculo ou um Gerar rodando?).' => '{n} changes waiting since {quando} (another recalculation or a Generate running?).',
 ];

@@ -363,6 +363,16 @@ function escAcoesSincronizar(bool $forcar = false): array {
                 'titulo' => t('O diário do Capacity de hoje falhou na etapa {etapa}', ['etapa' => $log['etapa']]), 'detalhe' => (string) $log['msg'],
                 'link_tela' => 'capacity', 'link_params' => []]);
         }
+        // Capacity automático (ES_222): pedido parado há mais de 10 min ou recálculo com erro nas últimas 24 h.
+        $fila = function_exists('escCapacityFila') ? escCapacityFila() : ['pendentes' => 0, 'desde' => null, 'erro' => null];
+        if (($fila['pendentes'] && $fila['desde'] && strtotime((string) $fila['desde']) < time() - 600) || $fila['erro']) {
+            $refs[] = $ref = 'alerta:capacity:' . $hoje;
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'ALERTA', 'origem' => 'capacity', 'dia' => $hoje,
+                'titulo' => t('Capacity pendente: o recálculo automático não rodou'),
+                'detalhe' => $fila['erro'] ? t('Último erro: {erro}. O Gerar e o diário recalculam.', ['erro' => $fila['erro']])
+                    : tn($fila['pendentes'], '{n} mudança esperando desde {quando} (outro recálculo ou um Gerar rodando?).', '{n} mudanças esperando desde {quando} (outro recálculo ou um Gerar rodando?).', ['quando' => escDataHora((string) $fila['desde'])]),
+                'link_tela' => 'capacity', 'link_params' => []], true);
+        }
         escAcaoResolverAusentes('alerta:', $refs);
         return count($refs);
     });

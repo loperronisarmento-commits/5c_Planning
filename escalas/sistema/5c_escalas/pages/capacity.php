@@ -14,7 +14,7 @@
 
 // Capacity automático (1.38.0, item D): sem botão de recálculo. Toda mudança em pessoas, páginas ou postos
 // recalcula sozinha no fim da requisição (lib/estrutura.php, escCapacityAgendar), além do Gerar e do diário.
-$ultAuto = escQ1('SELECT quando, depois FROM ' . escT('esc_log') . " WHERE acao = 'capacity.auto' ORDER BY id DESC LIMIT 1");
+$filaCap = escCapacityFila();
 
 $unSel =(int) (is_string($_GET['unidade'] ?? null) ? $_GET['unidade'] : 0);
 $unSel = in_array($unSel, [1, 2, 3], true) ? $unSel : 0;
@@ -123,7 +123,8 @@ $filtroRot = trim(($unSel ? t('Unidade {n}', ['n' => $unSel]) : '') . ($tSel !==
   <?php if ($ult): ?>
   <span class="muted small"><?php echo h(t('Versão {v} do Capacity, calculada em {dia} ({origem}).', ['v' => (int) $ult['versao'], 'dia' => escDataHora($ult['gerado_em']), 'origem' => strtolower((string) $ult['origem'])])); ?></span>
   <?php endif; ?>
-  <p class="muted small"><?php echo h(t('Recalcula sozinho a cada mudança em pessoas, páginas ou postos, a cada Gerar e todo dia (diário).')); ?><?php if ($ultAuto): $dAuto = json_decode((string) $ultAuto['depois'], true) ?: []; ?> <?php echo h(t('Último recálculo automático: {quando} ({motivo}).', ['quando' => escDataHora((string) $ultAuto['quando']), 'motivo' => implode(', ', $dAuto['motivos'] ?? [])])); ?><?php endif; ?></p>
+  <p class="muted small"><?php echo h(t('Recalcula sozinho a cada mudança em pessoas, páginas ou postos (em até 2 min), a cada Gerar e todo dia (diário).')); ?><?php if ($filaCap['ultimo']): ?> <?php echo h(t('Último recálculo automático: {quando}.', ['quando' => escDataHora((string) $filaCap['ultimo'])])); ?><?php endif; ?><?php if ($filaCap['pendentes']): ?> <strong><?php echo h(tn($filaCap['pendentes'], '{n} mudança esperando o recálculo.', '{n} mudanças esperando o recálculo.')); ?></strong><?php endif; ?></p>
+  <?php if ($filaCap['erro']): ?><p class="aviso laranja small" role="status"><?php echo h(t('O último recálculo automático falhou: {erro}. O Gerar e o diário recalculam.', ['erro' => $filaCap['erro']])); ?></p><?php endif; ?>
 </section>
 
 <?php if (!$ult): ?>

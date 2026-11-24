@@ -774,12 +774,11 @@ function escEstruturaAviso(): string {
 }
 
 // ---------- Capacity automático (1.38.0, item D da revisão de 24/11) ----------
-// Toda gravação que muda pessoas, páginas ou postos (as ações do esc_log em ESC_CAPACITY_GATILHOS)
-// agenda um recálculo para o fim da requisição: um só, mesmo com várias mudanças, depois do commit.
-// Com PHP-FPM a resposta sai antes (fastcgi_finish_request). Usa a trava do Gerar: se outro recálculo
-// ou um Gerar estiver rodando, não espera; registra "Capacity pendente" no Plano de Ação, e o próximo
-// gatilho, o Gerar ou o diário resolvem. Entrada e saída de página e troca de unidade já recalculam
-// no próprio fluxo (lib/saida.php, lib/funil_entrada.php, lib/politica.php). O Modo Treino não recalcula.
+// Toda gravação que muda pessoas, páginas ou postos (as ações do esc_log em ESC_CAPACITY_GATILHOS) grava
+// um pedido em esc_capacity_fila, na mesma transação da mudança (se ela volta atrás, o pedido também volta).
+// O evento ev_esc_capacity_fila (ES_222) roda a cada 2 minutos e chama sp_fc_recalcular_postos de hoje uma vez
+// só, com os motivos juntos, na trava do Gerar. O usuário não espera o recálculo. Entrada e saída de página e
+// troca de unidade já recalculam no próprio fluxo; o Gerar e o diário seguem recalculando. O Modo Treino não pede.
 const ESC_CAPACITY_GATILHOS = [
     'colaborador.salvar',                                   // Colaboradores, Fora das unidades, Turmas › Cadastrar todos
     'roster.trocar', 'roster.incluir_oa', 'roster.tirar_oa', // SR que vira OS ou OA
@@ -793,64 +792,27 @@ const ESC_CAPACITY_GATILHOS = [
 ];
 
 function escCapacityAgendar(string $motivo): void {
-    if (escModoTreino()) {
+    if (escModoTreino() || !empty($GLOBALS['ESC_CAPACITY_PEDIDO'][$motivo])) {
         return;
     }
-    $GLOBALS['ESC_CAPACITY_MOTIVOS'][$motivo] = true;
-    if (empty($GLOBALS['ESC_CAPACITY_AGENDADO'])) {
-        $GLOBALS['ESC_CAPACITY_AGENDADO'] = true;
-        register_shutdown_function('escCapacityAutoRodar');
+    $GLOBALS['ESC_CAPACITY_PEDIDO'][$motivo] = true;
+    try {
+        escW('INSERT INTO ' . escT('esc_capacity_fila') . ' (motivo, criado_por) VALUES (?, ?)', [mb_substr($motivo, 0, 60), escUserId() ?: null]);
+    } catch (Throwable $e) {
+        // ES_222 ainda não rodou: o Gerar e o diário recalculam
+        appLog('warning', 'Capacity automático: fila indisponível', ['motivo' => $motivo, 'erro' => $e->getMessage()]);
     }
 }
 
-function escCapacityAutoRodar(): void {
-    $motivos = array_keys($GLOBALS['ESC_CAPACITY_MOTIVOS'] ?? []);
-    if (!$motivos || escModoTreino()) {
-        return;
-    }
-    // A requisição já respondeu (redirect); o recálculo segue sem o usuário esperar, onde o servidor deixa.
-    if (function_exists('fastcgi_finish_request')) {
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_write_close();
-        }
-        fastcgi_finish_request();
-    }
-    ignore_user_abort(true);
-    @set_time_limit(300);
-    $hoje = date('Y-m-d');
-    $texto = mb_substr('Automático (5C Escalas): ' . implode(', ', $motivos), 0, 255);
+// Situação da fila: pedidos pendentes, o mais antigo, o último processado e o último erro (24 h).
+function escCapacityFila(): array {
     try {
-        if (escDbW()->inTransaction()) {
-            escDbW()->rollBack(); // transação que ficou aberta por erro: nada a recalcular sobre ela
-            return;
-        }
-        if (!escGerarTravar()) {
-            escAcaoRegistrar(['ref' => 'capacity:pendente', 'tipo' => 'ALERTA', 'origem' => 'capacity', 'dia' => $hoje,
-                'titulo' => t('Capacity pendente: recalcular depois de mudanças em pessoas ou páginas'),
-                'detalhe' => t('Outro recálculo ou um Gerar estava rodando: o recálculo automático ({motivo}) ficou para o próximo gatilho, o Gerar ou o diário.', ['motivo' => implode(', ', $motivos)]),
-                'link_tela' => 'capacity', 'link_params' => []], true);
-            return;
-        }
-        $desde = max(escV4DiaEstrutura(), escMaisDias($hoje, 1));
-        escCapacityGravar('recalcular_versao', [$hoje, $texto]);
-        $sinc = escEstruturaSincronizar($hoje, $desde);
-        escLog('capacity.auto', 'fc_capacity_versao', (string) (escQdUltimaVersao()['versao'] ?? ''), null, ['motivos' => $motivos, 'postos' => array_diff_key($sinc, ['apoios' => 1])]);
-        escAcaoResolverAusentes('capacity:', []);
+        $r = escQ1('SELECT (SELECT COUNT(*) FROM ' . escT('esc_capacity_fila') . ' WHERE processado_em IS NULL) AS pendentes,
+                           (SELECT MIN(criado_em) FROM ' . escT('esc_capacity_fila') . ' WHERE processado_em IS NULL) AS desde,
+                           (SELECT MAX(processado_em) FROM ' . escT('esc_capacity_fila') . ' WHERE erro IS NULL) AS ultimo,
+                           (SELECT erro FROM ' . escT('esc_capacity_fila') . ' WHERE erro IS NOT NULL AND processado_em >= NOW() - INTERVAL 1 DAY ORDER BY id DESC LIMIT 1) AS erro');
+        return ['pendentes' => (int) ($r['pendentes'] ?? 0), 'desde' => $r['desde'] ?? null, 'ultimo' => $r['ultimo'] ?? null, 'erro' => $r['erro'] ?? null];
     } catch (Throwable $e) {
-        appLog('error', 'Capacity automático falhou', ['motivos' => $motivos, 'erro' => $e->getMessage(), 'onde' => basename($e->getFile()) . ':' . $e->getLine()]);
-        try {
-            escAcaoRegistrar(['ref' => 'capacity:pendente', 'tipo' => 'ALERTA', 'origem' => 'capacity', 'dia' => $hoje,
-                'titulo' => t('Capacity pendente: o recálculo automático falhou'),
-                'detalhe' => mb_substr(t('Depois de {motivo}: {erro}. O Gerar ou o diário recalculam.', ['motivo' => implode(', ', $motivos), 'erro' => $e->getMessage()]), 0, 1000),
-                'link_tela' => 'capacity', 'link_params' => []], true);
-        } catch (Throwable $e2) {
-            // banco fora: o Gerar e o diário recalculam de qualquer jeito
-        }
-    } finally {
-        try {
-            escDbW()->query("SELECT RELEASE_LOCK('" . escGerarTravaNome() . "')");
-        } catch (Throwable $e) {
-            // a trava cai sozinha com a conexão
-        }
+        return ['pendentes' => 0, 'desde' => null, 'ultimo' => null, 'erro' => null];
     }
 }
