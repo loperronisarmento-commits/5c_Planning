@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.38.2', 'data' => '2026-11-24', 'titulo' => 'Grade: De → Para por pessoa', 'itens' => [
+    'Grade › De → Para nova: uma linha por mudança de cada pessoa (de qual página e turno, para qual, e a partir de quando), com Troca, Entra e Sai. Página que a pessoa deixa aparece riscada, a nova em destaque, e o que continua fica ao lado. A mesma mudança em vários dias vira uma linha só.',
+    'Vista por pessoa ou por página, e filtros de mudança, turno e unidade sem recarregar. As mudanças só na 5C Schedule e o detalhe célula a célula (com o motivo do motor) ficam recolhidos no fim.',
+    ]],
     ['versao' => '1.38.1', 'data' => '2026-11-24', 'titulo' => 'Plano de Ação: saídas já aplicadas fora da lista', 'itens' => [
     'Plano de Ação: o botão "Ler as origens agora" voltou a funcionar (dava "Ação não encontrada").',
     'Plano de Ação: a saída de página a conferir só entra quando a página ainda está na estrutura (o mesmo critério do Gerar). As 41 saídas já aplicadas ou de páginas fora do Capacity saíram da lista sozinhas.',

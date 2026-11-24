@@ -1227,30 +1227,192 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
   <p class="muted small" data-grade-vazio hidden><?php echo h(t('Ninguém neste filtro.')); ?></p>
 
 <?php else:
-    $tipoSel = is_string($_GET['tipo'] ?? null) ? $_GET['tipo'] : '';
-    $diaDif = escDataValida($_GET['dia_dif'] ?? null) ?? '';
-    $sqlTipo = $tipoSel !== '' ? ' AND tipo = ?' : '';
-    $parDif = $tipoSel !== '' ? [$planoId, $tipoSel] : [$planoId];
-    if ($diaDif !== '') {
-        $sqlTipo .= ' AND dia = ?';
-        $parDif[] = $diaDif;
+    // De → Para (E6, 1.38.2): o que mudou para cada pessoa entre a versão anterior e esta. Cada linha é
+    // uma mudança (de qual página e turno, para qual, e a partir de quando); a mesma mudança em vários
+    // dias vira uma linha só. Vista por pessoa ou por página, filtro de mudança (troca, entra, sai) e os
+    // mesmos filtros de turno e unidade da Grade, tudo no navegador. As idas e vindas só da 5C Schedule
+    // (Overlap, buffer de plantão) ficam separadas no fim. O detalhe por bloco (motivo do motor) fica
+    // recolhido embaixo.
+    $anteriorId = (int) ($plano['plano_anterior_id'] ?? 0);
+    $dpSlots = static function (int $pl) use ($planoId, $aloc): array {
+        $r = []; // [rep][dia][pid|turno] = rótulo
+        $linhas = $pl === $planoId ? $aloc : escQ('SELECT dia, bloco, turno, page_id, pagina, rep_code, papel FROM ' . escT('esc_plano_alocacao') . ' WHERE plano_id = ?', [$pl]);
+        foreach ($linhas as $a) {
+            $tu = (string) $a['turno'];
+            if ($a['rep_code'] === null || !isset(ESC_TURNOS[$tu]) || $a['bloco'] === 'T1') {
+                continue; // o T1 é o fim do turno D do dia anterior
+            }
+            $r[strtoupper((string) $a['rep_code'])][substr((string) $a['dia'], 0, 10)][(int) $a['page_id'] . '|' . $tu] = [(int) $a['page_id'], (string) $a['pagina'], $tu, ($a['papel'] ?? '') === 'ASSISTENTE'];
+        }
+        return $r;
+    };
+    $dpDe = $anteriorId ? $dpSlots($anteriorId) : [];
+    $dpPara = $anteriorId ? $dpSlots($planoId) : [];
+    $dpUnidadePes = [];
+    $dvDp = max($seg, $ehV4 ? escV4DiaEstrutura() : $seg);
+    try {
+        foreach (escQ('SELECT UPPER(c.rep_code) AS rep, n.unidade, n.turno, n.numero FROM ' . escT('esc_colaborador_config') . ' c LEFT JOIN ' . escT('esc_nucleo') . ' n ON n.id = c.nucleo_id WHERE c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)', [$dvDp, $dvDp]) as $x) {
+            $dpUnidadePes[$x['rep']] = $x;
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'De→Para: cadastro indisponível', ['erro' => $e->getMessage()]);
     }
-    $difs = escQ('SELECT * FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ?' . $sqlTipo . ' ORDER BY dia, bloco, pagina LIMIT 1000', $parDif);
-    $contagem = escQ('SELECT tipo, COUNT(*) AS n FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ? GROUP BY tipo', [$planoId]);
+    $dpUnidadePag = static fn(int $pid): int => preg_match('~^U(\d)~', (string) ($carteiraDe[$pid][0] ?? ''), $mU) ? (int) $mU[1] : 0;
+    $dpSo5c = static fn(array $itens): bool => array_reduce($itens, static fn($ok, $i) => $ok && $i[1] === $pagOverlap, true);
+    $dpMovs = []; // mudanças reais
+    $dpOverlap = []; // só 5C Schedule
+    foreach (array_unique(array_merge(array_keys($dpDe), array_keys($dpPara))) as $rep) {
+        $grupos = [];
+        foreach ($dias as $d) {
+            $a = $dpDe[$rep][$d] ?? [];
+            $b = $dpPara[$rep][$d] ?? [];
+            if (!array_diff_key($a, $b) && !array_diff_key($b, $a)) {
+                continue;
+            }
+            $sai = array_diff_key($a, $b);
+            $entra = array_diff_key($b, $a);
+            ksort($sai);
+            ksort($entra);
+            $k = implode(',', array_keys($sai)) . '>' . implode(',', array_keys($entra));
+            $grupos[$k] ??= ['sai' => array_values($sai), 'entra' => array_values($entra), 'fica' => array_values(array_intersect_key($b, $a)), 'tinha' => (bool) $a, 'tem' => (bool) $b, 'dias' => []];
+            $grupos[$k]['dias'][] = $d;
+        }
+        foreach ($grupos as $g) {
+            $x = $dpUnidadePes[$rep] ?? [];
+            $g += ['rep' => $rep, 'nome' => nomeCurto($nomes[$rep] ?? $rep), 'unidade' => (int) ($x['unidade'] ?? 0),
+                'onde' => !empty($x['unidade']) ? 'U' . $x['unidade'] . ' ' . $x['turno'] . ' n' . $x['numero'] : '',
+                'tipo' => !$g['tinha'] ? 'entra' : (!$g['tem'] ? 'sai' : 'troca')];
+            $g['turnos'] = implode(' ', array_unique(array_merge(array_column($g['sai'], 2), array_column($g['entra'], 2))));
+            if ($dpSo5c($g['sai']) && $dpSo5c($g['entra'])) {
+                $dpOverlap[] = $g;
+            } else {
+                $dpMovs[] = $g;
+            }
+        }
+    }
+    $ordemDp = static fn($a, $b) => [$a['nome'], $a['dias'][0]] <=> [$b['nome'], $b['dias'][0]];
+    usort($dpMovs, $ordemDp);
+    usort($dpOverlap, $ordemDp);
+    $dpPorPessoa = [];
+    foreach ($dpMovs as $m) {
+        $dpPorPessoa[$m['rep']][] = $m;
+    }
+    // Por página: quem entra e quem sai de cada página (fora a 5C Schedule).
+    $dpPorPagina = [];
+    foreach ($dpMovs as $m) {
+        foreach (['entra' => $m['entra'], 'sai' => $m['sai']] as $lado => $itens) {
+            foreach ($itens as $i) {
+                if ($i[1] === $pagOverlap) {
+                    continue;
+                }
+                $dpPorPagina[$i[1]] ??= ['pid' => $i[0], 'entra' => [], 'sai' => []];
+                $dpPorPagina[$i[1]][$lado][] = ['m' => $m, 'turno' => $i[2], 'assist' => $i[3]];
+            }
+        }
+    }
+    ksort($dpPorPagina, SORT_NATURAL | SORT_FLAG_CASE);
+    $dpCont = ['troca' => 0, 'entra' => 0, 'sai' => 0];
+    foreach ($dpMovs as $m) {
+        $dpCont[$m['tipo']]++;
+    }
+    $dpTag = ['troca' => [t('Troca'), 'dp-troca'], 'entra' => [t('Entra'), 'dp-entra'], 'sai' => [t('Sai'), 'dp-sai']];
+    $dpRotulo = static fn(array $i): string => $i[1] . ($i[3] ? ' #' : '') . ' · ' . $i[2];
+    // Lado vazio: "sem página" quando a pessoa fica sem nada; com "continua", é só que não há página
+    // nova (ou nenhuma a menos).
+    $dpPills = static fn(array $itens, string $cls, bool $fica = false): string => $itens
+        ? implode('', array_map(static fn($i) => '<span class="dp-pg dp-' . $cls . '">' . h($i[1] . ($i[3] ? ' #' : '') . ' · ' . $i[2]) . '</span>', $itens))
+        : '<span class="vago muted">' . h($fica ? ($cls === 'para' ? t('nenhuma página nova') : t('nenhuma página a menos')) : t('sem página')) . '</span>';
+    $dpPeriodo = static function (array $ds) use ($dias): string {
+        $i0 = array_search($ds[0], $dias, true);
+        $i1 = array_search(end($ds), $dias, true);
+        if (count($ds) === 1) {
+            return t('só em {dia}', ['dia' => dataBr($ds[0], true)]);
+        }
+        $seguidos = count($ds) === $i1 - $i0 + 1;
+        $txt = t('a partir de {dia}', ['dia' => dataBr($ds[0], true)]);
+        if (!$seguidos || end($ds) !== end($dias)) {
+            $txt .= ' · ' . implode(', ', array_map(static fn($d) => explode(' ', dataBr($d, true))[0], $ds));
+        }
+        return $txt . ' · ' . tn(count($ds), '{n} dia', '{n} dias');
+    };
+    $difs = $anteriorId ? escQ('SELECT * FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ? ORDER BY dia, bloco, pagina LIMIT 1000', [$planoId]) : [];
+    $totalDif = $anteriorId ? (int) (escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_plano_diferenca') . ' WHERE plano_para_id = ?', [$planoId])['n'] ?? 0) : 0;
+    $rotAnterior = $anteriorId ? escPlanoRotulo(escQ1('SELECT * FROM ' . escT('esc_plano') . ' WHERE id = ?', [$anteriorId]) ?: []) : '';
 ?>
-  <?php if (!$plano['plano_anterior_id']): ?>
+  <?php if (!$anteriorId): ?>
     <p class="muted"><?php echo h(t('Esta é a primeira versão da semana: não há De→Para.')); ?></p>
   <?php else: ?>
-  <div class="chips">
-    <a class="chip-filtro <?php echo $tipoSel === '' ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara'])); ?>"><?php echo h(t('Todos')); ?></a>
-    <?php $totalDif = array_sum(array_map(static fn($c) => $tipoSel === '' || $c['tipo'] === $tipoSel ? (int) $c['n'] : 0, $contagem)); ?>
-    <?php foreach ($contagem as $c): ?><a class="chip-filtro <?php echo $tipoSel === $c['tipo'] ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $c['tipo']])); ?>"><?php echo h(escRotulo('tipo_diferenca', $c['tipo'])); ?> · <?php echo (int) $c['n']; ?></a><?php endforeach; ?>
+  <p class="muted small"><?php echo h(t('{de} → {para}. Cada linha é uma mudança da pessoa: de qual página e turno, para qual, e a partir de quando. A mesma mudança em vários dias vira uma linha só. Riscado = página que a pessoa deixa; em destaque = página nova; "continua" = o que não muda; # = assistente.', ['de' => $rotAnterior, 'para' => escPlanoRotulo($plano)])); ?></p>
+  <div class="kpis dp-resumo">
+    <div class="kpi"><span class="muted"><?php echo h(t('Pessoas que mudaram')); ?></span><strong><?php echo count($dpPorPessoa); ?></strong></div>
+    <div class="kpi"><span class="muted"><?php echo h(t('Trocas de página')); ?></span><strong><?php echo $dpCont['troca']; ?></strong></div>
+    <div class="kpi"><span class="muted"><?php echo h(t('Entram')); ?></span><strong><?php echo $dpCont['entra']; ?></strong><span class="muted small"><?php echo h(t('antes sem página')); ?></span></div>
+    <div class="kpi"><span class="muted"><?php echo h(t('Saem')); ?></span><strong><?php echo $dpCont['sai']; ?></strong><span class="muted small"><?php echo h(t('ficam sem página')); ?></span></div>
   </div>
-  <div class="chips">
-    <a class="chip-filtro <?php echo $diaDif === '' ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $tipoSel ?: null])); ?>"><?php echo h(t('Semana inteira')); ?></a>
-    <?php foreach ($dias as $dDif): ?><a class="chip-filtro <?php echo $diaDif === $dDif ? 'ativo' : ''; ?>" href="<?php echo h(link_tela('grade', ['plano' => $planoId, 'aba' => 'depara', 'tipo' => $tipoSel ?: null, 'dia_dif' => $dDif])); ?>"><?php echo h(dataBr($dDif)); ?></a><?php endforeach; ?>
+  <div class="grade-filtros chips" data-depara-filtros>
+    <span class="muted small"><?php echo h(t('Ver')); ?></span>
+    <button type="button" class="chip-filtro ativo" aria-pressed="true" data-dp-vista="pessoa"><?php echo h(t('Por pessoa')); ?></button>
+    <button type="button" class="chip-filtro" aria-pressed="false" data-dp-vista="pagina"><?php echo h(t('Por página')); ?></button>
+    <span class="muted small"><?php echo h(t('Mudança')); ?></span>
+    <button type="button" class="chip-filtro ativo" aria-pressed="true" data-dp-mud=""><?php echo h(t('Todas')); ?></button>
+    <?php foreach ($dpTag as $k => [$rot, $cls]): ?><button type="button" class="chip-filtro" aria-pressed="false" data-dp-mud="<?php echo $k; ?>"><?php echo h($rot); ?> · <?php echo $dpCont[$k]; ?></button><?php endforeach; ?>
+    <span class="muted small"><?php echo h(t('Turno')); ?></span>
+    <?php foreach (['' => t('Todos'), 'A' => 'A', 'C' => 'C', 'D' => 'D'] as $k => $rot): ?><button type="button" class="chip-filtro<?php echo $k === '' ? ' ativo' : ''; ?>" aria-pressed="<?php echo $k === '' ? 'true' : 'false'; ?>" data-dp-turno="<?php echo $k; ?>"><?php echo h($rot); ?></button><?php endforeach; ?>
+    <span class="muted small"><?php echo h(t('Unidade')); ?></span>
+    <?php foreach (['' => t('Todas'), '1' => 'U1', '2' => 'U2', '3' => 'U3'] as $k => $rot): ?><button type="button" class="chip-filtro<?php echo $k === '' ? ' ativo' : ''; ?>" aria-pressed="<?php echo $k === '' ? 'true' : 'false'; ?>" data-dp-u="<?php echo $k; ?>"><?php echo h($rot); ?></button><?php endforeach; ?>
   </div>
-  <?php if ($diaDif === '' && $totalDif > count($difs)): ?><p class="aviso laranja" role="status"><?php echo h(t('Mostrando {n} de {total} diferenças. Escolha um dia para ver o resto.', ['n' => count($difs), 'total' => $totalDif])); ?></p><?php endif; ?>
+
+  <div data-dp-vista-painel="pessoa">
+    <?php foreach ($dpPorPessoa as $rep => $ms): $m0 = $ms[0]; ?>
+    <div class="dp-grupo" data-unidade="<?php echo $m0['unidade']; ?>">
+      <div class="dp-titulo"><strong><?php echo h($m0['nome']); ?></strong> <span class="muted small"><?php echo h($rep . ($m0['onde'] ? ' · ' . $m0['onde'] : '')); ?></span></div>
+      <?php foreach ($ms as $m): ?>
+      <div class="dp-mov" data-tipo="<?php echo $m['tipo']; ?>" data-turnos="<?php echo h($m['turnos']); ?>">
+        <span class="dp-tag <?php echo $dpTag[$m['tipo']][1]; ?>"><?php echo h($dpTag[$m['tipo']][0]); ?></span>
+        <?php echo $dpPills($m['sai'], 'de', (bool) $m['fica']); ?><span class="dp-seta" aria-hidden="true">→</span><?php echo $dpPills($m['entra'], 'para', (bool) $m['fica']); ?>
+        <?php if ($m['fica']): ?><span class="muted small"><?php echo h(t('continua: {lista}', ['lista' => implode(', ', array_map($dpRotulo, $m['fica']))])); ?></span><?php endif; ?>
+        <span class="dp-quando"><?php echo h($dpPeriodo($m['dias'])); ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endforeach; ?>
+  </div>
+
+  <div data-dp-vista-painel="pagina" hidden>
+    <?php foreach ($dpPorPagina as $pag => $pp): ?>
+    <div class="dp-grupo" data-unidade="<?php echo $dpUnidadePag((int) $pp['pid']); ?>">
+      <div class="dp-titulo"><strong><?php echo h($pag); ?></strong> <span class="muted small"><?php echo h(t('{e} entra · {s} sai', ['e' => count($pp['entra']), 's' => count($pp['sai'])])); ?></span></div>
+      <?php foreach ($pp['entra'] as $x): ?>
+      <div class="dp-mov" data-tipo="entra" data-turnos="<?php echo h($x['turno']); ?>">
+        <span class="dp-tag dp-entra"><?php echo h(t('Entra')); ?></span><strong><?php echo h($x['m']['nome']); ?></strong><span class="muted small">· <?php echo h($x['turno'] . ($x['assist'] ? ' #' : '')); ?></span>
+        <span class="dp-seta" aria-hidden="true">←</span><?php echo $dpPills($x['m']['sai'], 'de'); ?>
+        <span class="dp-quando"><?php echo h($dpPeriodo($x['m']['dias'])); ?></span>
+      </div>
+      <?php endforeach; ?>
+      <?php foreach ($pp['sai'] as $x): ?>
+      <div class="dp-mov" data-tipo="sai" data-turnos="<?php echo h($x['turno']); ?>">
+        <span class="dp-tag dp-sai"><?php echo h(t('Sai')); ?></span><strong><?php echo h($x['m']['nome']); ?></strong><span class="muted small">· <?php echo h($x['turno'] . ($x['assist'] ? ' #' : '')); ?></span>
+        <span class="dp-seta" aria-hidden="true">→</span><?php echo $dpPills($x['m']['entra'], 'para'); ?>
+        <span class="dp-quando"><?php echo h($dpPeriodo($x['m']['dias'])); ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <?php endforeach; ?>
+  </div>
+  <p class="muted small" data-dp-vazio <?php echo $dpMovs ? 'hidden' : ''; ?>><?php echo h(t('Nenhuma mudança neste filtro.')); ?></p>
+
+  <?php if ($dpOverlap): ?>
+  <details class="dp-extra">
+    <summary><?php echo h(tn(count($dpOverlap), 'Só 5C Schedule (Overlap e buffer de plantão) · {n} mudança', 'Só 5C Schedule (Overlap e buffer de plantão) · {n} mudanças')); ?></summary>
+    <?php foreach ($dpOverlap as $m): ?>
+    <div class="dp-mov"><strong><?php echo h($m['nome']); ?></strong><?php echo $dpPills($m['sai'], 'de'); ?><span class="dp-seta" aria-hidden="true">→</span><?php echo $dpPills($m['entra'], 'para'); ?><span class="dp-quando"><?php echo h($dpPeriodo($m['dias'])); ?></span></div>
+    <?php endforeach; ?>
+  </details>
+  <?php endif; ?>
+
+  <details class="dp-extra">
+  <summary><?php echo h(t('Detalhe por bloco, com o motivo do motor · {n}', ['n' => $totalDif])); ?></summary>
+  <?php if ($totalDif > count($difs)): ?><p class="aviso laranja" role="status"><?php echo h(t('Mostrando {n} de {total} diferenças.', ['n' => count($difs), 'total' => $totalDif])); ?></p><?php endif; ?>
   <div class="tabela-rolagem">
   <table>
     <thead><tr><th><?php echo h(t('Dia')); ?></th><th><?php echo h(t('Bloco')); ?></th><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Tipo')); ?></th><th><?php echo h(t('De')); ?></th><th><?php echo h(t('Para')); ?></th><th><?php echo h(t('Motivo')); ?></th><th><?php echo h(t('Aplicado')); ?></th></tr></thead>
@@ -1269,6 +1431,7 @@ $semanaProx = $posSemana !== false && $posSemana > 0 ? $semanasGrade[$semanasLis
     </tbody>
   </table>
   </div>
+  </details>
   <?php endif; ?>
 <?php endif; ?>
 </section>

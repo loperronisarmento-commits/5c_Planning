@@ -953,3 +953,56 @@ document.addEventListener('click', function (ev) {
   });
   aplicar();
 })();
+
+// De → Para (1.38.2, E6): vista por pessoa ou por página e filtros de mudança, turno e unidade no
+// navegador, sem recarregar. O estado fica na URL (?vista=, ?mud=, ?turno=, ?u=).
+(function () {
+  var barra = document.querySelector('[data-depara-filtros]');
+  if (!barra) { return; }
+  var url = new URL(window.location.href);
+  var estado = { vista: url.searchParams.get('vista') === 'pagina' ? 'pagina' : 'pessoa', mud: url.searchParams.get('mud') || '',
+    turno: url.searchParams.get('turno') || '', u: url.searchParams.get('u') || '' };
+  var paineis = document.querySelectorAll('[data-dp-vista-painel]');
+  var vazio = document.querySelector('[data-dp-vazio]');
+  var chaves = { vista: 'data-dp-vista', mud: 'data-dp-mud', turno: 'data-dp-turno', u: 'data-dp-u' };
+  function aplicar() {
+    var algum = false;
+    paineis.forEach(function (p) {
+      var ativo = p.getAttribute('data-dp-vista-painel') === estado.vista;
+      p.hidden = !ativo;
+      p.querySelectorAll('.dp-grupo').forEach(function (g) {
+        var okU = estado.u === '' || g.getAttribute('data-unidade') === estado.u;
+        var vis = 0;
+        g.querySelectorAll('.dp-mov[data-tipo]').forEach(function (m) {
+          var ok = okU && (estado.mud === '' || m.getAttribute('data-tipo') === estado.mud)
+            && (estado.turno === '' || (' ' + m.getAttribute('data-turnos') + ' ').indexOf(' ' + estado.turno + ' ') >= 0);
+          m.hidden = !ok;
+          if (ok) { vis++; }
+        });
+        g.hidden = vis === 0;
+        if (ativo && vis) { algum = true; }
+      });
+    });
+    if (vazio) { vazio.hidden = algum; }
+    Object.keys(chaves).forEach(function (k) {
+      barra.querySelectorAll('[' + chaves[k] + ']').forEach(function (b) {
+        var on = b.getAttribute(chaves[k]) === estado[k];
+        b.classList.toggle('ativo', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
+    });
+    var nova = new URL(window.location.href);
+    ['vista', 'mud', 'turno', 'u'].forEach(function (k) {
+      var v = k === 'vista' && estado.vista === 'pessoa' ? '' : estado[k];
+      if (v) { nova.searchParams.set(k, v); } else { nova.searchParams.delete(k); }
+    });
+    try { history.replaceState(history.state, '', nova.toString()); } catch (e) { /* sem history: o filtro só não fica na URL */ }
+  }
+  barra.addEventListener('click', function (e) {
+    var b = e.target.closest('button');
+    if (!b) { return; }
+    Object.keys(chaves).forEach(function (k) { if (b.hasAttribute(chaves[k])) { estado[k] = b.getAttribute(chaves[k]); } });
+    aplicar();
+  });
+  aplicar();
+})();

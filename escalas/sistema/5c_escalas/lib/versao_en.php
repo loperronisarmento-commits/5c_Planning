@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.38.2' => ['titulo' => 'Grid: Before → After by person', 'itens' => [
+    'New Grid › Before → After: one line per change for each person (from which page and shift, to which, and from when), marked Swap, Joins or Leaves. The page the person leaves is struck through, the new one is highlighted, and what stays is shown alongside. The same change on several days becomes one line.',
+    'By person or by page view, and change, shift and unit filters without reloading. Changes only in the 5C Schedule and the cell-by-cell detail (with the engine reason) are collapsed at the end.',
+    ]],
     '1.38.1' => ['titulo' => 'Action Plan: exits already applied left the list', 'itens' => [
     'Action Plan: the "Read the sources now" button works again (it said "Action not found").',
     'Action Plan: a page exit to check is only listed while the page is still in the structure (the same rule as Generate). The 41 exits already applied, or of pages outside Capacity, left the list by themselves.',
