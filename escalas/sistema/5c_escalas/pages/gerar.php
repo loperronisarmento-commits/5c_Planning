@@ -89,9 +89,9 @@ if (escPost()) {
             appLog('error', 'Gerar em etapas: erro', ['ocorrencia' => $ocorrencia, 'etapa' => $etapa, 'erro' => $e->getMessage(), 'onde' => basename($e->getFile()) . ':' . $e->getLine()]);
             $resp['ok'] = false;
             $resp['repetir'] = escErroConexao($e);
-            $resp['erro'] = $e instanceof RuntimeException ? $e->getMessage()
+            $resp['erro'] = escErroDoUsuario($e) ? $e->getMessage()
                 : ($resp['repetir'] ? t('A conexão com o banco caiu nesta etapa.') : t('Não deu para concluir. Tente de novo; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]));
-            if (!$e instanceof RuntimeException && escPodeReal('admin')) {
+            if (!escErroDoUsuario($e) && escPodeReal('admin')) {
                 $resp['erro'] .= ' ' . t('Detalhe (só admin): {erro} ({arquivo}:{linha})', ['erro' => mb_substr($e->getMessage(), 0, 300), 'arquivo' => basename($e->getFile()), 'linha' => $e->getLine()]);
             }
         }

@@ -84,4 +84,5 @@ return [
     'Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR (Integrity) e multas.' => 'No data yet, not in the calculation: Mass per shift and "not following the plan" (Process), DNR message (Integrity) and fines.',
     'Turnos na escala desta semana. Kinetic, Process, Integrity e Score são médias ponderadas das últimas 4 semanas. Clique no nome para ver o cálculo semana a semana.' => 'Shifts on this week\'s schedule. Kinetic, Process, Integrity and Score are weighted averages of the last 4 weeks. Click the name to see the week-by-week calculation.',
     'Uma semana só (sem o histórico de 4 semanas). Mude os números e veja os pilares e o score.' => 'A single week (without the 4-week history). Change the numbers and see the pillars and the score.',
+    'KPI recalculado.' => 'KPI recalculated.',
 ];

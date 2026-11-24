@@ -245,6 +245,12 @@ function escLog(string $acao, string $entidade, $entidadeId, $antes = null, $dep
     }
 }
 
+// Erro que pode ir para a tela como está: RuntimeException do próprio módulo. PDOException também é
+// RuntimeException, mas traz SQLSTATE, tabelas e valores: esse fica só no log e para o admin (S-03, 24/11).
+function escErroDoUsuario(Throwable $e): bool {
+    return $e instanceof RuntimeException && !$e instanceof PDOException;
+}
+
 // ---------- banco fora do ar (o MySQL do .11 reinicia de vez em quando) ----------
 
 // Erro de conexão com o MySQL (recusada, caiu ou sumiu no meio), e não erro de SQL.

@@ -39,7 +39,15 @@ $srs = escQ("SELECT UPPER(c.rep_code) AS rep, c.unidade, c.turno, c.nivel, n.num
               WHERE c.funcao = 'EQUITE' AND c.nucleo_id IS NOT NULL AND c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)", [$fim, $seg]);
 $kpi = escKpiCarregar(array_column($srs, 'rep'));
 // Nível de cada SR como o Gerar vê (cache no banco; "Recalcular agora" refaz também este cache).
-$kpiDb = escKpiBanco(!empty($_GET['recarregar']) && escPodeReal('planejar'));
+// "Recalcular agora" grava no banco: só por POST, com CSRF (S-06, 24/11).
+if (escPost() && ($_POST['acao'] ?? '') === 'recalcular') {
+    if (!escPodeReal('planejar')) {
+        throw new RuntimeException(t('Bloqueado: seu perfil não pode fazer isso.'));
+    }
+    escKpiBanco(true);
+    escVoltar('kpi', array_intersect_key($_GET, array_flip(['plano', 'u', 't', 'o', 'd'])), t('KPI recalculado.'));
+}
+$kpiDb = escKpiBanco();
 $calculadoEm = $kpi['calculado_em'] ?? null;
 $kpiSr = $kpi['srs'] ?? [];
 $semanas = escKpiSemanas();
@@ -297,7 +305,7 @@ $tituloGraf = $comScore > 0
     </ul>
   </details>
   <div class="acoes">
-    <a class="botao" href="<?php echo h(link_tela('kpi', $filtros + ['recarregar' => 1])); ?>" data-longo="<?php echo h(t('Recalculando o KPI… pode levar até 1 min.')); ?>"><?php echo h(t('Recalcular agora')); ?></a>
+    <form method="post" action="<?php echo h(link_tela('kpi', $filtros)); ?>" style="display:inline" data-longo="<?php echo h(t('Recalculando o KPI… pode levar até 1 min.')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="recalcular"><button type="submit" class="botao"><?php echo h(t('Recalcular agora')); ?></button></form>
     <span class="muted small"><?php echo $calculadoEm ? h(t('Calculado em {quando}; recalcula sozinho a cada {h} h e no Gerar.', ['quando' => escDataHora((string) $calculadoEm), 'h' => (int) (ESC_KPI_CACHE_SEG / 3600)])) : ''; ?></span>
   </div>
   <div class="acoes">

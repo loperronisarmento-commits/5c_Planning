@@ -237,13 +237,13 @@ if (escPost() || isset($_GET['baixar'])) {
         // Código da ocorrência: aparece para o usuário e no log, para achar o detalhe técnico.
         $ocorrencia = strtoupper(substr(bin2hex(random_bytes(3)), 0, 6));
         appLog('error', 'Erro em ação', ['ocorrencia' => $ocorrencia, 'p' => $p, 'erro' => $e->getMessage(), 'linha' => $e->getLine(), 'arquivo' => basename($e->getFile())]);
-        $msg = $e instanceof RuntimeException ? $e->getMessage() : t('Não deu para concluir. Tente de novo; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]);
+        $msg = escErroDoUsuario($e) ? $e->getMessage() : t('Não deu para concluir. Tente de novo; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]);
         // O banco caiu no meio da ação: a volta para a tela espera ele voltar (porta de entrada).
         if (escErroConexao($e)) {
             $msg = t('O banco de dados caiu durante a ação. Antes de repetir, confira se a mudança foi gravada.');
         }
         // Para o admin, o detalhe técnico já vai na mensagem (sem precisar abrir o log do servidor).
-        if (!$e instanceof RuntimeException && escPodeReal('admin')) {
+        if (!escErroDoUsuario($e) && escPodeReal('admin')) {
             $msg .= ' ' . t('Detalhe (só admin): {erro} ({arquivo}:{linha})', ['erro' => mb_substr($e->getMessage(), 0, 300), 'arquivo' => basename($e->getFile()), 'linha' => $e->getLine()]);
         }
         // Volta para a mesma tela, com os mesmos filtros (o formulário reabre preenchido).
@@ -271,7 +271,7 @@ try {
         $bancoCaiu = true;
     } else {
         echo '<section class="panel erro" role="alert"><h2>' . h(t('Não deu para carregar esta tela')) . '</h2><p class="muted">'
-            . h($e instanceof RuntimeException ? $e->getMessage() : t('Não deu para ler os dados agora. Tente de novo em instantes; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]))
+            . h(escErroDoUsuario($e) ? $e->getMessage() : t('Não deu para ler os dados agora. Tente de novo em instantes; se repetir, avise o admin com o código {codigo}.', ['codigo' => $ocorrencia]))
             . '</p><div class="acoes"><a class="botao primario" href="' . h($_SERVER['REQUEST_URI'] ?? link_tela($p)) . '">' . h(t('Tentar de novo')) . '</a><a class="botao" href="' . h(link_tela('painel')) . '">' . h(t('Ir para o Painel')) . '</a></div></section>';
     }
 }
