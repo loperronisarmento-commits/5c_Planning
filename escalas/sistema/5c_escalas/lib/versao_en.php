@@ -6,6 +6,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.35.0' => ['titulo' => 'SR only on pages of their own unit', 'itens' => [
+    'Generate schedule: an SR only goes on pages of their own unit. A U1 buffer only covers gaps in U1, and so on. It applies to buffers, to people on Overlap, to the SR split (e.g. 50/50) and to the fixed team: someone from another unit no longer comes in, not even as a last resort. Request of 11/23, after the U2 OM comparison (U1 and U3 buffers covering U2 pages).',
+    '"Recalculate with minimal changes" also no longer keeps someone from another unit in the cell.',
+    'A cell locked by hand on the Grid still applies, even with an SR from another unit (e.g. Isla Moon, in U1, with SRs from U2 and U3).',
+    'New parameter v4_so_propria_unidade (1 = on, the default). With 0 the previous behaviour returns (another unit as a last resort).',
+    ]],
     '1.34.0' => ['titulo' => 'KPI instead of merit in scheduling', 'itens' => [
         'The SR KPI replaces merit across scheduling. Each SR has a level from 0 to 4: 4 = 120%; 3 = 100% to 119%; 2 = keeps position (75% to 99%, new hires and those outside the worst 20%); 1 and 0 = among the worst 20%, with 50% to 74% and below 50%.',
         'Generate: each page first picks whoever hit 65% of its goal, then the level, the score and tenure. Whoever is on the post only leaves for a level that displaces them (a 3 only for a 4; a 2 keeps, except for a 4 on priority pages; a 1 for a 3 or 4), and at most 20% of SRs change post because of the KPI in a week. Level 0 stays off priority pages and is last for stacking and overload; below 25%, it only covers.',

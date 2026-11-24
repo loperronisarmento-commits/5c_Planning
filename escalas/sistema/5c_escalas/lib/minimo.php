@@ -160,9 +160,11 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
             $rep = null;
             $como = null;
             $ant = $escolha[$chaveTurno] ?? null;
-            if ($ant !== null && $pode($ant, $n) && ($livre($ant) || $cabe($ant))) {
+            // Só páginas da própria unidade (v4_so_propria_unidade, 23/11): quem estava na célula e é de outra unidade não fica.
+            $daUnidade = static fn(string $rep): bool => escV4Param('v4_so_propria_unidade', '1') !== '1' || ($pessoas[$rep]['unidade'] ?? null) === $inf['unidade'];
+            if ($ant !== null && $pode($ant, $n) && $daUnidade($ant) && ($livre($ant) || $cabe($ant))) {
                 [$rep, $como] = [$ant, isset($ocup[$ant][$b]) ? 'mais' : 'novo'];
-            } elseif ($n['rep_code'] !== null && $pode($n['rep_code'], $n) && $livre($n['rep_code'])) {
+            } elseif ($n['rep_code'] !== null && $pode($n['rep_code'], $n) && $daUnidade($n['rep_code']) && $livre($n['rep_code'])) {
                 [$rep, $como] = [$n['rep_code'], 'novo'];
             } else {
                 foreach ($buffers[$b] ?? [] as $br => $bl) {

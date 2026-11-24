@@ -8,6 +8,12 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.35.0', 'data' => '2026-11-23', 'titulo' => 'SR só em página da própria unidade', 'sql' => ['ES_209_so_propria_unidade.sql'], 'itens' => [
+    'Gerar escala: o SR só entra em página da unidade dele. Buffer da U1 só cobre lacuna na U1, e assim por diante. Vale para o buffer, para quem está de Overlap, para a divisão do SR (ex.: 50/50) e para a equipe fixa: quem é de outra unidade não entra mais nem como última opção. Pedido de 23/11, depois do comparativo do OM da U2 (buffers da U1 e da U3 cobrindo páginas da U2).',
+    'O "Recalcular com o mínimo de mudanças" também não mantém na célula quem é de outra unidade.',
+    'Célula travada à mão na Grade continua valendo, mesmo com SR de outra unidade (ex.: a Isla Moon, da U1, com SRs da U2 e da U3).',
+    'Parâmetro novo v4_so_propria_unidade (1 = ligado, o padrão). Com 0 volta o comportamento anterior (outra unidade em último caso).',
+    ]],
     ['versao' => '1.34.0', 'data' => '2026-11-23', 'titulo' => 'KPI no lugar do mérito na escalação', 'sql' => ['ES_198_kpi_escalacao.sql', 'ES_199_kpi_tags.sql'], 'itens' => [
     'O KPI dos SRs substitui o mérito em toda a escalação. Cada SR tem um nível de 0 a 4: 4 = 120%; 3 = 100% a 119%; 2 = mantém a posição (75% a 99%, novato e quem está fora dos 20% piores); 1 e 0 = entre os 20% piores, com 50% a 74% e abaixo de 50%.',
     'Gerar: cada página escolhe primeiro quem bateu 65% da meta nela, depois o nível, o score e o tempo de casa. Quem está no posto só sai para um nível que o tire (o 3 só para o 4; o 2 mantém, salvo o 4 nas páginas prioritárias; o 1 para o 3 ou o 4), e no máximo 20% dos SRs mudam de posto pelo KPI na semana. O nível 0 fica fora das páginas prioritárias e é o último no acúmulo e na sobrecarga; abaixo de 25%, só faz cobertura.',

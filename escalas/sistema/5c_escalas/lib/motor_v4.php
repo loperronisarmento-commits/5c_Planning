@@ -517,6 +517,11 @@ function escMotorAlocarV4(array $in): array {
                 return $melhor;
             };
 
+            // Só páginas da própria unidade (v4_so_propria_unidade, pedido de 23/11): o SR (titular, buffer, Overlap,
+            // divisão ou equipe fixa) só entra em página da unidade dele; buffer da U1 só na U1 e assim por diante.
+            // Célula travada à mão (ex.: Isla Moon com SRs de outras unidades) não passa por aqui e fica.
+            $soPropriaU = escV4Param('v4_so_propria_unidade', '1') === '1';
+
             // Divisão do SR entre páginas (esc_sr_divisao, ES_98; ex.: 50% Brandi Love e 50% Elly Clutch):
             // a cada dia em que está disponível no turno, a vez vai para a página mais atrasada em relação à
             // parte dela (o que falta para 100% é a escala normal da unidade). A página pode ser de outra
@@ -554,7 +559,7 @@ function escMotorAlocarV4(array $in): array {
                     continue; // a vez é da escala normal da unidade dele
                 }
                 $achou = false;
-                foreach (array_keys($estadoUT) as $uu) {
+                foreach ($soPropriaU ? [$uRep] : array_keys($estadoUT) as $uu) {
                     foreach ($estadoUT[$uu]['vagas'] as $iv => $v) {
                         $p = $est['postos'][$v['pid']];
                         if ($v['rep'] !== null || !in_array($vez['pagina'], array_column(array_filter($p['paginas'], static fn($pg) => !$pg['apoio']), 'pagina'), true) || !$pode($rep, $p)) {
@@ -959,7 +964,7 @@ function escMotorAlocarV4(array $in): array {
                         continue;
                     }
                     $escolhido = null;
-                    foreach ([true, false] as $mesmaU) {
+                    foreach ($soPropriaU ? [true] : [true, false] as $mesmaU) {
                         $kE = null;
                         foreach ($overlapUT as $u2 => $rs) {
                             if (($u2 === $u) !== $mesmaU) {
@@ -1015,7 +1020,7 @@ function escMotorAlocarV4(array $in): array {
                         continue; // o passo 4a já preencheu
                     }
                     $cands = array_keys($overlapUT[$u] ?? []);
-                    if (!$cands) {
+                    if (!$cands && !$soPropriaU) {
                         foreach ($overlapUT as $u2 => $rs) {
                             $cands = array_merge($cands, array_keys($rs));
                         }
@@ -1274,7 +1279,7 @@ function escMotorAlocarV4(array $in): array {
             // Última opção (pedido de 04/11): o membro da equipe fixa da página que é de OUTRA unidade só entra
             // aqui, depois de todos os passos, na vaga que ficou vazia (sem ninguém cobrindo), e só se sobrou
             // sem posto no turno da unidade dele. Ex.: Eduardo Gois (U1) na Ivy Vale (U3).
-            if (!$transicao && !empty($est['prioridade'])) {
+            if (!$transicao && !$soPropriaU && !empty($est['prioridade'])) {
                 $sobraDe = [];
                 foreach ($estadoUT as $uu => $stU) {
                     foreach (array_keys($stU['disp']) as $rep) {
