@@ -7,6 +7,7 @@
 
 const ESC_PATCH_NOTES_EN = [
     '1.38.1' => ['titulo' => 'Action Plan: exits already applied left the list', 'itens' => [
+    'Action Plan: the "Read the sources now" button works again (it said "Action not found").',
     'Action Plan: a page exit to check is only listed while the page is still in the structure (the same rule as Generate). The 41 exits already applied, or of pages outside Capacity, left the list by themselves.',
     ]],
     '1.38.0' => ['titulo' => 'Full review: official KPI, Action Plan, automatic Capacity and new Grid', 'itens' => [

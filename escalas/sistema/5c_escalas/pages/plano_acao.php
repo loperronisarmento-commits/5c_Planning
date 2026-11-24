@@ -11,13 +11,17 @@
 
 if (escPost()) {
     escExigir('decidir');
+    $volta = array_intersect_key($_GET, array_flip(['status', 'tipo', 'u']));
+    $acao = (string) ($_POST['acao'] ?? '');
+    if ($acao === 'atualizar') {
+        escAcoesSincronizar(true);
+        escVoltar('plano_acao', $volta, t('Plano de Ação atualizado.'));
+    }
     $id = (int) ($_POST['id'] ?? 0);
     $a = escQ1('SELECT * FROM ' . escT('esc_acao') . ' WHERE id = ?', [$id]);
     if (!$a) {
         throw new RuntimeException(t('Ação não encontrada.'));
     }
-    $volta = array_intersect_key($_GET, array_flip(['status', 'tipo', 'u']));
-    $acao = (string) ($_POST['acao'] ?? '');
     $motivo = mb_substr(trim((string) ($_POST['motivo'] ?? '')), 0, 255);
     if ($acao === 'descartar') {
         if ($motivo === '') {
@@ -63,10 +67,6 @@ if (escPost()) {
             escLog('acao.aplicar', 'esc_acao', $id, ['status' => 'PENDENTE'], ['status' => 'FEITA', 'sugestao' => (int) $s['id']]);
         });
         escVoltar('plano_acao', $volta, t('Ação aplicada no rascunho.'));
-    }
-    if ($acao === 'atualizar') {
-        escAcoesSincronizar(true);
-        escVoltar('plano_acao', $volta, t('Plano de Ação atualizado.'));
     }
     throw new RuntimeException(t('Não deu para entender o pedido. Recarregue a tela e tente de novo.'));
 }

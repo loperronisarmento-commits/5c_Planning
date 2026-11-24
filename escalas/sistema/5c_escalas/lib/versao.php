@@ -9,6 +9,7 @@
 
 const ESC_PATCH_NOTES = [
     ['versao' => '1.38.1', 'data' => '2026-11-24', 'titulo' => 'Plano de Ação: saídas já aplicadas fora da lista', 'itens' => [
+    'Plano de Ação: o botão "Ler as origens agora" voltou a funcionar (dava "Ação não encontrada").',
     'Plano de Ação: a saída de página a conferir só entra quando a página ainda está na estrutura (o mesmo critério do Gerar). As 41 saídas já aplicadas ou de páginas fora do Capacity saíram da lista sozinhas.',
     ]],
     ['versao' => '1.38.0', 'data' => '2026-11-24', 'titulo' => 'Revisão completa: KPI oficial, Plano de Ação, Capacity automático e Grade nova', 'sql' => ['ES_216_vagas_equipe_sobrepostas.sql', 'ES_217_parametros_kpi_oficial.sql', 'ES_220_plano_de_acao.sql', 'ES_221_plano_acao_carga_inicial.sql', 'ES_222_capacity_fila.sql', '5C_Planning_42_sla_posto_duplo.sql', '5C_Planning_43_diario_nova_tentativa.sql'], 'itens' => [
