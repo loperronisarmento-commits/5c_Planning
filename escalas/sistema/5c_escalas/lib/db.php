@@ -208,15 +208,23 @@ function escDbW(bool $nova = false): PDO {
     return $pdo;
 }
 
+// Tabelas fora do 5c_escalas que o módulo pode gravar (U-01 da auditoria de 24/11: o plano de turmas
+// da Requisição de vagas grava em 5c_planning.fc_contratacoes, que o Capacity lê).
+const ESC_ESCRITA_EXTERNA = ['5c_planning.fc_contratacoes'];
+
+function escTabelaGravavel(string $schema, string $tabela): bool {
+    return $schema === ESC_SCHEMA || in_array($schema . '.' . $tabela, ESC_ESCRITA_EXTERNA, true);
+}
+
 function escConferirEscritaEscalas(string $sql): void {
-    if (!preg_match('~^\s*(INSERT(\s+IGNORE)?\s+INTO|UPDATE|DELETE\s+FROM)\s+`' . ESC_SCHEMA . '`\.`[a-z_]+`~i', $sql)) {
+    if (!preg_match('~^\s*(INSERT(\s+IGNORE)?\s+INTO|UPDATE|DELETE\s+FROM)\s+`([^`]+)`\.`([a-z_]+)`~i', $sql, $alvo) || !escTabelaGravavel($alvo[3], $alvo[4])) {
         throw new RuntimeException('Bloqueado: só INSERT, UPDATE ou DELETE em `' . ESC_SCHEMA . '`.`tabela`.');
     }
-    // Qualquer outro schema citado na instrução bloqueia.
-    preg_match_all('~`([^`]+)`\s*\.\s*`~', $sql, $m);
-    foreach ($m[1] as $schema) {
-        if ($schema !== ESC_SCHEMA) {
-            throw new RuntimeException('Bloqueado: gravação só no ' . ESC_SCHEMA . ' (citou ' . $schema . ').');
+    // Qualquer outro schema citado na instrução bloqueia (fora as tabelas liberadas).
+    preg_match_all('~`([^`]+)`\s*\.\s*`([^`]+)`~', $sql, $m, PREG_SET_ORDER);
+    foreach ($m as $ref) {
+        if (!escTabelaGravavel($ref[1], $ref[2])) {
+            throw new RuntimeException('Bloqueado: gravação só no ' . ESC_SCHEMA . ' (citou ' . $ref[1] . ').');
         }
     }
     $semTexto = escSqlSemTexto($sql);
@@ -244,9 +252,9 @@ function escUltimoId(): int {
 // gravado dentro da mesma transação).
 function escQW(string $sql, array $params = []): array {
     escConferirSomenteLeitura($sql, true);
-    preg_match_all('~`([^`]+)`\s*\.\s*`~', $sql, $m);
-    foreach ($m[1] as $schema) {
-        if ($schema !== ESC_SCHEMA) {
+    preg_match_all('~`([^`]+)`\s*\.\s*`([^`]+)`~', $sql, $m, PREG_SET_ORDER);
+    foreach ($m as $ref) {
+        if (!escTabelaGravavel($ref[1], $ref[2])) {
             throw new RuntimeException('Bloqueado: leitura pela conexão de gravação só no ' . ESC_SCHEMA . '.');
         }
     }

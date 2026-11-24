@@ -204,6 +204,13 @@ function escEquipesCompletar(string $desde, string $ref): array {
         $tem[(int) $e['posto_id']][$e['vaga']] = true;
         $uso[$e['rep']] = ($uso[$e['rep']] ?? 0) + (float) $e['fatia'] * ($e['vaga'] === 'DONO' ? 1 : 0.5);
     }
+    // Vaga que já tem gente a partir de uma data depois de $ref (ex.: o Gerar da semana seguinte rodou
+    // antes): a vaga só fica vazia até a véspera disso. Sem este limite, o Gerar de uma semana anterior
+    // abria uma segunda linha sem fim para o mesmo posto e vaga (B2 da auditoria de 24/11).
+    $futuro = []; // [posto][vaga] = primeiro vigente_desde depois de $ref
+    foreach (escQ('SELECT posto_id, vaga, MIN(vigente_desde) AS d FROM ' . escT('esc_vaga_equipe') . ' WHERE vigente_desde > ? GROUP BY posto_id, vaga', [$ref]) as $e) {
+        $futuro[(int) $e['posto_id']][$e['vaga']] = substr((string) $e['d'], 0, 10);
+    }
     $vazias = [];
     foreach ($postos as $p) {
         foreach (['DONO' => 'nucleo_dono_id', 'COBERTURA' => 'nucleo_cobertura_id'] as $vaga => $col) {
@@ -269,10 +276,14 @@ function escEquipesCompletar(string $desde, string $ref): array {
     usort($vazias, static fn($a, $b) => $a['ordem'] <=> $b['ordem']);
 
     $feito = [];
-    $gravar = static function () use ($vazias, $paginas, &$pessoas, $hist, $notas, $desde, &$feito) {
+    $gravar = static function () use ($vazias, $paginas, &$pessoas, $hist, $notas, $desde, $futuro, &$feito) {
         foreach ($vazias as $v) {
             $p = $v['posto'];
             $ut = $p['unidade'] . '|' . $p['turno'];
+            $limite = isset($futuro[(int) $p['id']][$v['vaga']]) ? escMaisDias($futuro[(int) $p['id']][$v['vaga']], -1) : null;
+            if ($limite !== null && $limite < max($desde, substr((string) $p['vigente_desde'], 0, 10))) {
+                continue; // já preenchida a partir de $desde
+            }
             $escolha = escEquipeEscolher($pessoas[$ut] ?? [], ['nucleo' => $v['nucleo'], 'precisa' => $v['precisa'], 'paginas' => $paginas[(int) $p['id']] ?? []], $hist, $notas);
             if (!$escolha) {
                 $feito[] = ['posto' => (int) $p['id'], 'vaga' => $v['vaga'], 'reps' => [], 'paginas' => $paginas[(int) $p['id']] ?? []];
@@ -280,6 +291,9 @@ function escEquipesCompletar(string $desde, string $ref): array {
             }
             $de = max($desde, substr((string) $p['vigente_desde'], 0, 10));
             $ate = $p['vigente_ate'] !== null ? substr((string) $p['vigente_ate'], 0, 10) : null;
+            if ($limite !== null && ($ate === null || $limite < $ate)) {
+                $ate = $limite;
+            }
             $reps = [];
             foreach ($escolha as $ordem => [$rep, $f, $passo]) {
                 $pessoas[$ut][$rep]['uso'] += $f;

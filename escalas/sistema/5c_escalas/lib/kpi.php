@@ -182,7 +182,10 @@ function escKpiCalcular(array $reps): array {
     $pag = [];
     foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5
                      FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE Date >= ? AND Date <= ? GROUP BY Date, Turn, Page', [$de, $ate]) as $r) {
-        $pag[substr((string) $r['dia'], 0, 10) . '|' . $r['t'] . '|' . $r['pagina']] = [(float) $r['meta'], (float) $r['real5']];
+        // Nome da página sem diferença de maiúsculas (B1 da auditoria de 24/11: "Brandi Love FREE" no
+        // cap_rep_hora e "Brandi Love Free" no Intraday): a chave do PHP diferencia, o SQL não.
+        $kp = substr((string) $r['dia'], 0, 10) . '|' . $r['t'] . '|' . mb_strtolower(trim((string) $r['pagina']));
+        $pag[$kp] = [($pag[$kp][0] ?? 0) + (float) $r['meta'], ($pag[$kp][1] ?? 0) + (float) $r['real5']];
     }
     $msgs = [];
     $tot = [];
@@ -196,7 +199,7 @@ function escKpiCalcular(array $reps): array {
         $lista = array_values(array_filter(array_map('trim', explode(' + ', (string) $r['paginas']))));
         $parte = (float) $r['m'] / max(1, count($lista));
         foreach ($lista as $p) {
-            $k = $dia . '|' . $r['t'] . '|' . $p;
+            $k = $dia . '|' . $r['t'] . '|' . mb_strtolower($p);
             $tot[$k] = ($tot[$k] ?? 0) + $parte;
             if (isset($repDe[$cod])) {
                 $msgs[$k][$cod] = ($msgs[$k][$cod] ?? 0) + $parte;
