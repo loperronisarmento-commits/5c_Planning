@@ -209,7 +209,7 @@ return [
     '4 semanas' => '4 weeks',
     '{n} bloco' => '{n} block',
     '{n} blocos' => '{n} blocks',
-    'Atingimento = realizado ÷ meta 5CReps da página, na parte de cada pessoa (pela fatia das mensagens no dia e no bloco, a mesma regra do mérito). Verde: meta batida (100% ou mais). — : sem mensagens na página na semana. # assistente · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS.' => 'Attainment = actual ÷ the page\'s 5CReps goal, in each person\'s share (by their share of messages on the day and block, the same rule as merit). Green: goal met (100% or more). — : no messages on the page that week. # assistant · -2 on-call buffer · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS.',
+    'Atingimento = realizado ÷ meta 5CReps da página, na parte de cada pessoa (pela fatia das mensagens no dia e no bloco, a mesma regra do KPI). Verde: meta batida (100% ou mais). — : sem mensagens na página na semana. # assistente · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS.' => 'Attainment = actual ÷ the page\'s 5CReps goal, in each person\'s share (by their share of messages on the day and block, the same rule as the KPI). Green: goal met (100% or more). — : no messages on the page that week. # assistant · -2 on-call buffer · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS.',
     // PDF das páginas por unidade (1.18.0)
     'Escala U{u} {de} a {ate}' => 'Schedule U{u} {de} to {ate}',
     'Sem unidade' => 'No unit',

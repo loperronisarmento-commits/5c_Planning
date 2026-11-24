@@ -108,6 +108,9 @@ function escPodeReal(string $acao): bool {
 // Telas e dados só de WFM/Planejamento e Admin (Política de mérito, mérito individual, Folga juntos,
 // KPI dos SRs): valem o perfil real, também no Modo Treino.
 const ESC_TELAS_RESTRITAS = ['owners', 'merito', 'casais', 'kpi', 'movimentos'];
+// Legacy (1.38.0): só admin e só leitura. O POST é bloqueado no index.php e os formulários de gravação somem
+// (.so-leitura). O Mérito está aqui desde que o KPI dos SRs virou o indicador oficial.
+const ESC_TELAS_LEGACY = ['srs', 'merito', 'times', 'trocas', 'parametros_legado'];
 
 function escPodeVerRestrito(): bool {
     return escPodeReal('planejar');

@@ -1,5 +1,7 @@
 # Motor de alocações: registro, rascunho e ajuste
 
+> **Atualização de 24/11/2026 (5C Escalas 1.38.0):** o **KPI dos SRs** é o indicador oficial de desempenho. O Mérito virou **Legacy** (fora do menu principal, só leitura, dados preservados) e as **moedas** saíram do KPI. Onde este documento fala em mérito, nota em pontos ou faixa (Acima, Na média, Abaixo), vale hoje o KPI: score de 0% a 120% e nível de 0 a 4 (regras em `contexto/regras_escalacao_kpi.md`). As chaves das regras A-01 a A-04 mudaram para `v4_kpi_passo0`, `v4_kpi_abaixo_fora_topo`, `v4_kpi_acumulo` e `v4_kpi_remanejar` (ES_217).
+
 Este arquivo guarda as regras novas que cruzam o **mérito** do SR com a **prioridade das páginas**: quem vai para qual página, em que ordem e com quais limites. Vale do rascunho até a validação.
 
 As duas entradas têm cada uma o seu arquivo e não se mexem por aqui:

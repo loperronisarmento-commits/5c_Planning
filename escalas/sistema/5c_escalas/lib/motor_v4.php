@@ -59,18 +59,18 @@ function escMotorAlocarV4(array $in): array {
     $treinoCobre = $in['treino_cobre'] ?? [];
     // Na transição também remaneja por faturamento e acumula (pedido de 30/10; 0 desliga).
     $remanejaTransicao = escV4Param('v4_remanejar_transicao', '1') === '1';
-    // Mérito no Gerar (1.19.0, regras A-01 a A-04 de contexto/regras_motor_alocacao.md; 0 = regra da 1.18):
-    // A-01 passo 0 por meta na página, faixa e nota; A-02 o Abaixo só fica em página prioritária sem outro;
-    // A-03 a faixa primeiro no acúmulo e na sobrecarga; A-04 sobe o SR de melhor faixa no remanejamento.
-    $faixaPasso0 = escV4Param('v4_merito_faixa_passo0', '1') === '1';
-    $abaixoForaTopo = escV4Param('v4_merito_abaixo_fora_topo', '1') === '1';
-    $faixaAcumulo = escV4Param('v4_merito_faixa_acumulo', '1') === '1';
-    $faixaRemanejar = escV4Param('v4_merito_faixa_remanejar', '1') === '1';
+    // Desempenho no Gerar (regras A-01 a A-04 de contexto/regras_motor_alocacao.md, com o KPI desde a 1.34.0; 0 desliga):
+    // A-01 passo 0 por meta na página, nível e score; A-02 o nível 0 só fica em página prioritária sem outro;
+    // A-03 o nível primeiro no acúmulo e na sobrecarga; A-04 sobe o SR de melhor nível no remanejamento.
+    $faixaPasso0 = escV4Param('v4_kpi_passo0', '1') === '1';
+    $abaixoForaTopo = escV4Param('v4_kpi_abaixo_fora_topo', '1') === '1';
+    $faixaAcumulo = escV4Param('v4_kpi_acumulo', '1') === '1';
+    $faixaRemanejar = escV4Param('v4_kpi_remanejar', '1') === '1';
     // KPI no lugar do mérito (1.34.0, contexto/regras_escalacao_kpi.md): a "faixa" passa a ser o nível do KPI
     // (0 a 4; o neutro é o 2) e a "nota" o score em %. K-03: tabela de continuidade por nível; D1: no máximo
     // v4_kpi_mov_max dos SRs perdem o posto por causa do KPI na semana (80:20); D2: quem só faz cobertura
     // (abaixo de 25% entre os 20% piores) nunca é regular em posto.
-    $fonteKpi = ($est['fonte_desempenho'] ?? 'MERITO') === 'KPI';
+    $fonteKpi = ($est['fonte_desempenho'] ?? 'KPI') === 'KPI'; // sempre KPI desde a 1.38.0
     $neutro = (int) ($est['faixa_neutra'] ?? 1);
     $soCobertura = $fonteKpi ? ($est['so_cobertura'] ?? []) : [];
     $kpiMovidos = [];
@@ -426,7 +426,7 @@ function escMotorAlocarV4(array $in): array {
             // Menos troca de gente: quem estava no posto, quem é da equipe de alguma página dele,
             // quem mais trabalhou nas páginas dele (5C Schedule); depois a nota em pontos, o tempo de casa e o nível.
             $historico = $est['historico'] ?? [];
-            $merito = $est['merito'] ?? [];
+            $desempenho = $est['desempenho'] ?? [];
             $faixaRep = $est['faixa'] ?? [];
             $anosRep = $est['anos'] ?? [];
             $soAssist = $est['so_assist'] ?? [];
@@ -496,7 +496,7 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $merito, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc, $temPref): ?string {
+            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $desempenho, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc, $temPref): ?string {
                 $assistP = in_array($p['tipo'], ['assistente', 'apoio'], true);
                 $mascP = $prefMasc ? $temMasc($p) : false;
                 $melhor = null;
@@ -514,7 +514,7 @@ function escMotorAlocarV4(array $in): array {
                     // por certas páginas (v4_sr_pref_paginas), antes no posto delas.
                     $pref = ($assistP && isset($prefAssist[$rep])) || ($mascP && isset($prefMasc[$rep])) || (!$assistP && $temPref($rep, $p)) ? 1 : 0;
                     $k = [$pref, ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
-                        round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $pessoas[$rep]['nivel'] ?? 0, $rep];
+                        round($desempenho[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $pessoas[$rep]['nivel'] ?? 0, $rep];
                     if ($chaveMelhor === null || $k > $chaveMelhor) {
                         $melhor = $rep;
                         $chaveMelhor = $k;
@@ -774,7 +774,7 @@ function escMotorAlocarV4(array $in): array {
             // 0. Páginas das modelos de v4_melhores_receita_min ou mais (0 = todas, P-01): o melhor SR do turno
             //    na página entra antes da equipe da vaga; a equipe fixa da página (acima) vem antes dele.
             //    As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro. Desde a 1.19.0
-            //    (A-01, v4_merito_faixa_passo0): quem bateu a meta na página, a faixa do mérito, a nota em
+            //    (A-01, v4_kpi_passo0): quem bateu a meta na página, a faixa do mérito, a nota em
             //    pontos e o tempo de casa, com continuidade; antes, a venda/hora.
             $mel = $est['melhores'] ?? null;
             if (!$transicao && $mel && !empty($mel['paginas'])) {
@@ -807,7 +807,7 @@ function escMotorAlocarV4(array $in): array {
                                 // A-01 com a P-01: depois quem já fez a página em 30 dias (tem meta nela, 03/11),
                                 // a faixa do mérito, a nota em pontos e o tempo de casa.
                                 $fezPagina = isset($mel['meta'][$pag][$rep]) ? 1 : 0;
-                                $k = [$bateu, $fezPagina, $faixaRep[$rep] ?? $neutro, round($merito[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
+                                $k = [$bateu, $fezPagina, $faixaRep[$rep] ?? $neutro, round($desempenho[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
                             } else {
                                 // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
                                 $naPag = $mel['pagina'][$pag][$rep] ?? null;
@@ -850,7 +850,7 @@ function escMotorAlocarV4(array $in): array {
                         if ($faixaPasso0) {
                             $fxM = $faixaRep[$melhor] ?? $neutro;
                             $v['motivo'] = ($fica ? 'continua no posto, ' : 'melhor SR do turno, ') . 'para ' . $pag . ' (' . $metaPag . '; ' . $nomeFaixa($fxM) . ', '
-                                . str_replace('.', ',', (string) round($merito[$melhor] ?? 0.0, 1)) . ($fonteKpi ? '%' : ' pontos') . ')';
+                                . str_replace('.', ',', (string) round($desempenho[$melhor] ?? 0.0, 1)) . ($fonteKpi ? '%' : ' pontos') . ')';
                             // A-02 / K-04: o SR Abaixo (nível 0) só fica em página prioritária sem outro disponível (ou se bateu a meta nela).
                             if ($abaixoForaTopo && $fxM === 0 && isset($est['prioritaria'][$pag])) {
                                 $v['motivo'] .= $fonteKpi ? ' · nível 0 em página prioritária' : ' · Abaixo em página prioritária';
@@ -883,7 +883,7 @@ function escMotorAlocarV4(array $in): array {
                         }
                         $share = ($feito[$rep][$v['chave']] ?? 0) / max(1, $diasVaga[$v['chave']]);
                         $continua = ($ultimo[$v['pid']] ?? null) === $rep && $share < $fatia + 0.15 ? 1 : 0;
-                        $k = [$continua, round($fatia - $share, 2), $fatia, round($est['merito'][$rep] ?? 0.0, 2), $rep];
+                        $k = [$continua, round($fatia - $share, 2), $fatia, round($est['desempenho'][$rep] ?? 0.0, 2), $rep];
                         if ($chaveMelhor === null || $k > $chaveMelhor) {
                             $melhor = $rep;
                             $chaveMelhor = $k;

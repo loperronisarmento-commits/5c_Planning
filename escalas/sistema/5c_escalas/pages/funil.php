@@ -120,10 +120,10 @@ $porEtapa = [];
 foreach ($cards as $c) {
     $porEtapa[$c['etapa']][] = $c;
 }
-// Destinos indicados (lib/funil_sugestao.php): só na estrutura nova (ES_27). O mérito em número
-// aparece só para quem pode ver o mérito (Planejamento, WFM e Admin).
+// Destinos indicados (lib/funil_sugestao.php): só na estrutura nova (ES_27). O KPI em número
+// aparece só para quem pode ver o KPI individual (Planejamento, WFM e Admin).
 $ctxFunil = $destinoV4 ? escFunilContexto($diaNucleos) : null;
-$verMerito = escPodeReal('planejar');
+$verKpi = escPodeReal('planejar');
 $ORIGEM_VOL = ['previsao' => t('previsão salva'), 'arquetipo' => t('arquétipo do tier e perfil'), 'perfil' => t('média do perfil (sem tier)'), 'padrao' => t('valor padrão (sem arquétipo)')];
 $confianca = static function (int $n): array {
     return $n >= 5 ? [t('Alta'), 'verde'] : ($n >= 3 ? [t('Média'), 'amarelo'] : [t('Baixa'), 'vermelho']);
@@ -266,7 +266,7 @@ $SITUACAO_ENTRADA = [
           <ol class="funil-top">
             <?php foreach ($sug['top'] as $i => $s): $n = $s['nucleo']; $bl = ESC_SOL_TURNO_BLOCOS[$n['turno']];
                 $motivos = [t('Capacity da U{u}: saldo {antes} → {depois} SRs com a página', ['u' => $n['unidade'], 'antes' => $s['saldo_u_antes'], 'depois' => $s['saldo_u_depois']])];
-                $motivos[] = $verMerito ? ($n['nota'] !== null ? t('mérito da equipe {nota} (média dos SRs)', ['nota' => num($n['nota'], 2)]) : t('equipe sem nota de mérito')) : t('mérito da equipe considerado');
+                $motivos[] = $verKpi ? ($n['nota'] !== null ? t('KPI da equipe {nota} (média dos SRs)', ['nota' => num($n['nota'], 2)]) : t('equipe sem KPI')) : t('KPI da equipe considerado');
                 $motivos[] = $s['carga_sr'] !== null ? t('{carga} fãs/h por SR já no núcleo', ['carga' => num($s['carga_sr'], 1)]) : t('núcleo sem SRs');
                 if ($s['afinidade']) { $motivos[] = t('a modelo já tem página nesta unidade ({pagina}, carteira {carteira})', $s['afinidade']); }
                 if (($s['desvio'] ?? null) !== null) { $motivos[] = t('faturamento da U{u} no turno {turno}: {d} da média', ['u' => $n['unidade'], 'turno' => $n['turno'], 'd' => ($s['desvio'] > 0 ? '+' : '') . pct($s['desvio'], 0)]); }
@@ -280,8 +280,8 @@ $SITUACAO_ENTRADA = [
             <?php endforeach; ?>
           </ol>
           <span class="muted small"><?php echo h(isset($sug['peso']['equilibrio'])
-              ? t('Um destino por unidade, na ordem da nota (0 a 100): Capacity {cap}, mérito {mer}, carga do núcleo {car}, afinidade com a modelo {afi} e equilíbrio das unidades {equ} (faturamento abaixo da média ganha); em página de tier alto o mérito pesa mais. A página entra nos 3 turnos da unidade; o núcleo indicado é o do turno principal.', ['cap' => $sug['peso']['cap_u'] + $sug['peso']['cap_t'], 'mer' => $sug['peso']['merito'], 'car' => $sug['peso']['carga'], 'afi' => $sug['peso']['afinidade'], 'equ' => $sug['peso']['equilibrio']])
-              : t('Um destino por unidade, na ordem da nota (0 a 100): Capacity {cap}, mérito {mer}, carga do núcleo {car} e afinidade com a modelo {afi}; em página de tier alto o mérito pesa mais. A página entra nos 3 turnos da unidade; o núcleo indicado é o do turno principal.', ['cap' => $sug['peso']['cap_u'] + $sug['peso']['cap_t'], 'mer' => $sug['peso']['merito'], 'car' => $sug['peso']['carga'], 'afi' => $sug['peso']['afinidade']])); ?></span>
+              ? t('Um destino por unidade, na ordem da nota (0 a 100): Capacity {cap}, KPI {mer}, carga do núcleo {car}, afinidade com a modelo {afi} e equilíbrio das unidades {equ} (faturamento abaixo da média ganha); em página de tier alto o KPI pesa mais. A página entra nos 3 turnos da unidade; o núcleo indicado é o do turno principal.', ['cap' => $sug['peso']['cap_u'] + $sug['peso']['cap_t'], 'mer' => $sug['peso']['desempenho'], 'car' => $sug['peso']['carga'], 'afi' => $sug['peso']['afinidade'], 'equ' => $sug['peso']['equilibrio']])
+              : t('Um destino por unidade, na ordem da nota (0 a 100): Capacity {cap}, KPI {mer}, carga do núcleo {car} e afinidade com a modelo {afi}; em página de tier alto o KPI pesa mais. A página entra nos 3 turnos da unidade; o núcleo indicado é o do turno principal.', ['cap' => $sug['peso']['cap_u'] + $sug['peso']['cap_t'], 'mer' => $sug['peso']['desempenho'], 'car' => $sug['peso']['carga'], 'afi' => $sug['peso']['afinidade']])); ?></span>
         </div>
         <?php endif; endif; ?>
         <?php if (escPode('decidir')): ?>

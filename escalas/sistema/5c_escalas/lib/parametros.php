@@ -18,6 +18,11 @@ const ESC_PARAMETROS_LEGADO = [
     'v4_tiers_melhores_srs', 'v4_max_vagas_nivel_baixo', 'v4_fatia_nivel_0', 'v4_fatia_nivel_1', 'v4_fatia_nivel_2', 'v4_nucleos_ativos_dia',
 ];
 
+// Legacy (1.38.0): os da lista acima e todo o grupo "merito" (o Mérito é Legacy, só leitura).
+function escParametroLegado(array $l): bool {
+    return in_array($l['chave'], ESC_PARAMETROS_LEGADO, true) || ($l['grupo'] ?? '') === 'merito';
+}
+
 function escV4Param(string $chave, string $padrao): string {
     static $p = null;
     if ($p === null) {

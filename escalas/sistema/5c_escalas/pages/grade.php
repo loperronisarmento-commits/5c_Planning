@@ -382,8 +382,8 @@ if (($_GET['ver'] ?? '') === 'metas') {
         uasort($membros[$pid], static fn($a, $b) => [-$a['blocos'], $a['nome']] <=> [-$b['blocos'], $b['nome']]);
     }
     $repsMeta = array_keys(array_merge(...array_values($membros ?: [[]])));
-    $ating = escMeritoAtingimentoPaginas(array_column($folhas, 'nome'), $repsMeta, $semanasMeta);
-    $tetoMeta = (float) str_replace(',', '.', escV4Param('merito_desempenho_teto', '2'));
+    $ating = escAtingimentoPaginas(array_column($folhas, 'nome'), $repsMeta, $semanasMeta);
+    $tetoMeta = (float) str_replace(',', '.', escV4Param('v4_meta_teto', '2'));
     // [realizado, meta] → "104%" em verde (meta batida) ou vermelho; sem meta, "—".
     $pctMeta = static function (?array $rm) use ($tetoMeta): string {
         if (!$rm || $rm[1] <= 0) {
@@ -439,7 +439,7 @@ if (($_GET['ver'] ?? '') === 'metas') {
       <?php endforeach; ?>
       </tbody>
     </table>
-    <p class="pag-pdf-legenda"><?php echo h(t('Atingimento = realizado ÷ meta 5CReps da página, na parte de cada pessoa (pela fatia das mensagens no dia e no bloco, a mesma regra do mérito). Verde: meta batida (100% ou mais). — : sem mensagens na página na semana. # assistente · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS.')); ?></p>
+    <p class="pag-pdf-legenda"><?php echo h(t('Atingimento = realizado ÷ meta 5CReps da página, na parte de cada pessoa (pela fatia das mensagens no dia e no bloco, a mesma regra do KPI). Verde: meta batida (100% ou mais). — : sem mensagens na página na semana. # assistente · -2 buffer de plantão · -4 trainee · -5 Overlap · -6 OA · -7 OC · -8 OS.')); ?></p>
   </section>
   <?php endforeach; ?>
   <?php if (!$folhas): ?><p class="muted"><?php echo h(t('Página sem alocação neste plano.')); ?></p><?php endif; ?>
@@ -610,7 +610,7 @@ if (($_GET['ver'] ?? '') === 'pdf') {
             $periodosPdf[] = [escMaisDias($seg, -$j), escMaisDias($seg, -$ant - 1)];
             $ant = $j;
         }
-        $atPdf = escMeritoAtingimentoModelos(array_column($folhas, 'nome'), $todosReps, $periodosPdf);
+        $atPdf = escAtingimentoModelos(array_column($folhas, 'nome'), $todosReps, $periodosPdf);
         foreach ($folhas as $pid => $pg) {
             foreach ($atPdf[escModeloDaPagina($pg['nome'])] ?? [] as $rep => $porPeriodo) {
                 $acc = [0.0, 0.0];

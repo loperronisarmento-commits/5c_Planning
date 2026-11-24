@@ -20,7 +20,7 @@ $bancos = [
     ['5c_historic_planner', ['Histórico do Planner (trocas de página). Só leitura.', 'Planner history (page swaps). Read-only.']],
     ['5c_pages', ['Cadastro de páginas. Só leitura.', 'Page records. Read-only.']],
     ['5c_crm', ['Funil do CRM (cards, etapas, clientes, tiers). Só leitura.', 'CRM funnel (cards, stages, clients, tiers). Read-only.']],
-    ['5c_wfm_db_mis', ['Faturamento e intraday (mérito, arquétipos, horas extras). Só leitura.', 'Revenue and intraday (merit, archetypes, overtime). Read-only.']],
+    ['5c_wfm_db_mis', ['Faturamento e intraday (KPI, arquétipos, horas extras). Só leitura.', 'Revenue and intraday (KPI, archetypes, overtime). Read-only.']],
     ['5c_wfm_mis_web', ['Login do portal: só id e login de mis_login (nunca senha ou CPF) e os acessos do Schedule Anomalies na primeira carga.', 'Portal login: only id and login from mis_login (never password or CPF) and the Schedule Anomalies access list on the first load.']],
 ];
 $scripts = [
@@ -70,7 +70,7 @@ $regras = [
     ['max_execution_time por sessão: ESC_MAX_EXECUCAO_MS (30 s). Consulta acima de 1 s vai para logs/app.log como "Consulta lenta".', 'Per-session max_execution_time: ESC_MAX_EXECUCAO_MS (30 s). Queries over 1 s go to logs/app.log as "Consulta lenta".'],
     ['Travas (GET_LOCK): 5c_escalas.saida_pagina (uma saída aplicada por vez).', 'Locks (GET_LOCK): 5c_escalas.saida_pagina (one page exit applied at a time).'],
     ['Formulários com token CSRF por sessão; tudo o que grava registra em esc_log (quem, quando, antes e depois).', 'Forms carry a per-session CSRF token; every write is recorded in esc_log (who, when, before and after).'],
-    ['Não há tarefa agendada: a verificação de mudanças roda só pelo botão (Painel e Gerar escala); o mérito é recalculado sob demanda a cada merito_cache_horas.', 'No scheduled jobs: change detection runs only from the button (Dashboard and Generate schedule); merit is recalculated on demand every merito_cache_horas.'],
+    ['Não há tarefa agendada: a verificação de mudanças roda só pelo botão (Painel e Gerar escala); o KPI é recalculado a cada 3 h (cache esc_sr_kpi); o Mérito é Legacy e não se recalcula.', 'No scheduled jobs: change detection runs only from the button (Dashboard and Generate schedule); the KPI is recalculated every 3 h (esc_sr_kpi cache); Merit is Legacy and is not recalculated.'],
     ['Script novo de estrutura: rodar também no 5c_escalas_treino (ou rodar o ES_28 de novo e "Recomeçar o treino"); a cópia do treino usa só as colunas que existem nos dois.', 'New structure script: also run it on 5c_escalas_treino (or run ES_28 again and "Restart training"); the training copy only uses columns present in both.'],
 ];
 

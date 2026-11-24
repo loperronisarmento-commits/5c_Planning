@@ -8,9 +8,9 @@
 // bateu a meta na página) e pesam no remanejamento, no acúmulo e na sobrecarga.
 // ===============================================
 
-$legadoMerito = escDesempenhoFonte() === 'KPI';
+$legadoMerito = true; // Legacy desde a 1.38.0: só admin, só leitura (o KPI é o indicador oficial)
 if ($legadoMerito) {
-    escExigir('admin'); // Legado desde a 1.34.0: só admin, só leitura
+    escExigir('admin');
 }
 if (escPost()) {
     if ($legadoMerito || !escPodeReal('planejar')) {
@@ -138,7 +138,7 @@ if (isset($_GET['baixar'])) {
   <span class="muted small"><?php echo h(t('Na impressão, escolha "Salvar como PDF".')); ?></span>
 </div>
 <?php endif; ?>
-<?php if ($legadoMerito && !$soPdf): ?><div class="faixa-legado" role="status"><?php echo h(t('Legado: desde a 1.34.0 a escala usa o KPI dos SRs, não o mérito. Esta tela fica só para consulta.')); ?> <a href="<?php echo h(link_tela('kpi')); ?>"><?php echo h(t('Abrir o KPI dos SRs')); ?></a></div><?php endif; ?>
+<?php if ($legadoMerito && !$soPdf): ?><div class="faixa-legado" role="status"><?php echo h(t('Legacy: o KPI dos SRs é o indicador oficial desde a 1.38.0. O Mérito fica só para consulta, com os dados preservados (sem recálculo nem edição).')); ?> <a href="<?php echo h(link_tela('kpi')); ?>"><?php echo h(t('Abrir o KPI dos SRs')); ?></a></div><?php endif; ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h(t('Análise')); ?></span>
   <h1><?php echo h(t('Mérito dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>

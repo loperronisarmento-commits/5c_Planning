@@ -7,17 +7,17 @@
 //   pesos 4-3-2-1: a última fechada 4, a anterior 3, a antepenúltima 2 e a de 4 semanas atrás 1.
 // - Kinetic_base: meta ponderada = Σ(peso × realizado) ÷ Σ(peso × meta) das semanas (ajuste de 23/11: semana
 //   com meta pequena pesa menos), em rampa pelos pontos da tabela do documento (50% → 50%, 75% → 75%,
-//   90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%; piso 25%, teto 120%). As moedas continuam por semana.
+//   90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%; piso 25%, teto 120%).
 // - Process: 100% − SLA 15 (−4% a cada 10% abaixo do esperado) − SLA 10 (−2%) − SLA 5 (−1%), proporcional
 //   ao quanto falta (ajuste de 23/11: −0,4 ponto por ponto abaixo no SLA 15); piso de 60%.
 //   Mass por turno e "não seguir plano" ainda sem dado: não calculados.
 // - Integrity: 100% − 15% por falta (abs_adh_af, ABS) − quebra de P&G (avaliação de qualidade com a seção
 //   "Model Best Practices" Não Conforme: −10% com nota 80, gradual até −30% com nota 0); pode zerar.
 //   DNR ainda sem dado: não calculado.
-// - Score = Kinetic_base × Process × Integrity (0% a 120%). Moedas = só a meta semanal, sem teto.
+// - Score = Kinetic_base × Process × Integrity (0% a 120%). As moedas saíram na 1.38.0 (controle fora do sistema).
 // - Novato (menos de 2 semanas fechadas com meta): score provisório de 75% (ajuste de 23/11).
-// Desde a 1.34.0 o KPI substitui o mérito na escalação (contexto/regras_escalacao_kpi.md, K-01 a K-08), com o
-// parâmetro v4_fonte_desempenho = KPI (MERITO volta ao mérito). O nível 0 a 4 de cada SR vai para o Gerar, o
+// Desde a 1.34.0 o KPI é a referência da escalação (contexto/regras_escalacao_kpi.md, K-01 a K-08) e, desde a 1.38.0,
+// o indicador oficial (o Mérito é Legacy, só leitura). O nível 0 a 4 de cada SR vai para o Gerar, o
 // Equilíbrio, o Funil, os Owners e as tags; o cache fica em esc_sr_kpi (ES_198). A tela guarda o detalhe semana
 // a semana em arquivo temporário (escCache). Não alimenta pagamentos nem notificações.
 // ===============================================
@@ -68,20 +68,6 @@ function escKpiKineticBase(?float $meta): ?float {
         }
     }
     return $pts[$n - 1][1];
-}
-
-// Moedas de uma semana pela meta: < 85% = 0; 85% a 100% linear de 1 a 20; acima, 20 × (1 + log2(meta)).
-function escKpiMoedas(?float $meta): ?float {
-    if ($meta === null) {
-        return null;
-    }
-    if ($meta < 0.85) {
-        return 0.0;
-    }
-    if ($meta <= 1.0) {
-        return 1 + 19 * ($meta - 0.85) / 0.15;
-    }
-    return 20 * (1 + log($meta, 2));
 }
 
 // Desconto de um SLA (fração), proporcional ao quanto falta para o esperado: o desconto do documento
@@ -151,9 +137,9 @@ function escKpiCarregar(array $reps): array {
 }
 
 // Calcula o KPI semana a semana (só leitura). Por rep:
-//   semanas[segunda] = [meta, real, atingimento, moedas, respostas, r5, r10, r15, sla5, sla10, sla15,
+//   semanas[segunda] = [meta, real, atingimento, respostas, r5, r10, r15, sla5, sla10, sla15,
 //                       desc5, desc10, desc15, process, faltas, integrity]
-//   kinetic_meta (média ponderada), kinetic_base, process, integrity, score, moedas (soma das semanas).
+//   kinetic_meta (média ponderada), kinetic_base, process, integrity, score.
 function escKpiCalcular(array $reps): array {
     $semanas = escKpiSemanas();
     $de = escCorteDados(min(array_keys($semanas)));
@@ -178,7 +164,7 @@ function escKpiCalcular(array $reps): array {
     }
 
     // Kinetic: meta e realizado 5CReps por dia, turno (T1–T6) e página, rateados pelas mensagens do SR
-    // (a mesma conta da meta semanal do mérito, M-10).
+    // (a mesma conta do atingimento por página, lib/atingimento.php).
     $pag = [];
     foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5
                      FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE Date >= ? AND Date <= ? GROUP BY Date, Turn, Page', [$de, $ate]) as $r) {
@@ -283,14 +269,13 @@ function escKpiCalcular(array $reps): array {
     return $out;
 }
 
-// Fecha cada semana (atingimento, moedas, SLA, Process, Integrity) e os pilares ponderados.
+// Fecha cada semana (atingimento, SLA, Process, Integrity) e os pilares ponderados.
 function escKpiFechar(array $porRep, array $semanas): array {
     $out = [];
     foreach ($porRep as $rep => $porSemana) {
         $linhas = [];
         $proc = [];
         $integ = [];
-        $moedas = null;
         foreach ($semanas as $sg => $peso) {
             $s = $porSemana[$sg] ?? null;
             if ($s === null) {
@@ -310,15 +295,11 @@ function escKpiFechar(array $porRep, array $semanas): array {
             $pg = $s['pg'] ?? [];
             $descPg = array_sum(array_map('escKpiDescontoPg', $pg));
             $i = max(0.0, 1 - ESC_KPI_FALTA * $faltas - $descPg);
-            $m = escKpiMoedas($at);
-            $linhas[$sg] = ['peso' => $peso, 'meta' => $s['meta'] ?? null, 'real' => $s['real'] ?? null, 'atingimento' => $at, 'moedas' => $m,
+            $linhas[$sg] = ['peso' => $peso, 'meta' => $s['meta'] ?? null, 'real' => $s['real'] ?? null, 'atingimento' => $at,
                 'respostas' => $resp, 'sla5' => $sla5, 'sla10' => $sla10, 'sla15' => $sla15, 'desc5' => $d5, 'desc10' => $d10, 'desc15' => $d15,
                 'process' => $p, 'faltas' => $faltas, 'pg' => $pg, 'desc_pg' => $descPg, 'integrity' => $i];
             $proc[$sg] = $p;
             $integ[$sg] = $i;
-            if ($m !== null) {
-                $moedas = ($moedas ?? 0) + $m;
-            }
         }
         // Meta ponderada pelo tamanho da meta: Σ(peso × realizado) ÷ Σ(peso × meta).
         $somaReal = 0.0;
@@ -340,7 +321,7 @@ function escKpiFechar(array $porRep, array $semanas): array {
         $provisorio = $semMeta < ESC_KPI_NOVATO_SEMANAS;
         $out[$rep] = ['semanas' => $linhas, 'kinetic_meta' => $kMeta, 'kinetic_base' => $kBase, 'process' => $pMed,
             'integrity' => $iMed, 'score' => $provisorio ? ESC_KPI_NOVATO_SCORE : $calc, 'score_calculado' => $calc,
-            'provisorio' => $provisorio, 'semanas_meta' => $semMeta, 'moedas' => $moedas];
+            'provisorio' => $provisorio, 'semanas_meta' => $semMeta];
     }
     return $out;
 }
@@ -385,9 +366,10 @@ function escKpiNivelRotulo(int $nivel): array {
         1 => [t('Nível 1 · substituir'), 'amarelo'], 0 => [t('Nível 0 · realocar'), 'laranja']][$nivel] ?? [t('Nível 2 · mantém'), ''];
 }
 
-// Fonte do desempenho na escalação: KPI (padrão desde a 1.34.0) ou MERITO (volta à nota em pontos).
+// Fonte do desempenho na escalação: desde a 1.38.0 sempre o KPI (indicador oficial). O Mérito é Legacy, só
+// leitura, e o parâmetro v4_fonte_desempenho não existe mais.
 function escDesempenhoFonte(): string {
-    return strtoupper(trim(escV4Param('v4_fonte_desempenho', 'KPI'))) === 'MERITO' ? 'MERITO' : 'KPI';
+    return 'KPI';
 }
 
 // SRs ativos da estrutura nova (vigentes ou que começam nas próximas 2 semanas).
@@ -397,7 +379,7 @@ function escKpiSrsAtivos(): array {
         . " WHERE funcao = 'EQUITE' AND nucleo_id IS NOT NULL AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= CURDATE())", [$d]), 'rep');
 }
 
-// KPI no banco (esc_sr_kpi, K-08): recalcula e grava se estiver com mais de 3 h (ou se $forcar), como o mérito.
+// KPI no banco (esc_sr_kpi, K-08): recalcula e grava se estiver com mais de 3 h (ou se $forcar).
 // Volta [rep => linha do cache].
 function escKpiBanco(bool $forcar = false): array {
     try {
@@ -468,20 +450,14 @@ function escKpiLinhas(array $calc, string $agora): array {
         $linhas[] = ['rep_code' => $rep, 'semana_ref' => $ref, 'kinetic_meta' => $r4($k['kinetic_meta']), 'kinetic' => $r4($k['kinetic_base']),
             'process' => $r4($k['process']), 'integrity' => $r4($k['integrity']), 'score' => $r4($k['score']), 'score_calculado' => $r4($k['score_calculado']),
             'provisorio' => !empty($k['provisorio']) ? 1 : 0, 'pareto' => $par ? 1 : 0,
-            'nivel' => escKpiNivel($k['score'] !== null ? (float) $k['score'] : null, !empty($k['provisorio']), $par),
-            'moedas' => $k['moedas'] !== null ? round((float) $k['moedas'], 2) : null] + escKpiResumoTags($k) + ['anos' => $k['anos'] ?? 0, 'calculado_em' => $agora];
+            'nivel' => escKpiNivel($k['score'] !== null ? (float) $k['score'] : null, !empty($k['provisorio']), $par)] + escKpiResumoTags($k) + ['anos' => $k['anos'] ?? 0, 'calculado_em' => $agora];
     }
     return $linhas;
 }
 
-// O que o Gerar usa do desempenho, no mesmo formato de antes (escMeritoMotor): 'nota' (KPI: score em %),
-// 'faixa' (KPI: nível 0 a 4; mérito: 0 a 2), 'anos', 'fonte' e, no KPI, 'so_cobertura' (D2: abaixo de 25%
-// entre os 20% piores). Quem não está no cache fica no meio (nível 2 / Na média).
+// O que o Gerar usa do desempenho (KPI): 'nota' (score em %), 'faixa' (nível 0 a 4), 'anos', 'fonte' e
+// 'so_cobertura' (D2: abaixo de 25% entre os 20% piores). Quem não está no cache fica no meio (nível 2).
 function escDesempenhoMotor(): array {
-    if (escDesempenhoFonte() === 'MERITO') {
-        $m = function_exists('escMeritoCarregar') ? escMeritoMotor(escMeritoCarregar()) : ['nota' => [], 'faixa' => [], 'anos' => []];
-        return $m + ['fonte' => 'MERITO', 'so_cobertura' => [], 'neutro' => 1];
-    }
     $corte = (float) str_replace(',', '.', escV4Param('v4_kpi_so_cobertura', '0.25'));
     $out = ['nota' => [], 'faixa' => [], 'anos' => [], 'fonte' => 'KPI', 'so_cobertura' => [], 'neutro' => 2];
     foreach (escKpiBanco() as $rep => $k) {
@@ -496,7 +472,7 @@ function escDesempenhoMotor(): array {
     return $out;
 }
 
-// Nota de desempenho por SR para Equilíbrio, Funil, Owners e equipes: o score do KPI em % (ou a nota de mérito).
+// Nota de desempenho por SR para Equilíbrio, Funil, Owners e equipes: o score do KPI em %.
 function escDesempenhoNotas(): array {
     $m = escDesempenhoMotor();
     return $m['nota'];

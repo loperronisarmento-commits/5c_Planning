@@ -3,13 +3,13 @@
 // ARQUIVO: 5c_escalas/pages/owners.php
 // Owners e backups de cada página: unidade e carteira, núcleo dono e de cobertura, owners (vaga
 // de dono) e backups (vaga de cobertura) por turno, atingimento da meta 5CReps e a situação na
-// política de páginas por mérito (lib/politica.php), com as trocas sugeridas. Troca de owner é
+// política de páginas (lib/politica.php), com as trocas sugeridas. Troca de owner é
 // aplicada aqui; troca de unidade abre a prévia e só mexe no Capacity depois da confirmação.
 // ===============================================
 
 $hoje = date('Y-m-d');
 $primeiroDia = escSolPrimeiroDia();
-escExigirRestrito(); // Política de mérito: só WFM/Planejamento e Admin.
+escExigirRestrito(); // Política de páginas: só WFM/Planejamento e Admin.
 $instalada = escPolInstalada();
 
 if (escPost()) {
@@ -119,7 +119,7 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
   <span class="eyebrow"><?php echo h(t('Páginas')); ?></span>
   <h1><?php echo h(t('Owners e backups')); ?></h1>
   <p class="muted small"><?php echo ESC_DOC_TOKEN; ?></p>
-  <p class="muted"><?php echo h(t('Quem é owner (vaga de dono) e backup (vaga de cobertura) de cada página em cada turno, o atingimento da meta 5CReps e a situação na política de páginas por mérito. Abaixo de {corte}% o prazo corre ({min} a {max} dias, conforme o atingimento); entre {corte}% e a meta, acompanhamento de {acomp} dias.', [
+  <p class="muted"><?php echo h(t('Quem é owner (vaga de dono) e backup (vaga de cobertura) de cada página em cada turno, o atingimento da meta 5CReps e a situação na política de páginas. Abaixo de {corte}% o prazo corre ({min} a {max} dias, conforme o atingimento); entre {corte}% e a meta, acompanhamento de {acomp} dias.', [
       'corte' => num($p['pol_corte_acomp'] * 100, 0), 'min' => (int) $p['pol_prazo_min'], 'max' => (int) $p['pol_prazo_max'], 'acomp' => (int) $p['pol_prazo_acomp']])); ?> <a href="<?php echo h(link_tela('regras')); ?>#politica"><?php echo h(t('Ver as regras')); ?></a></p>
 </header>
 
@@ -170,7 +170,7 @@ $pessoa = static fn(string $rep) => '<span title="' . h($rep) . '">' . h(nomeCur
       if ($s['tipo'] === 'UNIDADE') {
           echo h(t('A página está em {a} na U{u} e o prazo venceu: sugestão de levar para outra unidade.', ['a' => $pct($s['ating']), 'u' => $s['de']]));
       } elseif ($s['tipo'] === 'OWNER') {
-          echo h(t('O turno está em {a} e o prazo venceu: {sai} sai e {entra} (melhor mérito do núcleo dono) vira owner, trocando de vaga com {sai}.', ['a' => $pct($s['ating']), 'sai' => nomeCurto($nomes[$s['de']] ?? $s['de']), 'entra' => nomeCurto($nomes[$s['para']] ?? $s['para'])]));
+          echo h(t('O turno está em {a} e o prazo venceu: {sai} sai e {entra} (melhor KPI do núcleo dono) vira owner, trocando de vaga com {sai}.', ['a' => $pct($s['ating']), 'sai' => nomeCurto($nomes[$s['de']] ?? $s['de']), 'entra' => nomeCurto($nomes[$s['para']] ?? $s['para'])]));
       } else {
           echo h(t('{entra} tem prioridade nesta página e está no núcleo dono do turno: vira owner (sem tirar ninguém).', ['entra' => nomeCurto($nomes[$s['para']] ?? $s['para'])]));
       } ?></span>

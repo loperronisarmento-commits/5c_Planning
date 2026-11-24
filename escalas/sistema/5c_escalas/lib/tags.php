@@ -2,8 +2,8 @@
 // ===============================================
 // ARQUIVO: 5c_escalas/lib/tags.php
 // Tags de leitura da escala (Grade, detalhe da célula e PDF das páginas): mostram ao lado de cada
-// SR o que ajuda e o que ameaça o resultado, sem precisar abrir o mérito. Tudo vem de leituras
-// que já existem (cache do mérito, atingimento na página, dias na página e turmas de New Hires).
+// SR o que ajuda e o que ameaça o resultado, sem precisar abrir o KPI. Tudo vem de leituras
+// que já existem (cache do KPI, atingimento na página, dias na página e turmas de New Hires).
 //   Na modelo da página (SR × modelo, desde 11/11: conhecer uma das páginas da modelo basta, ex.:
 //   Mikayla Free ou Mikayla Paid; lib/estrutura.php, escModeloDaPagina):
 //   - BM Bate meta: atingimento da meta 5CReps na modelo (todas as páginas dela) nos últimos 30 dias ≥ tag_meta_bate (100%).
@@ -11,13 +11,13 @@
 //     Só com v4_conhece_dias (3) ou mais dias na modelo em 90 dias; com menos, vale o INX.
 //   - EXP Experiente na modelo: tag_exp_dias (15) ou mais dias escalados nela em 90 dias (o mesmo dia em duas páginas conta uma vez).
 //   - INX Inexperiente na modelo: menos de v4_conhece_dias (3) dias nela em 90 dias.
-//   Do SR (mérito em cache, janela de 28 dias):
+//   Do SR (KPI em cache, esc_sr_kpi, 4 semanas fechadas):
 //   - TRN Trainee: New Hire disponível há menos de tag_trainee_dias (30) dias (rampa do novato)
 //     ou início de contrato no headcount há menos disso.
 //   - ABS Absenteísmo alto: tag_faltas_min (4) ou mais dias com falta (M-04: −8 ou pior).
 //   - SLA SLA baixo: SLA abaixo de tag_sla_min (60%) (M-05: −4 ou pior).
 //   - INF Infração: alguma infração nos últimos 90 dias (M-09).
-//   - MA / MB Mérito acima / abaixo: faixa do mérito (M-01). Com o KPI (1.34.0): KPI ↑ (nível 3 ou 4) e KPI ↓
+//   - MA / MB: KPI ↑ (nível 3 ou 4) e KPI ↓
 //     (nível 0 ou 1); ABS, SLA, INF (vira P&G: quebra nas 4 semanas) e SEQ também saem do KPI (esc_sr_kpi).
 //   - SEQ Sequência na meta: tag_seq_semanas (3) ou mais semanas seguidas batendo a meta (M-10).
 // Vermelho e laranja são risco; verde ajuda. Na grade e nas células do PDF só os riscos; no
@@ -29,18 +29,17 @@ const ESC_TAGS_LIVRES = ['INX', 'TRN', 'EXP'];
 // Definição: código => [rótulo curto, nome completo, tom]. A ordem é a de exibição.
 function escTagsDef(): array {
     static $def = null;
-    $kpi = function_exists('escDesempenhoFonte') && escDesempenhoFonte() === 'KPI';
     return $def ??= [
         'NM' => [t('Meta ✗'), t('Não bate meta na modelo'), 'vermelho'],
         'ABS' => [t('Faltas'), t('Absenteísmo alto'), 'vermelho'],
-        'INF' => $kpi ? [t('P&G'), t('Quebra de P&G nas 4 semanas'), 'vermelho'] : [t('Infração'), t('Infração nos últimos 90 dias'), 'vermelho'],
-        'MB' => $kpi ? [t('KPI ↓'), t('KPI nível 0 ou 1 (entre os 20% piores)'), 'vermelho'] : [t('Mérito ↓'), t('Mérito abaixo'), 'vermelho'],
+        'INF' => [t('P&G'), t('Quebra de P&G nas 4 semanas'), 'vermelho'],
+        'MB' => [t('KPI ↓'), t('KPI nível 0 ou 1 (entre os 20% piores)'), 'vermelho'],
         'INX' => [t('Inexp.'), t('Inexperiente na modelo'), 'laranja'],
         'TRN' => [t('Trainee'), t('Trainee (New Hire nos primeiros 30 dias)'), 'laranja'],
         'SLA' => [t('SLA ↓'), t('SLA baixo'), 'laranja'],
         'BM' => [t('Meta ✓'), t('Bate meta na modelo'), 'verde'],
         'EXP' => [t('Exp.'), t('Experiente na modelo'), 'verde'],
-        'MA' => $kpi ? [t('KPI ↑'), t('KPI nível 3 ou 4 (100% ou mais)'), 'verde'] : [t('Mérito ↑'), t('Mérito acima'), 'verde'],
+        'MA' => [t('KPI ↑'), t('KPI nível 3 ou 4 (100% ou mais)'), 'verde'],
         'SEQ' => [t('Seq. meta'), t('Semanas seguidas batendo a meta'), 'verde'],
     ];
 }
@@ -63,13 +62,11 @@ function escTagsParam(): array {
 // Leituras das tags, em cache de arquivo por 6 h (as fontes mudam no máximo uma vez por dia):
 // ['sr' => [rep => [códigos]], 'meta' => [modelo][rep] => atingimento, 'dias' => [modelo][rep] => dias em 90].
 function escTagsDados(): array {
-    return escCache('tags_modelo_' . strtolower(escDesempenhoFonte()) . '_' . date('Ymd'), 6 * 3600, static function (): array {
+    return escCache('tags_modelo_kpi_' . date('Ymd'), 6 * 3600, static function (): array {
         $p = escTagsParam();
         $sr = [];
         try {
-            $sqlTags = escDesempenhoFonte() === 'KPI'
-                ? "SELECT UPPER(rep_code) AS rep, CASE WHEN nivel >= 3 THEN 'ACIMA' WHEN nivel <= 1 THEN 'ABAIXO' ELSE 'MEDIA' END AS faixa, faltas, sla5 AS sla, pg AS infracoes, semanas_meta FROM " . escT('esc_sr_kpi')
-                : 'SELECT UPPER(rep_code) AS rep, faixa, faltas, sla, infracoes, semanas_meta FROM ' . escT('esc_sr_merito');
+            $sqlTags = "SELECT UPPER(rep_code) AS rep, CASE WHEN nivel >= 3 THEN 'ACIMA' WHEN nivel <= 1 THEN 'ABAIXO' ELSE 'MEDIA' END AS faixa, faltas, sla5 AS sla, pg AS infracoes, semanas_meta FROM " . escT('esc_sr_kpi');
             foreach (escQ($sqlTags) as $m) {
                 $c = [];
                 if ((int) $m['faltas'] >= $p['faltas_min']) {
@@ -90,7 +87,7 @@ function escTagsDados(): array {
                 $sr[$m['rep']] = $c;
             }
         } catch (Throwable $e) {
-            appLog('warning', 'Tags: mérito indisponível', ['erro' => $e->getMessage()]);
+            appLog('warning', 'Tags: KPI indisponível', ['erro' => $e->getMessage()]);
         }
         // Trainee: turma de New Hires disponível há menos de trainee_dias (ou ainda por vir) e,
         // fora das turmas, início de contrato recente no headcount.
@@ -104,7 +101,7 @@ function escTagsDados(): array {
                 }
             }
         }
-        $reps = escMeritoSrsAtivos();
+        $reps = escSrsAtivos();
         if ($reps) {
             try {
                 foreach (escQ('SELECT UPPER(code) AS rep, startContract FROM `5c_headcount`.`headcount` WHERE code IN (' . escIn($reps) . ')', $reps) as $h) {
@@ -123,7 +120,7 @@ function escTagsDados(): array {
         if ($paginas && $reps) {
             try {
                 $periodo = [[date('Y-m-d', strtotime('-30 day')), date('Y-m-d', strtotime('-1 day'))]];
-                foreach (escMeritoAtingimentoModelos($paginas, $reps, $periodo) as $modelo => $porRep) {
+                foreach (escAtingimentoModelos($paginas, $reps, $periodo) as $modelo => $porRep) {
                     foreach ($porRep as $rep => $porPeriodo) {
                         [$real, $alvo] = ($porPeriodo[0] ?? []) + [0.0, 0.0];
                         if ($alvo > 0) {
@@ -174,7 +171,7 @@ function escTagsDe(string $rep, string $pagina): array {
     $ordem = array_flip(array_keys(escTagsDef()));
     $c = array_values(array_unique(array_filter($c)));
     usort($c, static fn($a, $b) => ($ordem[$a] ?? 99) <=> ($ordem[$b] ?? 99));
-    // Mérito, faltas, SLA, infração e meta individual: só WFM/Planejamento e Admin.
+    // KPI, faltas, SLA, P&G e meta individual: só WFM/Planejamento e Admin.
     return escPodeVerRestrito() ? $c : array_values(array_intersect($c, ESC_TAGS_LIVRES));
 }
 

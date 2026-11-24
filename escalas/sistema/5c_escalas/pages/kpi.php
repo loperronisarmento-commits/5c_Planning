@@ -1,14 +1,13 @@
 <?php
 // ===============================================
 // ARQUIVO: 5c_escalas/pages/kpi.php
-// KPI dos SRs (Kinetic, Process & Integrity): desde a 1.34.0 é a referência da escala, no lugar do mérito
-// (contexto/regras_escalacao_kpi.md). A coluna Nível é a que o Gerar usa (cache esc_sr_kpi). As mesmas funções do Mérito
-// dos SRs (pages/tertius.php) e da Ajuda › Mérito (pages/merito.php): semana da escala, filtros de
-// unidade e turno, contagem por faixa, turnos na escala, tabela por SR ordenável, como é calculado,
+// KPI dos SRs (Kinetic, Process & Integrity): o indicador oficial de desempenho desde a 1.38.0 (referência da escala
+// desde a 1.34.0; contexto/regras_escalacao_kpi.md). A coluna Nível é a que o Gerar usa (cache esc_sr_kpi). Semana da
+// escala, filtros de unidade e turno, contagem por faixa, turnos na escala, tabela por SR ordenável, como é calculado,
 // recalcular (só o cache em arquivo), exportar .xlsx e PDF, simulador e resumo por unidade e turno.
 // Mais o detalhe semana a semana de cada SR (?rep=). Cálculo em lib/kpi.php.
-// Só lê o banco e não pesa no Gerar, no mérito, em pagamentos nem em notificações.
-// Acesso: só WFM/Planejamento e Admin (como o mérito individual).
+// Não alimenta pagamentos nem notificações. Sem moedas desde a 1.38.0 (o controle de moedas é feito fora do sistema).
+// Acesso: só WFM/Planejamento e Admin (dado individual).
 // ===============================================
 
 escExigirRestrito();
@@ -28,7 +27,7 @@ $seg = substr($plano['semana_inicio'], 0, 10);
 $fim = substr($plano['semana_fim'], 0, 10);
 $nomes = escNomes();
 
-// Turnos de cada SR no plano (uma vez por dia e turno), como no Mérito dos SRs.
+// Turnos de cada SR no plano (uma vez por dia e turno).
 $turnos = [];
 foreach (escQ("SELECT UPPER(rep_code) AS rep, papel, origem, COUNT(DISTINCT dia, turno) AS n FROM " . escT('esc_plano_alocacao') . "
                 WHERE plano_id = ? AND rep_code IS NOT NULL AND bloco IN ('T2','T4','T6') GROUP BY UPPER(rep_code), papel, origem", [$planoId]) as $l) {
@@ -59,7 +58,7 @@ $uSel = in_array((string) ($_GET['u'] ?? ''), ['1', '2', '3'], true) ? (string) 
 $tSel = in_array((string) ($_GET['t'] ?? ''), ['A', 'C', 'D'], true) ? (string) $_GET['t'] : '';
 $repSel = strtoupper(trim((string) ($_GET['rep'] ?? '')));
 // Ordenação: o rank (score do maior para o menor) é o padrão; nome e unidade começam crescentes.
-$ordens = ['rank' => t('Rank'), 'moedas' => t('Moedas'), 'meta' => t('Meta ponderada'), 'process' => 'Process', 'integrity' => 'Integrity', 'nome' => t('Nome'), 'unidade' => t('Unidade · turno')];
+$ordens = ['rank' => t('Rank'), 'meta' => t('Meta ponderada'), 'process' => 'Process', 'integrity' => 'Integrity', 'nome' => t('Nome'), 'unidade' => t('Unidade · turno')];
 $ordem = isset($ordens[$_GET['o'] ?? '']) ? (string) $_GET['o'] : 'rank';
 $crescentePadrao = in_array($ordem, ['nome', 'unidade'], true);
 $cresc = isset($_GET['d']) ? $_GET['d'] === 'asc' : $crescentePadrao;
@@ -74,16 +73,16 @@ foreach ($srs as $s) {
     $base = $emPosto + ($t['buffer'] ?? 0);
     $l = ['rep' => $s['rep'], 'nome' => $nomes[$s['rep']] ?? $s['rep'], 'u' => (int) $s['unidade'], 't' => $s['turno'], 'nucleo' => $s['nucleo'], 'nivel' => (int) $s['nivel'],
         'posto' => $t['posto'] ?? 0, 'assist' => $t['assistente'] ?? 0, 'buffer' => $t['buffer'] ?? 0, 'overlap' => $t['overlap'] ?? 0,
-        'pct' => $base ? $emPosto / $base : null, 'k' => $k, 'score' => $k['score'] ?? null, 'moedas' => $k['moedas'] ?? null,
+        'pct' => $base ? $emPosto / $base : null, 'k' => $k, 'score' => $k['score'] ?? null,
         'comp' => $compDoSr($k, $s['rep']), 'pareto' => isset($pareto[$s['rep']])];
     $todas[] = $l;
     if (($uSel === '' || (string) $s['unidade'] === $uSel) && ($tSel === '' || $s['turno'] === $tSel)) {
         $linhas[] = $l;
     }
 }
-// Rank no filtro escolhido: maior score primeiro; no empate, mais moedas e depois o nome (o documento
+// Rank no filtro escolhido: maior score primeiro; no empate, a maior meta ponderada e depois o nome (o documento
 // não define desempate). Sem score fica sem rank, no fim.
-usort($linhas, static fn($a, $b) => [-($a['score'] ?? -1), -($a['moedas'] ?? -1), $a['nome']] <=> [-($b['score'] ?? -1), -($b['moedas'] ?? -1), $b['nome']]);
+usort($linhas, static fn($a, $b) => [-($a['score'] ?? -1), -($a['k']['kinetic_meta'] ?? -1), $a['nome']] <=> [-($b['score'] ?? -1), -($b['k']['kinetic_meta'] ?? -1), $b['nome']]);
 foreach ($linhas as $i => &$l) {
     $l['rank'] = $l['score'] !== null ? $i + 1 : null;
 }
@@ -91,7 +90,7 @@ unset($l);
 if ($ordem !== 'rank' || $cresc) {
     $valor = static function (array $l) use ($ordem) {
         $k = $l['k'] ?? [];
-        return ['rank' => $l['rank'], 'moedas' => $l['moedas'], 'meta' => $k['kinetic_meta'] ?? null, 'process' => $k['process'] ?? null,
+        return ['rank' => $l['rank'], 'meta' => $k['kinetic_meta'] ?? null, 'process' => $k['process'] ?? null,
             'integrity' => $k['integrity'] ?? null, 'nome' => mb_strtolower($l['nome']), 'unidade' => $l['u'] . $l['t']][$ordem];
     };
     // Sem valor fica sempre no fim; no empate, vale o rank.
@@ -125,8 +124,7 @@ if ($soPdf || isset($_GET['baixar'])) {
         $k = $l['k'] ?? [];
         $exportar[] = [$l['rank'], $l['nome'], $l['rep'], 'U' . $l['u'], $l['t'], $l['nucleo'] !== null ? (int) $l['nucleo'] : null, $l['nivel'],
             (int) $l['posto'], (int) $l['assist'], (int) $l['buffer'], (int) $l['overlap'], $l['pct'],
-            $k['kinetic_meta'] ?? null, $k['kinetic_base'] ?? null, $k['process'] ?? null, $k['integrity'] ?? null, $l['score'],
-            $l['moedas'] !== null ? round($l['moedas'], 1) : null, $l['comp'][1]];
+            $k['kinetic_meta'] ?? null, $k['kinetic_base'] ?? null, $k['process'] ?? null, $k['integrity'] ?? null, $l['score'], $l['comp'][1]];
     }
     $filtroTxt = ($uSel !== '' ? 'U' . $uSel : t('Todas as unidades')) . ' · ' . ($tSel !== '' ? t('Turno {t}', ['t' => $tSel]) : t('Todos os turnos'));
     $infoDoc = t('Semanas de {de} a {ate}', ['de' => dataBr(min(array_keys($semanas))), 'ate' => dataBr(escMaisDias(max(array_keys($semanas)), 6))]) . ' · ' . $filtroTxt
@@ -142,7 +140,7 @@ if (($_GET['baixar'] ?? '') === 'xlsx') {
         [$col(t('Rank'), 6, 'inteiro'), $col('SR', 28, 'texto'), $col(t('Código'), 10, 'texto'), $col(t('Unidade'), 8, 'texto'), $col(t('Turno'), 7, 'texto'), $col(t('Núcleo'), 7, 'inteiro'), $col(t('Nível'), 7, 'inteiro'),
             $col(t('Em posto'), 8, 'inteiro'), $col(t('Assistente'), 10, 'inteiro'), $col('Buffer (-2)', 8, 'inteiro'), $col('Overlap (-5)', 8, 'inteiro'), $col(t('% em posto'), 8, 'pct'),
             $col(t('Meta ponderada'), 10, 'pct'), $col('Kinetic', 9, 'pct'), $col('Process', 9, 'pct'), $col('Integrity', 9, 'pct'), $col('Score', 9, 'pct'),
-            $col(t('Moedas (4 semanas)'), 10, 'nota'), $col(t('Comportamento sugerido'), 34, 'texto')],
+            $col(t('Comportamento sugerido'), 34, 'texto')],
         $exportar, 2);
     return;
 }
@@ -164,11 +162,11 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
   <span class="eyebrow"><?php echo h(t('Análise')); ?></span>
   <h1><?php echo h(t('KPI dos SRs · {versao}', ['versao' => escPlanoRotulo($plano)])); ?></h1>
   <?php if ($soPdf): ?><p class="muted small"><?php echo h($infoDoc); ?></p>
-  <?php else: ?><p class="muted"><?php echo h(t('Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, de 0% a 120%, e moedas pela meta semanal. Desde a 1.34.0 é a referência da escala no lugar do mérito: o nível de cada SR (0 a 4) define a ordem no Gerar, a continuidade no posto, o remanejamento, o acúmulo e a sobrecarga.')); ?> <a href="<?php echo h(link_tela('regras')); ?>"><?php echo h(t('Ver as regras')); ?></a></p><?php endif; ?>
+  <?php else: ?><p class="muted"><?php echo h(t('Kinetic, Process & Integrity: Score = Kinetic × Process × Integrity, de 0% a 120%. É o indicador oficial de desempenho dos SRs: o nível de cada SR (0 a 4) define a ordem no Gerar, a continuidade no posto, o remanejamento, o acúmulo e a sobrecarga.')); ?> <a href="<?php echo h(link_tela('regras')); ?>"><?php echo h(t('Ver as regras')); ?></a></p><?php endif; ?>
 </header>
 
 <?php if (!$soPdf): ?>
-<p class="aviso" role="status"><?php echo h(t('Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR (Integrity), multas e loja de moedas.')); ?></p>
+<p class="aviso" role="status"><?php echo h(t('Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR (Integrity) e multas.')); ?></p>
 <?php if (!escAbsOficialOk()): ?><p class="aviso" role="status"><?php echo h(t('O sistema não consegue ler as faltas oficiais (5c_wfm_db_mis.abs_adh_af): a Integrity fica sem desconto de falta.')); ?></p><?php endif; ?>
 <?php endif; ?>
 
@@ -253,17 +251,16 @@ $tituloGraf = $comScore > 0
 <section class="panel" id="detalhe">
   <h2><?php echo h(t('Como o KPI de {nome} foi calculado', ['nome' => nomeCurto($nomes[$repSel] ?? $repSel)])); ?> <span class="muted small mono"><?php echo h($repSel); ?></span></h2>
   <div class="tabela-rolagem"><table data-sem-ordem>
-    <thead><tr><th><?php echo h(t('Semana')); ?></th><th class="num"><?php echo h(t('Peso')); ?></th><th class="num"><?php echo h(t('Meta')); ?></th><th class="num"><?php echo h(t('Moedas')); ?></th>
+    <thead><tr><th><?php echo h(t('Semana')); ?></th><th class="num"><?php echo h(t('Peso')); ?></th><th class="num"><?php echo h(t('Meta')); ?></th>
       <th class="num">SLA 5</th><th class="num">SLA 10</th><th class="num">SLA 15</th><th class="num">Process</th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">P&amp;G</th><th class="num">Integrity</th></tr></thead>
     <tbody>
     <?php foreach ($semanas as $sg => $peso): $w = $detalhe['semanas'][$sg] ?? null; ?>
       <tr>
         <td><?php echo h($semRot($sg)); ?></td>
         <td class="num"><?php echo $peso; ?></td>
-        <?php if ($w === null): ?><td colspan="9" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
+        <?php if ($w === null): ?><td colspan="8" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
         <?php else: ?>
         <td class="num"><?php echo $pc($w['atingimento'], 1); ?><?php if ($w['meta'] !== null): ?> <span class="muted small"><?php echo num($w['real'], 0); ?> ÷ <?php echo num($w['meta'], 0); ?></span><?php endif; ?></td>
-        <td class="num"><?php echo $w['moedas'] !== null ? num($w['moedas'], 1) : '—'; ?></td>
         <?php foreach ([5, 10, 15] as $mi): $v = $w['sla' . $mi]; $d = $w['desc' . $mi]; ?>
         <td class="num"><?php echo $pc($v, 1); ?><?php if ($d): ?> <span class="laranja small">−<?php echo pct($d, 0); ?></span><?php endif; ?></td>
         <?php endforeach; ?>
@@ -281,7 +278,6 @@ $tituloGraf = $comScore > 0
     <li><strong>Process:</strong> <?php echo h(t('média ponderada das semanas = {p}. Cada semana: 100% − descontos de SLA, com piso de 60%.', ['p' => $pc($detalhe['process'], 1)])); ?></li>
     <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta − quebra de P&G (−10% com nota 80 até −30% com nota 0), até 0%.', ['i' => $pc($detalhe['integrity'], 1)])); ?></li>
     <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base'], 1) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score_calculado'] ?? null, 1)); ?><?php if (!empty($detalhe['provisorio'])): ?> · <?php echo h(t('novato: vale o provisório de 75% até ter 2 semanas fechadas com meta')); ?><?php endif; ?> · <?php echo h($compDoSr($detalhe, $repSel)[1]); ?></li>
-    <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('{n} nas semanas acima (soma).', ['n' => $detalhe['moedas'] !== null ? num($detalhe['moedas'], 1) : '—'])); ?></li>
   </ul>
   <p class="muted small"><?php echo h(t('A média ponderada usa os pesos só das semanas com dado (soma dos pesos × valor ÷ soma dos pesos). Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?> <a href="<?php echo h(link_tela('kpi', $filtros)); ?>"><?php echo h(t('Fechar')); ?></a></p>
 </section>
@@ -298,7 +294,6 @@ $tituloGraf = $comScore > 0
       <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida) e menos a quebra de P&G: avaliação de qualidade com "Model Best Practices" Não Conforme tira 10% com nota 80, crescendo em linha reta até 30% com nota 0 (pela data do contato avaliado). Pode chegar a 0%. DNR ainda não é calculado.')); ?></li>
       <li><strong>Score:</strong> <?php echo h(t('Kinetic × Process × Integrity, de 0% a 120%. Novato (menos de 2 semanas fechadas com meta) fica com 75% provisório.')); ?></li>
       <li><strong><?php echo h(t('Ação de correção')); ?>:</strong> <?php echo h(t('menos turnos, realocar ou substituir valem só para os 20% de menor score (Pareto); os outros das faixas abaixo de 75% mantêm a posição.')); ?></li>
-      <li><strong><?php echo h(t('Moedas')); ?>:</strong> <?php echo h(t('por semana, só pela meta: abaixo de 85% = 0; de 85% a 100%, de 1 a 20 em linha reta; acima de 100%, 20 × (1 + log₂(meta)), ou seja, +20 a cada vez que a meta dobra.')); ?></li>
     </ul>
   </details>
   <div class="acoes">
@@ -314,7 +309,7 @@ $tituloGraf = $comScore > 0
   <div class="tabela-rolagem">
   <table<?php echo $soPdf ? ' data-sem-ordem' : ''; ?>>
     <thead><tr><th class="num"><abbr title="<?php echo h(t('Rank pelo score no filtro escolhido')); ?>">#</abbr></th><th>SR</th><th><?php echo h(t('Unidade · turno · núcleo')); ?></th><th class="num"><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Em posto')); ?></th><th class="num"><?php echo h(t('Assistente')); ?></th><th class="num">Buffer (-2)</th><th class="num">Overlap (-5)</th>
-      <th class="num"><?php echo h(t('Meta ponderada')); ?></th><th class="num">Kinetic</th><th class="num">Process</th><th class="num">Integrity</th><th class="num">Score</th><th><?php echo h(t('Nível')); ?></th><th class="num"><?php echo h(t('Moedas')); ?></th><th><?php echo h(t('Comportamento sugerido')); ?></th></tr></thead>
+      <th class="num"><?php echo h(t('Meta ponderada')); ?></th><th class="num">Kinetic</th><th class="num">Process</th><th class="num">Integrity</th><th class="num">Score</th><th><?php echo h(t('Nível')); ?></th><th><?php echo h(t('Comportamento sugerido')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($linhas as $l): $k = $l['k'] ?? []; ?>
       <tr>
@@ -332,28 +327,24 @@ $tituloGraf = $comScore > 0
         <td class="num <?php echo isset($k['integrity']) && $k['integrity'] < 1 ? 'laranja' : ''; ?>"><?php echo $pc($k['integrity'] ?? null, 1); ?></td>
         <td class="num"><strong><?php echo $pc($l['score'], 1); ?></strong></td>
         <?php [$nvRot, $nvCls] = escKpiNivelRotulo((int) ($kpiDb[$l['rep']]['nivel'] ?? 2)); ?><td><span class="tag <?php echo h($nvCls); ?>"><?php echo h($nvRot); ?></span></td>
-        <td class="num"><?php echo $l['moedas'] !== null ? num($l['moedas'], 1) : '—'; ?></td>
         <td><span class="tag <?php echo h($l['comp'][2]); ?>"><?php echo h($l['comp'][1]); ?></span></td>
       </tr>
     <?php endforeach; ?>
-    <?php if (!$linhas): ?><tr><td colspan="16" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
+    <?php if (!$linhas): ?><tr><td colspan="15" class="muted"><?php echo h(t('Nenhum SR neste filtro.')); ?></td></tr><?php endif; ?>
     </tbody>
   </table>
   </div>
-  <p class="muted small"><?php echo h(t('Turnos na escala desta semana, como no Mérito dos SRs. Kinetic, Process, Integrity e Score são médias ponderadas das últimas 4 semanas; moedas é a soma dessas semanas. Clique no nome para ver o cálculo semana a semana.')); ?></p>
+  <p class="muted small"><?php echo h(t('Turnos na escala desta semana. Kinetic, Process, Integrity e Score são médias ponderadas das últimas 4 semanas. Clique no nome para ver o cálculo semana a semana.')); ?></p>
 </section>
 
 <?php if (!$soPdf):
     $porUt = [];
     foreach ($todas as $l) {
         $k = $l['u'] . '|' . $l['t'];
-        $porUt[$k] = $porUt[$k] ?? ['u' => $l['u'], 't' => $l['t'], 'srs' => 0, 'scores' => [], 'moedas' => []];
+        $porUt[$k] = $porUt[$k] ?? ['u' => $l['u'], 't' => $l['t'], 'srs' => 0, 'scores' => []];
         $porUt[$k]['srs']++;
         if ($l['score'] !== null) {
             $porUt[$k]['scores'][] = $l['score'];
-        }
-        if ($l['moedas'] !== null) {
-            $porUt[$k]['moedas'][] = $l['moedas'];
         }
     }
     ksort($porUt);
@@ -368,11 +359,11 @@ $tituloGraf = $comScore > 0
 <section class="panel">
   <h2><?php echo h(t('Por unidade e turno')); ?></h2>
   <div class="tabela-rolagem"><table>
-    <thead><tr><th><?php echo h(t('Unidade · turno')); ?></th><th class="num">SRs</th><th class="num"><?php echo h(t('Com score')); ?></th><th class="num"><?php echo h(t('Score mediano')); ?></th><th class="num"><?php echo h(t('Moedas medianas')); ?></th></tr></thead>
+    <thead><tr><th><?php echo h(t('Unidade · turno')); ?></th><th class="num">SRs</th><th class="num"><?php echo h(t('Com score')); ?></th><th class="num"><?php echo h(t('Score mediano')); ?></th></tr></thead>
     <tbody>
     <?php foreach ($porUt as $l): ?>
       <tr><td>U<?php echo $l['u']; ?> <?php echo chipTurno((string) $l['t']); ?></td><td class="num"><?php echo $l['srs']; ?></td><td class="num"><?php echo count($l['scores']); ?></td>
-        <td class="num"><strong><?php echo $pc($mediana($l['scores']), 1); ?></strong></td><td class="num"><?php $mm = $mediana($l['moedas']); echo $mm !== null ? num($mm, 1) : '—'; ?></td></tr>
+        <td class="num"><strong><?php echo $pc($mediana($l['scores']), 1); ?></strong></td></tr>
     <?php endforeach; ?>
     </tbody>
   </table></div>
@@ -380,7 +371,7 @@ $tituloGraf = $comScore > 0
 
 <section class="panel">
   <h2><?php echo h(t('Simulador')); ?></h2>
-  <p class="muted small"><?php echo h(t('Uma semana só (sem o histórico de 4 semanas). Mude os números e veja os pilares, o score e as moedas.')); ?></p>
+  <p class="muted small"><?php echo h(t('Uma semana só (sem o histórico de 4 semanas). Mude os números e veja os pilares e o score.')); ?></p>
   <form class="merito-sim" data-kpi-sim onsubmit="return false">
     <label><?php echo h(t('Meta %')); ?><input type="number" name="meta" value="100" min="0" max="2000" step="1" inputmode="decimal"></label>
     <label>SLA 5 %<input type="number" name="sla5" value="80" min="0" max="100" step="1" inputmode="decimal"></label>
@@ -389,7 +380,7 @@ $tituloGraf = $comScore > 0
     <label><?php echo h(t('Dias com falta')); ?><input type="number" name="faltas" value="0" min="0" max="7" step="1" inputmode="numeric"></label>
     <output class="merito-sim-saida" aria-live="polite">
       <span>Kinetic <strong data-sim="k">—</strong></span><span>Process <strong data-sim="p">—</strong></span><span>Integrity <strong data-sim="i">—</strong></span>
-      <span>Score <strong data-sim="s">—</strong></span><span><?php echo h(t('Moedas')); ?> <strong data-sim="m">—</strong></span><span class="tag" data-sim="c">—</span>
+      <span>Score <strong data-sim="s">—</strong></span><span class="tag" data-sim="c">—</span>
     </output>
   </form>
 </section>
@@ -406,7 +397,6 @@ $tituloGraf = $comScore > 0
     for (var i = 1; i < faixas.length; i++) { if (m <= faixas[i][0]) { var a = faixas[i - 1], b = faixas[i]; return a[1] + (b[1] - a[1]) * (m - a[0]) / (b[0] - a[0]); } }
     return faixas[faixas.length - 1][1];
   }
-  function moedas(m) { return m < 0.85 ? 0 : (m <= 1 ? 1 + 19 * (m - 0.85) / 0.15 : 20 * (1 + Math.log(m) / Math.LN2)); }
   function calc() {
     var v = function (n) { var x = parseFloat(String(f.elements[n].value).replace(',', '.')); return isNaN(x) ? 0 : x; };
     var m = v('meta') / 100, k = base(m), p = 1;
@@ -417,7 +407,6 @@ $tituloGraf = $comScore > 0
     f.querySelector('[data-sim="p"]').textContent = pc(p);
     f.querySelector('[data-sim="i"]').textContent = pc(i);
     f.querySelector('[data-sim="s"]').textContent = pc(s);
-    f.querySelector('[data-sim="m"]').textContent = (Math.round(moedas(m) * 10) / 10).toLocaleString(document.documentElement.lang || 'pt-BR');
     f.querySelector('[data-sim="c"]').textContent = sr < 0.25 ? rot.lt25 : sr < 0.5 ? rot.a : sr < 0.75 ? rot.b : sr < 1 ? rot.c : sr < 1.2 ? rot.d : rot.f;
   }
   f.addEventListener('input', calc);

@@ -34,6 +34,7 @@ require_once __DIR__ . '/lib/acesso.php';
 require_once __DIR__ . '/lib/dados.php';
 require_once __DIR__ . '/lib/motor.php';
 require_once __DIR__ . '/lib/motor_v4.php';
+require_once __DIR__ . '/lib/atingimento.php';
 require_once __DIR__ . '/lib/merito.php';
 require_once __DIR__ . '/lib/kpi.php';
 require_once __DIR__ . '/lib/tags.php';
@@ -227,6 +228,9 @@ if (escPost() || isset($_GET['baixar'])) {
     try {
         if (escPost()) {
             escConferirCsrf();
+            if (in_array($p, ESC_TELAS_LEGACY, true)) {
+                throw new RuntimeException(t('Legacy: esta tela é só leitura.'));
+            }
         }
         require __DIR__ . '/' . $telas[$p][1];
     } catch (Throwable $e) {
@@ -299,11 +303,11 @@ try {
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
     'Escala' => ['painel', 'gerar', 'grade', 'movimentos', 'lideranca', 'horas'],
-    'Análise' => array_merge(['analise'], escDesempenhoFonte() === 'MERITO' ? ['srs'] : [], ['kpi', 'sugestoes', 'buffers', 'bot']),
+    'Análise' => ['analise', 'kpi', 'sugestoes', 'buffers', 'bot'],
     'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],
-    'Ajuda' => array_merge(['tutorial', 'regras'], escDesempenhoFonte() === 'MERITO' ? ['merito'] : [], ['glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
+    'Ajuda' => array_merge(['tutorial', 'regras', 'glossario', 'faq', 'novidades'], escPode('admin') ? ['dba'] : []),
 ];
 if (!escPodeVerRestrito()) {
     foreach ($menu as $secaoMenu => $itensMenu) {
@@ -311,9 +315,9 @@ if (!escPodeVerRestrito()) {
     }
 }
 $adminMenu = escPode('admin') ? ['acessos', 'parametros', 'modelos', 'diagnostico'] : [];
-// Estrutura antiga (times e parties, trocas do Planner): vale até a virada de 31/10 21:00. Só para o admin.
-// Desde a 1.34.0 (KPI no lugar do mérito) o Mérito dos SRs e a Ajuda › Mérito também ficam no Legado.
-$legadoMenu = escPode('admin') ? array_merge(['times', 'trocas', 'parametros_legado'], escDesempenhoFonte() === 'KPI' ? ['srs', 'merito'] : []) : [];
+// Legacy (só admin, só leitura): a estrutura antiga (times e parties, trocas do Planner, até 31/10 21:00) e,
+// desde a 1.38.0, o Mérito (Mérito dos SRs e a política em pontos): o KPI dos SRs é o indicador oficial.
+$legadoMenu = escPode('admin') ? ESC_TELAS_LEGACY : [];
 $badges = [];
 // Com o banco fora (tela de espera), nem tenta: cada leitura esperaria a conexão por ~15 s.
 if (empty($bancoCaiu)) try {
@@ -399,7 +403,7 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
   </div>
   <?php endif; ?>
   <?php if ($legadoMenu): ?>
-  <div class="grupo legado"><span class="grupo-titulo"><?php echo h(t('Legado (até {dia})', ['dia' => escData(escV4DiaVirada())])); ?></span>
+  <div class="grupo legado"><span class="grupo-titulo"><?php echo h(t('Legacy · só leitura')); ?></span>
     <?php foreach ($legadoMenu as $it): ?>
     <a href="<?php echo h(link_tela($it)); ?>"<?php echo $p === $it ? ' class="ativo" aria-current="page"' : ''; ?>><?php echo h(t($telas[$it][0])); ?></a>
     <?php endforeach; ?>
@@ -407,7 +411,7 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
   <?php endif; ?>
   </div>
 </nav>
-<main class="conteudo" id="conteudo" tabindex="-1">
+<main class="conteudo<?php echo in_array($telaAtual, ESC_TELAS_LEGACY, true) ? ' so-leitura' : ''; ?>" id="conteudo" tabindex="-1">
   <?php if (escModoTreino()): ?>
   <div class="faixa-treino" role="status"><strong><?php echo h(t('MODO TREINO')); ?></strong><span><?php echo h(t('Dados de treino: o que você fizer aqui não muda a escala real nem o site da 5C.')); ?></span>
     <?php if (escPodeReal('planejar')): ?><form method="post" action="<?php echo h(link_tela('tutorial')); ?>" data-confirmar="<?php echo h(t('Recomeçar o treino?') . "\n\n" . t('Apaga tudo o que foi feito no treino e copia de novo os cadastros do sistema real.')); ?>" data-longo="<?php echo h(t('Recomeçando o treino…')); ?>"><?php echo campoCsrf(); ?><input type="hidden" name="acao" value="treino_recomecar"><button type="submit" class="botao"><?php echo h(t('Recomeçar o treino')); ?></button></form><?php endif; ?>

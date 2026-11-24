@@ -100,7 +100,7 @@ function escBaseAnjos(string $seg): array {
 function escBaseMovimentos(string $seg, array $base, array $est, array $alocA): array {
     $pessoas = $est['pessoas'];
     $overlapId = (int) ($est['overlap_pagina']['page_id'] ?? 0);
-    $score = $est['merito'] ?? [];
+    $score = $est['desempenho'] ?? [];
     $receitaDe = static function (int $pageId, string $turno, array $nomes) use ($est): float {
         $nm = $nomes[$pageId] ?? null;
         return $nm !== null ? (float) ($est['receita'][$nm][$turno] ?? 0) : 0.0;

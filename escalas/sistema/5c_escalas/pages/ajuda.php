@@ -7,9 +7,9 @@
 
 $ehGlossario = $telaAtual === 'glossario';
 $itens = $ehGlossario ? escGlossario() : escFaq();
-// Política de mérito: só WFM/Planejamento e Admin.
+// Política de páginas e dados individuais: só WFM/Planejamento e Admin.
 if (!escPodeVerRestrito()) {
-    $itensRestritos = ['Política de páginas por mérito', 'Mérito (nota)', 'Por que o sistema sugeriu tirar uma página da minha unidade?'];
+    $itensRestritos = ['Política de páginas', 'Mérito (Legacy)', 'Por que o sistema sugeriu tirar uma página da minha unidade?'];
     $itens = array_values(array_filter($itens, static fn($it) => !in_array($it['termo'] ?? $it['p'] ?? '', $itensRestritos, true)));
 }
 if ($ehGlossario) {

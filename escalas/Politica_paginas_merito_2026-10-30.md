@@ -1,5 +1,7 @@
 # Política de páginas por mérito: owners, backups e trocas
 
+> **Atualização de 24/11/2026 (5C Escalas 1.38.0):** a política agora se chama **Política de páginas**. Onde este documento diz "melhor mérito do núcleo", vale o melhor **KPI** do núcleo (nível 0 a 4, depois o score). O Mérito é Legacy, só leitura.
+
 Proposta de 30/10/2026 para o 5C Escalas. Os números são padrões, e todos ficam em Parâmetros para ajustar sem mexer no código.
 
 ## 1. Como funciona hoje

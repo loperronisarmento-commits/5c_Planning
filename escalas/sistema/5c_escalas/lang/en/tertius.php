@@ -121,6 +121,6 @@ return [
     'Semanas seguidas batendo a meta' => 'Weeks in a row on target',
     'Seq.' => 'Streak',
     '{n} sem.' => '{n} wk',
-    'Legado: desde a 1.34.0 a escala usa o KPI dos SRs, não o mérito. Esta tela fica só para consulta.' => 'Legacy: since 1.34.0 the schedule uses the SR KPI, not merit. This screen is for reference only.',
+    'Legacy: o KPI dos SRs é o indicador oficial desde a 1.38.0. O Mérito fica só para consulta, com os dados preservados (sem recálculo nem edição).' => 'Legacy: the SR KPI has been the official indicator since 1.38.0. Merit is for reference only, with the data preserved (no recalculation or editing).',
     'Abrir o KPI dos SRs' => 'Open the SR KPI',
 ];

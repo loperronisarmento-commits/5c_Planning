@@ -9,9 +9,9 @@
 // ===============================================
 
 escExigirRestrito(); // Política de mérito: só WFM/Planejamento e Admin.
-$legadoMerito = escDesempenhoFonte() === 'KPI';
+$legadoMerito = true; // Legacy desde a 1.38.0: só admin, só leitura (o KPI é o indicador oficial)
 if ($legadoMerito) {
-    escExigir('admin'); // Legado desde a 1.34.0
+    escExigir('admin');
 }
 $en = escEmIngles();
 $L = static fn(string $pt, string $enTxt): string => $en ? $enTxt : $pt;
@@ -103,7 +103,7 @@ $faixaDe = static function (float $nota) use ($pts, $L): array {
 };
 $sinal = static fn($v): string => (int) $v > 0 ? '+' . (int) $v : ((int) $v < 0 ? '−' . abs((int) $v) : '0');
 ?>
-<?php if ($legadoMerito): ?><div class="faixa-legado nao-imprimir" role="status"><?php echo h($L('Legado: desde a 1.34.0 a escala usa o KPI dos SRs, não o mérito. Esta página fica só para consulta.', 'Legacy: since 1.34.0 the schedule uses the SR KPI, not merit. This page is for reference only.')); ?> <a href="<?php echo h(link_tela('kpi')); ?>"><?php echo h($L('Abrir o KPI dos SRs', 'Open the SR KPI')); ?></a></div><?php endif; ?>
+<?php if ($legadoMerito): ?><div class="faixa-legado nao-imprimir" role="status"><?php echo h($L('Legacy: o KPI dos SRs é o indicador oficial desde a 1.38.0. Esta página fica só para consulta.', 'Legacy: the SR KPI has been the official indicator since 1.38.0. This page is for reference only.')); ?> <a href="<?php echo h(link_tela('kpi')); ?>"><?php echo h($L('Abrir o KPI dos SRs', 'Open the SR KPI')); ?></a></div><?php endif; ?>
 <?php escDocIni(); ?>
 <header class="cabecalho">
   <span class="eyebrow"><?php echo h($L('Ajuda', 'Help')); ?></span>

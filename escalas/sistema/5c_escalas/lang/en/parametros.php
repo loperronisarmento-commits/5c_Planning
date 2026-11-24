@@ -11,5 +11,5 @@ return [
     'Legado' => 'Legacy',
     'Nenhuma parte do sistema lê estes parâmetros: são da estrutura antiga (times e parties) ou de regras que já saíram. Ficam aqui só para consulta, sem edição.' => 'No part of the system reads these parameters: they belong to the old structure (teams and parties) or to rules that were removed. They stay here for reference only, with no editing.',
     'Voltar aos parâmetros em uso' => 'Back to the parameters in use',
-    '{n} parâmetros sem uso estão em Legado.' => '{n} unused parameters are under Legacy.',
+    '{n} parâmetros sem uso ou do Mérito estão em Legacy.' => '{n} unused or Merit parameters are under Legacy.',
 ];

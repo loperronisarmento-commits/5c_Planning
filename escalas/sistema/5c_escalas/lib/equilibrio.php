@@ -161,7 +161,7 @@ function escEqSugerirTrocas(array $paginas, array $srs, int $max = 60, float $ga
 // grandes ficam com o OS1 e os pequenos com o OS3.
 // $postos[id] = ['fat', 'paginas', 'dono' => número do núcleo dono hoje, 'cob' => número da
 // cobertura]; $srs[rep] = ['num' => núcleo hoje, 'nivel', 'nota', 'conhece' => [escEqChave(pagina)
-// => dias escalado], 'casal' => num par de Folga juntos]. SRs: os melhores (nível, depois mérito) no
+// => dias escalado], 'casal' => num par de Folga juntos]. SRs: os melhores (nível do KPI, depois o score) no
 // OS1; no OS2, quem conhece páginas grandes e pequenas; o resto no OS3. Quem é de um par de Folga
 // juntos fica no núcleo de hoje (o núcleo dá o ciclo de folgas). O tamanho de cada núcleo segue os postos dele.
 // $alvo3 = [mín, máx] da parte do OS3 no faturamento (pedido de 02/11: 15% a 20%, escEqAlvoOS3).

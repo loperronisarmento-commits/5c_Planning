@@ -29,7 +29,7 @@ function escFunilContexto(string $dia): array {
     $nucleos = [];
     foreach (escQ('SELECT n.id, n.unidade, n.turno, n.numero, n.decurio_nome,
                           (SELECT COUNT(*) FROM ' . escT('esc_colaborador_config') . " c WHERE c.nucleo_id = n.id AND c.funcao = 'EQUITE' AND c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)) AS srs,
-                          (SELECT AVG(" . (escDesempenhoFonte() === 'KPI' ? 'm.score * 100' : 'm.nota') . ") FROM " . escT('esc_colaborador_config') . ' c JOIN ' . escT(escDesempenhoFonte() === 'KPI' ? 'esc_sr_kpi' : 'esc_sr_merito') . " m ON m.rep_code = c.rep_code
+                          (SELECT AVG(m.score * 100) FROM " . escT('esc_colaborador_config') . ' c JOIN ' . escT('esc_sr_kpi') . " m ON m.rep_code = c.rep_code
                             WHERE c.nucleo_id = n.id AND c.funcao = 'EQUITE' AND c.vigente_desde <= ? AND (c.vigente_ate IS NULL OR c.vigente_ate >= ?)) AS nota,
                           (SELECT SUM(p.carga) FROM " . escT('esc_posto') . ' p WHERE p.nucleo_dono_id = n.id AND p.vigente_desde <= ? AND (p.vigente_ate IS NULL OR p.vigente_ate >= ?)) AS carga
                      FROM ' . escT('esc_nucleo') . ' n WHERE n.' . ltrim($vig), [$dia, $dia, $dia, $dia, $dia, $dia, $dia, $dia]) as $n) {
@@ -124,7 +124,7 @@ function escFunilSugerir(array $vol, ?string $tier, array $nomes, array $ctx): a
     // Pesos: mérito pesa mais para tier alto.
     $alto = in_array($tier, ['SS', 'S', 'A'], true);
     $baixo = in_array($tier, ['D', 'E', 'F'], true);
-    $peso = ['cap_u' => 25, 'cap_t' => 10, 'merito' => $alto ? 35 : ($baixo ? 15 : 25), 'carga' => 20, 'afinidade' => 20];
+    $peso = ['cap_u' => 25, 'cap_t' => 10, 'desempenho' => $alto ? 35 : ($baixo ? 15 : 25), 'carga' => 20, 'afinidade' => 20];
     if ($alto) {
         $peso['cap_u'] = 15;
     } elseif ($baixo) {
@@ -179,7 +179,7 @@ function escFunilSugerir(array $vol, ?string $tier, array $nomes, array $ctx): a
         $f = [
             'cap_u' => $norm($saldoU, $saldoU[$u] ?? null),
             'cap_t' => $norm($saldoT, $saldoT[$u] ?? null),
-            'merito' => $norm($notas, $n['nota']),
+            'desempenho' => $norm($notas, $n['nota']),
             'carga' => $norm($cargas, $cargaSr($n), false),
             'afinidade' => isset($afinidade[$u]) ? 1.0 : 0.0,
             'equilibrio' => $norm($desvios, $desvios[$u] ?? null, false),
@@ -192,7 +192,7 @@ function escFunilSugerir(array $vol, ?string $tier, array $nomes, array $ctx): a
             'saldo_u_antes' => array_sum(array_map(static fn($x) => $x['saldo'], $ctx['cap'][$u] ?? [])), 'saldo_u_depois' => $saldoU[$u] ?? null,
             'saldo_t_depois' => $saldoT[$u] ?? null, 'carga_sr' => $cargaSr($n), 'afinidade' => $afinidade[$u] ?? null];
     }
-    usort($lista, static fn($a, $b) => [$b['nota'], $b['fatores']['merito']] <=> [$a['nota'], $a['fatores']['merito']]);
+    usort($lista, static fn($a, $b) => [$b['nota'], $b['fatores']['desempenho']] <=> [$a['nota'], $a['fatores']['desempenho']]);
     // O melhor núcleo de cada unidade, na ordem da nota (a escolha que importa é a unidade).
     $top = [];
     foreach ($lista as $l) {

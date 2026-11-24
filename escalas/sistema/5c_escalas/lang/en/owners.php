@@ -3,7 +3,7 @@
 // O português é a chave. Ver lib/i18n.php.
 return [
     'Owners e backups' => 'Owners and backups',
-    'Quem é owner (vaga de dono) e backup (vaga de cobertura) de cada página em cada turno, o atingimento da meta 5CReps e a situação na política de páginas por mérito. Abaixo de {corte}% o prazo corre ({min} a {max} dias, conforme o atingimento); entre {corte}% e a meta, acompanhamento de {acomp} dias.' => 'Who is owner (owner slot) and backup (cover slot) of each page in each shift, attainment of the 5CReps target and the status in the merit-based page policy. Below {corte}% the deadline runs ({min} to {max} days, depending on attainment); between {corte}% and target, {acomp}-day monitoring.',
+    'Quem é owner (vaga de dono) e backup (vaga de cobertura) de cada página em cada turno, o atingimento da meta 5CReps e a situação na política de páginas. Abaixo de {corte}% o prazo corre ({min} a {max} dias, conforme o atingimento); entre {corte}% e a meta, acompanhamento de {acomp} dias.' => 'Who is owner (owner slot) and backup (cover slot) of each page in each shift, attainment of the 5CReps target and the status in the page policy. Below {corte}% the deadline runs ({min} to {max} days, depending on attainment); between {corte}% and target, {acomp}-day monitoring.',
     'Ver as regras' => 'See the rules',
     'A política de páginas ainda não foi instalada no banco (script ES_33). Peça ao admin.' => 'The page policy is not installed in the database yet (script ES_33). Ask the admin.',
     'A política de páginas ainda não foi instalada no banco (script ES_33): a tela mostra owners e atingimento, mas sem prioridades nem trocas.' => 'The page policy is not installed in the database yet (script ES_33): the screen shows owners and attainment, but no priorities or swaps.',
@@ -36,7 +36,7 @@ return [
     'owner da prioridade' => 'priority owner',
     'troca de unidade' => 'unit change',
     'A página está em {a} na U{u} e o prazo venceu: sugestão de levar para outra unidade.' => 'The page is at {a} in U{u} and the deadline was missed: suggestion to move it to another unit.',
-    'O turno está em {a} e o prazo venceu: {sai} sai e {entra} (melhor mérito do núcleo dono) vira owner, trocando de vaga com {sai}.' => 'The shift is at {a} and the deadline was missed: {sai} leaves and {entra} (best merit in the owning core) becomes owner, swapping slots with {sai}.',
+    'O turno está em {a} e o prazo venceu: {sai} sai e {entra} (melhor KPI do núcleo dono) vira owner, trocando de vaga com {sai}.' => 'The shift is at {a} and the deadline was missed: {sai} leaves and {entra} (best KPI in the owning core) becomes owner, swapping slots with {sai}.',
     '{entra} tem prioridade nesta página e está no núcleo dono do turno: vira owner (sem tirar ninguém).' => '{entra} has priority on this page and is in the shift\'s owning core: becomes owner (without removing anyone).',
     'Ver a prévia' => 'See the preview',
     'Aplicar a troca de owner em {pagina}? Para desfazer, é preciso outra troca.' => 'Apply the owner change on {pagina}? To undo it, another swap is needed.',
@@ -82,5 +82,5 @@ return [
     // pages/regras.php
     'Regras' => 'Rules',
     'Índice' => 'Contents',
-    'As regras de alocação, mérito e trocas do 5C Escalas, com os valores que valem hoje (Parâmetros). Versão {v} · {dia}.' => 'The allocation, merit and swap rules of 5C Escalas, with today\'s values (Parameters). Version {v} · {dia}.',
+    'As regras de alocação, KPI e trocas do 5C Escalas, com os valores que valem hoje (Parâmetros). Versão {v} · {dia}.' => 'The allocation, KPI and swap rules of 5C Escalas, with today\'s values (Parameters). Version {v} · {dia}.',
 ];

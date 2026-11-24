@@ -1,5 +1,7 @@
 # 5C Planning: contexto geral do projeto (31/10/2026)
 
+> **Atualização de 24/11/2026 (5C Escalas 1.38.0):** o **KPI dos SRs** é o indicador oficial de desempenho. O Mérito virou **Legacy** (fora do menu principal, só leitura, dados preservados) e as **moedas** saíram do KPI. Onde este documento fala em mérito, nota em pontos ou faixa (Acima, Na média, Abaixo), vale hoje o KPI: score de 0% a 120% e nível de 0 a 4 (regras em `contexto/regras_escalacao_kpi.md`).
+
 Desde 02/11/2026 o ponto de entrada das sessões é `D:\5C Planning\CLAUDE.md`, que é curto e
 carregado sozinho, com as regras, o estado e o índice. Este arquivo é a referência completa: dá a
 visão de conjunto e aponta para os documentos detalhados de cada parte.
