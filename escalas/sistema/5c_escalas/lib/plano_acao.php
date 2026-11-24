@@ -151,3 +151,241 @@ function escAcaoSincronizarTier(array $diag, array $nomes, array $unidadeDe = []
     }
     escAcaoResolverAusentes('tier:', $refs);
 }
+
+// ---------- Sincronização das origens (Plano de Ação) ----------
+// Lê cada origem e registra uma ação por item pendente; o que a origem não aponta mais fecha sozinho.
+// Cada origem roda isolada (falha de uma não para as outras) e o conjunto no máximo a cada 5 min
+// ($forcar ignora o intervalo). Devolve [origem => n ações ativas | 'erro: ...'].
+function escAcoesSincronizar(bool $forcar = false): array {
+    if (!escAcaoInstalada()) {
+        return [];
+    }
+    $marca = sys_get_temp_dir() . '/5c_escalas_acoes_sync_' . ESC_SCHEMA . '.json';
+    if (!$forcar && is_file($marca) && filemtime($marca) > time() - 300) {
+        return json_decode((string) @file_get_contents($marca), true) ?: [];
+    }
+    $hoje = date('Y-m-d');
+    $seg = segundaDaSemana($hoje);
+    $resumo = [];
+    $rodar = static function (string $nome, callable $fn) use (&$resumo): void {
+        try {
+            $resumo[$nome] = $fn();
+        } catch (Throwable $e) {
+            appLog('warning', 'Plano de Ação: origem indisponível', ['origem' => $nome, 'erro' => $e->getMessage()]);
+            $resumo[$nome] = 'erro: ' . mb_substr($e->getMessage(), 0, 120);
+        }
+    };
+    // Unidade de cada página (carteira aberta).
+    $unidadeDe = [];
+    foreach (escQ('SELECT pagina, carteira FROM `5c_planning`.`fc_pagina_carteira` WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate > ?)', [$hoje, $hoje]) as $c) {
+        if (preg_match('~^U(\d)~', (string) $c['carteira'], $m)) {
+            $unidadeDe[mb_strtolower(trim((string) $c['pagina']))] = (int) $m[1];
+        }
+    }
+    $uDe = static fn(string $pagina): ?int => $unidadeDe[mb_strtolower(trim($pagina))] ?? null;
+
+    // 1. Gerar: lacunas da versão atual de cada semana de hoje em diante (uma ação por dia, turno e unidade)
+    //    e as sugestões de carga (WORKLOAD) ainda abertas. A mesma lacuna não repete a cada versão.
+    $rodar('gerar', static function () use ($seg, $hoje, $uDe): int {
+        $refsCob = $refsCarga = [];
+        foreach ([$seg, escMaisDias($seg, 7)] as $s) {
+            $pl = escPlanoAtual($s);
+            if (!$pl) {
+                continue;
+            }
+            $lac = [];
+            foreach (escQ("SELECT dia, turno, pagina FROM " . escT('esc_plano_alocacao') . " WHERE plano_id = ? AND rep_code IS NULL AND origem <> 'TREINO' AND dia >= ? AND bloco IN ('T2','T4','T6') GROUP BY dia, turno, pagina", [(int) $pl['id'], $hoje]) as $l) {
+                $u = $uDe((string) $l['pagina']);
+                $lac[substr((string) $l['dia'], 0, 10) . '|' . $l['turno'] . '|' . ($u ?? 0)][] = (string) $l['pagina'];
+            }
+            foreach ($lac as $k => $pags) {
+                [$dia, $tu, $u] = explode('|', $k);
+                $ref = 'cob:' . $dia . ':' . $tu . ':' . $u;
+                $refsCob[] = $ref;
+                escAcaoRegistrar(['ref' => $ref, 'tipo' => 'COBERTURA', 'origem' => 'gerar', 'unidade' => (int) $u ?: null, 'turno' => $tu, 'dia' => $dia,
+                    'titulo' => tn(count($pags), '{n} página sem ninguém em {dia} no turno {turno}', '{n} páginas sem ninguém em {dia} no turno {turno}', ['dia' => dataBr($dia, true), 'turno' => $tu]),
+                    'detalhe' => t('Cobrir na grade com um buffer de plantão do turno (ajuste manual da célula) ou aceitar a lacuna. Versão {versao}.', ['versao' => escPlanoRotulo($pl)]),
+                    'envolve' => implode(', ', $pags), 'link_tela' => 'grade', 'link_params' => ['plano' => (int) $pl['id'], 'turno' => $tu] + ((int) $u ? ['u' => (int) $u] : [])]);
+            }
+            foreach (escQ("SELECT id, titulo, descricao, dados FROM " . escT('esc_sugestao') . " WHERE plano_id = ? AND tipo = 'WORKLOAD' AND status = 'ABERTA'", [(int) $pl['id']]) as $sg) {
+                $d = json_decode((string) $sg['dados'], true) ?: [];
+                if (($d['dia'] ?? $hoje) < $hoje) {
+                    continue;
+                }
+                $ref = 'carga:' . $s . ':' . ($d['rep_code'] ?? '') . ':' . ($d['dia'] ?? '') . ':' . ($d['turno'] ?? '');
+                $refsCarga[] = $ref;
+                escAcaoRegistrar(['ref' => $ref, 'tipo' => 'CARGA', 'origem' => 'gerar', 'turno' => $d['turno'] ?? null, 'dia' => $d['dia'] ?? null,
+                    'titulo' => (string) $sg['titulo'], 'detalhe' => (string) $sg['descricao'], 'envolve' => (string) ($d['rep_code'] ?? ''),
+                    'link_tela' => 'grade', 'link_params' => ['plano' => (int) $pl['id']], 'dados' => ['sugestao_id' => (int) $sg['id'], 'plano_id' => (int) $pl['id']]]);
+            }
+        }
+        escAcaoResolverAusentes('cob:', $refsCob);
+        escAcaoResolverAusentes('carga:', $refsCarga);
+        return count($refsCob) + count($refsCarga);
+    });
+
+    // 2. Owners e backups: trocas sugeridas pela política de páginas.
+    $rodar('owners', static function () use ($hoje, $uDe): int {
+        $refs = [];
+        if (function_exists('escPolInstalada') && escPolInstalada()) {
+            $nomes = escNomes();
+            foreach (escPolAvaliar($hoje)['sugestoes'] as $sg) {
+                $owner = $sg['tipo'] === 'OWNER';
+                $ref = 'pol:' . $sg['tipo'] . ':' . mb_strtolower((string) $sg['pagina']) . ':' . ($sg['turno'] ?? '');
+                $refs[] = $ref;
+                $sai = $owner ? nomeCurto($nomes[$sg['de']] ?? (string) $sg['de']) : '';
+                $entra = $owner ? nomeCurto($nomes[$sg['para']] ?? (string) $sg['para']) : '';
+                escAcaoRegistrar(['ref' => $ref, 'tipo' => $owner ? 'TROCA_PESSOA' : 'TROCA_PAGINA', 'origem' => 'owners', 'unidade' => $uDe((string) $sg['pagina']), 'turno' => $sg['turno'] ?? null,
+                    'titulo' => $owner ? t('Trocar o owner de {pagina} no turno {turno}', ['pagina' => $sg['pagina'], 'turno' => $sg['turno']]) : t('Avaliar a troca de unidade de {pagina}', ['pagina' => $sg['pagina']]),
+                    'detalhe' => t('Atingimento da meta de {pct}: o prazo da política de páginas venceu.', ['pct' => pct((float) ($sg['ating'] ?? 0))])
+                        . ($owner ? ' ' . t('Sai {sai}, entra {entra}.', ['sai' => $sai, 'entra' => $entra]) : ''),
+                    'envolve' => $owner ? $sg['pagina'] . ' · ' . $sai . ' → ' . $entra : (string) $sg['pagina'],
+                    'link_tela' => 'owners', 'link_params' => []]);
+            }
+        }
+        escAcaoResolverAusentes('pol:', $refs);
+        return count($refs);
+    });
+
+    // 3. Equilíbrio das unidades: trocas de unidade sugeridas pelo faturamento.
+    $rodar('equilibrio', static function (): int {
+        $refs = [];
+        $dia = max(date('Y-m-d', strtotime('next monday')), escV4DiaEstrutura());
+        $eq = escEqDados(date('Y-m-d'), $dia);
+        foreach (escEqSugerirTrocas($eq['paginas'], escEqPesoTotal($eq['fat'], $eq['srs']), 60, 0.005, max(0, (int) escV4Param('v4_conhece_min', '2'))) as $sg) {
+            $ref = 'eq:' . mb_strtolower((string) $sg['pagina']) . ':' . $sg['de'] . ':' . $sg['para'];
+            $refs[] = $ref;
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'TROCA_PAGINA', 'origem' => 'equilibrio', 'unidade' => (int) $sg['de'],
+                'titulo' => t('Mover {pagina} da U{de} para a U{para}', ['pagina' => $sg['pagina'], 'de' => $sg['de'], 'para' => $sg['para']]),
+                'detalhe' => t('Equilíbrio do faturamento entre as unidades: melhora {pct}. Faturamento de 30 dias: US$ {fat}.', ['pct' => pct((float) $sg['melhora'], 1), 'fat' => num((float) $sg['faturamento'], 0)]),
+                'envolve' => (string) $sg['pagina'], 'link_tela' => 'equilibrio', 'link_params' => []]);
+        }
+        escAcaoResolverAusentes('eq:', $refs);
+        return count($refs);
+    });
+
+    // 4. Funil de entrada: páginas ativas no site e fora da escala.
+    $rodar('funil', static function (): int {
+        $refs = [];
+        foreach (escEntradasDetectadas(false) as $e) {
+            if (!empty($e['decisao']) && $e['decisao'] !== 'PENDENTE') {
+                continue;
+            }
+            $ref = 'ent:' . (int) $e['page_id'];
+            $refs[] = $ref;
+            $desde = !empty($e['ativa_desde']) ? substr((string) $e['ativa_desde'], 0, 10) : null;
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'ENTRADA_PAGINA', 'origem' => 'funil',
+                'titulo' => t('Pôr {pagina} na escala ou ignorar', ['pagina' => $e['pagina']]),
+                'detalhe' => t('Página ativa no site e fora da escala ({situacao}), ativa desde {dia}.', ['situacao' => mb_strtolower((string) $e['situacao']), 'dia' => $desde ? dataBr($desde) : '—']),
+                'envolve' => (string) $e['pagina'], 'dia' => $desde, 'link_tela' => 'funil', 'link_params' => []]);
+        }
+        escAcaoResolverAusentes('ent:', $refs);
+        return count($refs);
+    });
+
+    // 5. Saídas de página a conferir (detectadas pelo Capacity, sem decisão).
+    $rodar('saidas', static function () use ($uDe): int {
+        $refs = [];
+        foreach (escQ("SELECT e.id, e.pagina, DATE(e.data_evento) AS dia FROM `5c_planning`.`fc_pagina_eventos` e
+                        LEFT JOIN " . escT('esc_saida_checagem') . " c ON c.evento_id = e.id
+                       WHERE e.tipo = 'SAIDA' AND IFNULL(e.status, '') <> 'CANCELADA' AND e.data_evento >= CURDATE() - INTERVAL 45 DAY
+                         AND IFNULL(c.decisao, 'PENDENTE') = 'PENDENTE'") as $s) {
+            $ref = 'sai:' . (int) $s['id'];
+            $refs[] = $ref;
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'SAIDA_PAGINA', 'origem' => 'saidas', 'unidade' => $uDe((string) $s['pagina']), 'dia' => (string) $s['dia'],
+                'titulo' => t('Conferir a saída de {pagina}', ['pagina' => $s['pagina']]), 'detalhe' => t('Saída detectada pelo Capacity em {dia}: confirme (e aplique) ou marque "não saiu".', ['dia' => dataBr((string) $s['dia'])]),
+                'envolve' => (string) $s['pagina'], 'link_tela' => 'saidas', 'link_params' => []]);
+        }
+        escAcaoResolverAusentes('sai:', $refs);
+        return count($refs);
+    });
+
+    // 6. Pedidos pendentes: indisponibilidade, solicitações de SR e interesse em hora extra.
+    $rodar('pedidos', static function (): int {
+        $nomes = escNomes();
+        $por = ['ind:' => [], 'sol:' => [], 'he:' => []];
+        foreach (escQ('SELECT id, UPPER(rep_code) AS rep, tipo, solicitado_em FROM ' . escT('esc_indisponibilidade') . " WHERE status = 'PENDENTE'") as $p) {
+            $por['ind:'][] = $ref = 'ind:' . (int) $p['id'];
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'PEDIDO', 'origem' => 'aprovar', 'dia' => substr((string) $p['solicitado_em'], 0, 10),
+                'titulo' => t('Decidir a indisponibilidade de {nome}', ['nome' => nomeCurto($nomes[$p['rep']] ?? $p['rep'])]), 'detalhe' => (string) $p['tipo'],
+                'envolve' => (string) $p['rep'], 'link_tela' => 'aprovar', 'link_params' => []]);
+        }
+        if (function_exists('escSolInstalada') && escSolInstalada()) {
+            foreach (escQ('SELECT id, UPPER(rep_code) AS rep, tipo, solicitado_em FROM ' . escT('esc_solicitacao') . " WHERE status = 'PENDENTE'") as $p) {
+                $por['sol:'][] = $ref = 'sol:' . (int) $p['id'];
+                escAcaoRegistrar(['ref' => $ref, 'tipo' => 'PEDIDO', 'origem' => 'solicitacoes', 'dia' => substr((string) $p['solicitado_em'], 0, 10),
+                    'titulo' => t('Decidir a solicitação de {nome}', ['nome' => nomeCurto($nomes[$p['rep']] ?? $p['rep'])]), 'detalhe' => (string) $p['tipo'],
+                    'envolve' => (string) $p['rep'], 'link_tela' => 'solicitacoes', 'link_params' => []]);
+            }
+        }
+        foreach (escQ('SELECT id, UPPER(rep_code) AS rep, dia, turno, unidade, pagina FROM ' . escT('esc_hora_extra') . " WHERE status = 'INTERESSADO' AND dia >= CURDATE()") as $p) {
+            $por['he:'][] = $ref = 'he:' . (int) $p['id'];
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'PEDIDO', 'origem' => 'horas', 'unidade' => $p['unidade'] !== null ? (int) $p['unidade'] : null, 'turno' => $p['turno'], 'dia' => (string) $p['dia'],
+                'titulo' => t('Decidir a hora extra de {nome}', ['nome' => nomeCurto($nomes[$p['rep']] ?? $p['rep'])]), 'detalhe' => (string) ($p['pagina'] ?? ''),
+                'envolve' => (string) $p['rep'], 'link_tela' => 'horas', 'link_params' => []]);
+        }
+        foreach ($por as $prefixo => $refs) {
+            escAcaoResolverAusentes($prefixo, $refs);
+        }
+        return array_sum(array_map('count', $por));
+    });
+
+    // 7. Alertas: escala a gerar, publicar ou postar (semana atual e seguinte) e o diário do Capacity.
+    $rodar('alertas', static function () use ($seg, $hoje): int {
+        $refs = [];
+        foreach ([$seg, escMaisDias($seg, 7)] as $s) {
+            $atual = escPlanoAtual($s);
+            $pub = escPlanoPublicado($s);
+            if (!$atual) {
+                $refs[] = $ref = 'alerta:gerar:' . $s;
+                escAcaoRegistrar(['ref' => $ref, 'tipo' => 'ALERTA', 'origem' => 'gerar', 'dia' => $s, 'titulo' => t('Gerar a escala da semana de {dia}', ['dia' => dataBr($s)]),
+                    'link_tela' => 'gerar', 'link_params' => ['semana' => $s]]);
+            } elseif ($atual['status'] === 'RASCUNHO') {
+                $refs[] = $ref = 'alerta:publicar:' . $s;
+                escAcaoRegistrar(['ref' => $ref, 'tipo' => 'ALERTA', 'origem' => 'grade', 'dia' => $s,
+                    'titulo' => t('Publicar o rascunho {versao} da semana de {dia}', ['versao' => escPlanoRotulo($atual), 'dia' => dataBr($s)]),
+                    'link_tela' => 'grade', 'link_params' => ['plano' => (int) $atual['id']]]);
+            }
+            if ($pub) {
+                $postadas = (int) (escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_plano_postagem') . ' WHERE plano_id = ? AND postado_em IS NOT NULL', [(int) $pub['id']])['n'] ?? 0);
+                if ($postadas === 0) {
+                    $refs[] = $ref = 'alerta:postar:' . $s . ':' . (int) $pub['id'];
+                    escAcaoRegistrar(['ref' => $ref, 'tipo' => 'ALERTA', 'origem' => 'grade', 'dia' => $s,
+                        'titulo' => t('Postar a {versao} da semana de {dia} no site da 5C', ['versao' => escPlanoRotulo($pub), 'dia' => dataBr($s)]),
+                        'detalhe' => t('Nenhuma página marcada como postada. Use o pacote (.json) da Grade.'), 'link_tela' => 'grade', 'link_params' => ['plano' => (int) $pub['id']]]);
+                }
+            }
+        }
+        $log = escQ1("SELECT etapa, status, LEFT(mensagem, 200) AS msg FROM `5c_planning`.`fc_log_execucao` WHERE DATE(inicio) = ? ORDER BY id DESC LIMIT 1", [$hoje]);
+        if ($log && $log['status'] === 'ERRO') {
+            $refs[] = $ref = 'alerta:diario:' . $hoje;
+            escAcaoRegistrar(['ref' => $ref, 'tipo' => 'ALERTA', 'origem' => 'capacity', 'dia' => $hoje,
+                'titulo' => t('O diário do Capacity de hoje falhou na etapa {etapa}', ['etapa' => $log['etapa']]), 'detalhe' => (string) $log['msg'],
+                'link_tela' => 'capacity', 'link_params' => []]);
+        }
+        escAcaoResolverAusentes('alerta:', $refs);
+        return count($refs);
+    });
+
+    // 8. Faturamento × Tier das páginas da escala (a Grade também sincroniza).
+    $rodar('tier', static function () use ($uDe): int {
+        $pags = [];
+        foreach (escQ("SELECT DISTINCT pp.page_id, pp.pagina FROM " . escT('esc_posto_pagina') . " pp JOIN " . escT('esc_posto') . " p ON p.id = pp.posto_id WHERE p.vigente_desde <= CURDATE() AND (p.vigente_ate IS NULL OR p.vigente_ate >= CURDATE())") as $l) {
+            $pags[(int) $l['page_id']] = (string) $l['pagina'];
+        }
+        $diag = escTierDiagnostico($pags);
+        escAcaoSincronizarTier($diag, $pags, array_map($uDe, $pags));
+        return count(array_filter($diag, static fn($d) => $d['diverge']));
+    });
+
+    @file_put_contents($marca, json_encode($resumo));
+    return $resumo;
+}
+
+// Ações pendentes (selo do menu).
+function escAcoesPendentes(): int {
+    if (!escAcaoInstalada()) {
+        return 0;
+    }
+    return (int) (escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_acao') . " WHERE status = 'PENDENTE'")['n'] ?? 0);
+}

@@ -181,4 +181,5 @@ return [
     'Rotação' => 'Rotation',
     'Folga de emenda' => 'Bridge day off',
     'Detalhe (só admin): {erro} ({arquivo}:{linha})' => 'Detail (admin only): {erro} ({arquivo}:{linha})',
+    'Plano de Ação' => 'Action Plan',
 ];

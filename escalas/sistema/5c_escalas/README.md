@@ -57,7 +57,7 @@ Tabela `5c_escalas.esc_acesso`. No primeiro acesso, se ela estiver vazia, o mód
 | Análise (WFM) | Abas Escala (horas necessárias × previstas, buffers, escalados, absenteísmo previsto e realizado), Demanda (previsão do Capacity, fluxo por página, funil do CRM) e Escala × demanda por unidade e turno | não grava |
 | Mérito dos SRs (Legacy) | Só admin e só leitura desde a 1.38.0: turnos de cada SR e o mérito em pontos (regras M-01 a M-10), com os dados preservados; sem recálculo pela tela | não grava (`esc_sr_merito`, cache antigo) |
 | KPI dos SRs | O indicador oficial de desempenho (1.38.0): Score = Kinetic × Process × Integrity, 4 semanas com pesos 4-3-2-1, nível 0 a 4 que o Gerar usa; detalhe semana a semana por SR (`?rep=`); exportar .xlsx e PDF; só WFM/Planejamento e Admin. Sem moedas desde a 1.38.0 | `esc_sr_kpi` (cache, a cada 3 h e no Gerar) |
-| Sugestões de troca | Workload (remover turno), Buffer sem página, lacunas; aplicar ou descartar com motivo | `esc_sugestao`, `esc_plano_alocacao` |
+| Plano de Ação | Workload (remover turno), Buffer sem página, lacunas; aplicar ou descartar com motivo | `esc_sugestao`, `esc_plano_alocacao` |
 | Buffers | Precisa (Capacity) × usados × sem página, por dia e turno; pool | não grava |
 | Saídas de página | Confirmar a saída ou marcar "não saiu", uma a uma ou várias selecionadas de uma vez; **aplicar a saída** de uma vez: foto do Capacity antes, fecha a página e recalcula, foto depois; fecha ou refaz os postos (mesma equipe); passa as vagas; gera as escalas de novo. Várias páginas aplicadas juntas recalculam o Capacity e a escala uma vez só; uma aplicação por vez (trava contra clique duplo). Comparação antes × depois | `esc_saida_checagem`, `esc_saida_pagina`, `esc_capacity_versao*`, `esc_posto*`, `esc_vaga_equipe`, `esc_plano*` e, no Capacity, `fc_pagina_carteira` + `sp_fc_postos` |
 | Funil de entrada | Ativas no site, fora da escala (detectadas pela DB, não pelo CRM: `5c_pages.pages.active = 1` sem carteira aberta no Capacity; nova ou retorno; pôr na escala grava a carteira no Capacity e recalcula, os postos entram no próximo Gerar, no núcleo (OS) escolhido, `nucleo_numero`, ES_139, aplicado por `escEntradaFixarNucleos` na sincronização da estrutura; ignorar), cards do CRM e arquétipos; ajustar previsão e destino | `esc_pagina_entrada_checagem` (ES_138), `esc_pagina_previsao` e, no Capacity, `fc_pagina_carteira` + `sp_fc_recalcular_postos` |
@@ -220,6 +220,14 @@ Regras em `contexto/regras_base_semana_8020_anjo.md` (ES_213).
 - Gerar (`lib/motor.php`): com `v4_base_semana_anterior` = 1 e fora da transição, o motor roda duas vezes (proposta e final); `$GLOBALS['ESC_SO_PREVIA']` calcula sem gravar (`deploy/base_previa.php`, fora do commit).
 - Motor (`lib/motor_v4.php`): rodada da base depois da equipe fixa e antes do melhor SR; quem fez a página na semana anterior conta como quem a conhece (P-02).
 - Tela Escala › Movimentações e Anjos (`pages/movimentos.php`, restrita).
+
+## Plano de Ação (1.38.0, item C)
+
+A antiga tela "Sugestões de troca" (`?p=sugestoes`, que agora abre `?p=plano_acao`) virou o Plano de Ação: `pages/plano_acao.php`, `lib/plano_acao.php` e a tabela `esc_acao` (ES_220). Cada ação tem tipo, o que ou quem envolve, origem (com link), data e status (pendente, feita ou descartada), com filtro por tipo, unidade e status.
+- `escAcoesSincronizar()` lê as origens no máximo a cada 5 min (ou pelo botão "Ler as origens agora"). As origens são: lacunas e carga (WORKLOAD) da versão atual de cada semana, uma por dia, turno e unidade; trocas da política de páginas (Owners) e do Equilíbrio; entradas (Funil) e saídas a conferir; indisponibilidade, solicitações e horas extras pendentes; escala a gerar, publicar ou postar; diário do Capacity com erro; e Recalcular Tier.
+- A chave `ref` não deixa repetir a ação. Quando a origem não aponta mais o problema, a ação pendente fecha como feita ("resolvida na origem"); descartada não volta.
+- O selo do menu conta as ações pendentes uma vez cada. Antes, a mesma lacuna contava uma vez por versão do plano.
+- ES_221: os dados a conferir da auditoria (D2 a D4) viraram ações, e 2.526 sugestões abertas de semanas passadas foram descartadas ("semana passou").
 
 ## Grade da escala (1.38.0, item E)
 

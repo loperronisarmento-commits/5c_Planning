@@ -91,7 +91,7 @@ $telas = [
     'analise'      => ['Análise', 'pages/analise.php'],
     'srs'          => ['Mérito dos SRs', 'pages/tertius.php'],
     'kpi'          => ['KPI dos SRs', 'pages/kpi.php'],
-    'sugestoes'    => ['Sugestões de troca', 'pages/sugestoes.php'],
+    'plano_acao'   => ['Plano de Ação', 'pages/plano_acao.php'],
     'buffers'      => ['Buffers', 'pages/buffers.php'],
     'trocas'       => ['Trocas de página', 'pages/trocas.php'],
     'saidas'       => ['Saídas de página', 'pages/saidas.php'],
@@ -126,7 +126,7 @@ $telas = [
 ];
 $p = is_string($_GET['p'] ?? null) ? $_GET['p'] : 'painel';
 // Endereços antigos continuam valendo.
-$p = ['restricoes' => 'fixacoes', 'tertius' => 'srs'][$p] ?? $p;
+$p = ['restricoes' => 'fixacoes', 'tertius' => 'srs', 'sugestoes' => 'plano_acao'][$p] ?? $p;
 if (!isset($telas[$p])) {
     $p = 'painel';
 }
@@ -301,8 +301,8 @@ try {
 
 // Menu: o rótulo é sempre o título da tela ($telas), o mesmo na aba do navegador.
 $menu = [
-    'Escala' => ['painel', 'gerar', 'grade', 'movimentos', 'lideranca', 'horas'],
-    'Análise' => ['analise', 'kpi', 'sugestoes', 'buffers'],
+    'Escala' => ['painel', 'plano_acao', 'gerar', 'grade', 'movimentos', 'lideranca', 'horas'],
+    'Análise' => ['analise', 'kpi', 'buffers'],
     'Quadro e contratação' => ['capacity', 'requisicao', 'treinamento', 'fora_unidades'],
     'Páginas' => ['paginas', 'fixacoes', 'owners', 'equilibrio', 'saidas', 'funil'],
     'Pessoas' => ['colaboradores', 'organograma', 'roster', 'aprovar', 'solicitacoes', 'casais'],
@@ -320,9 +320,9 @@ $legadoMenu = escPode('admin') ? ESC_TELAS_LEGACY : [];
 $badges = [];
 // Com o banco fora (tela de espera), nem tenta: cada leitura esperaria a conexão por ~15 s.
 if (empty($bancoCaiu)) try {
-    $b = escQ1('SELECT (SELECT COUNT(*) FROM ' . escT('esc_indisponibilidade') . " WHERE status = 'PENDENTE') AS indisp,
-                       (SELECT COUNT(*) FROM " . escT('esc_sugestao') . " s JOIN " . escT('esc_plano') . " p ON p.id = s.plano_id WHERE s.status = 'ABERTA' AND p.status IN ('RASCUNHO','PUBLICADO') AND p.semana_fim >= CURDATE()) AS sug");
-    $badges = ['aprovar' => (int) ($b['indisp'] ?? 0), 'sugestoes' => (int) ($b['sug'] ?? 0)];
+    $b = escQ1('SELECT COUNT(*) AS indisp FROM ' . escT('esc_indisponibilidade') . " WHERE status = 'PENDENTE'");
+    // Plano de Ação (1.38.0): as ações pendentes, uma vez cada (antes o selo contava a mesma lacuna em cada versão do plano).
+    $badges = ['aprovar' => (int) ($b['indisp'] ?? 0), 'plano_acao' => escAcoesPendentes()];
     try {
         $badges['solicitacoes'] = escSolInstalada() ? (int) (escQ1('SELECT COUNT(*) AS n FROM ' . escT('esc_solicitacao') . " WHERE status = 'PENDENTE'")['n'] ?? 0) : 0;
     } catch (Throwable $e) {
