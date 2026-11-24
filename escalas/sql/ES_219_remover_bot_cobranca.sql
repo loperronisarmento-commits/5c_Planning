@@ -1,5 +1,5 @@
 -- ES_219 (24/11/2026): remove as tabelas e a procedure do Bot de cobrança (item B da revisão de 24/11).
--- NÃO RODAR sem a confirmação do usuário. O código saiu na 1.38.0.
+-- Rodou em 24/11 com a confirmação do usuário (antes: 36 e 3.162 linhas, iguais às exportações). O código saiu na 1.38.0.
 -- Dados exportados antes em resultados/backup_2411/bot_cobranca/:
 --   1_esc_bot_inativ_semana.csv (36 linhas), 2_esc_bot_inativ_rep.csv (3.162 linhas, com o nome),
 --   3_sla_por_semana_turno.csv, 4_alertas_por_semana_tipo.csv, 5_procedure_esc_sp_bot_inatividade.sql
