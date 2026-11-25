@@ -203,12 +203,34 @@ function escEstruturaPaginasFora(string $hoje): array {
                      FROM `5c_planning`.`fc_carteira` c WHERE c.ativo = 1 ORDER BY n, c.carteira', [$hoje]) as $c) {
         $carteiraDe[(int) $c['unidade']] = $carteiraDe[(int) $c['unidade']] ?? $c['carteira'];
     }
+    // Página que já teve carteira numa unidade da 5C volta para a última delas (25/11: "se uma página saiu e
+    // depois voltou, volta sempre pra onde ela estava"); o núcleo vem do último posto (escEstruturaHerdarNucleo).
+    $antes = [];
+    foreach (escQ('SELECT p.pagina, p.carteira, p.modelo, p.fas_h_estimado FROM `5c_planning`.`fc_pagina_carteira` p
+                     JOIN `5c_planning`.`fc_carteira` c ON c.carteira = p.carteira AND c.ativo = 1
+                    ORDER BY p.vigente_desde, p.vigente_ate IS NULL, p.vigente_ate') as $c) {
+        $antes[$semEspaco($c['pagina'])] = $c;
+    }
     $saida = [];
     $novaModelo = []; // [chave] = carteira da modelo nova já decidida nesta rodada
     foreach ($lista as $l) {
         $perfil = escPaginaPerfil($l['pagina']);
         $chave = escPaginaChaveModelo($l['pagina']);
         $tier = $l['tier'] !== null && $l['tier'] !== '' ? (string) $l['tier'] : null;
+        $ult = $antes[$semEspaco($l['pagina'])] ?? null;
+        if ($ult) {
+            $fasAntes = $ult['fas_h_estimado'] !== null ? (float) $ult['fas_h_estimado'] : null;
+            $deOnde = $fasAntes !== null ? 'volume de antes' : 'volume do arquétipo';
+            if ($fasAntes === null) {
+                [$v0] = escFunilVolume($previsao[$l['pagina']] ?? ['perfil' => $perfil, 'fans_h_a' => null, 'fans_h_c' => null, 'fans_h_d' => null], $tier, $arquetipos);
+                $fasAntes = ($v0['A'] + $v0['C'] + $v0['D']) / 3;
+            }
+            $fas = round(max(0.1, $fasAntes), 2);
+            $saida[] = ['pagina' => $l['pagina'], 'tier' => $tier, 'perfil' => $perfil, 'carteira' => (string) $ult['carteira'],
+                'modelo' => trim((string) $ult['modelo']) !== '' ? (string) $ult['modelo'] : $chave, 'fas_h' => $fas,
+                'motivo' => mb_substr('Voltou antes de gerar (ativa no site): carteira de antes (' . $ult['carteira'] . '); ' . $deOnde . ' (' . str_replace('.', ',', (string) $fas) . ' fãs/h)', 0, 255)];
+            continue;
+        }
         // Mesma modelo já no Capacity: a mesma chave, ou o mesmo primeiro nome (4 letras ou mais)
         // numa página dela (ex.: "Nicole OFTV" e "Nicole Doshi"; "Aria" não casa com "Ariana Marie").
         $irma = null;
@@ -435,6 +457,11 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
     if (escV4Param('v4_os_equilibrio', '1') === '1') {
         escEstruturaDividirOS($novos, $mantidos, $esc, $cap, $nucleos, $modeloDe);
     }
+    // A página não troca de núcleo (25/11): o posto refeito ou de página que volta fica no núcleo do último
+    // posto dela na mesma unidade e turno, por cima da escolha automática e da divisão dos OS.
+    if (escV4Param('v4_posto_herda_nucleo', '1') === '1') {
+        escEstruturaHerdarNucleo($novos, $nucleos);
+    }
     // Núcleo escolhido na entrada da página (Funil de entrada, 1.25.1) vale por cima da escolha automática.
     escEntradaFixarNucleos($novos, $nucleos, $desde);
 
@@ -523,6 +550,64 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
         $res['fechados'] = count($fechar);
     });
     return $res;
+}
+
+// Núcleo de antes (25/11, decisão do usuário: "as páginas não vão mais trocar de núcleo; se uma página
+// saiu e depois voltou, volta sempre pra onde ela estava"). Para cada posto novo, o núcleo dono é o do
+// último posto da estrutura nova (desde a virada) em que a página principal dele (a de mais volume, fora
+// as de apoio) esteve, na mesma unidade e turno; a cobertura também, se ainda for outro núcleo do turno.
+// Página sem posto anterior ali (nova, ou que voltou em outra unidade) fica com a escolha automática.
+// Mudar de núcleo por controle (ex.: divisão dos OS aplicada, script) muda o posto de hoje, e é dele que
+// o próximo posto herda.
+// $semIds: postos que não contam como "antes" (só para conferir uma sincronização já feita).
+function escEstruturaHerdarNucleo(array &$novos, array $nucleos, array $semIds = []): void {
+    if (!$novos) {
+        return;
+    }
+    try {
+        $pags = [];
+        foreach ($novos as $n) {
+            foreach ($n['paginas'] as $pg => $g) {
+                if (empty($g['apoio'])) {
+                    $pags[(string) $pg] = true;
+                }
+            }
+        }
+        if (!$pags) {
+            return;
+        }
+        $nomes = array_keys($pags);
+        $ultimo = [];
+        foreach (escQ('SELECT pp.pagina, p.unidade, p.turno, p.nucleo_dono_id, p.nucleo_cobertura_id FROM ' . escT('esc_posto_pagina') . ' pp JOIN ' . escT('esc_posto') . ' p ON p.id = pp.posto_id
+                        WHERE pp.apoio = 0 AND pp.pagina IN (' . escIn($nomes) . ') AND p.vigente_desde >= ? AND (p.vigente_ate IS NULL OR p.vigente_ate >= p.vigente_desde)
+                          AND p.nucleo_dono_id IS NOT NULL' . ($semIds ? ' AND p.id NOT IN (' . escIn($semIds) . ')' : '') . '
+                        ORDER BY p.vigente_desde DESC, p.id DESC', array_merge($nomes, [escV4DiaVirada()], array_map('intval', $semIds))) as $r) {
+            $ultimo[$r['pagina'] . '|' . $r['unidade'] . '|' . $r['turno']] ??= ['dono' => (int) $r['nucleo_dono_id'], 'cob' => $r['nucleo_cobertura_id'] !== null ? (int) $r['nucleo_cobertura_id'] : null];
+        }
+        foreach ($novos as &$n) {
+            $ut = $n['unidade'] . '|' . $n['turno'];
+            $doTurno = $nucleos[$ut] ?? [];
+            $pg = null;
+            foreach ($n['paginas'] as $nome => $g) {
+                if (empty($g['apoio']) && isset($ultimo[$nome . '|' . $ut]) && ($pg === null || (float) $g['fans_h'] > (float) $n['paginas'][$pg]['fans_h'])) {
+                    $pg = (string) $nome;
+                }
+            }
+            $antes = $pg !== null ? $ultimo[$pg . '|' . $ut] : null;
+            if (!$antes || !in_array($antes['dono'], $doTurno, true)) {
+                continue;
+            }
+            $n['dono'] = $antes['dono'];
+            if ($antes['cob'] !== null && $antes['cob'] !== $n['dono'] && in_array($antes['cob'], $doTurno, true)) {
+                $n['cob'] = $antes['cob'];
+            } elseif (($n['cob'] ?? null) === $n['dono'] || ($n['cob'] ?? null) === null) {
+                $n['cob'] = array_values(array_diff($doTurno, [$n['dono']]))[0] ?? null;
+            }
+        }
+        unset($n);
+    } catch (Throwable $e) {
+        appLog('warning', 'Estrutura: núcleo de antes não aplicado', ['erro' => $e->getMessage()]);
+    }
 }
 
 // Páginas por OS (núcleo dono dos postos novos), em cada unidade e turno: o OS ganha comissão sobre

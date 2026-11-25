@@ -8,6 +8,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.40.0', 'data' => '2026-11-25', 'titulo' => 'A página não troca de núcleo; U5 Majstore', 'sql' => ['ES_233_posto_herda_nucleo.sql', '5C_Planning_44_unidade_majstore.sql'], 'itens' => [
+    'A página não troca mais de núcleo. Quando o Capacity refaz um posto (uma página entra ou sai dele), o posto novo fica no núcleo e na cobertura do último posto da página principal, na mesma unidade e turno, por cima da escolha automática e da divisão dos OS (ex.: com a saída da Krystal, a Mrs Robinson tinha ido do núcleo 3 para o 2 no A e no C). Página nova segue a escolha automática; o núcleo escolhido no Funil de entrada continua valendo. Parâmetro v4_posto_herda_nucleo (1).',
+    'Página que saiu e voltou volta para onde estava: a entrada automática antes de gerar usa a última carteira dela numa unidade da 5C (com o volume de antes), em vez da página irmã ou do destino do Funil, e o posto volta para o núcleo de antes. Mudar de núcleo fica para controle (ex.: divisão dos OS aplicada à mão).',
+    'U5 Majstore (agência parceira): unidade à parte, como a U4 Vencel, fora da escala, do Capacity e do equilíbrio. Unidade parceira sem página não aparece no Equilíbrio.',
+    ]],
     ['versao' => '1.39.1', 'data' => '2026-11-25', 'titulo' => 'Equilíbrio: lista das páginas das unidades', 'itens' => [
     'Equilíbrio das unidades › Páginas das unidades (informativo): cada página com o tier do site, o volume médio (fãs/h do Capacity de hoje, média dos 3 turnos), o faturamento de 30 dias e a unidade e carteira, da que mais fatura para a que menos (dá para ordenar por qualquer coluna). As páginas da Vencel aparecem no fim, fora do equilíbrio.',
     ]],

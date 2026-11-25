@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.40.0' => ['titulo' => 'Pages no longer change core; U5 Majstore', 'itens' => [
+    'A page no longer changes core. When Capacity rebuilds a post (a page joins or leaves it), the new post stays in the core and cover of the main page\'s last post, in the same unit and shift, overriding the automatic choice and the OS split (e.g. with Krystal\'s exit, Mrs Robinson had moved from core 3 to 2 in A and C). A new page keeps the automatic choice; the core chosen in the Intake funnel still applies. Parameter v4_posto_herda_nucleo (1).',
+    'A page that left and came back returns to where it was: the automatic entry before generating uses its last portfolio in a 5C unit (with its previous volume), instead of a sister page or the Funnel destination, and the post goes back to its previous core. Changing core is left for control (e.g. the OS split applied by hand).',
+    'U5 Majstore (partner agency): a unit of its own, like U4 Vencel, outside the schedule, Capacity and balance. A partner unit with no pages does not show in Balance.',
+    ]],
     '1.39.1' => ['titulo' => 'Balance: list of the unit pages', 'itens' => [
     'Unit balance › Unit pages (for information): each page with the tier registered on the site, the average volume (fans/h from today\'s Capacity, average of the 3 shifts), the 30-day revenue and the unit and portfolio, from the highest revenue to the lowest (any column can be sorted). Vencel pages are listed at the end, outside the balance.',
     ]],

@@ -331,6 +331,8 @@ function escEqDados(string $hoje, ?string $dia = null): array {
         sort($inf['paginas']);
     }
     unset($inf);
+    // Unidade parceira ainda sem página (ex.: U5 Majstore, criada em 25/11) não aparece.
+    $informativo = array_filter($informativo, static fn($inf) => $inf['paginas'] !== []);
     $maturacao = (int) (escPolParam()['pol_prazo_acomp'] ?? 28);
     $paginas = [];
     foreach ($linhas as $nome => $ls) {
