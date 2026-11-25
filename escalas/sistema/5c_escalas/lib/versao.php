@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.39.1', 'data' => '2026-11-25', 'titulo' => 'Equilíbrio: lista das páginas das unidades', 'itens' => [
+    'Equilíbrio das unidades › Páginas das unidades (informativo): cada página com o tier do site, o volume médio (fãs/h do Capacity de hoje, média dos 3 turnos), o faturamento de 30 dias e a unidade e carteira, da que mais fatura para a que menos (dá para ordenar por qualquer coluna). As páginas da Vencel aparecem no fim, fora do equilíbrio.',
+    ]],
     ['versao' => '1.39.0', 'data' => '2026-11-24', 'titulo' => 'Escala: rampa do new hire, venda própria no KPI e páginas grandes primeiro', 'sql' => ['ES_224_novato_tier_e_venda_propria.sql', 'ES_227_restricoes_om_buffer_completa_2411.sql'], 'itens' => [
     'KPI e meta na página pela venda própria: o realizado da página vai para o SR pela venda direta (as mensagens que ele vendeu) e pela tip; assinatura, live tip, live, recurring e post são da página. A meta continua pela fatia de mensagens. Antes, o assistente ou o new hire ao lado de um regular forte ficava com o resultado da página (ex.: new hire com 2% da venda e 108% da meta na Mikayla Paid).',
     'Rampa do new hire (SR nível 0 do cargo), pela semana na operação: 1ª semana assistente ou buffer (cobrindo página, só até o Tier F, US$ 16 mil em 30 dias); 2ª, regular até o Tier F; 3ª e 4ª, regular até o Tier E (US$ 32 mil); até a 4ª, assistente ou buffer têm preferência. De assistente, qualquer página; se o titular falta, o new hire que está de assistente não vira regular (a vaga do titular fica em aberto). Célula travada à mão fica.',

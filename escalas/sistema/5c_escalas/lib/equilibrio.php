@@ -319,8 +319,10 @@ function escEqDados(string $hoje, ?string $dia = null): array {
                 if (in_array($l['carteira'], $inf['carteiras'], true) && substr((string) $l['vigente_desde'], 0, 10) <= $dia
                     && ($l['vigente_ate'] === null || substr((string) $l['vigente_ate'], 0, 10) > $dia)) {
                     $inf['paginas'][] = (string) $nome;
+                    $inf['fat_pagina'][(string) $nome] = 0.0;
                     foreach ($fatPag[escEqChave((string) $nome)] ?? [] as $t => $v) {
                         $inf['fat'][$t] = ($inf['fat'][$t] ?? 0) + (float) $v;
+                        $inf['fat_pagina'][(string) $nome] += (float) $v;
                     }
                     break;
                 }
@@ -452,6 +454,42 @@ function escEqDados(string $hoje, ?string $dia = null): array {
     // juntadas se encadeiam pela unidade toda e o Capacity refaz as combinações no recálculo da troca.
     return ['dia' => $dia, 'paginas' => $paginas, 'srs' => $srs, 'pessoas' => $pessoas, 'fat' => $fatUT, 'postos' => $postos, 'nucleo_id' => $nucleoId,
         'informativo' => $informativo];
+}
+
+// Lista informativa das páginas (25/11): tier do cadastro do site, volume médio (fãs/h do Capacity do
+// dia, média dos 3 turnos), faturamento de 30 dias (o mesmo do equilíbrio) e a unidade. Inclui as
+// carteiras inativas (Vencel), marcadas como informativas. Ordem: do maior faturamento para o menor.
+function escEqListaPaginas(array $eq): array {
+    $vol = [];
+    try {
+        foreach (escQ('SELECT pagina, AVG(fans_h) AS v FROM `5c_planning`.`fc_pagina_carga`
+                        WHERE data_calculo = (SELECT MAX(data_calculo) FROM `5c_planning`.`fc_pagina_carga` WHERE data_calculo <= CURDATE())
+                        GROUP BY pagina') as $r) {
+            $vol[escEqChave((string) $r['pagina'])] = (float) $r['v'];
+        }
+    } catch (Throwable $e) {
+        appLog('warning', 'Equilíbrio: volume das páginas indisponível', ['erro' => $e->getMessage()]);
+    }
+    $linha = static fn(string $nome, string $unidade, string $carteira, float $fat, bool $inf): array => [
+        'pagina' => $nome, 'unidade' => $unidade, 'carteira' => $carteira, 'tier' => escTierDe($nome),
+        'volume' => $vol[escEqChave($nome)] ?? null, 'fat' => $fat, 'informativo' => $inf];
+    $out = [];
+    foreach ($eq['paginas'] ?? [] as $nome => $p) {
+        $out[] = $linha((string) $nome, 'U' . (int) $p['unidade'], (string) $p['carteira'], array_sum($p['fat']), false);
+    }
+    foreach ($eq['informativo'] ?? [] as $inf) {
+        foreach ($inf['paginas'] as $nome) {
+            $out[] = $linha((string) $nome, (string) $inf['nome'], implode('/', $inf['carteiras']), (float) ($inf['fat_pagina'][$nome] ?? 0), true);
+        }
+    }
+    usort($out, static fn($a, $b) => [$a['informativo'], -$a['fat'], $a['pagina']] <=> [$b['informativo'], -$b['fat'], $b['pagina']]);
+    return $out;
+}
+
+// Posição do tier para ordenar (SS no topo, F embaixo; sem tier por último).
+function escEqTierOrdem(string $tier): int {
+    $i = array_search(strtoupper($tier), ['F', 'E', 'D', 'C', 'B', 'A', 'S', 'SS'], true);
+    return $i === false ? -1 : $i;
 }
 
 // Conferência com o Capacity (vw_fc_19_faturamento_unidades, script 23 do Capacity): faturamento

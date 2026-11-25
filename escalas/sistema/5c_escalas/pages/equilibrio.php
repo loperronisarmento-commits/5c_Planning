@@ -185,6 +185,33 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
   <?php endif; ?>
 </section>
 
+<?php $listaPg = escEqListaPaginas($eq); $porU = [];
+foreach ($listaPg as $x) { $porU[$x['unidade']] = ['n' => ($porU[$x['unidade']]['n'] ?? 0) + 1, 'fat' => ($porU[$x['unidade']]['fat'] ?? 0) + $x['fat']]; } ?>
+<section class="panel" id="paginas">
+  <h2><?php echo h(t('Páginas das unidades')); ?></h2>
+  <p class="muted"><?php echo h(t('Lista informativa, da que mais fatura para a que menos (clique no título da coluna para ordenar). Tier: o do cadastro do site. Volume: fãs por hora do Capacity de hoje, média dos 3 turnos. Faturamento: os mesmos 30 dias do equilíbrio, os 3 turnos somados.')); ?></p>
+  <details class="eq-paginas">
+    <summary><?php echo h(tn(count($listaPg), '{n} página', '{n} páginas')); ?><span class="muted small"><?php foreach ($porU as $u => $x): ?> · <?php echo h($u); ?> <?php echo (int) $x['n']; ?> (US$ <?php echo num($x['fat'] / 1e6, 2); ?> mi)<?php endforeach; ?></span></summary>
+    <div class="tabela-rolagem">
+    <table>
+      <thead><tr><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Tier')); ?></th><th class="num"><?php echo h(t('Volume médio (fãs/h)')); ?></th><th class="num"><?php echo h(t('Faturamento 30 dias')); ?></th><th><?php echo h(t('Unidade')); ?></th></tr></thead>
+      <tbody>
+      <?php foreach ($listaPg as $x): ?>
+        <tr<?php echo $x['informativo'] ? ' class="muted"' : ''; ?>>
+          <td><?php echo h($x['pagina']); ?></td>
+          <td data-valor="<?php echo escEqTierOrdem($x['tier']); ?>"><?php echo $x['tier'] !== '' ? h($x['tier']) : '<span class="muted">—</span>'; ?></td>
+          <td class="num"><?php echo $x['volume'] !== null ? num($x['volume'], 2) : '<span class="muted">—</span>'; ?></td>
+          <td class="num">US$ <?php echo num($x['fat'], 0); ?></td>
+          <td><?php echo h($x['unidade']); ?> <span class="muted small"><?php echo h($x['carteira']); ?></span><?php if ($x['informativo']): ?> <span class="small"><?php echo h(t('fora do equilíbrio')); ?></span><?php endif; ?></td>
+        </tr>
+      <?php endforeach; ?>
+      <?php if (!$listaPg): ?><tr><td colspan="5" class="muted"><?php echo h(t('Sem páginas na estrutura para o dia.')); ?></td></tr><?php endif; ?>
+      </tbody>
+    </table>
+    </div>
+  </details>
+</section>
+
 <section class="panel" id="trocas">
   <h2><?php echo h(t('Trocas de unidade sugeridas')); ?></h2>
   <p class="muted"><?php echo h(t('Da que mais aproxima as unidades para a que menos, cada uma contando com as de cima ("Melhora" é quanto do desequilíbrio de hoje some até aquela linha). A página troca com todos os turnos, junto com as outras páginas da mesma modelo. Só pode trocar depois de 28 dias na unidade; o gap que ficar, o Funil cobre dando prioridade às unidades abaixo da média.')); ?></p>

@@ -77,5 +77,12 @@ return [
     'está na U{u} {turno}; a página é da U{p}' => 'is in U{u} {turno}; the page belongs to U{p}',
     'Todas as equipes fixas estão na unidade da página.' => 'Every fixed team is in the page unit.',
     'informativo: fora do equilíbrio' => 'for information: outside the balance',
+    'Páginas das unidades' => 'Unit pages',
+    'Lista informativa, da que mais fatura para a que menos (clique no título da coluna para ordenar). Tier: o do cadastro do site. Volume: fãs por hora do Capacity de hoje, média dos 3 turnos. Faturamento: os mesmos 30 dias do equilíbrio, os 3 turnos somados.' => 'For information, from the highest revenue to the lowest (click a column title to sort). Tier: the one registered on the site. Volume: fans per hour from today\'s Capacity, average of the 3 shifts. Revenue: the same 30 days as the balance, the 3 shifts added up.',
+    '{n} página' => '{n} page',
+    '{n} páginas' => '{n} pages',
+    'Volume médio (fãs/h)' => 'Average volume (fans/h)',
+    'fora do equilíbrio' => 'outside the balance',
+    'Sem páginas na estrutura para o dia.' => 'No pages in the structure for the day.',
     'U{u} {nome}: {paginas}. Só para acompanhar: não entra na média nem no desvio das unidades, nas trocas sugeridas nem na divisão dos OS. Os 30 dias incluem os dias em que as páginas ainda estavam na 5C.' => 'U{u} {nome}: {paginas}. For tracking only: it is not part of the unit average or deviation, the suggested swaps or the OS split. The 30 days include the days when the pages were still at 5C.',
 ];

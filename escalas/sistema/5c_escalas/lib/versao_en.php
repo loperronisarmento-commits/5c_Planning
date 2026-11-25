@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.39.1' => ['titulo' => 'Balance: list of the unit pages', 'itens' => [
+    'Unit balance › Unit pages (for information): each page with the tier registered on the site, the average volume (fans/h from today\'s Capacity, average of the 3 shifts), the 30-day revenue and the unit and portfolio, from the highest revenue to the lowest (any column can be sorted). Vencel pages are listed at the end, outside the balance.',
+    ]],
     '1.39.0' => ['titulo' => 'Schedule: new hire ramp, own sales in the KPI and big pages first', 'itens' => [
     'KPI and page goal by own sales: the page actual goes to the SR by direct sales (the messages the SR sold) and tips; subscriptions, live tips, live, recurring and posts belong to the page. The goal is still split by share of messages. Before, an assistant or new hire next to a strong regular got the page result (e.g. a new hire with 2% of sales and 108% of the goal on Mikayla Paid).',
     'New hire ramp (SR level 0 by role), by week in operation: 1st week assistant or buffer (covering a page, only up to Tier F, US$ 16k in 30 days); 2nd, regular up to Tier F; 3rd and 4th, regular up to Tier E (US$ 32k); up to the 4th, assistant or buffer are preferred. As an assistant, any page; if the main SR is missing, a new hire who is the assistant does not become the regular (the slot of the main SR stays open). A cell locked by hand stays.',
