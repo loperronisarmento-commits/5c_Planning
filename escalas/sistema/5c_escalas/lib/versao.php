@@ -8,6 +8,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.39.0', 'data' => '2026-11-24', 'titulo' => 'Escala: rampa do new hire, venda própria no KPI e páginas grandes primeiro', 'sql' => ['ES_224_novato_tier_e_venda_propria.sql', 'ES_227_restricoes_om_buffer_completa_2411.sql'], 'itens' => [
+    'KPI e meta na página pela venda própria: o realizado da página vai para o SR pela venda direta (as mensagens que ele vendeu) e pela tip; assinatura, live tip, live, recurring e post são da página. A meta continua pela fatia de mensagens. Antes, o assistente ou o new hire ao lado de um regular forte ficava com o resultado da página (ex.: new hire com 2% da venda e 108% da meta na Mikayla Paid).',
+    'Rampa do new hire (SR nível 0 do cargo), pela semana na operação: 1ª semana assistente ou buffer (cobrindo página, só até o Tier F, US$ 16 mil em 30 dias); 2ª, regular até o Tier F; 3ª e 4ª, regular até o Tier E (US$ 32 mil); até a 4ª, assistente ou buffer têm preferência. De assistente, qualquer página; se o titular falta, o new hire que está de assistente não vira regular (a vaga do titular fica em aberto). Célula travada à mão fica.',
+    'Restrições dos OM: tipos novos por pessoa, que só WFM/Planejamento e Admin veem, no painel Gerenciar as restrições (ficam fora da tela e do PDF das equipes).',
+    'SR de nível 0 do KPI fora das páginas prioritárias (modelo de US$ 100 mil ou mais): só entra como regular se não houver mais ninguém na unidade e no turno (sinalizado). "Já fez a página" só conta para quem bateu 65% da meta nela.',
+    'As páginas prioritárias escolhem o melhor SR antes de a base da semana anterior (80/20) prender os melhores nas páginas menores. Quem é da base de uma página vermelha fica nela, e o impacto de uma troca desconta a página da base que fica sem ninguém.',
+    'Equipes das vagas: na página prioritária vem primeiro o score do KPI, e o nível 0 do KPI e o new hire não entram; o new hire só entra pela rampa. As vagas que o próprio Gerar tinha completado com quem não cabe mais são refeitas no próximo Gerar.',
+    'Prévia (deploy/base_previa.php) calcula o KPI sem gravar o cache. Parâmetros novos: v4_novato_teto_f (16000), v4_novato_receita_max (32000) e v4_rateio_venda_propria (1).',
+    ]],
     ['versao' => '1.38.2', 'data' => '2026-11-24', 'titulo' => 'Grade: De → Para por pessoa', 'itens' => [
     'Grade › De → Para nova: uma linha por mudança de cada pessoa (de qual página e turno, para qual, e a partir de quando), com Troca, Entra e Sai. Página que a pessoa deixa aparece riscada, a nova em destaque, e o que continua fica ao lado. A mesma mudança em vários dias vira uma linha só.',
     'Vista por pessoa ou por página, e filtros de mudança, turno e unidade sem recarregar. As mudanças só na 5C Schedule e o detalhe célula a célula (com o motivo do motor) ficam recolhidos no fim.',

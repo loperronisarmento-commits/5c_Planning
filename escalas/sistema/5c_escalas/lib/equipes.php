@@ -136,7 +136,12 @@ function escEquipeFatiaNivel(?float $regular, int $nivel): float {
 // Escolhe quem entra na vaga. $cands = [rep => ['nucleo', 'nivel', 'cap', 'uso']], $vaga = ['nucleo',
 // 'precisa', 'paginas'], $hist = [rep][pagina] = dias, $notas = [rep] = nota. Devolve
 // [[rep, uso que assume, passo]] (vazio só se não houver nenhum SR no turno). Função pura.
+// Desde a 1.39.0, $vaga['bloq'] = [rep => true] não entra (nível 0 do KPI ou new hire em página grande) e,
+// com $vaga['por_score'] (posto de página prioritária), o score do KPI vem antes de quem conhece as páginas.
 function escEquipeEscolher(array $cands, array $vaga, array $hist, array $notas): array {
+    $bloq = $vaga['bloq'] ?? [];
+    $cands = array_diff_key($cands, $bloq);
+    $porScore = !empty($vaga['por_score']);
     $conhece = static function (string $rep) use ($vaga, $hist): int {
         $d = 0;
         foreach ($vaga['paginas'] as $pg) {
@@ -147,8 +152,10 @@ function escEquipeEscolher(array $cands, array $vaga, array $hist, array $notas)
     $falta = $vaga['precisa'];
     // Quem conhece as páginas primeiro; vaga inteira vai para nível 3–5 (fixo numa vaga cheia) e o
     // resto de uma vaga já começada, para níveis 0–2 (que dividem a fatia em até 2 vagas).
-    $ordem = static function (array $reps, callable $disp) use ($conhece, $notas, $cands, &$falta): array {
-        $k = static fn($r) => [$conhece($r), ($cands[$r]['nivel'] >= 3) === ($falta >= 0.999) ? 1 : 0, $notas[$r] ?? -1, $disp($r)];
+    $ordem = static function (array $reps, callable $disp) use ($conhece, $notas, $cands, &$falta, $porScore): array {
+        $k = $porScore
+            ? static fn($r) => [$notas[$r] ?? -1, $conhece($r), ($cands[$r]['nivel'] >= 3) === ($falta >= 0.999) ? 1 : 0, $disp($r)]
+            : static fn($r) => [$conhece($r), ($cands[$r]['nivel'] >= 3) === ($falta >= 0.999) ? 1 : 0, $notas[$r] ?? -1, $disp($r)];
         usort($reps, static fn($a, $b) => $k($b) <=> $k($a));
         return $reps;
     };
@@ -186,6 +193,44 @@ function escEquipeEscolher(array $cands, array $vaga, array $hist, array $notas)
     return array_values($escolha);
 }
 
+// Postos de página grande (1.39.0): [prioritária [posto_id => true], maior faturamento de página [posto_id => US$]].
+// Prioritária: a modelo de alguma página do posto fatura v4_pagina_prioritaria_min (US$ 100 mil) ou mais em 30 dias
+// (como no motor); o maior faturamento de 30 dias entre as páginas do posto vai contra o teto da rampa do new hire.
+// $paginas = [posto][] = nome.
+function escEquipesPostosGrandes(array $paginas): array {
+    $nomes = [];
+    foreach ($paginas as $lista) {
+        foreach ($lista as $pg) {
+            $nomes[$pg] = true;
+        }
+    }
+    if (!$nomes || !function_exists('escV4ReceitaPaginas')) {
+        return [[], []];
+    }
+    $receita = escV4ReceitaPaginas(array_keys($nomes), (int) escV4Param('v4_receita_dias', '30'));
+    $modeloPag = [];
+    foreach (escQ('SELECT pagina, modelo FROM `5c_planning`.`fc_pagina_carteira` WHERE vigente_ate IS NULL AND pagina IN (' . escIn(array_keys($nomes)) . ')', array_keys($nomes)) as $r) {
+        $modeloPag[$r['pagina']] = $r['modelo'];
+    }
+    $porModelo = [];
+    foreach ($receita as $pg => $r) {
+        $m = $modeloPag[$pg] ?? $pg;
+        $porModelo[$m] = ($porModelo[$m] ?? 0) + (float) ($r['total'] ?? 0);
+    }
+    $minPrio = (float) str_replace(',', '.', escV4Param('v4_pagina_prioritaria_min', '100000'));
+    $prio = [];
+    $maior = [];
+    foreach ($paginas as $pid => $lista) {
+        foreach ($lista as $pg) {
+            if (($porModelo[$modeloPag[$pg] ?? $pg] ?? 0) >= $minPrio) {
+                $prio[$pid] = true;
+            }
+            $maior[$pid] = max($maior[$pid] ?? 0.0, (float) ($receita[$pg]['total'] ?? 0));
+        }
+    }
+    return [$prio, $maior];
+}
+
 // Completa as vagas sem ninguém dos postos vigentes em $ref, a partir de $desde (nunca antes do
 // início do posto). Rodar fora de outra transação. Devolve a lista do que foi feito.
 function escEquipesCompletar(string $desde, string $ref): array {
@@ -194,9 +239,76 @@ function escEquipesCompletar(string $desde, string $ref): array {
     if (!$postos) {
         return [];
     }
+    $idsVig = array_flip(array_map(static fn($p) => (int) $p['id'], $postos));
+    // Páginas dos postos vigentes, a página grande (prioritária: modelo com v4_pagina_prioritaria_min ou mais
+    // em 30 dias) e a acima do Tier E (página com mais de v4_novato_receita_max), 1.39.0.
+    $paginas = [];
+    foreach (escQ('SELECT posto_id, pagina FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id IN (' . escIn(array_keys($idsVig)) . ')', array_keys($idsVig)) as $g) {
+        $paginas[(int) $g['posto_id']][] = $g['pagina'];
+    }
+    [$postoPrio, $postoMaior] = escEquipesPostosGrandes($paginas);
+    $nivelKpi = [];
+    try {
+        $nivelKpi = escDesempenhoMotor()['faixa'] ?? [];
+    } catch (Throwable $e) {
+        // sem KPI: só o new hire é barrado
+    }
+    $cargo = []; // [rep] = nível do cargo vigente em $ref
+    foreach (escQ('SELECT UPPER(rep_code) AS rep, nivel FROM ' . escT('esc_colaborador_config') . " WHERE funcao = 'EQUITE' AND" . $vig . ' ORDER BY vigente_desde', [$ref, $ref]) as $c) {
+        $cargo[$c['rep']] = $c['nivel'] !== null ? (int) $c['nivel'] : null;
+    }
+    // Rampa do new hire (semana na operação em $desde): 1ª semana fora das equipes (assistente ou buffer);
+    // depois, só posto com todas as páginas até o teto da semana (Tier F na 2ª, Tier E da 3ª em diante).
+    $novIni = escNovatoInicio(array_keys(array_filter($cargo, static fn($n) => $n === 0)));
+    $novSem = static fn(string $rep): ?int => isset($novIni[$rep]) ? max(1, intdiv((int) ((strtotime($desde) - strtotime($novIni[$rep])) / 86400), 7) + 1) : null;
+    // Quem não pode ficar na equipe do posto: na página prioritária, o nível 0 do KPI e o new hire; o new hire fora da rampa.
+    // Restrições dos OM (24/11): quem é só buffer de plantão ou completa a escala não fica em equipe de vaga.
+    $foraEquipeOm = array_flip(array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_sr_so_buffer', '') . ',' . escV4Param('v4_sr_completa', '')))));
+    $barrado = static function (int $posto, string $rep) use ($postoPrio, $postoMaior, $nivelKpi, $novSem, $foraEquipeOm): ?string {
+        if (isset($foraEquipeOm[$rep])) {
+            return 'ajuste da escalação';
+        }
+        if (isset($postoPrio[$posto]) && isset($nivelKpi[$rep]) && (int) $nivelKpi[$rep] === 0) {
+            return 'KPI nível 0 em página prioritária';
+        }
+        $sem = $novSem($rep);
+        if ($sem === null) {
+            return null;
+        }
+        if ($sem === 1) {
+            return 'new hire na 1ª semana: assistente ou buffer';
+        }
+        $teto = escNovatoTeto($sem);
+        if (isset($postoPrio[$posto]) || ($teto > 0 && ($postoMaior[$posto] ?? 0) > $teto)) {
+            return 'new hire acima do Tier ' . ($sem <= 2 ? 'F' : 'E') . ' (' . $sem . 'ª semana)';
+        }
+        return null;
+    };
+    // Refaz as vagas que o próprio montador completou e que ferem a regra acima: fecham na véspera de $desde
+    // (ou vão para a data neutra, se só começariam depois) e a vaga é completada de novo logo abaixo.
+    $refazer = [];
+    foreach (escQ('SELECT id, posto_id, vaga, UPPER(rep_code) AS rep, vigente_desde FROM ' . escT('esc_vaga_equipe') . " WHERE origem = 'MONTADOR' AND" . $vig, [$ref, $ref]) as $e) {
+        if (isset($idsVig[(int) $e['posto_id']]) && ($por = $barrado((int) $e['posto_id'], $e['rep'])) !== null) {
+            $refazer[] = $e + ['por' => $por];
+        }
+    }
+    if ($refazer) {
+        $fechar = static function () use ($refazer, $desde) {
+            $neutra = escMaisDias(escV4DiaVirada(), -2);
+            foreach ($refazer as $e) {
+                if (substr((string) $e['vigente_desde'], 0, 10) >= $desde) {
+                    escVagaNeutra((int) $e['id'], $neutra);
+                } else {
+                    escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ?, motivo = LEFT(CONCAT(?, COALESCE(motivo, \'\')), 255) WHERE id = ?',
+                        [escMaisDias($desde, -1), 'saiu (1.39.0: ' . $e['por'] . '); ', (int) $e['id']]);
+                }
+            }
+        };
+        escDbW()->inTransaction() ? $fechar() : escTx($fechar);
+        escLog('equipe_refeita', 'esc_vaga_equipe', null, null, $refazer);
+    }
     $tem = [];   // [posto][vaga] = true
     $uso = [];   // [rep] = uso (dono conta a fatia; cobertura, metade)
-    $idsVig = array_flip(array_map(static fn($p) => (int) $p['id'], $postos));
     foreach (escQ('SELECT posto_id, vaga, UPPER(rep_code) AS rep, fatia FROM ' . escT('esc_vaga_equipe') . ' WHERE' . $vig, [$ref, $ref]) as $e) {
         if (!isset($idsVig[(int) $e['posto_id']])) {
             continue;
@@ -276,7 +388,7 @@ function escEquipesCompletar(string $desde, string $ref): array {
     usort($vazias, static fn($a, $b) => $a['ordem'] <=> $b['ordem']);
 
     $feito = [];
-    $gravar = static function () use ($vazias, $paginas, &$pessoas, $hist, $notas, $desde, $futuro, &$feito) {
+    $gravar = static function () use ($vazias, $paginas, &$pessoas, $hist, $notas, $desde, $futuro, &$feito, $barrado, $postoPrio) {
         foreach ($vazias as $v) {
             $p = $v['posto'];
             $ut = $p['unidade'] . '|' . $p['turno'];
@@ -284,7 +396,14 @@ function escEquipesCompletar(string $desde, string $ref): array {
             if ($limite !== null && $limite < max($desde, substr((string) $p['vigente_desde'], 0, 10))) {
                 continue; // já preenchida a partir de $desde
             }
-            $escolha = escEquipeEscolher($pessoas[$ut] ?? [], ['nucleo' => $v['nucleo'], 'precisa' => $v['precisa'], 'paginas' => $paginas[(int) $p['id']] ?? []], $hist, $notas);
+            $bloq = [];
+            foreach (array_keys($pessoas[$ut] ?? []) as $rep) {
+                if ($barrado((int) $p['id'], (string) $rep) !== null) {
+                    $bloq[$rep] = true;
+                }
+            }
+            $escolha = escEquipeEscolher($pessoas[$ut] ?? [], ['nucleo' => $v['nucleo'], 'precisa' => $v['precisa'], 'paginas' => $paginas[(int) $p['id']] ?? [],
+                'bloq' => $bloq, 'por_score' => isset($postoPrio[(int) $p['id']])], $hist, $notas);
             if (!$escolha) {
                 $feito[] = ['posto' => (int) $p['id'], 'vaga' => $v['vaga'], 'reps' => [], 'paginas' => $paginas[(int) $p['id']] ?? []];
                 continue;

@@ -14,6 +14,9 @@
 //   v4_sr_solo             "CÓDIGO" ou "CÓDIGO:AAAA-MM-DD" (até o dia), separados por vírgula: trabalha solo, nunca
 //                          como assistente nem em posto que tem assistente. (05/11)
 //   v4_sr_pref_paginas     "CÓDIGO:página|página;...": preferência nos postos com uma dessas páginas. (05/11)
+//   v4_sr_sem_masculinas   códigos: não faz página masculina (v4_paginas_masculinas), de assistente também. (24/11)
+//   v4_sr_so_buffer        códigos: só buffer de plantão, sem página (motor_v4.php). (24/11)
+//   v4_sr_completa         códigos: completa a escala: por último e só até v4_sr_completa_teto (Tier E) (motor_v4.php). (24/11)
 // A página da divisão do SR (esc_sr_divisao) vale sempre para ele, mesmo fora da lista, do tier ou da faixa.
 // As outras restrições dos OM já existentes seguem onde estavam: equipe fixa com main e cover
 // (esc_pagina_prioridade), só assistente e proibido (esc_pagina_assistente), divisão (esc_sr_divisao),
@@ -117,7 +120,7 @@ function escOmEncerrarOrfasFazer(string $hoje, bool $gravar): array {
     $passou = array_filter($fimRep, static fn($f) => $f < $hoje);
     $pagPassou = array_filter($fimPag, static fn($f) => $f < $hoje);
     $params = [];
-    foreach (escQ('SELECT chave, valor FROM ' . escT('esc_parametro') . " WHERE chave IN ('v4_sr_uma_pagina','v4_sr_so_assistente','v4_sr_baixo_fluxo','v4_sr_baixo_fluxo_estrito','v4_sr_pref_assistente','v4_sr_tier_medio','v4_sr_pref_masculinas','v4_todos_os_dias','v4_sr_so_paginas','v4_sr_multipagina','v4_sr_faixa_receita','v4_paginas_masculinas','v4_nao_subordinado','v4_sr_tier_medio_alto','v4_sr_solo','v4_sr_pref_paginas')") as $r) {
+    foreach (escQ('SELECT chave, valor FROM ' . escT('esc_parametro') . " WHERE chave IN ('v4_sr_uma_pagina','v4_sr_so_assistente','v4_sr_baixo_fluxo','v4_sr_baixo_fluxo_estrito','v4_sr_pref_assistente','v4_sr_tier_medio','v4_sr_pref_masculinas','v4_todos_os_dias','v4_sr_so_paginas','v4_sr_multipagina','v4_sr_faixa_receita','v4_paginas_masculinas','v4_nao_subordinado','v4_sr_tier_medio_alto','v4_sr_solo','v4_sr_pref_paginas','v4_sr_sem_masculinas','v4_sr_so_buffer','v4_sr_completa')") as $r) {
         $params[$r['chave']] = (string) $r['valor'];
     }
     foreach ($params as $ch => $valor) {
@@ -184,6 +187,7 @@ function escOmRestricoes(array $est): array {
     $soPags = $porRep('v4_sr_so_paginas', static fn(string $v) => array_flip(array_filter(array_map(static fn($c) => escV4ChavePagina($c), explode('|', $v)), 'strlen')));
     $faixaRec = $porRep('v4_sr_faixa_receita', static fn(string $v) => preg_match('~^\s*(\d+)\s*-\s*(\d+)\s*$~', $v, $m) ? [(float) $m[1], (float) $m[2]] : null);
     $tierMedioAlto = $listaCod('v4_sr_tier_medio_alto');
+    $semMasc = $listaCod('v4_sr_sem_masculinas');
     $tiersMedioAlto = array_flip(array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param('v4_tier_medio_alto', 'A,B,C,D')))));
     $prefPags = $porRep('v4_sr_pref_paginas', static fn(string $v) => array_flip(array_filter(array_map(static fn($c) => escV4ChavePagina($c), explode('|', $v)), 'strlen')));
     // Solo: código => último dia ('' = sem fim).
@@ -202,7 +206,14 @@ function escOmRestricoes(array $est): array {
             $divPags[$rd][escV4ChavePagina((string) $x['pagina'])] = true;
         }
     }
-    $podePags = static function (string $rep, array $paginas, bool $assist = false) use ($soPags, $tierMedio, $tiersMedio, $tierMedioAlto, $tiersMedioAlto, $faixaRec, $receitaPag, $divPags): bool {
+    $podePags = static function (string $rep, array $paginas, bool $assist = false) use ($soPags, $tierMedio, $tiersMedio, $tierMedioAlto, $tiersMedioAlto, $faixaRec, $receitaPag, $divPags, $semMasc, $pagsMasc): bool {
+        if (isset($semMasc[$rep])) {
+            foreach ($paginas as $pg) {
+                if (isset($pagsMasc[escV4ChavePagina((string) $pg['pagina'])])) {
+                    return false; // não faz página masculina (24/11), nem de assistente
+                }
+            }
+        }
         if (isset($faixaRec[$rep]) && !$assist) {
             $princ = 0.0;
             foreach ($paginas as $pg) {
@@ -249,5 +260,5 @@ function escOmRestricoes(array $est): array {
     };
     return ['pref_assist' => $prefAssist, 'tier_medio' => $tierMedio, 'pref_masc' => $prefMasc, 'faixa' => $faixaRec,
         'so_paginas' => $soPags, 'pode_pags' => $podePags, 'tem_masc' => $temMasc,
-        'tier_medio_alto' => $tierMedioAlto, 'solo' => $solo, 'solo_ate' => $soloAte, 'pref_pags' => $prefPags, 'tem_pref' => $temPref];
+        'tier_medio_alto' => $tierMedioAlto, 'sem_masc' => $semMasc, 'solo' => $solo, 'solo_ate' => $soloAte, 'pref_pags' => $prefPags, 'tem_pref' => $temPref];
 }

@@ -20,7 +20,11 @@
 
 // Parâmetros com lista de códigos (separados por vírgula; o solo aceita "CÓDIGO:AAAA-MM-DD").
 const ESC_OM_LISTA = ['v4_sr_uma_pagina', 'v4_sr_so_assistente', 'v4_sr_baixo_fluxo', 'v4_sr_baixo_fluxo_estrito', 'v4_sr_pref_assistente',
-    'v4_sr_tier_medio', 'v4_sr_pref_masculinas', 'v4_sr_tier_medio_alto', 'v4_sr_solo', 'v4_todos_os_dias'];
+    'v4_sr_tier_medio', 'v4_sr_pref_masculinas', 'v4_sr_tier_medio_alto', 'v4_sr_solo', 'v4_todos_os_dias',
+    'v4_sr_sem_masculinas', 'v4_sr_so_buffer', 'v4_sr_completa'];
+// Restrições de escalação que só WFM/Planejamento e Admin veem (escPodeVerRestrito); ficam fora da tela e do PDF
+// das Restrições dos OM, que vão para as equipes (pedido de 24/11).
+const ESC_OM_RESERVADAS = ['v4_sr_sem_masculinas', 'v4_sr_so_buffer', 'v4_sr_completa'];
 // Parâmetros "CÓDIGO:valor" separados por ponto e vírgula.
 const ESC_OM_MAPA = ['v4_sr_so_paginas', 'v4_sr_multipagina', 'v4_sr_faixa_receita', 'v4_sr_pref_paginas'];
 
@@ -43,6 +47,9 @@ function escOmRotulo(string $ch): string {
         'v4_sr_pref_masculinas' => t('preferência em páginas masculinas'),
         'v4_sr_tier_medio_alto' => t('só tier médio ou alto'),
         'v4_sr_solo' => t('trabalha solo'),
+        'v4_sr_sem_masculinas' => t('não faz páginas masculinas'),
+        'v4_sr_so_buffer' => t('buffer de plantão (sem página)'),
+        'v4_sr_completa' => t('completa a escala (por último, até o Tier E)'),
         'v4_todos_os_dias' => t('todos os dias, fora da rotação'),
         'v4_sr_so_paginas' => t('só nestas páginas'),
         'v4_sr_multipagina' => t('várias páginas ao mesmo tempo'),
@@ -125,6 +132,9 @@ function escOmItens(string $hoje): array {
         $par[$l['chave']] = (string) $l['valor'];
     }
     foreach (ESC_OM_LISTA as $ch) {
+        if (in_array($ch, ESC_OM_RESERVADAS, true) && !escPodeVerRestrito()) {
+            continue; // só WFM/Planejamento e Admin veem (24/11)
+        }
         foreach (array_filter(array_map('trim', explode(',', $par[$ch] ?? ''))) as $item) {
             [$rep, $ate] = array_pad(explode(':', $item, 2), 2, '');
             $rep = strtoupper(trim($rep));

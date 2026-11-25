@@ -6,6 +6,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.39.0' => ['titulo' => 'Schedule: new hire ramp, own sales in the KPI and big pages first', 'itens' => [
+    'KPI and page goal by own sales: the page actual goes to the SR by direct sales (the messages the SR sold) and tips; subscriptions, live tips, live, recurring and posts belong to the page. The goal is still split by share of messages. Before, an assistant or new hire next to a strong regular got the page result (e.g. a new hire with 2% of sales and 108% of the goal on Mikayla Paid).',
+    'New hire ramp (SR level 0 by role), by week in operation: 1st week assistant or buffer (covering a page, only up to Tier F, US$ 16k in 30 days); 2nd, regular up to Tier F; 3rd and 4th, regular up to Tier E (US$ 32k); up to the 4th, assistant or buffer are preferred. As an assistant, any page; if the main SR is missing, a new hire who is the assistant does not become the regular (the slot of the main SR stays open). A cell locked by hand stays.',
+    'OM restrictions: new per-person types, seen only by WFM/Planning and Admin, in the Manage restrictions panel (kept off the screen and the PDF sent to the teams).',
+    'KPI level 0 SRs off priority pages (models with US$ 100k or more): they only go in as regular when no one else is available in the unit and shift (flagged). "Already worked the page" only counts for whoever hit 65% of its goal.',
+    'Priority pages pick the best SR before the previous-week baseline (80/20) holds the best ones on smaller pages. Whoever is in the baseline of a red page stays on it, and a swap\'s impact discounts the baseline page left with no one.',
+    'Slot teams: on a priority page the KPI score comes first, and neither KPI level 0 nor new hires go in; new hires only go in by the ramp. Slots that Generate itself had filled with someone who no longer fits are redone on the next Generate.',
+    'Preview (deploy/base_previa.php) computes the KPI without saving the cache. New parameters: v4_novato_teto_f (16000), v4_novato_receita_max (32000) and v4_rateio_venda_propria (1).',
+    ]],
     '1.38.2' => ['titulo' => 'Grid: Before → After by person', 'itens' => [
     'New Grid › Before → After: one line per change for each person (from which page and shift, to which, and from when), marked Swap, Joins or Leaves. The page the person leaves is struck through, the new one is highlighted, and what stays is shown alongside. The same change on several days becomes one line.',
     'By person or by page view, and change, shift and unit filters without reloading. Changes only in the 5C Schedule and the cell-by-cell detail (with the engine reason) are collapsed at the end.',

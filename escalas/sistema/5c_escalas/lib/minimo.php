@@ -24,7 +24,15 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
     $diaTurno = static fn(array $r): string => $r['bloco'] === 'T1' ? escMaisDias($dia($r), -1) : $dia($r);
     $especial = static fn(array $r): bool => strpos((string) $r['origem'], 'LIDER') === 0 || $r['origem'] === 'TREINO';
     $plantao = static fn(array $r): bool => in_array($r['origem'], ['BUFFER', 'OVERLAP'], true);
-    $pode = static function (string $rep, array $r) use ($pessoas, $indisp, $bloqueios, $diaTurno, $folgaNova): bool {
+    // Restrições dos OM de 24/11: só buffer de plantão (nenhuma página) e não faz página masculina.
+    $listaOm = static fn(string $ch): array => array_flip(array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param($ch, '')))));
+    $soBufOm = $listaOm('v4_sr_so_buffer');
+    $semMascOm = $listaOm('v4_sr_sem_masculinas');
+    $pagsMasc = array_flip(array_filter(array_map(static fn($c) => escV4ChavePagina($c), explode('|', escV4Param('v4_paginas_masculinas', '')))));
+    $pode = static function (string $rep, array $r) use ($pessoas, $indisp, $bloqueios, $diaTurno, $folgaNova, $plantao, $soBufOm, $semMascOm, $pagsMasc): bool {
+        if (!$plantao($r) && (isset($soBufOm[strtoupper($rep)]) || (isset($semMascOm[strtoupper($rep)]) && isset($pagsMasc[escV4ChavePagina((string) ($r['pagina'] ?? ''))])))) {
+            return false;
+        }
         $p = $pessoas[$rep] ?? null;
         if (!$p || $p['turno'] !== $r['turno']) {
             return false; // saiu da escala ou mudou de turno

@@ -77,10 +77,33 @@ function escAtingimentoModelos(array $paginas, array $reps, array $periodos): ar
     return $out;
 }
 
+// Parte do realizado 5CReps da página no bloco que é do SR (1.39.0, regra do usuário de 24/11): do SR
+// são só a venda direta (as mensagens que ele mesmo vendeu: cap_rep_hora.valor_comprado) e a tip;
+// assinatura, live tip, live, recurring e post são da página. A tip não liga ao SR pelo fã (o msgdashboard
+// guarda o nome de exibição do fã e o extrato, o username), então a tip do bloco vai pela fatia de
+// mensagens. Antes da 1.39.0 o realizado ia todo pela fatia de mensagens: o assistente ou o new hire
+// ao lado de um regular forte ficava com o atingimento da página (Alison, Mikayla Paid, 16/11: 21% das
+// mensagens, 2% da venda, 108% da meta). Sem venda direta nem tip no bloco, vale a fatia de mensagens.
+// v4_rateio_venda_propria = 0 volta à regra antiga. $msgs/$tot: mensagens do SR e de todos no bloco;
+// $venda/$vtot: venda direta do SR e de todos; $tip: tip da página no bloco.
+function escFatiaRealizado(float $msgs, float $tot, float $venda, float $vtot, float $tip): float {
+    if ($tot <= 0) {
+        return 0.0;
+    }
+    $fMsg = $msgs / $tot;
+    static $liga = null;
+    $liga ??= !function_exists('escV4Param') || escV4Param('v4_rateio_venda_propria', '1') === '1';
+    $base = $vtot + $tip;
+    if (!$liga || $base <= 0) {
+        return $fMsg;
+    }
+    return ($venda + $tip * $fMsg) / $base;
+}
+
 // Atingimento de cada rep em cada página, por período (PDF de metas da Grade): a parte do
-// realizado e da meta 5CReps da página que cabe ao rep, pela fatia das mensagens no dia, bloco
-// e página (a mesma regra do Kinetic do KPI). $periodos = [[de, ate], ...], datas
-// inclusivas; nada depois de ontem. Volta [pagina][rep][i] = [realizado, meta].
+// realizado e da meta 5CReps da página que cabe ao rep no dia, bloco e página (a mesma regra do
+// Kinetic do KPI): a meta pela fatia das mensagens; o realizado pela venda própria (escFatiaRealizado).
+// $periodos = [[de, ate], ...], datas inclusivas; nada depois de ontem. Volta [pagina][rep][i] = [realizado, meta].
 function escAtingimentoPaginas(array $paginas, array $reps, array $periodos): array {
     $reps = array_values(array_unique(array_map('strtoupper', $reps)));
     if (!$paginas || !$reps || !$periodos) {
@@ -111,20 +134,23 @@ function escAtingimentoPaginas(array $paginas, array $reps, array $periodos): ar
         $repDe[(string) $r['code_infloww']] = $r['rep'];
     }
     $pag = [];
-    foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5
+    foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5, SUM(TIP) AS tip
                      FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE Date >= ? AND Date <= ? GROUP BY Date, Turn, Page', [$de, $ate]) as $r) {
         $p = $nomeDe[$chave((string) $r['pagina'])] ?? null;
         if ($p !== null) {
             $k = substr((string) $r['dia'], 0, 10) . '|' . $r['t'] . '|' . $p;
-            $pag[$k] = [($pag[$k][0] ?? 0) + (float) $r['real5'], ($pag[$k][1] ?? 0) + (float) $r['meta']];
+            $pag[$k] = [($pag[$k][0] ?? 0) + (float) $r['real5'], ($pag[$k][1] ?? 0) + (float) $r['meta'], ($pag[$k][2] ?? 0) + max(0.0, (float) $r['tip'])];
         }
     }
     $msgs = [];
     $tot = [];
-    foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, SUM(msgs_rep) AS m
+    $venda = [];
+    $vtot = [];
+    foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, SUM(msgs_rep) AS m, SUM(valor_comprado) AS v
                      FROM `5c_capacity`.`cap_rep_hora` WHERE dia >= ? AND dia <= ? GROUP BY dia, turno, cod, paginas", [$de, $ate]) as $r) {
         $lista = array_values(array_filter(array_map('trim', explode(' + ', (string) $r['paginas']))));
         $parte = (float) $r['m'] / max(1, count($lista));
+        $parteV = max(0.0, (float) $r['v']) / max(1, count($lista));
         $cod = (string) $r['cod'];
         foreach ($lista as $p) {
             $p = $nomeDe[$chave($p)] ?? null;
@@ -133,8 +159,10 @@ function escAtingimentoPaginas(array $paginas, array $reps, array $periodos): ar
             }
             $k = substr((string) $r['dia'], 0, 10) . '|' . $r['t'] . '|' . $p;
             $tot[$k] = ($tot[$k] ?? 0) + $parte;
+            $vtot[$k] = ($vtot[$k] ?? 0) + $parteV;
             if (isset($repDe[$cod])) {
                 $msgs[$k][$repDe[$cod]] = ($msgs[$k][$repDe[$cod]] ?? 0) + $parte;
+                $venda[$k][$repDe[$cod]] = ($venda[$k][$repDe[$cod]] ?? 0) + $parteV;
             }
         }
     }
@@ -149,10 +177,10 @@ function escAtingimentoPaginas(array $paginas, array $reps, array $periodos): ar
         if ($i === null) {
             continue;
         }
-        [$real, $meta] = $pag[$k];
+        [$real, $meta, $tip] = $pag[$k];
         foreach ($porRep as $rep => $m) {
             $share = $m / $tot[$k];
-            $out[$p][$rep][$i][0] = ($out[$p][$rep][$i][0] ?? 0) + $share * $real;
+            $out[$p][$rep][$i][0] = ($out[$p][$rep][$i][0] ?? 0) + escFatiaRealizado($m, $tot[$k], $venda[$k][$rep] ?? 0.0, $vtot[$k] ?? 0.0, $tip) * $real;
             $out[$p][$rep][$i][1] = ($out[$p][$rep][$i][1] ?? 0) + $share * $meta;
         }
     }

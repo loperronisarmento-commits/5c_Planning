@@ -232,6 +232,9 @@ function escBaseMovimentos(string $seg, array $base, array $est, array $alocA): 
             $rec = $principal !== null ? $receitaDe($principal, $p['turno'], $nomePag) : 0.0;
             $dono = $principal !== null ? ($ocupaBase[$principal . '|' . $p['turno']][0] ?? null) : null;
             $imp = $rec * ((float) ($score[$r] ?? 75.0) - (float) ($dono !== null ? ($score[$dono] ?? 75.0) : 75.0)) / 100;
+            // 1.39.0: a página da base fica sem ninguém (ex.: vermelha que só ele conhece), então o impacto é o ganho
+            // na página nova menos o que a da base perde (Iasmim: Jadeteen 106m × Natasha Nice VIP, prévia de 30/11).
+            $imp -= $receitaDe($pidBase, $p['turno'], $nomes) * (float) ($score[$r] ?? 75.0) / 100;
             $motivo = $principal !== null ? t('o motor o leva para outra página') : t('o motor o deixa sem página (buffer)');
         }
         $lista[] = array_merge($mov, ['receita' => round($rec, 2), 'impacto' => round($imp, 2), 'tipo' => 'OPCIONAL', 'situacao' => 'FICA', 'motivo' => $motivo]);

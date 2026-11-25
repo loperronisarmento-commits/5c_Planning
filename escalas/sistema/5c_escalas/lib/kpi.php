@@ -163,32 +163,38 @@ function escKpiCalcular(array $reps): array {
         $repDe[(string) $r['code_infloww']] = $r['rep'];
     }
 
-    // Kinetic: meta e realizado 5CReps por dia, turno (T1–T6) e página, rateados pelas mensagens do SR
-    // (a mesma conta do atingimento por página, lib/atingimento.php).
+    // Kinetic: meta e realizado 5CReps por dia, turno (T1–T6) e página. A meta vai pela fatia de mensagens
+    // do SR; o realizado, pela venda própria (venda direta e tip, escFatiaRealizado em lib/atingimento.php,
+    // 1.39.0). É a mesma conta do atingimento por página.
     $pag = [];
-    foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5
+    foreach (escQ('SELECT Date AS dia, Turn AS t, Page AS pagina, SUM(`Goal 5CReps`) AS meta, SUM(`5CReps`) AS real5, SUM(TIP) AS tip
                      FROM `5c_wfm_db_mis`.`tab_intraday_base` WHERE Date >= ? AND Date <= ? GROUP BY Date, Turn, Page', [$de, $ate]) as $r) {
         // Nome da página sem diferença de maiúsculas (B1 da auditoria de 24/11: "Brandi Love FREE" no
         // cap_rep_hora e "Brandi Love Free" no Intraday): a chave do PHP diferencia, o SQL não.
         $kp = substr((string) $r['dia'], 0, 10) . '|' . $r['t'] . '|' . mb_strtolower(trim((string) $r['pagina']));
-        $pag[$kp] = [($pag[$kp][0] ?? 0) + (float) $r['meta'], ($pag[$kp][1] ?? 0) + (float) $r['real5']];
+        $pag[$kp] = [($pag[$kp][0] ?? 0) + (float) $r['meta'], ($pag[$kp][1] ?? 0) + (float) $r['real5'], ($pag[$kp][2] ?? 0) + max(0.0, (float) $r['tip'])];
     }
     $msgs = [];
     $tot = [];
+    $venda = [];
+    $vtot = [];
     $temR15 = escKpiTemSla15();
     $r15 = $temR15 ? 'SUM(resp_15min)' : 'NULL';
-    foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, SUM(msgs_rep) AS m,
+    foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, SUM(msgs_rep) AS m, SUM(valor_comprado) AS v,
                           SUM(respostas) AS resp, SUM(resp_5min) AS r5, SUM(resp_10min) AS r10, " . $r15 . " AS r15
                      FROM `5c_capacity`.`cap_rep_hora` WHERE dia >= ? AND dia <= ? GROUP BY dia, turno, cod, paginas", [$de, $ate]) as $r) {
         $dia = substr((string) $r['dia'], 0, 10);
         $cod = (string) $r['cod'];
         $lista = array_values(array_filter(array_map('trim', explode(' + ', (string) $r['paginas']))));
         $parte = (float) $r['m'] / max(1, count($lista));
+        $parteV = max(0.0, (float) $r['v']) / max(1, count($lista));
         foreach ($lista as $p) {
             $k = $dia . '|' . $r['t'] . '|' . mb_strtolower($p);
             $tot[$k] = ($tot[$k] ?? 0) + $parte;
+            $vtot[$k] = ($vtot[$k] ?? 0) + $parteV;
             if (isset($repDe[$cod])) {
                 $msgs[$k][$cod] = ($msgs[$k][$cod] ?? 0) + $parte;
+                $venda[$k][$cod] = ($venda[$k][$cod] ?? 0) + $parteV;
             }
         }
         // Process: SLA 5, 10 e 15 do SR na semana (todas as respostas, sem exclusão de hora).
@@ -211,13 +217,13 @@ function escKpiCalcular(array $reps): array {
         if (!isset($pag[$k]) || empty($tot[$k]) || $pag[$k][0] <= 0) {
             continue;
         }
-        [$meta, $real] = $pag[$k];
+        [$meta, $real, $tip] = $pag[$k];
         $sg = $semanaDe(substr($k, 0, 10));
         foreach ($porCod as $cod => $m) {
             $share = $m / $tot[$k];
             $s = &$sem[$repDe[$cod]][$sg];
             $s['meta'] = ($s['meta'] ?? 0) + $share * $meta;
-            $s['real'] = ($s['real'] ?? 0) + $share * $real;
+            $s['real'] = ($s['real'] ?? 0) + escFatiaRealizado($m, $tot[$k], $venda[$k][$cod] ?? 0.0, $vtot[$k] ?? 0.0, $tip) * $real;
             unset($s);
         }
     }
@@ -382,6 +388,17 @@ function escKpiSrsAtivos(): array {
 // KPI no banco (esc_sr_kpi, K-08): recalcula e grava se estiver com mais de 3 h (ou se $forcar).
 // Volta [rep => linha do cache].
 function escKpiBanco(bool $forcar = false): array {
+    // Prévia (ESC_SO_PREVIA, deploy/base_previa.php): calcula com o código da cópia e não grava o cache.
+    if (!empty($GLOBALS['ESC_SO_PREVIA'])) {
+        static $previa = null;
+        if ($previa === null) {
+            $previa = [];
+            foreach (escKpiLinhas(escKpiCalcular(escKpiSrsAtivos()), date('Y-m-d H:i:s')) as $l) {
+                $previa[strtoupper((string) $l['rep_code'])] = $l;
+            }
+        }
+        return $previa;
+    }
     try {
         $ult = escQ1('SELECT MAX(calculado_em) AS m FROM ' . escT('esc_sr_kpi'));
     } catch (Throwable $e) {

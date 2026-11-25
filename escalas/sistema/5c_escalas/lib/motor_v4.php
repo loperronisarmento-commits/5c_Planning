@@ -97,6 +97,55 @@ function escMotorAlocarV4(array $in): array {
     $ciclo = $est['modelo']['ciclo'];
     $nucleos = $est['nucleos'];
     $pessoas = $est['pessoas'];
+    // Rampa do new hire (SR nível 0 do cargo; 1.39.0, pedido de 24/11 depois da OM da U1: "new hired na main page
+    // do time, não tem como"). A semana conta do primeiro cadastro de SR (a entrada na operação, depois do treino):
+    //   1ª semana: assistente ou buffer; cobrindo página (regular), só até o Tier F (v4_novato_teto_f, US$ 16 mil em 30 dias);
+    //   2ª semana: regular até o Tier F; 3ª e 4ª: regular até o Tier E (v4_novato_receita_max, US$ 32 mil);
+    //   da 1ª à 4ª, assistente ou buffer têm preferência (o new hire é o último escolhido para regular);
+    //   da 5ª em diante, enquanto o cargo for nível 0, regular até o Tier E.
+    // De assistente (posto de assistente ou de apoio), qualquer página. Célula travada à mão fica. 0 no teto desliga.
+    $novatoInicio = escNovatoInicio(array_keys(array_filter($pessoas, static fn($x) => ($x['nivel'] ?? null) !== null && (int) $x['nivel'] === 0)));
+    $novatoSemana = static function (string $rep, string $dia) use ($novatoInicio): ?int {
+        return isset($novatoInicio[$rep]) ? max(1, intdiv((int) ((strtotime($dia) - strtotime($novatoInicio[$rep])) / 86400), 7) + 1) : null;
+    };
+    // Restrições dos OM por pessoa (24/11): v4_sr_so_buffer = só buffer de plantão, sem página (vale como bloqueio em
+    // todas as etapas); v4_sr_completa = completa a escala: fica fora da base 80/20, do melhor SR do turno, das equipes
+    // e da continuidade, vai por último nas outras etapas e só em página até v4_sr_completa_teto (Tier E), de assistente também.
+    $listaOm = static fn(string $ch): array => array_flip(array_filter(array_map(static fn($c) => strtoupper(trim($c)), explode(',', escV4Param($ch, '')))));
+    $soBufferOm = $listaOm('v4_sr_so_buffer');
+    $completaOm = $listaOm('v4_sr_completa');
+    $completaTeto = (float) str_replace(',', '.', escV4Param('v4_sr_completa_teto', '32000'));
+    $novatoBarra = static function (string $rep, array $paginas, bool $assist, string $dia) use ($novatoSemana, $est, $soBufferOm, $completaOm, $completaTeto): bool {
+        if (isset($soBufferOm[$rep])) {
+            return true;
+        }
+        if (isset($completaOm[$rep]) && $completaTeto > 0) {
+            foreach ($paginas as $pg) {
+                if (empty($pg['apoio']) && (float) ($est['receita'][$pg['pagina']]['total'] ?? 0) > $completaTeto) {
+                    return true;
+                }
+            }
+        }
+        $sem = $novatoSemana($rep, $dia);
+        if ($sem === null || $assist) {
+            return false;
+        }
+        $teto = escNovatoTeto($sem);
+        if ($teto <= 0) {
+            return false;
+        }
+        foreach ($paginas as $pg) {
+            if (empty($pg['apoio']) && (float) ($est['receita'][$pg['pagina']]['total'] ?? 0) > $teto) {
+                return true;
+            }
+        }
+        return false;
+    };
+    // 1 = vai por último para regular (new hire da 1ª à 4ª semana: assistente ou buffer têm preferência).
+    $novatoUltimo = static function (string $rep, string $dia) use ($novatoSemana): int {
+        $sem = $novatoSemana($rep, $dia);
+        return $sem !== null && $sem <= 4 ? 1 : 0;
+    };
     $equipes = $est['equipes'];
     // Dia de treinamento do 5x2 (o 15º dia de trabalho do ciclo): o SR entra como Overlap na
     // página 5C Schedule, fora da conta das vagas, ou cobre lacuna. null = sem Overlap.
@@ -450,9 +499,12 @@ function escMotorAlocarV4(array $in): array {
                 return true;
             };
             $travaCobertura = true; // D2: vale até o passo 5; o acúmulo e a sobrecarga (coberturas) liberam
-            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec, $solo, $comAssist, $dia, $soCobertura, &$travaCobertura): bool {
+            $pode = static function (string $rep, array $p) use ($corOk, $pessoas, $nivelMaxAssist, $soAssist, $foraPag, $umaPag, $soAssistGeral, $baixoFluxo, $baixoFluxoMax, $podePags, $prefAssist, $faixaRec, $solo, $comAssist, $dia, $soCobertura, &$travaCobertura, $novatoBarra): bool {
                 if ($travaCobertura && isset($soCobertura[$rep]) && !in_array($p['tipo'], ['assistente', 'apoio'], true)) {
                     return false; // KPI abaixo de 25% entre os 20% piores: só cobertura, nunca regular em posto (D2)
+                }
+                if ($novatoBarra($rep, $p['paginas'], in_array($p['tipo'], ['assistente', 'apoio'], true), $dia)) {
+                    return false; // new hire: rampa por semana (Tier F, depois Tier E) como regular (1.39.0)
                 }
                 foreach ($p['paginas'] as $pg) {
                     if (isset($foraPag[$rep][$pg['pagina']])) {
@@ -496,7 +548,7 @@ function escMotorAlocarV4(array $in): array {
                 }
                 return true;
             };
-            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $desempenho, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc, $temPref): ?string {
+            $escolher = static function (array $cands, array $p) use ($afinidade, $pessoas, $ultimo, $historico, $desempenho, $anosRep, $pode, $prefAssist, $prefMasc, $temMasc, $temPref, $novatoUltimo, $dia, $completaOm): ?string {
                 $assistP = in_array($p['tipo'], ['assistente', 'apoio'], true);
                 $mascP = $prefMasc ? $temMasc($p) : false;
                 $melhor = null;
@@ -513,7 +565,9 @@ function escMotorAlocarV4(array $in): array {
                     // quem tem preferência por página masculina, antes no posto com ela; quem tem preferência
                     // por certas páginas (v4_sr_pref_paginas), antes no posto delas.
                     $pref = ($assistP && isset($prefAssist[$rep])) || ($mascP && isset($prefMasc[$rep])) || (!$assistP && $temPref($rep, $p)) ? 1 : 0;
-                    $k = [$pref, ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
+                    // Rampa do new hire (1.39.0): da 1ª à 4ª semana ele vem primeiro no posto de assistente e por último no de regular.
+                    $nov = $novatoUltimo((string) $rep, $dia);
+                    $k = [isset($completaOm[(string) $rep]) ? 0 : 1, $assistP ? $nov : 1 - $nov, $pref, ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, $afinidade($rep, $p), min(4, intdiv($dias, 7)),
                         round($desempenho[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $pessoas[$rep]['nivel'] ?? 0, $rep];
                     if ($chaveMelhor === null || $k > $chaveMelhor) {
                         $melhor = $rep;
@@ -651,7 +705,7 @@ function escMotorAlocarV4(array $in): array {
                     $melhor = null;
                     $kMelhor = null;
                     foreach ($equipe as $rep => $pag) {
-                        if (($papelEq[$rep] ?? 'EQUIPE') !== $rodada || !isset($st['disp'][$rep]) || isset($usado[$rep]) || !$pode($rep, $p)) {
+                        if (($papelEq[$rep] ?? 'EQUIPE') !== $rodada || !isset($st['disp'][$rep]) || isset($usado[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $p)) {
                             continue;
                         }
                         // No posto de assistente, quem o manager marcou como assistente da página vem antes
@@ -675,196 +729,263 @@ function escMotorAlocarV4(array $in): array {
                 unset($v, $st);
             }
 
-            // Base da semana anterior (1.37.0, lib/base_semana.php): depois da equipe fixa, quem estava na página na semana
-            // anterior e não está entre as trocas escolhidas (80/20) fica com ela, antes do melhor SR; o Anjo do OS também.
-            // Não sai da página para remanejar.
-            if (!$transicao && !empty($est['base']['paginas'])) {
-                foreach (array_keys($estadoUT) as $u) {
-                    $st = &$estadoUT[$u];
-                    foreach ($st['vagas'] as &$v) {
-                        if ($v['rep'] !== null) {
-                            continue;
+            // Fases (1.39.0): as vagas dos postos com página prioritária (modelo de US$ 100 mil ou mais) passam
+            // primeiro pela base da semana anterior e logo pelo melhor SR do turno, ANTES da base das páginas menores.
+            // Antes, a rodada 80/20 prendia os melhores nas páginas menores e a página grande ficava com o que sobrava
+            // (Jadeteen 106m na semana de 30/11: nível 0 com Alan da Mata, 88%, preso na Silvia Saige).
+            $postoPrio = static function (array $p) use ($est): bool {
+                foreach ($p['paginas'] as $pg) {
+                    if (empty($pg['apoio']) && isset($est['prioritaria'][$pg['pagina']])) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+            // Quem é da base (80/20) de uma página vermelha não sai dela para o melhor SR de outra página prioritária:
+            // a vermelha só aceita quem a conhece (P-02) e ficaria vazia (Natasha Nice VIP, prévia de 30/11).
+            $baseVermelha = []; // [rep][page_id] = true
+            if ($corAtiva && !$transicao && !empty($est['base']['paginas'])) {
+                $nomePid = [];
+                foreach ($est['postos'] as $ppV) {
+                    foreach ($ppV['paginas'] as $pgV) {
+                        $nomePid[(int) $pgV['page_id']] = (string) $pgV['pagina'];
+                    }
+                }
+                foreach ($est['base']['paginas'] as $pidV => $repsV) {
+                    if (isset($nomePid[(int) $pidV]) && escCorDe($nomePid[(int) $pidV]) === 'VERMELHA') {
+                        foreach (array_keys($repsV) as $rV) {
+                            $baseVermelha[(string) $rV][(int) $pidV] = true;
                         }
-                        $p = $est['postos'][$v['pid']];
-                        $melhor = null;
-                        $kMelhor = null;
-                        $pagMelhor = null;
-                        foreach ($p['paginas'] as $pg) {
-                            if (!empty($pg['apoio'])) {
+                    }
+                }
+            }
+            foreach ([true, false] as $fasePrio) {
+                // Base da semana anterior (1.37.0, lib/base_semana.php): depois da equipe fixa, quem estava na página na semana
+                // anterior e não está entre as trocas escolhidas (80/20) fica com ela, antes do melhor SR; o Anjo do OS também.
+                // Não sai da página para remanejar.
+                if (!$transicao && !empty($est['base']['paginas'])) {
+                    foreach (array_keys($estadoUT) as $u) {
+                        $st = &$estadoUT[$u];
+                        foreach ($st['vagas'] as &$v) {
+                            if ($v['rep'] !== null) {
                                 continue;
                             }
-                            foreach ($est['base']['paginas'][(int) $pg['page_id']] ?? [] as $rep => $blocosBase) {
-                                if (!isset($st['disp'][$rep]) || isset($usado[$rep]) || !$pode($rep, $p)) {
+                            $p = $est['postos'][$v['pid']];
+                            if ($postoPrio($p) !== $fasePrio) {
+                                continue;
+                            }
+                            $melhor = null;
+                            $kMelhor = null;
+                            $pagMelhor = null;
+                            foreach ($p['paginas'] as $pg) {
+                                if (!empty($pg['apoio'])) {
                                     continue;
                                 }
-                                $k = [($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, (int) $blocosBase, $rep];
+                                foreach ($est['base']['paginas'][(int) $pg['page_id']] ?? [] as $rep => $blocosBase) {
+                                    if (!isset($st['disp'][$rep]) || isset($usado[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $p)) {
+                                        continue;
+                                    }
+                                    // K-04 (1.39.0): o nível 0 não fica pela base em página prioritária, a não ser que tenha
+                                    // batido a meta mínima nela; o melhor SR do turno decide a vaga logo depois.
+                                    if ($fasePrio && $fonteKpi && $abaixoForaTopo && ($faixaRep[$rep] ?? $neutro) === 0
+                                        && ($est['melhores']['meta'][$pg['pagina']][$rep] ?? 0.0) < ($est['melhores']['meta_min'] ?? 0.65)) {
+                                        continue;
+                                    }
+                                    if ($novatoSemana((string) $rep, $dia) === 1) {
+                                        continue; // new hire na 1ª semana: assistente ou buffer (1.39.0)
+                                    }
+                                    $k = [1 - $novatoUltimo((string) $rep, $dia), ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, (int) $blocosBase, $rep];
+                                    if ($kMelhor === null || $k > $kMelhor) {
+                                        $kMelhor = $k;
+                                        $melhor = $rep;
+                                        $pagMelhor = (string) $pg['pagina'];
+                                    }
+                                }
+                            }
+                            if ($melhor !== null) {
+                                $v['rep'] = $melhor;
+                                $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
+                                $v['motivo'] = (isset($est['base']['anjo'][$melhor]) ? 'Anjo do OS: fica mais uma semana em ' : 'mantido da semana anterior em ') . $pagMelhor
+                                    . ' (80/20)';
+                                $v['fixa'] = true; // não sai da página para remanejar
+                                $usado[$melhor] = true;
+                            }
+                        }
+                        unset($v, $st);
+                    }
+                }
+
+                if (!$fasePrio) {
+                    // P-02 Reserva de quem conhece (vermelhas e depois amarelas): antes do melhor SR de cima para baixo,
+                    // cada vaga vazia de posto com página vermelha (depois amarela), da que mais fatura para a que menos,
+                    // fica com quem conhece a página (7 dias ou mais em 90, ou equipe fixa). Assim quem conhece a
+                    // vermelha não é gasto antes numa verde. A escolha entre eles é a de sempre ($escolher).
+                    if ($corAtiva && !$transicao) {
+                        $conhecePosto = static function (string $rep, array $p, string $cor) use ($conheceCor, $fixoNaPag, $dia): bool {
+                            foreach ($p['paginas'] as $pg) {
+                                if (empty($pg['apoio']) && escCorDe((string) $pg['pagina']) === $cor
+                                    && !isset($conheceCor[$rep][$pg['pagina']]) && !$fixoNaPag($rep, (string) $pg['pagina'], $dia)) {
+                                    return false;
+                                }
+                            }
+                            return true;
+                        };
+                        foreach (['VERMELHA', 'AMARELA'] as $corR) {
+                            $listaR = [];
+                            foreach ($estadoUT as $uR => $stR) {
+                                foreach ($stR['vagas'] as $ivR => $vR) {
+                                    if ($vR['rep'] !== null) {
+                                        continue;
+                                    }
+                                    $recR = null;
+                                    foreach ($est['postos'][$vR['pid']]['paginas'] as $pg) {
+                                        if (empty($pg['apoio']) && escCorDe((string) $pg['pagina']) === $corR) {
+                                            $recR = max($recR ?? 0.0, (float) ($est['receita'][$pg['pagina']]['total'] ?? 0));
+                                        }
+                                    }
+                                    if ($recR !== null) {
+                                        $listaR[] = [$uR, $ivR, $recR];
+                                    }
+                                }
+                            }
+                            usort($listaR, static fn($a, $b) => $b[2] <=> $a[2]);
+                            foreach ($listaR as [$uR, $ivR]) {
+                                $vR = $estadoUT[$uR]['vagas'][$ivR];
+                                if ($vR['rep'] !== null) {
+                                    continue;
+                                }
+                                $pR = $est['postos'][$vR['pid']];
+                                $cands = array_values(array_filter(array_keys($estadoUT[$uR]['disp']), static fn($r) => !isset($usado[$r]) && $conhecePosto((string) $r, $pR, $corR)));
+                                $rep = $cands ? $escolher($cands, $pR) : null;
+                                if ($rep === null) {
+                                    continue;
+                                }
+                                $estadoUT[$uR]['vagas'][$ivR]['rep'] = $rep;
+                                $estadoUT[$uR]['vagas'][$ivR]['origem'] = isset($vR['equipe'][$rep]) ? ($vR['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
+                                $estadoUT[$uR]['vagas'][$ivR]['motivo'] = 'conhece a página ' . ($corR === 'VERMELHA' ? 'vermelha' : 'amarela') . ' ' . $pR['pagina_principal'] . ' (P-02: 7 dias ou mais em 90)';
+                                $estadoUT[$uR]['vagas'][$ivR]['fixa'] = $corR === 'VERMELHA';
+                                $usado[$rep] = true;
+                            }
+                        }
+                    }
+                }
+
+                // 0. Páginas das modelos de v4_melhores_receita_min ou mais (0 = todas, P-01): o melhor SR do turno
+                //    na página entra antes da equipe da vaga; a equipe fixa da página (acima) vem antes dele.
+                //    As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro. Desde a 1.19.0
+                //    (A-01, v4_kpi_passo0): quem bateu a meta na página, a faixa do mérito, a nota em
+                //    pontos e o tempo de casa, com continuidade; antes, a venda/hora.
+                $mel = $est['melhores'] ?? null;
+                if (!$transicao && $mel && !empty($mel['paginas'])) {
+                    foreach ($estadoUT as $u => &$st) {
+                        foreach ($st['vagas'] as &$v) {
+                            if ($v['rep'] !== null) {
+                                continue; // já tem a equipe fixa da página
+                            }
+                            $p = $est['postos'][$v['pid']];
+                            if ($postoPrio($p) !== $fasePrio) {
+                                continue;
+                            }
+                            $pag = null;
+                            foreach ($p['paginas'] as $pg) {
+                                if (!$pg['apoio'] && ($pag === null || ($est['receita'][$pg['pagina']][$turno] ?? 0) > ($est['receita'][$pag][$turno] ?? 0))) {
+                                    $pag = $pg['pagina'];
+                                }
+                            }
+                            $pag = $pag ?? ($p['paginas'][0]['pagina'] ?? null);
+                            if ($pag === null || !isset($mel['paginas'][$pag])) {
+                                continue;
+                            }
+                            $melhor = null;
+                            $kMelhor = null;
+                            $metaMin = $mel['meta_min'] ?? 0.65;
+                            $pidsPosto = [];
+                            foreach ($p['paginas'] as $pg) {
+                                $pidsPosto[(int) $pg['page_id']] = true;
+                            }
+                            foreach ($st['disp'] as $rep => $pp) {
+                                if (isset($usado[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $p)) {
+                                    continue;
+                                }
+                                if ($fasePrio && isset($baseVermelha[(string) $rep]) && !array_intersect_key($baseVermelha[(string) $rep], $pidsPosto)) {
+                                    continue; // é da base de uma página vermelha (P-02): fica lá
+                                }
+                                if ($novatoSemana((string) $rep, $dia) === 1) {
+                                    continue; // new hire na 1ª semana: assistente ou buffer (1.39.0)
+                                }
+                                // Primeiro quem já fez a página e bateu a meta nela (v4_melhores_meta_min nos últimos 30 dias).
+                                $bateu = ($mel['meta'][$pag][$rep] ?? 0.0) >= $metaMin ? 1 : 0;
+                                if ($faixaPasso0) {
+                                    // A-01 com a P-01 e o KPI: o nível, o score e o tempo de casa. Desde a 1.39.0:
+                                    // K-04 é bloqueio (o nível 0 só entra em página prioritária sem outro disponível ou
+                                    // com a meta mínima batida nela) e "já fez a página" só conta com a meta mínima
+                                    // batida (antes, 6% da meta em 7 horas passava na frente de um nível 3).
+                                    $k04 = $fonteKpi && $abaixoForaTopo && ($faixaRep[$rep] ?? $neutro) === 0 && isset($est['prioritaria'][$pag]) && !$bateu ? 0 : 1;
+                                    $k = [$k04, 1 - $novatoUltimo((string) $rep, $dia), $bateu, $faixaRep[$rep] ?? $neutro, round($desempenho[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
+                                } else {
+                                    // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
+                                    $naPag = $mel['pagina'][$pag][$rep] ?? null;
+                                    $geral = $mel['geral'][$rep] ?? 0.0;
+                                    $k = [$bateu, $naPag ?? $geral, $naPag !== null ? 1 : 0, $geral, (int) ($pp['nivel'] ?? 0), $rep];
+                                }
                                 if ($kMelhor === null || $k > $kMelhor) {
                                     $kMelhor = $k;
                                     $melhor = $rep;
-                                    $pagMelhor = (string) $pg['pagina'];
                                 }
                             }
-                        }
-                        if ($melhor !== null) {
+                            if ($melhor === null || (!$faixaPasso0 && $kMelhor[0] === 0 && $kMelhor[1] <= 0)) {
+                                continue;
+                            }
+                            $fica = false;
+                            if ($faixaPasso0) {
+                                // Continuidade (P-01): quem estava no posto fica, a não ser que o melhor seja de faixa acima
+                                // da dele, que ele esteja abaixo da meta mínima na página ou que nunca a tenha feito
+                                // e o melhor já tenha.
+                                $antes = $ultimo[(int) $p['id']] ?? null;
+                                $fxAntes = $faixaRep[$antes ?? ''] ?? $neutro;
+                                $fxMelhor = $faixaRep[$melhor] ?? $neutro;
+                                // KPI: K-03 (tabela por nível) e D1 (no máximo v4_kpi_mov_max dos SRs perdem o posto pelo KPI).
+                                $naoTira = $fonteKpi
+                                    ? (!$kpiTira($fxAntes, $fxMelhor, isset($est['prioritaria'][$pag])) || (!isset($kpiMovidos[$antes]) && count($kpiMovidos) >= $kpiMovMax))
+                                    : $fxMelhor <= $fxAntes;
+                                // K-04 (1.39.0): o nível 0 sem a meta mínima na página prioritária sai para qualquer nível
+                                // acima, fora do limite de 20% (não é troca do KPI, é a regra da página).
+                                if ($fonteKpi && $abaixoForaTopo && $fxAntes === 0 && $fxMelhor > 0 && isset($est['prioritaria'][$pag])
+                                    && ($mel['meta'][$pag][$antes ?? ''] ?? 0.0) < $metaMin) {
+                                    $naoTira = false;
+                                }
+                                if ($antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && !isset($usado[$antes]) && !isset($completaOm[$antes]) && $pode($antes, $p)
+                                    && $naoTira
+                                    && (isset($mel['meta'][$pag][$antes]) || !isset($mel['meta'][$pag][$melhor]))
+                                    && !(isset($mel['meta'][$pag][$antes]) && $mel['meta'][$pag][$antes] < $metaMin)) {
+                                    $melhor = $antes;
+                                    $fica = true;
+                                } elseif ($fonteKpi && $antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && $fxMelhor > $fxAntes) {
+                                    $kpiMovidos[$antes] = true; // saiu do posto pelo KPI (conta no limite de 20%)
+                                }
+                            }
                             $v['rep'] = $melhor;
                             $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
-                            $v['motivo'] = (isset($est['base']['anjo'][$melhor]) ? 'Anjo do OS: fica mais uma semana em ' : 'mantido da semana anterior em ') . $pagMelhor
-                                . ' (80/20)';
-                            $v['fixa'] = true; // não sai da página para remanejar
+                            $metaPag = isset($mel['meta'][$pag][$melhor]) ? round($mel['meta'][$pag][$melhor] * 100) . '% da meta na página em 30 dias' : 'sem meta na página em 30 dias';
+                            if ($faixaPasso0) {
+                                $fxM = $faixaRep[$melhor] ?? $neutro;
+                                $v['motivo'] = ($fica ? 'continua no posto, ' : 'melhor SR do turno, ') . 'para ' . $pag . ' (' . $metaPag . '; ' . $nomeFaixa($fxM) . ', '
+                                    . str_replace('.', ',', (string) round($desempenho[$melhor] ?? 0.0, 1)) . ($fonteKpi ? '%' : ' pontos') . ')';
+                                // A-02 / K-04: o SR Abaixo (nível 0) só fica em página prioritária sem outro disponível (ou se bateu a meta nela).
+                                if ($abaixoForaTopo && $fxM === 0 && isset($est['prioritaria'][$pag])) {
+                                    $v['motivo'] .= $fonteKpi ? ' · nível 0 em página prioritária' : ' · Abaixo em página prioritária';
+                                }
+                            } else {
+                                $v['motivo'] = 'melhor SR do turno para ' . $pag . ' (modelo com US$ ' . number_format($mel['paginas'][$pag], 0, ',', '.')
+                                    . ' em 30 dias; SR com US$ ' . number_format($kMelhor[1], 0, ',', '.') . '/h ' . ($kMelhor[2] ? 'na página' : 'no geral')
+                                    . ($kMelhor[0] ? ', ' . $metaPag : '') . ')';
+                            }
                             $usado[$melhor] = true;
                         }
+                        unset($v);
                     }
-                    unset($v, $st);
+                    unset($st);
                 }
-            }
-
-            // P-02 Reserva de quem conhece (vermelhas e depois amarelas): antes do melhor SR de cima para baixo,
-            // cada vaga vazia de posto com página vermelha (depois amarela), da que mais fatura para a que menos,
-            // fica com quem conhece a página (7 dias ou mais em 90, ou equipe fixa). Assim quem conhece a
-            // vermelha não é gasto antes numa verde. A escolha entre eles é a de sempre ($escolher).
-            if ($corAtiva && !$transicao) {
-                $conhecePosto = static function (string $rep, array $p, string $cor) use ($conheceCor, $fixoNaPag, $dia): bool {
-                    foreach ($p['paginas'] as $pg) {
-                        if (empty($pg['apoio']) && escCorDe((string) $pg['pagina']) === $cor
-                            && !isset($conheceCor[$rep][$pg['pagina']]) && !$fixoNaPag($rep, (string) $pg['pagina'], $dia)) {
-                            return false;
-                        }
-                    }
-                    return true;
-                };
-                foreach (['VERMELHA', 'AMARELA'] as $corR) {
-                    $listaR = [];
-                    foreach ($estadoUT as $uR => $stR) {
-                        foreach ($stR['vagas'] as $ivR => $vR) {
-                            if ($vR['rep'] !== null) {
-                                continue;
-                            }
-                            $recR = null;
-                            foreach ($est['postos'][$vR['pid']]['paginas'] as $pg) {
-                                if (empty($pg['apoio']) && escCorDe((string) $pg['pagina']) === $corR) {
-                                    $recR = max($recR ?? 0.0, (float) ($est['receita'][$pg['pagina']]['total'] ?? 0));
-                                }
-                            }
-                            if ($recR !== null) {
-                                $listaR[] = [$uR, $ivR, $recR];
-                            }
-                        }
-                    }
-                    usort($listaR, static fn($a, $b) => $b[2] <=> $a[2]);
-                    foreach ($listaR as [$uR, $ivR]) {
-                        $vR = $estadoUT[$uR]['vagas'][$ivR];
-                        if ($vR['rep'] !== null) {
-                            continue;
-                        }
-                        $pR = $est['postos'][$vR['pid']];
-                        $cands = array_values(array_filter(array_keys($estadoUT[$uR]['disp']), static fn($r) => !isset($usado[$r]) && $conhecePosto((string) $r, $pR, $corR)));
-                        $rep = $cands ? $escolher($cands, $pR) : null;
-                        if ($rep === null) {
-                            continue;
-                        }
-                        $estadoUT[$uR]['vagas'][$ivR]['rep'] = $rep;
-                        $estadoUT[$uR]['vagas'][$ivR]['origem'] = isset($vR['equipe'][$rep]) ? ($vR['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
-                        $estadoUT[$uR]['vagas'][$ivR]['motivo'] = 'conhece a página ' . ($corR === 'VERMELHA' ? 'vermelha' : 'amarela') . ' ' . $pR['pagina_principal'] . ' (P-02: 7 dias ou mais em 90)';
-                        $estadoUT[$uR]['vagas'][$ivR]['fixa'] = $corR === 'VERMELHA';
-                        $usado[$rep] = true;
-                    }
-                }
-            }
-
-            // 0. Páginas das modelos de v4_melhores_receita_min ou mais (0 = todas, P-01): o melhor SR do turno
-            //    na página entra antes da equipe da vaga; a equipe fixa da página (acima) vem antes dele.
-            //    As vagas vão na ordem da fila: a modelo que mais fatura escolhe primeiro. Desde a 1.19.0
-            //    (A-01, v4_kpi_passo0): quem bateu a meta na página, a faixa do mérito, a nota em
-            //    pontos e o tempo de casa, com continuidade; antes, a venda/hora.
-            $mel = $est['melhores'] ?? null;
-            if (!$transicao && $mel && !empty($mel['paginas'])) {
-                foreach ($estadoUT as $u => &$st) {
-                    foreach ($st['vagas'] as &$v) {
-                        if ($v['rep'] !== null) {
-                            continue; // já tem a equipe fixa da página
-                        }
-                        $p = $est['postos'][$v['pid']];
-                        $pag = null;
-                        foreach ($p['paginas'] as $pg) {
-                            if (!$pg['apoio'] && ($pag === null || ($est['receita'][$pg['pagina']][$turno] ?? 0) > ($est['receita'][$pag][$turno] ?? 0))) {
-                                $pag = $pg['pagina'];
-                            }
-                        }
-                        $pag = $pag ?? ($p['paginas'][0]['pagina'] ?? null);
-                        if ($pag === null || !isset($mel['paginas'][$pag])) {
-                            continue;
-                        }
-                        $melhor = null;
-                        $kMelhor = null;
-                        $metaMin = $mel['meta_min'] ?? 0.65;
-                        foreach ($st['disp'] as $rep => $pp) {
-                            if (isset($usado[$rep]) || !$pode($rep, $p)) {
-                                continue;
-                            }
-                            // Primeiro quem já fez a página e bateu a meta nela (v4_melhores_meta_min nos últimos 30 dias).
-                            $bateu = ($mel['meta'][$pag][$rep] ?? 0.0) >= $metaMin ? 1 : 0;
-                            if ($faixaPasso0) {
-                                // A-01 com a P-01: depois quem já fez a página em 30 dias (tem meta nela, 03/11),
-                                // a faixa do mérito, a nota em pontos e o tempo de casa.
-                                $fezPagina = isset($mel['meta'][$pag][$rep]) ? 1 : 0;
-                                $k = [$bateu, $fezPagina, $faixaRep[$rep] ?? $neutro, round($desempenho[$rep] ?? 0.0, 2), $anosRep[$rep] ?? 0, $rep];
-                            } else {
-                                // 1.18: a venda/hora (na página, se tem histórico nela; senão a geral).
-                                $naPag = $mel['pagina'][$pag][$rep] ?? null;
-                                $geral = $mel['geral'][$rep] ?? 0.0;
-                                $k = [$bateu, $naPag ?? $geral, $naPag !== null ? 1 : 0, $geral, (int) ($pp['nivel'] ?? 0), $rep];
-                            }
-                            if ($kMelhor === null || $k > $kMelhor) {
-                                $kMelhor = $k;
-                                $melhor = $rep;
-                            }
-                        }
-                        if ($melhor === null || (!$faixaPasso0 && $kMelhor[0] === 0 && $kMelhor[1] <= 0)) {
-                            continue;
-                        }
-                        $fica = false;
-                        if ($faixaPasso0) {
-                            // Continuidade (P-01): quem estava no posto fica, a não ser que o melhor seja de faixa acima
-                            // da dele, que ele esteja abaixo da meta mínima na página ou que nunca a tenha feito
-                            // e o melhor já tenha.
-                            $antes = $ultimo[(int) $p['id']] ?? null;
-                            $fxAntes = $faixaRep[$antes ?? ''] ?? $neutro;
-                            $fxMelhor = $faixaRep[$melhor] ?? $neutro;
-                            // KPI: K-03 (tabela por nível) e D1 (no máximo v4_kpi_mov_max dos SRs perdem o posto pelo KPI).
-                            $naoTira = $fonteKpi
-                                ? (!$kpiTira($fxAntes, $fxMelhor, isset($est['prioritaria'][$pag])) || (!isset($kpiMovidos[$antes]) && count($kpiMovidos) >= $kpiMovMax))
-                                : $fxMelhor <= $fxAntes;
-                            if ($antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && !isset($usado[$antes]) && $pode($antes, $p)
-                                && $naoTira
-                                && (isset($mel['meta'][$pag][$antes]) || !isset($mel['meta'][$pag][$melhor]))
-                                && !(isset($mel['meta'][$pag][$antes]) && $mel['meta'][$pag][$antes] < $metaMin)) {
-                                $melhor = $antes;
-                                $fica = true;
-                            } elseif ($fonteKpi && $antes !== null && $antes !== $melhor && isset($st['disp'][$antes]) && $fxMelhor > $fxAntes) {
-                                $kpiMovidos[$antes] = true; // saiu do posto pelo KPI (conta no limite de 20%)
-                            }
-                        }
-                        $v['rep'] = $melhor;
-                        $v['origem'] = isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO';
-                        $metaPag = isset($mel['meta'][$pag][$melhor]) ? round($mel['meta'][$pag][$melhor] * 100) . '% da meta na página em 30 dias' : 'sem meta na página em 30 dias';
-                        if ($faixaPasso0) {
-                            $fxM = $faixaRep[$melhor] ?? $neutro;
-                            $v['motivo'] = ($fica ? 'continua no posto, ' : 'melhor SR do turno, ') . 'para ' . $pag . ' (' . $metaPag . '; ' . $nomeFaixa($fxM) . ', '
-                                . str_replace('.', ',', (string) round($desempenho[$melhor] ?? 0.0, 1)) . ($fonteKpi ? '%' : ' pontos') . ')';
-                            // A-02 / K-04: o SR Abaixo (nível 0) só fica em página prioritária sem outro disponível (ou se bateu a meta nela).
-                            if ($abaixoForaTopo && $fxM === 0 && isset($est['prioritaria'][$pag])) {
-                                $v['motivo'] .= $fonteKpi ? ' · nível 0 em página prioritária' : ' · Abaixo em página prioritária';
-                            }
-                        } else {
-                            $v['motivo'] = 'melhor SR do turno para ' . $pag . ' (modelo com US$ ' . number_format($mel['paginas'][$pag], 0, ',', '.')
-                                . ' em 30 dias; SR com US$ ' . number_format($kMelhor[1], 0, ',', '.') . '/h ' . ($kMelhor[2] ? 'na página' : 'no geral')
-                                . ($kMelhor[0] ? ', ' . $metaPag : '') . ')';
-                        }
-                        $usado[$melhor] = true;
-                    }
-                    unset($v);
-                }
-                unset($st);
             }
 
             foreach ($estadoUT as $u => &$st) {
@@ -878,12 +999,13 @@ function escMotorAlocarV4(array $in): array {
                     $melhor = null;
                     $chaveMelhor = null;
                     foreach ($v['equipe'] as $rep => $fatia) {
-                        if (!isset($st['disp'][$rep]) || isset($usado[$rep]) || !$pode($rep, $est['postos'][$v['pid']])) {
-                            continue;
+                        if (!isset($st['disp'][$rep]) || isset($usado[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $est['postos'][$v['pid']])
+                            || ($novatoSemana((string) $rep, $dia) === 1 && !in_array($est['postos'][$v['pid']]['tipo'], ['assistente', 'apoio'], true))) {
+                            continue; // new hire na 1ª semana: só assistente ou buffer (1.39.0)
                         }
                         $share = ($feito[$rep][$v['chave']] ?? 0) / max(1, $diasVaga[$v['chave']]);
                         $continua = ($ultimo[$v['pid']] ?? null) === $rep && $share < $fatia + 0.15 ? 1 : 0;
-                        $k = [$continua, round($fatia - $share, 2), $fatia, round($est['desempenho'][$rep] ?? 0.0, 2), $rep];
+                        $k = [1 - $novatoUltimo((string) $rep, $dia), $continua, round($fatia - $share, 2), $fatia, round($est['desempenho'][$rep] ?? 0.0, 2), $rep];
                         if ($chaveMelhor === null || $k > $chaveMelhor) {
                             $melhor = $rep;
                             $chaveMelhor = $k;
@@ -1020,7 +1142,7 @@ function escMotorAlocarV4(array $in): array {
                                 continue;
                             }
                             foreach (array_keys($rs) as $rep) {
-                                if (!isset($membros[$rep]) || !$pode($rep, $p)) {
+                                if (!isset($membros[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $p)) {
                                     continue;
                                 }
                                 $k = [isset($multiPag[$rep]) ? 1 : 0, $historico[$rep][$membros[$rep]] ?? 0, $rep];
@@ -1287,8 +1409,8 @@ function escMotorAlocarV4(array $in): array {
                                     continue;
                                 }
                                 if (!$mesmaPlat($c['plats'] ?? [], escPlataformasPosto(['paginas' => $g['paginas']])) || !$podePags((string) $rep, $g['paginas']) || !$corOk((string) $rep, $g['paginas'])
-                                    || ($solo((string) $rep, $dia) && isset($comAssist[(int) $alvo['id']]))) {
-                                    continue; // plataformas diferentes, restrição do OM (inclui solo) ou cor da página (P-02)
+                                    || ($solo((string) $rep, $dia) && isset($comAssist[(int) $alvo['id']])) || $novatoBarra((string) $rep, $g['paginas'], false, $dia)) {
+                                    continue; // plataformas diferentes, restrição do OM (inclui solo), cor da página (P-02) ou new hire acima do Tier E
                                 }
                                 $razao = ($c['carga'] + $fans) / $c['cap'];
                                 if ($razao > 1 + $maxOver + 1e-9) {
@@ -1559,8 +1681,24 @@ function escMotorAlocarV4(array $in): array {
             }
         }
         usort($livres, static fn($x, $y) => $alocacoes[$x]['_ordem'] <=> $alocacoes[$y]['_ordem']);
-        foreach ($livres as $n => $k) {
-            $alocacoes[$k]['papel'] = !$temRegular && $n === 0 ? 'REGULAR' : 'ASSISTENTE';
+        // Rampa do new hire (24/11, caso da Nicole Doshi): quem entrou como assistente não vira regular só porque
+        // a vaga do titular ficou vazia, se a página está acima do teto da semana dele. Vai de regular o próximo
+        // da lista que pode; se ninguém pode, ele segue assistente e a vaga do titular fica como lacuna.
+        $regular = null;
+        if (!$temRegular) {
+            foreach ($livres as $k) {
+                $a = $alocacoes[$k];
+                if (!$novatoBarra((string) $a['rep_code'], [['pagina' => $a['pagina'], 'apoio' => (bool) $a['_ordem'][2]]], false, $a['dia'])) {
+                    $regular = $k;
+                    break;
+                }
+            }
+        }
+        foreach ($livres as $k) {
+            $alocacoes[$k]['papel'] = $k === $regular ? 'REGULAR' : 'ASSISTENTE';
+            if ($k !== $regular && !$temRegular && $regular === null && $novatoSemana((string) $alocacoes[$k]['rep_code'], (string) $alocacoes[$k]['dia']) !== null) {
+                $alocacoes[$k]['motivo'] .= ' (new hire na rampa: segue assistente; a vaga do titular fica em aberto)';
+            }
         }
     }
     foreach ($alocacoes as $k => $a) {

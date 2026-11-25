@@ -9,6 +9,8 @@
 // e proibido (esc_pagina_assistente), divisão (esc_sr_divisao), parâmetros v4_sr_uma_pagina,
 // v4_sr_multipagina, v4_nao_subordinado, v4_todos_os_dias, v4_sr_pref_assistente, v4_sr_so_paginas, v4_sr_tier_medio,
 // v4_sr_pref_masculinas, v4_sr_tier_medio_alto, v4_sr_solo, v4_sr_pref_paginas (05/11),
+// Fora daqui (e do PDF que vai para as equipes) de propósito: v4_sr_sem_masculinas, v4_sr_so_buffer e v4_sr_completa
+// (24/11) aparecem só no painel Gerenciar as restrições, para quem vê o restrito (escPodeVerRestrito).
 // "não faz assistente" (pode_assistente = 0), inegociáveis (observação do cadastro) e
 // indisponibilidades aprovadas longas (sem o motivo).
 // ===============================================

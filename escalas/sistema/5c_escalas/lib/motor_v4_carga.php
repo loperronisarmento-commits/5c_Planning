@@ -509,3 +509,25 @@ function escV4OverlapDe(array $pessoas, array $posicoes, array $nucleos, array $
     }
     return $de;
 }
+
+// Rampa do new hire (1.39.0): primeiro dia de cada SR na operação, o primeiro cadastro de SR com núcleo
+// (esc_colaborador_config, funcao EQUITE). $reps em maiúsculas. Volta [rep => 'AAAA-MM-DD'].
+function escNovatoInicio(array $reps): array {
+    $reps = array_values(array_unique(array_map('strtoupper', $reps)));
+    if (!$reps) {
+        return [];
+    }
+    $out = [];
+    foreach (escQ('SELECT UPPER(rep_code) AS rep, MIN(vigente_desde) AS ini FROM ' . escT('esc_colaborador_config')
+        . " WHERE funcao = 'EQUITE' AND nucleo_id IS NOT NULL AND UPPER(rep_code) IN (" . escIn($reps) . ') GROUP BY UPPER(rep_code)', $reps) as $r) {
+        $out[$r['rep']] = substr((string) $r['ini'], 0, 10);
+    }
+    return $out;
+}
+
+// Teto de faturamento de 30 dias (US$) da página em que o new hire pode ser regular, pela semana dele na
+// operação: 1ª e 2ª, Tier F (v4_novato_teto_f, 16 mil); da 3ª em diante, Tier E (v4_novato_receita_max, 32 mil).
+function escNovatoTeto(int $semana): float {
+    $chave = $semana <= 2 ? ['v4_novato_teto_f', '16000'] : ['v4_novato_receita_max', '32000'];
+    return (float) str_replace(',', '.', escV4Param($chave[0], $chave[1]));
+}
