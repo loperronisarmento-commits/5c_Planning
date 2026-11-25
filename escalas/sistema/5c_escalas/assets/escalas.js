@@ -954,6 +954,54 @@ document.addEventListener('click', function (ev) {
   aplicar();
 })();
 
+// Equilíbrio › Páginas das unidades (1.40.1): filtros de unidade, carteira e tier (chips) e busca pelo
+// nome, no navegador; o rodapé soma só as linhas visíveis (páginas, fãs/h total e médio, faturamento).
+(function () {
+  var barra = document.querySelector('[data-eq-filtros]');
+  var tabela = document.querySelector('table[data-eq-tabela]');
+  if (!barra || !tabela) { return; }
+  var estado = { u: '', c: '', t: '', busca: '' };
+  var linhas = Array.prototype.slice.call(tabela.tBodies[0].rows);
+  var vazio = document.querySelector('[data-eq-vazio]');
+  var local = EM_INGLES ? 'en-US' : 'pt-BR';
+  function fmt(v, casas) { return v.toLocaleString(local, { minimumFractionDigits: casas, maximumFractionDigits: casas }); }
+  function pega(sel) { return tabela.querySelector(sel); }
+  function aplicar() {
+    var n = 0, vol = 0, nVol = 0, fat = 0;
+    linhas.forEach(function (tr) {
+      var ok = (estado.u === '' || tr.getAttribute('data-u') === estado.u)
+        && (estado.c === '' || tr.getAttribute('data-c') === estado.c)
+        && (estado.t === '' || tr.getAttribute('data-t') === estado.t)
+        && (estado.busca === '' || (tr.getAttribute('data-nome') || '').indexOf(estado.busca) >= 0);
+      tr.hidden = !ok;
+      if (ok) {
+        n++;
+        fat += parseFloat(tr.getAttribute('data-fat') || '0');
+        if (tr.getAttribute('data-vol') !== '') { vol += parseFloat(tr.getAttribute('data-vol')); nVol++; }
+      }
+    });
+    pega('[data-eq-tot-n]').textContent = n;
+    pega('[data-eq-tot-vol]').textContent = fmt(vol, 2);
+    pega('[data-eq-tot-volmed]').textContent = nVol ? fmt(vol / nVol, 2) : '—';
+    pega('[data-eq-tot-fat]').textContent = fmt(fat, 0);
+    if (vazio) { vazio.hidden = n > 0; }
+    barra.querySelectorAll('[data-eq-f]').forEach(function (b) {
+      var on = b.getAttribute('data-v') === estado[b.getAttribute('data-eq-f')];
+      b.classList.toggle('ativo', on);
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  barra.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-eq-f]');
+    if (!b) { return; }
+    estado[b.getAttribute('data-eq-f')] = b.getAttribute('data-v');
+    aplicar();
+  });
+  var busca = barra.querySelector('[data-eq-busca]');
+  if (busca) { busca.addEventListener('input', function () { estado.busca = busca.value.trim().toLowerCase(); aplicar(); }); }
+  aplicar();
+})();
+
 // De → Para (1.38.2, E6): vista por pessoa ou por página e filtros de mudança, turno e unidade no
 // navegador, sem recarregar. O estado fica na URL (?vista=, ?mud=, ?turno=, ?u=).
 (function () {

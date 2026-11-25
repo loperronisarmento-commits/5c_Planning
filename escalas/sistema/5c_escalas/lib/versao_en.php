@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.40.1' => ['titulo' => 'Balance: filters and totals in the page list', 'itens' => [
+    'Balance › Unit pages: filters at the top (unit, portfolio C1/C2, tier and search by name), without reloading, and a footer with the total of the filtered rows (pages, total and average fans/h, 30-day revenue). Units in order (U1, U2, U3, partners at the end).',
+    ]],
     '1.40.0' => ['titulo' => 'Pages no longer change core; U5 Majstore', 'itens' => [
     'A page no longer changes core. When Capacity rebuilds a post (a page joins or leaves it), the new post stays in the core and cover of the main page\'s last post, in the same unit and shift, overriding the automatic choice and the OS split (e.g. with Krystal\'s exit, Mrs Robinson had moved from core 3 to 2 in A and C). A new page keeps the automatic choice; the core chosen in the Intake funnel still applies. Parameter v4_posto_herda_nucleo (1).',
     'A page that left and came back returns to where it was: the automatic entry before generating uses its last portfolio in a 5C unit (with its previous volume), instead of a sister page or the Funnel destination, and the post goes back to its previous core. Changing core is left for control (e.g. the OS split applied by hand).',

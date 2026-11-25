@@ -186,18 +186,47 @@ $fmtDesvio = static fn($d) => $d === null ? '—' : ($d > 0 ? '+' : '') . pct($d
 </section>
 
 <?php $listaPg = escEqListaPaginas($eq); $porU = [];
-foreach ($listaPg as $x) { $porU[$x['unidade']] = ['n' => ($porU[$x['unidade']]['n'] ?? 0) + 1, 'fat' => ($porU[$x['unidade']]['fat'] ?? 0) + $x['fat']]; } ?>
+foreach ($listaPg as $x) { $porU[$x['unidade']] = ['n' => ($porU[$x['unidade']]['n'] ?? 0) + 1, 'fat' => ($porU[$x['unidade']]['fat'] ?? 0) + $x['fat'], 'info' => $x['informativo']]; }
+uksort($porU, static fn($a, $b) => [$porU[$a]['info'], $a] <=> [$porU[$b]['info'], $b]); // U1, U2, U3 e as parceiras no fim ?>
 <section class="panel" id="paginas">
   <h2><?php echo h(t('Páginas das unidades')); ?></h2>
   <p class="muted"><?php echo h(t('Lista informativa, da que mais fatura para a que menos (clique no título da coluna para ordenar). Tier: o do cadastro do site. Volume: fãs por hora do Capacity de hoje, média dos 3 turnos. Faturamento: os mesmos 30 dias do equilíbrio, os 3 turnos somados.')); ?></p>
+  <?php
+  // Filtros (no navegador, sem recarregar): unidade, carteira (C1/C2) e tier, mais a busca pelo nome.
+  $tiersLista = array_values(array_unique(array_filter(array_column($listaPg, 'tier'))));
+  usort($tiersLista, static fn($a, $b) => escEqTierOrdem($b) <=> escEqTierOrdem($a));
+  $cartCod = static fn(array $x): string => $x['informativo'] ? '' : substr((string) $x['carteira'], -2);
+  $totVol = array_sum(array_map(static fn($x) => (float) ($x['volume'] ?? 0), $listaPg));
+  $nVol = count(array_filter($listaPg, static fn($x) => $x['volume'] !== null));
+  $totFat = array_sum(array_column($listaPg, 'fat'));
+  ?>
   <details class="eq-paginas">
-    <summary><?php echo h(tn(count($listaPg), '{n} página', '{n} páginas')); ?><span class="muted small"><?php foreach ($porU as $u => $x): ?> · <?php echo h($u); ?> <?php echo (int) $x['n']; ?> (US$ <?php echo num($x['fat'] / 1e6, 2); ?> mi)<?php endforeach; ?></span></summary>
+    <summary><strong><?php echo h(tn(count($listaPg), '{n} página', '{n} páginas')); ?></strong><span class="muted small"><?php echo h(implode(' · ', array_map(static fn($u, $x) => $u . ' ' . $x['n'] . ' (US$ ' . num($x['fat'] / 1e6, 2) . ' mi)', array_keys($porU), $porU))); ?></span></summary>
+    <?php if ($listaPg): ?>
+    <div class="eq-filtros" data-eq-filtros>
+      <div class="chips">
+        <span class="muted small"><?php echo h(t('Unidade')); ?></span>
+        <button type="button" class="chip-filtro ativo" aria-pressed="true" data-eq-f="u" data-v=""><?php echo h(t('Todas')); ?></button>
+        <?php foreach (array_keys($porU) as $u): ?><button type="button" class="chip-filtro" aria-pressed="false" data-eq-f="u" data-v="<?php echo h($u); ?>"><?php echo h($u); ?></button><?php endforeach; ?>
+      </div>
+      <div class="chips">
+        <span class="muted small"><?php echo h(t('Carteira')); ?></span>
+        <?php foreach (['' => t('Todas'), 'C1' => 'C1', 'C2' => 'C2'] as $k => $rot): ?><button type="button" class="chip-filtro<?php echo $k === '' ? ' ativo' : ''; ?>" aria-pressed="<?php echo $k === '' ? 'true' : 'false'; ?>" data-eq-f="c" data-v="<?php echo h($k); ?>"><?php echo h($rot); ?></button><?php endforeach; ?>
+      </div>
+      <div class="chips">
+        <span class="muted small"><?php echo h(t('Tier')); ?></span>
+        <button type="button" class="chip-filtro ativo" aria-pressed="true" data-eq-f="t" data-v=""><?php echo h(t('Todos')); ?></button>
+        <?php foreach ($tiersLista as $tr): ?><button type="button" class="chip-filtro" aria-pressed="false" data-eq-f="t" data-v="<?php echo h($tr); ?>"><?php echo h($tr); ?></button><?php endforeach; ?>
+      </div>
+      <label class="small"><?php echo h(t('Buscar página')); ?> <input type="search" data-eq-busca autocomplete="off"></label>
+    </div>
+    <?php endif; ?>
     <div class="tabela-rolagem">
-    <table>
+    <table data-eq-tabela>
       <thead><tr><th><?php echo h(t('Página')); ?></th><th><?php echo h(t('Tier')); ?></th><th class="num"><?php echo h(t('Volume médio (fãs/h)')); ?></th><th class="num"><?php echo h(t('Faturamento 30 dias')); ?></th><th><?php echo h(t('Unidade')); ?></th></tr></thead>
       <tbody>
       <?php foreach ($listaPg as $x): ?>
-        <tr<?php echo $x['informativo'] ? ' class="muted"' : ''; ?>>
+        <tr<?php echo $x['informativo'] ? ' class="muted"' : ''; ?> data-u="<?php echo h($x['unidade']); ?>" data-c="<?php echo h($cartCod($x)); ?>" data-t="<?php echo h($x['tier']); ?>" data-nome="<?php echo h(mb_strtolower($x['pagina'])); ?>" data-vol="<?php echo $x['volume'] !== null ? round((float) $x['volume'], 4) : ''; ?>" data-fat="<?php echo round((float) $x['fat'], 2); ?>">
           <td><?php echo h($x['pagina']); ?></td>
           <td data-valor="<?php echo escEqTierOrdem($x['tier']); ?>"><?php echo $x['tier'] !== '' ? h($x['tier']) : '<span class="muted">—</span>'; ?></td>
           <td class="num"><?php echo $x['volume'] !== null ? num($x['volume'], 2) : '<span class="muted">—</span>'; ?></td>
@@ -207,8 +236,20 @@ foreach ($listaPg as $x) { $porU[$x['unidade']] = ['n' => ($porU[$x['unidade']][
       <?php endforeach; ?>
       <?php if (!$listaPg): ?><tr><td colspan="5" class="muted"><?php echo h(t('Sem páginas na estrutura para o dia.')); ?></td></tr><?php endif; ?>
       </tbody>
+      <?php if ($listaPg): ?>
+      <tfoot>
+        <tr class="eq-total">
+          <th scope="row"><?php echo h(t('Total')); ?> <span class="muted small">(<span data-eq-tot-n><?php echo count($listaPg); ?></span> <?php echo h(t('páginas')); ?>)</span></th>
+          <td></td>
+          <td class="num"><strong data-eq-tot-vol><?php echo num($totVol, 2); ?></strong><br><span class="muted small"><?php echo h(t('média')); ?> <span data-eq-tot-volmed><?php echo $nVol ? num($totVol / $nVol, 2) : '—'; ?></span></span></td>
+          <td class="num"><strong>US$ <span data-eq-tot-fat><?php echo num($totFat, 0); ?></span></strong></td>
+          <td></td>
+        </tr>
+      </tfoot>
+      <?php endif; ?>
     </table>
     </div>
+    <p class="muted small" data-eq-vazio hidden><?php echo h(t('Nenhuma página com esses filtros.')); ?></p>
   </details>
 </section>
 

@@ -84,5 +84,13 @@ return [
     'Volume médio (fãs/h)' => 'Average volume (fans/h)',
     'fora do equilíbrio' => 'outside the balance',
     'Sem páginas na estrutura para o dia.' => 'No pages in the structure for the day.',
+    'Carteira' => 'Portfolio',
+    'Todas' => 'All',
+    'Todos' => 'All',
+    'Buscar página' => 'Search page',
+    'Total' => 'Total',
+    'páginas' => 'pages',
+    'média' => 'average',
+    'Nenhuma página com esses filtros.' => 'No page matches these filters.',
     'U{u} {nome}: {paginas}. Só para acompanhar: não entra na média nem no desvio das unidades, nas trocas sugeridas nem na divisão dos OS. Os 30 dias incluem os dias em que as páginas ainda estavam na 5C.' => 'U{u} {nome}: {paginas}. For tracking only: it is not part of the unit average or deviation, the suggested swaps or the OS split. The 30 days include the days when the pages were still at 5C.',
 ];
