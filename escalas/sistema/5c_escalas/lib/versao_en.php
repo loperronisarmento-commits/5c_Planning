@@ -6,6 +6,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.43.0' => ['titulo' => '5C website look', 'itens' => [
+    '5C Escalas now has the identity of the 5C website (www.5ccompany.com and WebPortal): marsala #890147 as the main color, Inter for text and Josefin Sans for uppercase labels, a neutral charcoal dark theme (no more black with wine tones or gold links) and a light theme on the website background. Only the look changes: screens, rules and data are the same.',
+    'Dark bar at the top, like the website\'s, with the 5C logo, "Escalas · MIS Portal" and a link back to 5ccompany.com. On mobile, the logo sits in the menu bar and the link back is inside the menu; the footer also has the link.',
+    'Components follow the WebPortal: the active menu item and the active filter chip are solid marsala, the main button is marsala, regular buttons are neutral, fields have smaller corners and a colored border on focus, table headers use small capitals, tags are rounded, and panels and dialogs have 14 px corners.',
+    'AA contrast in both themes: in dark mode, links and highlights are pink (#e58ab5), because marsala on a dark background is unreadable; field borders and the focus outline are visible. Printing (letterhead) does not change.',
+    'Fix: the page PDF sheet (Grid › Download page PDFs) has its background and border on screen again (an extra brace in the CSS was cancelling the style).',
+    ]],
     '1.42.0' => ['titulo' => 'OC and OM days off every 3 weeks; OS with a fixed group and pages follow the SR', 'itens' => [
     'OC and OM days off (CEO request), from Dec 7: a 3-week cycle, one week with the whole weekend off, one with Friday + Saturday (works Sunday) and one with Thursday + Sunday (works Saturday). The 3 OCs of each shift (one per unit) and the 3 OMs are in different weeks: every weekend day has 1 OC in each shift and 1 OM, and weekdays have 2 or 3. The OM now shows in the leadership schedule and CSV. Parameters v4_lideranca_oc_ciclo, v4_lideranca_oc_desde and v4_lideranca_oc_desloc.',
     'OS with a fixed group of SRs: the OS split by revenue (OS1, OS2 and OS3) leaves Generate and Balance (v4_os_equilibrio = 0). An SR only changes core on request.',

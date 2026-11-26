@@ -8,6 +8,13 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.43.0', 'data' => '2026-11-26', 'titulo' => 'Visual do site da 5C', 'itens' => [
+    'O 5C Escalas passa a ter a identidade do site da 5C (www.5ccompany.com e WebPortal): marsala #890147 como cor principal, fonte Inter no texto e Josefin Sans nos rótulos em maiúsculas, tema escuro em carvão neutro (sem o preto com vinho e sem o dourado nos links) e tema claro no fundo do site. Muda só a aparência: telas, regras e dados são os mesmos.',
+    'Faixa escura no topo, como a do site, com o logo da 5C, "Escalas · MIS Portal" e o link de volta para 5ccompany.com. No celular, o logo fica na barra do menu e o link de volta dentro do menu; o rodapé também tem o link.',
+    'Componentes no padrão do WebPortal: item ativo do menu e chip de filtro ativo cheios de marsala, botão principal marsala, botões comuns neutros, campos com cantos menores e borda colorida no foco, cabeçalho das tabelas em maiúsculas pequenas, etiquetas arredondadas, painéis e janelas com cantos de 14 px.',
+    'Contraste AA nos dois temas: no escuro, links e destaques em rosa (#e58ab5), porque o marsala sobre o fundo escuro não se lê; bordas dos campos e contorno de foco visíveis. A impressão (papel timbrado) não muda.',
+    'Correção: a folha do PDF da página (Grade › Baixar PDF das páginas) voltou a ter fundo e borda na tela (uma chave a mais no CSS anulava o estilo).',
+    ]],
     ['versao' => '1.42.0', 'data' => '2026-11-26', 'titulo' => 'Folga de OC e OM a cada 3 semanas; OS com grupo fixo e página segue o SR', 'sql' => ['ES_250_lideranca_3semanas_pagina_segue_sr.sql'], 'itens' => [
     'Folga de OC e OM (pedido do CEO), desde 07/12: ciclo de 3 semanas, uma com o fim de semana inteiro de folga, uma com sexta + sábado (trabalha domingo) e uma com quinta + domingo (trabalha sábado). Os 3 OC de cada turno (um por unidade) e os 3 OM ficam em semanas diferentes: todo dia de fim de semana tem 1 OC em cada turno e 1 OM, e os dias úteis têm 2 ou 3. O OM passa a aparecer na escala da liderança e no CSV. Parâmetros v4_lideranca_oc_ciclo, v4_lideranca_oc_desde e v4_lideranca_oc_desloc.',
     'OS com grupo fixo de SRs: sai a divisão dos OS por faturamento (OS1, OS2 e OS3) do Gerar e do Equilíbrio (v4_os_equilibrio = 0). O SR só muda de núcleo por pedido.',

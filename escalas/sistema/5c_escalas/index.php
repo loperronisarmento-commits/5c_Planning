@@ -178,7 +178,7 @@ if ($erroBanco !== null || $usuario === null) {
     ?><!DOCTYPE html>
 <html lang="<?php echo h(escIdioma()); ?>" data-tema="<?php echo h($tema); ?>"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo h($tituloBloqueio); ?> — 5C Escalas</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Josefin+Sans:wght@600;700&amp;family=Open+Sans:wght@400;600;700;800&amp;display=swap">
 <link rel="stylesheet" href="<?php echo h(MODULE_URL); ?>/assets/escalas.css?v=<?php echo h(ESC_VERSAO . '-' . (@filemtime(__DIR__ . '/assets/escalas.css') ?: 0)); ?>">
 </head><body class="bloqueio"><div class="panel" style="max-width:480px;text-align:center">
 <h1><?php echo h($tituloBloqueio); ?></h1><p class="muted"><?php echo h($textoBloqueio); ?></p>
@@ -353,16 +353,20 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?php echo h(t($telas[$p][0])); ?> — 5C Escalas</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&amp;display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Josefin+Sans:wght@600;700&amp;family=Open+Sans:wght@400;600;700;800&amp;display=swap">
 <link rel="stylesheet" href="<?php echo h(MODULE_URL); ?>/assets/escalas.css?v=<?php echo h(ESC_VERSAO . '-' . (@filemtime(__DIR__ . '/assets/escalas.css') ?: 0)); ?>">
 <script>window.ESC_I18N = <?php echo json_encode((object) $textosJs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;<?php if ($tour): ?> window.ESC_TOUR = <?php echo json_encode($tour, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES); ?>;<?php endif; ?></script>
 </head>
 <body>
 <a class="pular-conteudo" href="#conteudo"><?php echo h(t('Pular para o conteúdo')); ?></a>
+<header class="topo-5c">
+  <a class="topo-marca" href="<?php echo h(link_tela('painel')); ?>"><img src="<?php echo h(MODULE_URL); ?>/assets/marca/logo_5c_site.png" alt="5C Company" width="46" height="34"><span class="topo-nome">Escalas</span><span class="topo-sub">MIS Portal</span></a>
+  <a class="topo-site" href="https://www.5ccompany.com/" title="<?php echo h(t('Voltar ao site da 5C')); ?>"><span aria-hidden="true">←</span> 5ccompany.com</a>
+</header>
 <div class="app">
 <nav class="menu" aria-label="<?php echo h(t('Menu do sistema')); ?>">
   <div class="menu-topo">
-    <div class="marca"><img class="marca-logo marca-logo-escuro" src="<?php echo h(MODULE_URL); ?>/assets/marca/logo_5c_branco.png" alt="5C Company"><img class="marca-logo marca-logo-claro" src="<?php echo h(MODULE_URL); ?>/assets/marca/logo_5c_marsala.png" alt="5C Company"><strong>Escalas</strong><span class="eyebrow">MIS Portal</span><span class="tag-teste"><?php echo h(t('perfil')); ?> <?php echo h(strtolower(escRotulo('perfil', $usuario['perfil']))); ?></span></div>
+    <div class="marca"><img class="marca-logo" src="<?php echo h(MODULE_URL); ?>/assets/marca/logo_5c_site.png" alt="5C Company" width="40" height="29"><strong>Escalas</strong><span class="eyebrow">MIS Portal</span><span class="tag-teste"><?php echo h(t('perfil')); ?> <?php echo h(strtolower(escRotulo('perfil', $usuario['perfil']))); ?></span></div>
     <button type="button" class="menu-botao" aria-expanded="false" aria-controls="menu-itens"><span aria-hidden="true">☰</span> <?php echo h(t('Menu')); ?></button>
   </div>
   <div class="menu-itens" id="menu-itens">
@@ -383,6 +387,7 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
   </button>
   <button type="button" class="pref-botao" data-idioma-escolha="<?php echo h($idOutro); ?>" lang="<?php echo h(escIdioma()); ?>" aria-label="<?php echo h(t('Idioma: {atual}. Clique para {outro}.', ['atual' => ESC_IDIOMAS[escIdioma()], 'outro' => ESC_IDIOMAS[$idOutro]])); ?>" title="<?php echo h(t('Idioma: {atual}. Clique para {outro}.', ['atual' => ESC_IDIOMAS[escIdioma()], 'outro' => ESC_IDIOMAS[$idOutro]])); ?>"><?php echo escIdioma() === 'en' ? 'EN' : 'PT'; ?></button>
   </div>
+  <a class="menu-site" href="https://www.5ccompany.com/" title="<?php echo h(t('Voltar ao site da 5C')); ?>"><span aria-hidden="true">←</span> 5ccompany.com</a>
   <?php foreach ($menu as $secao => $itens): ?>
   <div class="grupo"><span class="grupo-titulo"><?php echo h(t($secao)); ?></span>
     <?php foreach ($itens as $it): ?>
@@ -421,7 +426,7 @@ if (($_COOKIE['esc_tour'] ?? '') === '1' || $p === 'tutorial') {
   <div class="timbre" aria-hidden="true"><span class="timbre-faixa"></span><img class="timbre-aguia" src="<?php echo h(MODULE_URL); ?>/assets/marca/aguia_timbrado.png" alt=""><img class="timbre-logo" src="<?php echo h(MODULE_URL); ?>/assets/marca/logo_5c_marsala.png" alt=""><span class="timbre-site">www.<strong>5ccompany</strong>.com</span></div>
   <?php echo $conteudo; ?>
   <?php echo $listas; ?>
-  <footer class="rodape">5C Company · 5C Escalas · <?php echo h(t('versão {v}', ['v' => ESC_VERSAO])); ?> · <a href="<?php echo h(link_tela('novidades')); ?>"><?php echo h(t('Changelog')); ?></a></footer>
+  <footer class="rodape">5C Company · 5C Escalas · <?php echo h(t('versão {v}', ['v' => ESC_VERSAO])); ?> · <a href="<?php echo h(link_tela('novidades')); ?>"><?php echo h(t('Changelog')); ?></a> · <a href="https://www.5ccompany.com/" title="<?php echo h(t('Voltar ao site da 5C')); ?>">5ccompany.com</a></footer>
 </main>
 </div>
 <script src="<?php echo h(MODULE_URL); ?>/assets/escalas.js?v=<?php echo h(ESC_VERSAO . '-' . (@filemtime(__DIR__ . '/assets/escalas.js') ?: 0)); ?>"></script>

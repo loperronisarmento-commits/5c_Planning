@@ -4,7 +4,7 @@
   --t-c: #60a5fa;      /* turno C, mesmo tom do chip-c */
   --t-d: #f0478f;      /* turno D, mesmo tom do chip-d */
   --neutro: var(--graf-neutro);
-  --neutro-2: #7a7280;
+  --neutro-2: #777c83;
   --grade: var(--linha);
   display: flex; flex-direction: column; gap: 18px;
 }
@@ -16,7 +16,7 @@
 
 /* Grade de gráficos: dois por linha em tela larga, um em tela estreita */
 .graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
-.graf-cartao { margin: 0; min-width: 0; background: var(--campo-bg); border: 1px solid var(--panel-border); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.graf-cartao { margin: 0; min-width: 0; background: var(--campo-bg); border: 1px solid var(--panel-border); border-radius: var(--raio-lg); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
 .graf-cartao.largo { grid-column: 1 / -1; }
 .graf-cartao figcaption { display: flex; flex-direction: column; gap: 2px; }
 .graf-cartao figcaption strong { font-size: 14px; }
@@ -63,7 +63,7 @@
 .mapa { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); gap: 6px; align-items: stretch; }
 .mapa-cab { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 12px; color: var(--texto-2); }
 .mapa-un { justify-content: flex-end; padding-right: 4px; font-weight: 600; color: var(--texto); }
-.celula-mapa { border-radius: 10px; padding: 10px 8px; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; border: 1px solid transparent; cursor: default; }
+.celula-mapa { border-radius: var(--raio-md); padding: 10px 8px; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; text-align: center; border: 1px solid transparent; cursor: default; }
 .celula-mapa strong { font-size: 20px; }
 .celula-mapa .small { color: var(--texto-2); }
 .analise .m-sem { background: transparent; border: 1px dashed var(--panel-border); color: var(--texto-3); }
@@ -83,7 +83,7 @@
 .ver-tabela[open] > summary { margin-bottom: 8px; }
 
 /* Dica dos gráficos (criada pelo analise.js) */
-.dica-graf { position: fixed; z-index: 60; max-width: 300px; padding: 8px 10px; border-radius: 8px; background: var(--panel-bg); border: 1px solid var(--borda-campo); color: var(--texto); font-size: 12px; line-height: 1.5; white-space: pre-line; pointer-events: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.dica-graf { position: fixed; z-index: 60; max-width: 300px; padding: 8px 10px; border-radius: var(--raio-sm); background: var(--panel-bg); border: 1px solid var(--borda-campo); color: var(--texto); font-size: 12px; line-height: 1.5; white-space: pre-line; pointer-events: none; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
 .dica-graf[hidden] { display: none; }
 
 @media (max-width: 760px) {
@@ -96,7 +96,7 @@
 
 /* Cinza + uma cor de destaque (Capacity, Requisição de vagas): o destaque é só o que pede ação.
    Identidade nunca só pela cor: o destaque é mais grosso e tem rótulo direto; o alvo é tracejado. */
-.analise { --destaque: #f06aa8; --cinza: #8d7f88; --cinza-2: #5b4c55; }
+.analise { --destaque: #f06aa8; --cinza: #8a8f96; --cinza-2: #4f5358; }
 .analise .destaque { fill: var(--destaque); background: var(--destaque); stroke: var(--destaque); }
 .analise .cinza { fill: var(--cinza); background: var(--cinza); stroke: var(--cinza); }
 .analise .cinza-2 { fill: var(--cinza-2); background: var(--cinza-2); stroke: var(--cinza-2); }
@@ -117,8 +117,8 @@
 .analise .kpi strong.numero-heroi, .numero-heroi { font-size: 34px; font-weight: 800; line-height: 1.1; }
 
 /* Tema claro: barras e mapa de calor com tons que aparecem no fundo branco. */
-:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: #970250; --cinza: #8a8290; --cinza-2: #c4bcc2; }
-@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: #970250; --cinza: #8a8290; --cinza-2: #c4bcc2; } }
+:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: var(--c5-marsala); --cinza: #8a8290; --cinza-2: #c4bcc2; }
+@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: var(--c5-marsala); --cinza: #8a8290; --cinza-2: #c4bcc2; } }
 
 /* Requisição de vagas e destino dos novatos (1.24.0) */
 .tag.azul { background: var(--bg-azul); color: var(--azul); }

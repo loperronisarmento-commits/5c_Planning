@@ -8,6 +8,7 @@ return [
     'Mostrando só os {n} primeiros.' => 'Showing only the first {n}.',
     'Mostrando só os {n} mais recentes.' => 'Showing only the {n} most recent.',
     'Pular para o conteúdo' => 'Skip to content',
+    'Voltar ao site da 5C' => 'Back to the 5C website',
     'Só o Planejamento recomeça o treino: ele apaga o que todos fizeram no Modo Treino.' => 'Only Planning can restart training: it erases what everyone did in Training Mode.',
     'Este rascunho mudou enquanto você olhava (outro recálculo ou publicação). Abra a versão mais recente em Gerar escala.' => 'This draft changed while you were looking (another recalculation or publication). Open the latest version in Generate schedule.',
     'Valor de {chave}' => 'Value of {chave}',
