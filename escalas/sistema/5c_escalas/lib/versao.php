@@ -8,7 +8,7 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
-    ['versao' => '1.42.0', 'data' => '2026-11-26', 'titulo' => 'Folga de OC e OM a cada 3 semanas; OS com grupo fixo e página segue o SR', 'sql' => ['ES_236_lideranca_3semanas_pagina_segue_sr.sql'], 'itens' => [
+    ['versao' => '1.42.0', 'data' => '2026-11-26', 'titulo' => 'Folga de OC e OM a cada 3 semanas; OS com grupo fixo e página segue o SR', 'sql' => ['ES_250_lideranca_3semanas_pagina_segue_sr.sql'], 'itens' => [
     'Folga de OC e OM (pedido do CEO), desde 07/12: ciclo de 3 semanas, uma com o fim de semana inteiro de folga, uma com sexta + sábado (trabalha domingo) e uma com quinta + domingo (trabalha sábado). Os 3 OC de cada turno (um por unidade) e os 3 OM ficam em semanas diferentes: todo dia de fim de semana tem 1 OC em cada turno e 1 OM, e os dias úteis têm 2 ou 3. O OM passa a aparecer na escala da liderança e no CSV. Parâmetros v4_lideranca_oc_ciclo, v4_lideranca_oc_desde e v4_lideranca_oc_desloc.',
     'OS com grupo fixo de SRs: sai a divisão dos OS por faturamento (OS1, OS2 e OS3) do Gerar e do Equilíbrio (v4_os_equilibrio = 0). O SR só muda de núcleo por pedido.',
     'A página segue o SR: ao publicar uma versão da escala, cada posto passa para o núcleo do SR que mais faz a página como titular na semana (com ao menos 40% das células e mais que o núcleo de hoje; a cobertura vai para o núcleo de antes). Quem desenvolve os melhores SRs fica com as melhores páginas. A equipe da vaga que deixa de bater com o núcleo sai e o próximo Gerar completa. Parâmetros v4_pagina_segue_sr (1) e v4_pagina_segue_sr_min (0,4).',
