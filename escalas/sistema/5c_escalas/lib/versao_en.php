@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.43.1' => ['titulo' => 'Website look: contrast of the Legacy menu and gray tags', 'itens' => [
+    'Menu: the active item in the Legacy group (read only) has white text on marsala, like the other active items (it was gray and failed AA contrast).',
+    'The gray tag (e.g. "Operating" in Job requisitions and on screens with charts) no longer takes the chart bar color: light gray background and readable text in both themes. The chart grays in the light theme are now neutral.',
+    ]],
     '1.43.0' => ['titulo' => '5C website look', 'itens' => [
     '5C Escalas now has the identity of the 5C website (www.5ccompany.com and WebPortal): marsala #890147 as the main color, Inter for text and Josefin Sans for uppercase labels, a neutral charcoal dark theme (no more black with wine tones or gold links) and a light theme on the website background. Only the look changes: screens, rules and data are the same.',
     'Dark bar at the top, like the website\'s, with the 5C logo, "Escalas · MIS Portal" and a link back to 5ccompany.com. On mobile, the logo sits in the menu bar and the link back is inside the menu; the footer also has the link.',

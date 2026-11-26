@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.43.1', 'data' => '2026-11-26', 'titulo' => 'Visual do site: contraste do menu Legado e das etiquetas cinza', 'itens' => [
+    'Menu: o item ativo do grupo Legado (só leitura) fica com o texto branco sobre o marsala, como os outros itens ativos (estava cinza e não passava no contraste AA).',
+    'Etiqueta cinza (ex.: "Operando" em Requisição de vagas e nas telas com gráficos) não pega mais a cor das barras dos gráficos: fundo cinza claro e texto legível nos dois temas. Os cinzas dos gráficos no tema claro ficaram neutros.',
+    ]],
     ['versao' => '1.43.0', 'data' => '2026-11-26', 'titulo' => 'Visual do site da 5C', 'itens' => [
     'O 5C Escalas passa a ter a identidade do site da 5C (www.5ccompany.com e WebPortal): marsala #890147 como cor principal, fonte Inter no texto e Josefin Sans nos rótulos em maiúsculas, tema escuro em carvão neutro (sem o preto com vinho e sem o dourado nos links) e tema claro no fundo do site. Muda só a aparência: telas, regras e dados são os mesmos.',
     'Faixa escura no topo, como a do site, com o logo da 5C, "Escalas · MIS Portal" e o link de volta para 5ccompany.com. No celular, o logo fica na barra do menu e o link de volta dentro do menu; o rodapé também tem o link.',

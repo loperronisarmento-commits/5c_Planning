@@ -100,6 +100,8 @@
 .analise .destaque { fill: var(--destaque); background: var(--destaque); stroke: var(--destaque); }
 .analise .cinza { fill: var(--cinza); background: var(--cinza); stroke: var(--cinza); }
 .analise .cinza-2 { fill: var(--cinza-2); background: var(--cinza-2); stroke: var(--cinza-2); }
+/* A etiqueta cinza (ex.: "Operando" na Requisição de vagas) não pega a cor das barras dos gráficos. */
+.analise .tag.cinza { background: var(--bg-cinza); stroke: none; }
 .graf .serie { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
 .graf .serie.grossa { stroke-width: 3.5; }
 .graf .serie.tracejada { stroke-dasharray: 6 5; }
@@ -117,8 +119,8 @@
 .analise .kpi strong.numero-heroi, .numero-heroi { font-size: 34px; font-weight: 800; line-height: 1.1; }
 
 /* Tema claro: barras e mapa de calor com tons que aparecem no fundo branco. */
-:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: var(--c5-marsala); --cinza: #8a8290; --cinza-2: #c4bcc2; }
-@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8290; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: var(--c5-marsala); --cinza: #8a8290; --cinza-2: #c4bcc2; } }
+:root[data-tema="claro"] .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8f96; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: var(--c5-marsala); --cinza: #8a8f96; --cinza-2: #c8cbd0; }
+@media (prefers-color-scheme: light) { :root[data-tema="auto"] .analise, :root:not([data-tema]) .analise { --mapa-1: rgba(0, 0, 0, 0.04); --mapa-2: rgba(0, 0, 0, 0.08); --mapa-3: rgba(0, 0, 0, 0.14); --t-a: #d97706; --t-c: #2563eb; --t-d: #db2777; --neutro-2: #8a8f96; --g-ok: #16a34a; --g-falta: #ea580c; --g-neg: #dc2626; --mapa-forte: #7f1d1d; --destaque: var(--c5-marsala); --cinza: #8a8f96; --cinza-2: #c8cbd0; } }
 
 /* Requisição de vagas e destino dos novatos (1.24.0) */
 .tag.azul { background: var(--bg-azul); color: var(--azul); }

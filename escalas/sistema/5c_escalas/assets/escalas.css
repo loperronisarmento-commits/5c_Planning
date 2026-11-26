@@ -748,6 +748,7 @@ th.col-sel, td.col-sel { width: 28px; text-align: center; }
 /* Menu: grupo Legado */
 .grupo.legado .grupo-titulo { color: var(--texto-3); }
 .grupo.legado a { color: var(--texto-2); font-size: 13px; }
+.grupo.legado a.ativo { color: #fff; } /* o item ativo do Legado também é marsala com texto branco */
 
 /* Ação longa e navegação (escalas.js): barra no topo e botão ocupado */
 .barra-progresso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 100; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity .2s; }
