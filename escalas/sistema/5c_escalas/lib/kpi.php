@@ -10,9 +10,12 @@
 //   90% → 90%, 100% → 100%, 150% → 110%, 200% → 120%; piso 25%, teto 120%).
 // - Process: 100% − SLA 15 (−4% a cada 10% abaixo do esperado) − SLA 10 (−2%) − SLA 5 (−1%), proporcional
 //   ao quanto falta (ajuste de 23/11: −0,4 ponto por ponto abaixo no SLA 15); piso de 60%.
+//   Overloaded (26/11, pedido do usuário): hora em que o SR passou de 120% dos 35 fãs/h estimados por SR
+//   (mais de 42 fãs únicos na hora, somando todas as páginas em que atuou) fica fora do SLA.
 //   Mass por turno e "não seguir plano" ainda sem dado: não calculados.
 // - Integrity: 100% − 15% por falta (abs_adh_af, ABS) − quebra de P&G (avaliação de qualidade com a seção
 //   "Model Best Practices" Não Conforme: −10% com nota 80, gradual até −30% com nota 0); pode zerar.
+//   A quebra de P&G não pesa até 03/01/2027 (data do contato avaliado; pedido do usuário em 26/11): aparece, sem desconto.
 //   DNR ainda sem dado: não calculado.
 // - Score = Kinetic_base × Process × Integrity (0% a 120%). As moedas saíram na 1.38.0 (controle fora do sistema).
 // - Novato (menos de 2 semanas fechadas com meta): score provisório de 75% (ajuste de 23/11).
@@ -35,6 +38,12 @@ const ESC_KPI_FALTA = 0.15;                         // Integrity: −15% por fal
 // A nota é feita de 5 módulos de 20%: com 80 só falhou o P&G (−10%); cai em linha reta até −30% com nota 0
 // (decisão do usuário em 23/11).
 const ESC_KPI_PG = [80.0, 0.10, 0.30];               // [nota de referência, desconto nela, desconto com nota 0]
+const ESC_KPI_PG_SEM_PESO_ATE = '2027-01-03';       // quebra de P&G com contato até esta data não pesa (26/11)
+// Process: overloaded (26/11). O SR com mais de 120% dos fãs/h estimados por SR (35, a capacidade base do
+// Capacity) na hora fica com o SLA daquela hora fora do Process. Os fãs são os únicos da hora, somando todas as
+// páginas em que ele atuou (cap_rep_hora.fas_unicos).
+const ESC_KPI_OVERLOAD_FAS = 35.0;
+const ESC_KPI_OVERLOAD_FATOR = 1.20;
 // Kinetic_base em rampa (decisão do usuário em 18/11, opção B): os pontos da tabela do documento
 // [meta, base], ligados em linha reta. Sem os degraus, o score não se amontoa no limite das faixas.
 // Abaixo do primeiro ponto vale 25%; a partir de 200%, 120%.
@@ -132,7 +141,7 @@ function escKpiCarregar(array $reps): array {
     if (!$reps) {
         return [];
     }
-    $chave = 'kpi_v3_' . date('Y-m-d') . '_' . md5(implode(',', $reps));
+    $chave = 'kpi_v4_' . date('Y-m-d') . '_' . md5(implode(',', $reps));
     return escCache($chave, ESC_KPI_CACHE_SEG, static fn(): array => ['calculado_em' => date('Y-m-d H:i:s'), 'srs' => escKpiCalcular($reps)]);
 }
 
@@ -179,9 +188,14 @@ function escKpiCalcular(array $reps): array {
     $venda = [];
     $vtot = [];
     $temR15 = escKpiTemSla15();
-    $r15 = $temR15 ? 'SUM(resp_15min)' : 'NULL';
+    // Overloaded: hora com mais fãs únicos que o limite (todas as páginas da hora) fica fora do SLA.
+    $limOver = ESC_KPI_OVERLOAD_FAS * ESC_KPI_OVERLOAD_FATOR;
+    $ok = 'fas_unicos <= ' . $limOver;
+    $r15 = $temR15 ? "SUM(CASE WHEN $ok THEN resp_15min ELSE 0 END)" : 'NULL';
     foreach (escQ("SELECT dia, turno AS t, SUBSTRING_INDEX(rep, ' ', 1) AS cod, paginas, SUM(msgs_rep) AS m, SUM(valor_comprado) AS v,
-                          SUM(respostas) AS resp, SUM(resp_5min) AS r5, SUM(resp_10min) AS r10, " . $r15 . " AS r15
+                          SUM(respostas) AS resp_total, SUM(CASE WHEN $ok THEN respostas ELSE 0 END) AS resp,
+                          SUM(CASE WHEN $ok THEN resp_5min ELSE 0 END) AS r5, SUM(CASE WHEN $ok THEN resp_10min ELSE 0 END) AS r10, " . $r15 . " AS r15,
+                          COUNT(*) AS horas, SUM(CASE WHEN $ok THEN 0 ELSE 1 END) AS horas_over
                      FROM `5c_capacity`.`cap_rep_hora` WHERE dia >= ? AND dia <= ? GROUP BY dia, turno, cod, paginas", [$de, $ate]) as $r) {
         $dia = substr((string) $r['dia'], 0, 10);
         $cod = (string) $r['cod'];
@@ -197,10 +211,13 @@ function escKpiCalcular(array $reps): array {
                 $venda[$k][$cod] = ($venda[$k][$cod] ?? 0) + $parteV;
             }
         }
-        // Process: SLA 5, 10 e 15 do SR na semana (todas as respostas, sem exclusão de hora).
+        // Process: SLA 5, 10 e 15 do SR na semana, sem as horas overloaded (26/11).
         if (isset($repDe[$cod])) {
             $s = &$sem[$repDe[$cod]][$semanaDe($dia)];
             $s['respostas'] = ($s['respostas'] ?? 0) + (int) $r['resp'];
+            $s['resp_total'] = ($s['resp_total'] ?? 0) + (int) $r['resp_total'];
+            $s['horas'] = ($s['horas'] ?? 0) + (int) $r['horas'];
+            $s['horas_over'] = ($s['horas_over'] ?? 0) + (int) $r['horas_over'];
             $s['r5'] = ($s['r5'] ?? 0) + (int) $r['r5'];
             $s['r10'] = ($s['r10'] ?? 0) + (int) $r['r10'];
             if ($r['r15'] !== null) {
@@ -249,8 +266,13 @@ function escKpiCalcular(array $reps): array {
                           AND e.data_contato >= ? AND e.data_contato < ? AND h.code IN (" . escIn($reps) . ')
                         GROUP BY UPPER(h.code), DATE(e.data_contato), e.codigo_avaliacao',
             array_merge([$de, escMaisDias($ate, 1)], $reps)) as $r) {
-            $sg = $semanaDe(substr((string) $r['dia'], 0, 10));
+            $dia = substr((string) $r['dia'], 0, 10);
+            $sg = $semanaDe($dia);
             $sem[$r['rep']][$sg]['pg'][] = (float) $r['nota'];
+            // Até ESC_KPI_PG_SEM_PESO_ATE a quebra aparece, mas não pesa na Integrity.
+            if ($dia > ESC_KPI_PG_SEM_PESO_ATE) {
+                $sem[$r['rep']][$sg]['pg_peso'][] = (float) $r['nota'];
+            }
         }
     } catch (Throwable $e) {
         appLog('warning', 'KPI: avaliações de qualidade indisponíveis (5c_quality_db)', ['erro' => $e->getMessage()]);
@@ -295,14 +317,17 @@ function escKpiFechar(array $porRep, array $semanas): array {
             $d15 = escKpiDescontoSla($sla15, 15);
             $d10 = escKpiDescontoSla($sla10, 10);
             $d5 = escKpiDescontoSla($sla5, 5);
-            // Sem respostas na semana não há Process a calcular (Mass e plano ainda não têm dado).
-            $p = $resp > 0 ? max(ESC_KPI_PROCESS_PISO, 1 - ($d15 ?? 0) - ($d10 ?? 0) - ($d5 ?? 0)) : null;
+            // Sem respostas na semana não há Process a calcular (Mass e plano ainda não têm dado). Se todas as
+            // respostas foram em hora overloaded, o SLA não pesa: Process de 100%.
+            $respTotal = (int) ($s['resp_total'] ?? $resp);
+            $p = $resp > 0 ? max(ESC_KPI_PROCESS_PISO, 1 - ($d15 ?? 0) - ($d10 ?? 0) - ($d5 ?? 0)) : ($respTotal > 0 ? 1.0 : null);
             $faltas = (int) ($s['faltas'] ?? 0);
             $pg = $s['pg'] ?? [];
-            $descPg = array_sum(array_map('escKpiDescontoPg', $pg));
+            $descPg = array_sum(array_map('escKpiDescontoPg', $s['pg_peso'] ?? []));
             $i = max(0.0, 1 - ESC_KPI_FALTA * $faltas - $descPg);
             $linhas[$sg] = ['peso' => $peso, 'meta' => $s['meta'] ?? null, 'real' => $s['real'] ?? null, 'atingimento' => $at,
-                'respostas' => $resp, 'sla5' => $sla5, 'sla10' => $sla10, 'sla15' => $sla15, 'desc5' => $d5, 'desc10' => $d10, 'desc15' => $d15,
+                'respostas' => $resp, 'resp_total' => $respTotal, 'horas' => (int) ($s['horas'] ?? 0), 'horas_over' => (int) ($s['horas_over'] ?? 0),
+                'pg_peso' => count($s['pg_peso'] ?? []), 'sla5' => $sla5, 'sla10' => $sla10, 'sla15' => $sla15, 'desc5' => $d5, 'desc10' => $d10, 'desc15' => $d15,
                 'process' => $p, 'faltas' => $faltas, 'pg' => $pg, 'desc_pg' => $descPg, 'integrity' => $i];
             $proc[$sg] = $p;
             $integ[$sg] = $i;

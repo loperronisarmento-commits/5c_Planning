@@ -13,6 +13,10 @@ const ESC_PATCH_NOTES = [
     'OS com grupo fixo de SRs: sai a divisão dos OS por faturamento (OS1, OS2 e OS3) do Gerar e do Equilíbrio (v4_os_equilibrio = 0). O SR só muda de núcleo por pedido.',
     'A página segue o SR: ao publicar uma versão da escala, cada posto passa para o núcleo do SR que mais faz a página como titular na semana (com ao menos 40% das células e mais que o núcleo de hoje; a cobertura vai para o núcleo de antes). Quem desenvolve os melhores SRs fica com as melhores páginas. A equipe da vaga que deixa de bater com o núcleo sai e o próximo Gerar completa. Parâmetros v4_pagina_segue_sr (1) e v4_pagina_segue_sr_min (0,4).',
     ]],
+    ['versao' => '1.41.0', 'data' => '2026-11-26', 'titulo' => 'KPI: overloaded fora do SLA e P&G sem peso até 03/01/2027', 'itens' => [
+    'KPI › Process: a hora em que o SR passou de 120% dos 35 fãs/h estimados por SR (mais de 42 fãs únicos na hora, somando todas as páginas em que atuou) é overloaded, e o SLA dessa hora não conta no KPI. O detalhe do SR mostra, por semana, as horas overloaded e as respostas que ficaram fora. Semana só com horas overloaded fica com Process de 100%.',
+    'KPI › Integrity: a quebra de P&G não pesa até 03/01/2027 (pela data do contato avaliado). Ela continua aparecendo no cálculo, sem desconto. As faltas continuam valendo.',
+    ]],
     ['versao' => '1.40.1', 'data' => '2026-11-25', 'titulo' => 'Equilíbrio: filtros e totais na lista de páginas', 'itens' => [
     'Equilíbrio › Páginas das unidades: filtros no topo (unidade, carteira C1/C2, tier e busca pelo nome), sem recarregar, e rodapé com o total das linhas filtradas (páginas, fãs/h total e médio, faturamento de 30 dias). Unidades em ordem (U1, U2, U3, parceiras no fim).',
     ]],

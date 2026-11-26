@@ -175,6 +175,7 @@ $detalhe = $repSel !== '' ? ($kpiSr[$repSel] ?? null) : null;
 
 <?php if (!$soPdf): ?>
 <p class="aviso" role="status"><?php echo h(t('Ainda sem dado, não entram no cálculo: Mass por turno e "não seguir o plano" (Process), mensagem para DNR (Integrity) e multas.')); ?></p>
+<?php if (date('Y-m-d') <= escMaisDias(ESC_KPI_PG_SEM_PESO_ATE, 28)): ?><p class="aviso" role="status"><?php echo h(t('Quebra de P&G sem peso na Integrity até {dia} (pela data do contato avaliado): ela aparece no cálculo, mas não desconta. As faltas continuam valendo.', ['dia' => dataBr(ESC_KPI_PG_SEM_PESO_ATE)])); ?></p><?php endif; ?>
 <?php if (!escAbsOficialOk()): ?><p class="aviso" role="status"><?php echo h(t('O sistema não consegue ler as faltas oficiais (5c_wfm_db_mis.abs_adh_af): a Integrity fica sem desconto de falta.')); ?></p><?php endif; ?>
 <?php endif; ?>
 
@@ -260,21 +261,22 @@ $tituloGraf = $comScore > 0
   <h2><?php echo h(t('Como o KPI de {nome} foi calculado', ['nome' => nomeCurto($nomes[$repSel] ?? $repSel)])); ?> <span class="muted small mono"><?php echo h($repSel); ?></span></h2>
   <div class="tabela-rolagem"><table data-sem-ordem>
     <thead><tr><th><?php echo h(t('Semana')); ?></th><th class="num"><?php echo h(t('Peso')); ?></th><th class="num"><?php echo h(t('Meta')); ?></th>
-      <th class="num">SLA 5</th><th class="num">SLA 10</th><th class="num">SLA 15</th><th class="num">Process</th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">P&amp;G</th><th class="num">Integrity</th></tr></thead>
+      <th class="num">SLA 5</th><th class="num">SLA 10</th><th class="num">SLA 15</th><th class="num" title="<?php echo h(t('Horas em que o SR passou de {n} fãs/h (120% dos 35 estimados), somando todas as páginas: o SLA dessas horas fica fora do Process.', ['n' => num(ESC_KPI_OVERLOAD_FAS * ESC_KPI_OVERLOAD_FATOR, 0)])); ?>">Overloaded</th><th class="num">Process</th><th class="num"><?php echo h(t('Faltas')); ?></th><th class="num">P&amp;G</th><th class="num">Integrity</th></tr></thead>
     <tbody>
     <?php foreach ($semanas as $sg => $peso): $w = $detalhe['semanas'][$sg] ?? null; ?>
       <tr>
         <td><?php echo h($semRot($sg)); ?></td>
         <td class="num"><?php echo $peso; ?></td>
-        <?php if ($w === null): ?><td colspan="8" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
+        <?php if ($w === null): ?><td colspan="9" class="muted"><?php echo h(t('Sem dado nesta semana: fica fora da média.')); ?></td>
         <?php else: ?>
         <td class="num"><?php echo $pc($w['atingimento'], 1); ?><?php if ($w['meta'] !== null): ?> <span class="muted small"><?php echo num($w['real'], 0); ?> ÷ <?php echo num($w['meta'], 0); ?></span><?php endif; ?></td>
         <?php foreach ([5, 10, 15] as $mi): $v = $w['sla' . $mi]; $d = $w['desc' . $mi]; ?>
         <td class="num"><?php echo $pc($v, 1); ?><?php if ($d): ?> <span class="laranja small">−<?php echo pct($d, 0); ?></span><?php endif; ?></td>
         <?php endforeach; ?>
+        <td class="num"><?php if (!empty($w['horas_over'])): ?><?php echo h(t('{h} de {t} h', ['h' => (int) $w['horas_over'], 't' => (int) $w['horas']])); ?> <span class="muted small"><?php echo h(tn((int) $w['resp_total'] - (int) $w['respostas'], '{n} resposta fora', '{n} respostas fora')); ?></span><?php else: ?>0<?php endif; ?></td>
         <td class="num"><strong><?php echo $pc($w['process']); ?></strong></td>
         <td class="num"><?php echo (int) $w['faltas']; ?><?php if ($w['faltas']): ?> <span class="laranja small">−<?php echo pct(ESC_KPI_FALTA * $w['faltas'], 0); ?></span><?php endif; ?></td>
-        <td class="num"><?php if (!empty($w['pg'])): ?><?php echo h(implode(' · ', array_map(static fn($n) => t('nota {n}', ['n' => num($n, 0)]), $w['pg']))); ?> <span class="laranja small">−<?php echo pct($w['desc_pg'], 1); ?></span><?php else: ?>0<?php endif; ?></td>
+        <td class="num"><?php if (!empty($w['pg'])): ?><?php echo h(implode(' · ', array_map(static fn($n) => t('nota {n}', ['n' => num($n, 0)]), $w['pg']))); ?> <?php if ($w['desc_pg'] > 0): ?><span class="laranja small">−<?php echo pct($w['desc_pg'], 1); ?></span><?php else: ?><span class="muted small"><?php echo h(t('sem peso até {dia}', ['dia' => dataBr(ESC_KPI_PG_SEM_PESO_ATE)])); ?></span><?php endif; ?><?php else: ?>0<?php endif; ?></td>
         <td class="num"><strong><?php echo $pc($w['integrity']); ?></strong></td>
         <?php endif; ?>
       </tr>
@@ -283,8 +285,8 @@ $tituloGraf = $comScore > 0
   </table></div>
   <ul class="small">
     <li><strong>Kinetic:</strong> <?php echo h(t('meta ponderada {m} (soma do peso × realizado ÷ soma do peso × meta) → base {b}.', ['m' => $pc($detalhe['kinetic_meta'], 1), 'b' => $pc($detalhe['kinetic_base'], 1)])); ?></li>
-    <li><strong>Process:</strong> <?php echo h(t('média ponderada das semanas = {p}. Cada semana: 100% − descontos de SLA, com piso de 60%.', ['p' => $pc($detalhe['process'], 1)])); ?></li>
-    <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta − quebra de P&G (−10% com nota 80 até −30% com nota 0), até 0%.', ['i' => $pc($detalhe['integrity'], 1)])); ?></li>
+    <li><strong>Process:</strong> <?php echo h(t('média ponderada das semanas = {p}. Cada semana: 100% − descontos de SLA, com piso de 60%; as horas overloaded ficam fora do SLA.', ['p' => $pc($detalhe['process'], 1)])); ?></li>
+    <li><strong>Integrity:</strong> <?php echo h(t('média ponderada das semanas = {i}. Cada semana: 100% − 15% por falta − quebra de P&G (−10% com nota 80 até −30% com nota 0; sem peso até {dia}), até 0%.', ['i' => $pc($detalhe['integrity'], 1), 'dia' => dataBr(ESC_KPI_PG_SEM_PESO_ATE)])); ?></li>
     <li><strong>Score:</strong> <?php echo h($pc($detalhe['kinetic_base'], 1) . ' × ' . $pc($detalhe['process'], 1) . ' × ' . $pc($detalhe['integrity'], 1) . ' = ' . $pc($detalhe['score_calculado'] ?? null, 1)); ?><?php if (!empty($detalhe['provisorio'])): ?> · <?php echo h(t('novato: vale o provisório de 75% até ter 2 semanas fechadas com meta')); ?><?php endif; ?> · <?php echo h($compDoSr($detalhe, $repSel)[1]); ?></li>
   </ul>
   <p class="muted small"><?php echo h(t('A média ponderada usa os pesos só das semanas com dado (soma dos pesos × valor ÷ soma dos pesos). Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?> <a href="<?php echo h(link_tela('kpi', $filtros)); ?>"><?php echo h(t('Fechar')); ?></a></p>
@@ -298,8 +300,8 @@ $tituloGraf = $comScore > 0
     <p><?php echo h(t('Últimas 4 semanas fechadas (segunda a domingo), com pesos 4 (a última fechada), 3, 2 e 1, nos três pilares. A semana em andamento não entra. Semana sem dado fica fora da média.')); ?> <?php echo h(t('Só contam dados a partir de {dia}.', ['dia' => dataBr(escDadosDesde())])); ?></p>
     <ul class="small">
       <li><strong>Kinetic:</strong> <?php echo h(t('meta das 4 semanas: soma do peso × realizado ÷ soma do peso × meta 5CReps (a meta rateada pelas mensagens do SR; o realizado pela venda própria do SR: venda direta e tip), então semana com meta pequena pesa menos. Ela vira a base em rampa, pelos pontos da tabela do documento: 50% → 50%, 75% → 75%, 90% → 90%, 100% → 100%, 150% → 110% e 200% → 120%, em linha reta entre eles (ex.: 62% → 62%; 125% → 105%). Mínimo de 25% e máximo de 120%.')); ?></li>
-      <li><strong>Process:</strong> <?php echo h(t('100% menos: SLA 15 −4%, SLA 10 −2% e SLA 5 −1% a cada 10% abaixo do esperado (95%, 90% e 80%), proporcional (ex.: SLA 15 em 90% = −2%). Nunca abaixo de 60%. Mass por turno e "não seguir o plano" ainda não são calculados.')); ?></li>
-      <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida) e menos a quebra de P&G: avaliação de qualidade com "Model Best Practices" Não Conforme tira 10% com nota 80, crescendo em linha reta até 30% com nota 0 (pela data do contato avaliado). Pode chegar a 0%. DNR ainda não é calculado.')); ?></li>
+      <li><strong>Process:</strong> <?php echo h(t('100% menos: SLA 15 −4%, SLA 10 −2% e SLA 5 −1% a cada 10% abaixo do esperado (95%, 90% e 80%), proporcional (ex.: SLA 15 em 90% = −2%). Nunca abaixo de 60%. Hora overloaded não conta: o SR passou de 120% dos 35 fãs/h estimados por SR (mais de 42 fãs na hora, somando todas as páginas em que atuou). Mass por turno e "não seguir o plano" ainda não são calculados.')); ?></li>
+      <li><strong>Integrity:</strong> <?php echo h(t('100% menos 15% por dia de falta (falta aprovada sai da escala, então toda falta lida é devida) e menos a quebra de P&G: avaliação de qualidade com "Model Best Practices" Não Conforme tira 10% com nota 80, crescendo em linha reta até 30% com nota 0 (pela data do contato avaliado). Até {dia}, a quebra de P&G aparece, mas não pesa; as faltas continuam valendo. Pode chegar a 0%. DNR ainda não é calculado.', ['dia' => dataBr(ESC_KPI_PG_SEM_PESO_ATE)])); ?></li>
       <li><strong>Score:</strong> <?php echo h(t('Kinetic × Process × Integrity, de 0% a 120%. Novato (menos de 2 semanas fechadas com meta) fica com 75% provisório.')); ?></li>
       <li><strong><?php echo h(t('Ação de correção')); ?>:</strong> <?php echo h(t('menos turnos, realocar ou substituir valem só para os 20% de menor score (Pareto); os outros das faixas abaixo de 75% mantêm a posição.')); ?></li>
     </ul>

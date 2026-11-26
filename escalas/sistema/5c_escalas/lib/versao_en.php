@@ -11,6 +11,10 @@ const ESC_PATCH_NOTES_EN = [
     'OS with a fixed group of SRs: the OS split by revenue (OS1, OS2 and OS3) leaves Generate and Balance (v4_os_equilibrio = 0). An SR only changes core on request.',
     'Pages follow the SR: when a schedule version is published, each post moves to the core of the SR who works the page most as owner that week (with at least 40% of the cells and more than today\'s core; the cover goes to the previous core). Whoever develops the best SRs gets the best pages. Slot team members who no longer match the core leave and the next Generate fills in. Parameters v4_pagina_segue_sr (1) and v4_pagina_segue_sr_min (0.4).',
     ]],
+    '1.41.0' => ['titulo' => 'KPI: overloaded hours out of SLA and no P&G weight up to 03/01/2027', 'itens' => [
+    'KPI › Process: an hour in which the SR went above 120% of the 35 estimated fans/h per SR (more than 42 unique fans in the hour, adding up every page they worked on) is overloaded, and the SLA of that hour does not count in the KPI. The SR detail shows, per week, the overloaded hours and the replies left out. A week with only overloaded hours gets 100% Process.',
+    'KPI › Integrity: P&G breaches carry no weight up to 03/01/2027 (by the date of the evaluated contact). They still appear in the calculation, with no deduction. Absences still count.',
+    ]],
     '1.40.1' => ['titulo' => 'Balance: filters and totals in the page list', 'itens' => [
     'Balance › Unit pages: filters at the top (unit, portfolio C1/C2, tier and search by name), without reloading, and a footer with the total of the filtered rows (pages, total and average fans/h, 30-day revenue). Units in order (U1, U2, U3, partners at the end).',
     ]],
