@@ -6,6 +6,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.44.2' => ['titulo' => 'Leadership: pair not off together', 'itens' => [
+    'Pedro Neto (U1 C OC) and Rafael Paschoal (core 2 OS) are not off on the same day, since Nov 30 (parameter v4_lideranca_nao_folgam_juntos). By the rotation, both would be off together one Saturday every 21 days (Dec 26, Jan 16...): Rafael works that Saturday and takes another day off in the same week when both work and the shift keeps 2 OSs (Monday, Dec 21 and Jan 11). No rotation change avoids that shared day.',
+    ]],
     '1.44.1' => ['titulo' => 'OC weekend days off also by shift within the unit', 'itens' => [
     'CEO request: in the OCs\' 3-week cycle (since Dec 7), besides the 3 OCs of each shift (one per unit) being in different weeks, the OCs of a unit\'s 3 shifts are too. On each weekend day: 1 OC per shift and, in each unit, the OC of 1 shift; the other 2 shifts are covered by the OC of another unit. Parameter v4_lideranca_oc_desloc_turno (A: U1 7, U2 0, U3 14; C: U1 0, U2 14, U3 7; D: U1 14, U2 7, U3 0). The OM stays by unit.',
     'At the Dec 7 changeover, 4 OCs work 7 days in a row and 1 works 6 (no arrangement does better with the Dec 7 start).',

@@ -130,6 +130,76 @@ function escLiderancaCarregar(string $dia): array {
     return ['om' => $om, 'grupos' => $grupos];
 }
 
+// Pares da liderança que não folgam no mesmo dia (1.44.2, pedido do usuário de 26/11: Pedro Neto, OC da U1 C, e
+// Rafael Paschoal, OS do núcleo 2). Parâmetro v4_lideranca_nao_folgam_juntos: "REP1:REP2@desde;..." (desde opcional).
+// Quando os dois folgam no mesmo dia, quem muda é o OS (o OC segue o rodízio de fim de semana do CEO): ele trabalha
+// nesse dia e folga num dia da mesma semana em que os dois trabalham e o grupo dele segue com 2 no turno, o mais
+// perto (antes, no empate). Sem dia assim, fica como está.
+function escLiderancaSeparaFolgas(array &$sit, array $repDia, array $grupos, array $dias): void {
+    $pares = [];
+    foreach (explode(';', escV4Param('v4_lideranca_nao_folgam_juntos', '')) as $parte) {
+        if (preg_match('~^\s*([A-Za-z]\d+)\s*:\s*([A-Za-z]\d+)\s*(?:@\s*(\d{4}-\d{2}-\d{2}))?\s*$~', $parte, $m)) {
+            $pares[] = [strtoupper($m[1]), strtoupper($m[2]), $m[3] ?? ''];
+        }
+    }
+    if (!$pares) {
+        return;
+    }
+    $cargo = [];
+    foreach ($grupos as $turno => $gs) {
+        foreach ($gs as $g => $pessoas) {
+            foreach ($pessoas as $i => $p) {
+                $cargo[$turno . '|' . $g . '|' . $i] = $p['cargo'];
+            }
+        }
+    }
+    $chaveDe = static function (string $rep, string $d) use ($repDia, $cargo): ?string {
+        foreach ($repDia as $chave => $porDia) {
+            if (($porDia[$d] ?? null) === $rep && in_array($cargo[$chave] ?? '', ['OC', 'OS'], true)) {
+                return $chave;
+            }
+        }
+        return null;
+    };
+    foreach ($pares as [$a, $b, $desde]) {
+        foreach ($dias as $i => $d) {
+            if ($desde !== '' && $d < $desde) {
+                continue;
+            }
+            $ka = $chaveDe($a, $d);
+            $kb = $chaveDe($b, $d);
+            if ($ka === null || $kb === null || ($sit[$ka][$d] ?? '') !== 'FOLGA' || ($sit[$kb][$d] ?? '') !== 'FOLGA') {
+                continue;
+            }
+            $muda = $cargo[$kb] === 'OS' || $cargo[$ka] !== 'OS' ? $kb : $ka;
+            $fica = $muda === $kb ? $ka : $kb;
+            $melhor = null;
+            foreach ($dias as $j => $e) {
+                if ($j === $i || ($desde !== '' && $e < $desde) || ($sit[$muda][$e] ?? '') !== 'TRABALHO' || ($sit[$fica][$e] ?? '') !== 'TRABALHO'
+                    || ($repDia[$muda][$e] ?? null) !== ($repDia[$muda][$d] ?? null)) {
+                    continue;
+                }
+                // Antes de tudo, o grupo dele (os OS da unidade e turno) fica com 2 no turno nesse dia.
+                [$t, $g] = explode('|', $muda);
+                $outros = 0;
+                foreach ($sit as $k2 => $pd) {
+                    if ($k2 !== $muda && strpos($k2, $t . '|' . $g . '|') === 0 && in_array($pd[$e] ?? '', ['TRABALHO', 'OVERLAP'], true)) {
+                        $outros++;
+                    }
+                }
+                $dist = ($outros < (ESC_LID_MINIMO[$cargo[$muda]] ?? 2) ? 100 : 0) + abs($j - $i) * 2 + ($j > $i ? 1 : 0);
+                if ($melhor === null || $dist < $melhor[0]) {
+                    $melhor = [$dist, $e];
+                }
+            }
+            if ($melhor !== null) {
+                $sit[$muda][$d] = 'TRABALHO';
+                $sit[$muda][$melhor[1]] = 'FOLGA';
+            }
+        }
+    }
+}
+
 // Escala da semana: ['dias', 'om', 'grupos', 'sit' => [chave][dia] => situação, 'presentes' => [turno][grupo][dia] => n].
 function escLiderancaSemana(string $seg): array {
     $dias = escDiasDaSemana($seg);
@@ -192,9 +262,19 @@ function escLiderancaSemana(string $seg): array {
                         $s = 'AUSENTE';
                     }
                     $sit[$chave][$d] = $s;
-                    $presentes[$turno][$g][$d] = ($presentes[$turno][$g][$d] ?? 0) + (in_array($s, ['TRABALHO', 'OVERLAP'], true) ? 1 : 0);
                 }
             }
+        }
+    }
+    escLiderancaSeparaFolgas($sit, $repDia, $est['grupos'], $dias);
+    foreach ($sit as $chave => $porDia) {
+        [$turno, $g] = explode('|', $chave);
+        $g = is_numeric($g) ? (int) $g : $g;
+        foreach ($porDia as $d => $s) {
+            if ($s === 'ANTES') {
+                continue;
+            }
+            $presentes[$turno][$g][$d] = ($presentes[$turno][$g][$d] ?? 0) + (in_array($s, ['TRABALHO', 'OVERLAP'], true) ? 1 : 0);
         }
     }
     // OM: não seguia escala; com o ciclo de 3 semanas, segue o mesmo dos OC (um dia de fim de semana para cada).

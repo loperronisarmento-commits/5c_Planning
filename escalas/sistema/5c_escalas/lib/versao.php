@@ -8,6 +8,9 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.44.2', 'data' => '2026-11-26', 'titulo' => 'Liderança: par que não folga junto', 'sql' => ['ES_263_lideranca_pedro_rafael_nao_folgam_juntos.sql'], 'itens' => [
+    'Pedro Neto (OC da U1 C) e Rafael Paschoal (OS do núcleo 2) não folgam no mesmo dia, desde 30/11 (parâmetro v4_lideranca_nao_folgam_juntos). Pelo rodízio, os dois folgariam juntos um sábado a cada 21 dias (26/12, 16/01...): o Rafael trabalha no sábado e folga em outro dia da semana em que os dois trabalham e o turno segue com 2 OS (segunda, 21/12 e 11/01). Nenhum ajuste do rodízio evita esse dia em comum.',
+    ]],
     ['versao' => '1.44.1', 'data' => '2026-11-26', 'titulo' => 'Folga de fim de semana dos OC também por turno dentro da unidade', 'sql' => ['ES_262_lideranca_oc_por_turno.sql'], 'itens' => [
     'Pedido do CEO: no ciclo de 3 semanas dos OC (desde 07/12), além de os 3 OC de cada turno (um por unidade) ficarem em semanas diferentes, os OC dos 3 turnos de uma unidade também ficam. Em cada dia de fim de semana: 1 OC por turno e, em cada unidade, o OC de 1 turno; nos outros 2 turnos, o OC de outra unidade cobre. Parâmetro v4_lideranca_oc_desloc_turno (A: U1 7, U2 0, U3 14; C: U1 0, U2 14, U3 7; D: U1 14, U2 7, U3 0). O OM segue por unidade.',
     'Na virada de 07/12, 4 OC fazem 7 dias seguidos e 1 faz 6 (nenhum arranjo dá menos com o início em 07/12).',
