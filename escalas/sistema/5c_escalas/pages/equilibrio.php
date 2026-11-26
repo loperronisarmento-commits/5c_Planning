@@ -320,6 +320,8 @@ uksort($porU, static fn($a, $b) => [$porU[$a]['info'], $a] <=> [$porU[$b]['info'
   <?php endif; ?>
 </section>
 
+<?php // Desde 26/11 (pedido do CEO) o OS tem grupo fixo de SRs e as páginas seguem o SR: sem divisão por faturamento (v4_os_equilibrio = 0).
+if (escV4Param('v4_os_equilibrio', '1') === '1'): ?>
 <section class="panel" id="os">
   <h2><?php echo h(t('Divisão dos OS')); ?></h2>
   <p class="muted"><?php echo h(t('Em cada unidade e turno, pelo faturamento de 30 dias dos postos, do maior para o menor: na parte de cima, OS1, OS1, OS2 (repetindo); na parte de baixo, OS2, OS3, OS3. O corte entre as partes fica onde o OS3 soma de 15% a 20% do faturamento do turno. O OS1 fica com as maiores páginas, o OS3 com as menores e o OS2 com um misto. Cobertura: o OS2 cobre os postos do OS1 e do OS3; nos postos do OS2, os grandes ficam com o OS1 e os pequenos com o OS3. Os melhores SRs (nível do KPI, depois o score) vão para o OS1; no OS2, quem conhece páginas grandes e pequenas; o tamanho de cada núcleo segue os postos dele.')); ?></p>
@@ -367,3 +369,9 @@ uksort($porU, static fn($a, $b) => [$porU[$a]['info'], $a] <=> [$porU[$b]['info'
   <?php if (!$eq['postos']): ?><p class="muted"><?php echo h(t('Sem postos na estrutura nova para o dia.')); ?></p><?php endif; ?>
   <p class="muted small"><?php echo h(t('Depois de aplicar, gere a semana (Gerar escala › Recalcular com o mínimo de mudanças) para as equipes novas entrarem na escala.')); ?></p>
 </section>
+<?php else: ?>
+<section class="panel" id="os">
+  <h2><?php echo h(t('Páginas dos OS')); ?></h2>
+  <p class="muted"><?php echo h(t('Cada OS tem um grupo fixo de SRs, e as páginas seguem os SRs: quando uma versão da escala é publicada, cada posto passa para o núcleo do SR que mais faz a página como titular naquela semana. Quem desenvolve os melhores SRs fica com as melhores páginas. Não há mais divisão dos OS por faturamento.')); ?></p>
+</section>
+<?php endif; ?>

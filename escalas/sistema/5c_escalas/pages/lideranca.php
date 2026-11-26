@@ -33,7 +33,9 @@ if ($planoSemana) {
 }
 $diferencas = 0;
 $rotuloGrupo = static fn($g) => isset(ESC_LID_CARGO[$g]) ? ESC_LID_CARGO[$g] : 'Operational Supervisor · U' . $g;
-$minimo = static fn($g) => ESC_LID_MINIMO[$g] ?? 2;
+// OC no ciclo de 3 semanas: no fim de semana fica 1 dos 3 no turno (mínimo 1).
+$cicloOc = $escala['ciclo_oc'] ?? null;
+$minimo = static fn($g) => $g === 'OC' && $cicloOc ? 1 : (ESC_LID_MINIMO[$g] ?? 2);
 $celula = [
     'TRABALHO' => '<span class="verde">' . h(t('trabalha')) . '</span>',
     'OVERLAP' => '<strong class="azul">Overlap</strong>',
@@ -70,6 +72,7 @@ foreach ($escala['presentes'] as $grupos) {
   <h1><?php echo h(t('Escala da liderança · semana de {dia}', ['dia' => dataBr($seg)])); ?></h1>
   <p class="lid-so-pdf"><?php echo h(t('Leadership schedule · {de} a {ate} · gerada em {gerado}', ['de' => date('d/m/Y', strtotime($dias[0])), 'ate' => date('d/m/Y', strtotime(end($dias))), 'gerado' => date('d/m/Y H:i')])); ?> · <?php echo ESC_DOC_TOKEN; ?></p>
   <p class="muted nao-imprimir"><?php echo h(t('Operational Coordinator (3 por turno) e Operational Supervisor (3 por unidade e turno) em 5x2, no mesmo ciclo de 21 dias dos SRs, cada um num turno só; o OS segue o núcleo dele. Operational Assistant: 1 por turno todo dia (24/7), numa semana fixa em que quem faz dois turnos sempre muda para o mais tarde. Não há dia de treinamento separado: no dia de Overlap os 3 do grupo estão no turno; nos outros dias, 2 de 3 (OA: ao menos 1). O Operational Unit Manager não segue escala.')); ?></p>
+  <?php if ($cicloOc): ?><p class="nao-imprimir"><?php echo h(t('Desde {dia}, Operational Coordinator e Operational Unit Manager seguem um ciclo de 3 semanas: uma com o fim de semana inteiro de folga, uma com sábado + 1 dia útil e uma com domingo + 1 dia útil. Os 3 de cada grupo ficam em semanas diferentes: todo dia de fim de semana tem 1 deles e, nos dias úteis, 2 ou 3.', ['dia' => dataBr($cicloOc['desde'])])); ?></p><?php endif; ?>
 </header>
 
 <section class="panel nao-imprimir">
@@ -85,7 +88,7 @@ foreach ($escala['presentes'] as $grupos) {
     <div class="kpi"><span class="muted">Operational Coordinator</span><strong><?php echo $total['OC']; ?></strong><span class="muted small"><?php echo h(t('3 por turno')); ?></span></div>
     <div class="kpi"><span class="muted">Operational Supervisor</span><strong><?php echo $total['OS']; ?></strong><span class="muted small"><?php echo h(t('3 por unidade e turno')); ?></span></div>
     <div class="kpi"><span class="muted">Operational Assistant</span><strong><?php echo count(array_unique(array_column(array_merge(...array_map(static fn($g) => $g['OA'] ?? [], array_values($escala['grupos']))), 'nome'))); ?></strong><span class="muted small"><?php echo h(t('1 por turno, todo dia (24/7)')); ?></span></div>
-    <div class="kpi"><span class="muted"><?php echo h(t('Grupos abaixo do mínimo')); ?></span><strong class="<?php echo $poucos ? 'laranja' : ''; ?>"><?php echo $poucos; ?></strong><span class="muted small"><?php echo h(t('grupo × dia: OC e OS com menos de 2, OA sem ninguém')); ?></span></div>
+    <div class="kpi"><span class="muted"><?php echo h(t('Grupos abaixo do mínimo')); ?></span><strong class="<?php echo $poucos ? 'laranja' : ''; ?>"><?php echo $poucos; ?></strong><span class="muted small"><?php echo h($cicloOc ? t('grupo × dia: OC sem ninguém, OS com menos de 2, OA sem ninguém') : t('grupo × dia: OC e OS com menos de 2, OA sem ninguém')); ?></span></div>
     <div class="kpi"><span class="muted"><?php echo h(t('Sem código')); ?></span><strong class="<?php echo $semCodigo ? 'laranja' : ''; ?>"><?php echo count($semCodigo); ?></strong><span class="muted small"><?php echo h(implode('; ', $semCodigo) ?: t('todos com código')); ?></span></div>
   </div>
 </section>
@@ -144,6 +147,24 @@ foreach ($escala['presentes'] as $grupos) {
 <?php endif; ?>
 
 <section class="panel lid-om">
+  <?php if ($cicloOc): ?>
+  <h2><?php echo h(t('Operational Unit Manager')); ?></h2>
+  <div class="tabela-rolagem">
+  <table>
+    <thead><tr><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Cargo')); ?></th><?php foreach ($dias as $d): ?><th><?php echo h(dataBr($d, true)); ?></th><?php endforeach; ?></tr></thead>
+    <tbody>
+    <?php foreach ($escala['om'] as $i => $p): ?>
+      <tr><td><strong><?php echo h(nomeCurto($p['nome'])); ?></strong><br><span class="muted small mono"><?php echo h($p['rep'] ?? t('sem código')); ?></span></td><td class="small">OM · U<?php echo (int) $p['unidade']; ?></td>
+        <?php foreach ($dias as $d): $sOm = $escala['om_sit'][$i][$d] ?? 'SEM'; ?><td class="small"><?php echo $sOm === 'SEM' ? '<span class="muted">—</span>' : $celula[$sOm]; ?></td><?php endforeach; ?></tr>
+    <?php endforeach; ?>
+      <tr><td colspan="2" class="muted small"><?php echo h(t('trabalhando')); ?></td>
+      <?php foreach ($dias as $d): $n = $escala['om_presentes'][$d] ?? 0; $algum = array_filter(array_column($escala['om_sit'], $d), static fn($s) => $s !== 'SEM'); ?>
+        <td class="small <?php echo $algum && $n < 1 ? 'laranja' : ''; ?>"><?php echo $algum ? h(t('{n} de {total}', ['n' => $n, 'total' => count($escala['om'])])) : '—'; ?></td>
+      <?php endforeach; ?></tr>
+    </tbody>
+  </table>
+  </div>
+  <?php else: ?>
   <h2><?php echo h(t('Operational Unit Manager · não segue escala')); ?></h2>
   <table>
     <thead><tr><th><?php echo h(t('Unidade')); ?></th><th><?php echo h(t('Pessoa')); ?></th><th><?php echo h(t('Código')); ?></th></tr></thead>
@@ -153,6 +174,7 @@ foreach ($escala['presentes'] as $grupos) {
     <?php endforeach; ?>
     </tbody>
   </table>
+  <?php endif; ?>
   <p class="muted small"><?php echo h(t('Ausência aprovada em Indisponibilidade aparece como "ausente". Antes da virada ({dia} às {hora}) vale a escala postada.', ['dia' => dataBr(escV4DiaVirada()), 'hora' => substr(escV4Param('v4_virada', '2026-11-01 05:00'), 11, 5)])); ?></p>
 </section>
 </div>

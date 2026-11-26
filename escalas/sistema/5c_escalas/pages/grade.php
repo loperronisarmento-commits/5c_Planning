@@ -137,7 +137,18 @@ if (escPost() && ($_POST['acao'] ?? '') !== 'postagem') {
             escW('UPDATE ' . escT('esc_plano') . " SET status = 'SUBSTITUIDO' WHERE semana_inicio = ? AND time_nome = '' AND status = 'PUBLICADO' AND id <> ?", [substr($plano['semana_inicio'], 0, 10), $planoId]);
             escLog('plano.publicar', 'esc_plano', $planoId, ['status' => $plano['status']], ['status' => 'PUBLICADO']);
         });
-        escVoltar('grade', ['plano' => $planoId], t('Versão {versao} publicada. Baixe os CSVs e poste no site da 5C.', ['versao' => escPlanoRotulo($plano)]));
+        // A página segue o SR (1.42.0): os postos vão para o núcleo de quem mais faz a página como titular nesta versão.
+        $segueSr = '';
+        try {
+            $rSr = escPostoNucleoPeloPlano($planoId);
+            if ($rSr['postos'] > 0) {
+                $segueSr = ' ' . tn($rSr['postos'], '{n} posto passou para o núcleo do SR que faz a página a partir de {dia}.', '{n} postos passaram para o núcleo do SR que faz a página a partir de {dia}.', ['dia' => dataBr((string) $rSr['desde'])]);
+            }
+        } catch (Throwable $e) {
+            appLog('error', 'Publicar: núcleo dos postos pelo SR não aplicado', ['plano' => $planoId, 'erro' => $e->getMessage()]);
+            $segueSr = ' ' . t('Atenção: o núcleo dos postos pelo SR não foi atualizado ({erro}).', ['erro' => $e->getMessage()]);
+        }
+        escVoltar('grade', ['plano' => $planoId], t('Versão {versao} publicada. Baixe os CSVs e poste no site da 5C.', ['versao' => escPlanoRotulo($plano)]) . $segueSr);
     }
     if ($acao === 'rascunho') {
         $atualSem = escPlanoAtual(substr($plano['semana_inicio'], 0, 10));

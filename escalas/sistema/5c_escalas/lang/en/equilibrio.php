@@ -92,5 +92,7 @@ return [
     'páginas' => 'pages',
     'média' => 'average',
     'Nenhuma página com esses filtros.' => 'No page matches these filters.',
+    'Páginas dos OS' => 'OS pages',
+    'Cada OS tem um grupo fixo de SRs, e as páginas seguem os SRs: quando uma versão da escala é publicada, cada posto passa para o núcleo do SR que mais faz a página como titular naquela semana. Quem desenvolve os melhores SRs fica com as melhores páginas. Não há mais divisão dos OS por faturamento.' => 'Each OS has a fixed group of SRs, and pages follow the SRs: when a schedule version is published, each post moves to the core of the SR who works the page most as owner that week. Whoever develops the best SRs gets the best pages. There is no longer an OS split by revenue.',
     'U{u} {nome}: {paginas}. Só para acompanhar: não entra na média nem no desvio das unidades, nas trocas sugeridas nem na divisão dos OS. Os 30 dias incluem os dias em que as páginas ainda estavam na 5C.' => 'U{u} {nome}: {paginas}. For tracking only: it is not part of the unit average or deviation, the suggested swaps or the OS split. The 30 days include the days when the pages were still at 5C.',
 ];

@@ -40,4 +40,8 @@ return [
     'Escala da liderança {de} a {ate}' => 'Leadership schedule {de} to {ate}',
     'Leadership schedule · {de} a {ate} · gerada em {gerado}' => 'Leadership schedule · {de} to {ate} · generated on {gerado}',
     'Trabalha · Overlap (os 3 do grupo no turno) · folga · ausente (indisponibilidade aprovada) · — antes da virada. "no turno" = quantos do grupo estão no dia.' => 'Works · Overlap (all 3 of the group on the shift) · off · absent (approved unavailability) · — before the switch-over. "on shift" = how many of the group are on that day.',
+    'Desde {dia}, Operational Coordinator e Operational Unit Manager seguem um ciclo de 3 semanas: uma com o fim de semana inteiro de folga, uma com sábado + 1 dia útil e uma com domingo + 1 dia útil. Os 3 de cada grupo ficam em semanas diferentes: todo dia de fim de semana tem 1 deles e, nos dias úteis, 2 ou 3.' => 'Since {dia}, Operational Coordinators and Operational Unit Managers follow a 3-week cycle: one week with the whole weekend off, one with Saturday + 1 weekday and one with Sunday + 1 weekday. The 3 of each group are in different weeks: every weekend day has 1 of them and weekdays have 2 or 3.',
+    'Operational Unit Manager' => 'Operational Unit Manager',
+    'trabalhando' => 'working',
+    'grupo × dia: OC sem ninguém, OS com menos de 2, OA sem ninguém' => 'group × day: OC with nobody, OS with fewer than 2, OA with nobody',
 ];

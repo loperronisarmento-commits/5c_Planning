@@ -17,6 +17,12 @@
 //   posição do ciclo do parâmetro v4_lideranca_overlap_posicao, a mesma para
 //   todos. Como cada um tem um deslocamento, nesse dia os 3 do grupo estão no
 //   turno (Overlap); nos outros, 2 de 3.
+// - Desde v4_lideranca_oc_desde (pedido do CEO de 25/11), OC e OM seguem o ciclo de 3
+//   semanas v4_lideranca_oc_ciclo (seg a dom): uma semana com o fim de semana inteiro de
+//   folga, uma com sábado + 1 dia útil e uma com domingo + 1 dia útil. Os 3 de cada grupo
+//   (OC do turno, um por unidade; os 3 OM) ficam em semanas diferentes do ciclo
+//   (v4_lideranca_oc_desloc, por unidade): todo dia de fim de semana tem 1 deles e, nos dias
+//   úteis, 2 ou 3. Sem Overlap.
 // Só lê: nada é gravado.
 // ===============================================
 
@@ -24,7 +30,28 @@ const ESC_LID_CARGO = ['OM' => 'Operational Unit Manager', 'OC' => 'Operational 
 // Mínimo no turno por grupo (OA: 1, cobertura 24/7; OC e OS: 2 de 3).
 const ESC_LID_MINIMO = ['OA' => 1];
 const ESC_LID_HORARIO = ['A' => '05:00–13:00', 'C' => '13:00–21:00', 'D' => '21:00–05:00'];
-const ESC_LID_SITUACAO = ['TRABALHO' => 'Trabalha', 'OVERLAP' => 'Overlap (os 3)', 'FOLGA' => 'Folga', 'AUSENTE' => 'Ausente', 'ANTES' => 'Antes da virada', 'OUTRO' => 'Em outro turno'];
+const ESC_LID_SITUACAO = ['TRABALHO' => 'Trabalha', 'OVERLAP' => 'Overlap (os 3)', 'FOLGA' => 'Folga', 'AUSENTE' => 'Ausente', 'ANTES' => 'Antes da virada', 'OUTRO' => 'Em outro turno', 'SEM' => 'Não segue escala'];
+
+// Ciclo de 3 semanas de OC e OM (pedido do CEO de 25/11): [ciclo, desde, deslocamento por unidade] ou null
+// se não está configurado. O ciclo começa na segunda da âncora da rotação (v4_rotacao_ancora).
+function escLiderancaCicloOc(): ?array {
+    $ciclo = preg_replace('~[^01]~', '', escV4Param('v4_lideranca_oc_ciclo', ''));
+    $desde = escV4Param('v4_lideranca_oc_desde', '');
+    if ($ciclo === '' || strlen($ciclo) % 7 !== 0 || !preg_match('~^\d{4}-\d{2}-\d{2}$~', $desde)) {
+        return null;
+    }
+    $desl = array_map('intval', array_map('trim', explode(',', escV4Param('v4_lideranca_oc_desloc', '0,7,14'))));
+    return ['ciclo' => $ciclo, 'desde' => $desde, 'desloc' => $desl];
+}
+
+// Situação do OC ou do OM no dia pelo ciclo de 3 semanas (null: antes de v4_lideranca_oc_desde).
+function escLiderancaSitOc(?array $c, int $unidade, string $ancora, string $dia): ?string {
+    if (!$c || $dia < $c['desde']) {
+        return null;
+    }
+    $desl = $c['desloc'][max(0, $unidade - 1)] ?? 0;
+    return $c['ciclo'][escV4IndiceCiclo(['deslocamento' => $desl], $c['ciclo'], $ancora, $dia)] === '1' ? 'TRABALHO' : 'FOLGA';
+}
 
 // Pessoas da liderança vigentes no dia: ['om' => [...], 'grupos' => [turno][unidade|'OC'] => [pessoas]].
 // OS de cada núcleo no dia: quem tem a configuração de OS (funcao DECURIO) naquele núcleo
@@ -105,6 +132,7 @@ function escLiderancaSemana(string $seg): array {
     $turnoVirada = escV4TurnoVirada();
     $est = escLiderancaCarregar(max($seg, escV4DiaEstrutura()));
     $indisp = escMotorIndisp($dias);
+    $cicloOc = escLiderancaCicloOc();
     // OS que muda no meio da semana (ex.: ES_84, Kodama do núcleo 2 para o 1 em 03/11): a vaga de OS é do
     // núcleo, então em cada dia vale quem é o OS do núcleo naquele dia. OC e OA seguem a lista do início da semana.
     $osDia = [];
@@ -138,7 +166,10 @@ function escLiderancaSemana(string $seg): array {
                         $sit[$chave][$d] = 'ANTES';
                         continue;
                     }
-                    if (isset($p['padrao'])) {
+                    $sOc = $p['cargo'] === 'OC' ? escLiderancaSitOc($cicloOc, (int) $p['unidade'], $ancora, $d) : null;
+                    if ($sOc !== null) {
+                        $s = $sOc;
+                    } elseif (isset($p['padrao'])) {
                         $ch = $p['padrao'][(int) date('N', strtotime($d)) - 1];
                         $s = $ch === $turno ? 'TRABALHO' : ($ch === '.' ? 'FOLGA' : 'OUTRO');
                     } else {
@@ -154,7 +185,22 @@ function escLiderancaSemana(string $seg): array {
             }
         }
     }
-    return ['dias' => $dias, 'om' => $est['om'], 'grupos' => $est['grupos'], 'sit' => $sit, 'presentes' => $presentes, 'rep_dia' => $repDia];
+    // OM: não seguia escala; com o ciclo de 3 semanas, segue o mesmo dos OC (um dia de fim de semana para cada).
+    $omSit = [];
+    $omPresentes = [];
+    foreach ($est['om'] as $i => $p) {
+        foreach ($dias as $d) {
+            $s = escLiderancaSitOc($cicloOc, (int) $p['unidade'], $ancora, $d) ?? 'SEM';
+            if ($s === 'TRABALHO' && $p['rep'] && !empty($indisp[$p['rep']][$d])) {
+                $s = 'AUSENTE';
+            }
+            $omSit[$i][$d] = $s;
+            $omPresentes[$d] = ($omPresentes[$d] ?? 0) + ($s === 'TRABALHO' ? 1 : 0);
+        }
+    }
+    $novo = $cicloOc && end($dias) >= $cicloOc['desde'];
+    return ['dias' => $dias, 'om' => $est['om'], 'grupos' => $est['grupos'], 'sit' => $sit, 'presentes' => $presentes, 'rep_dia' => $repDia,
+        'om_sit' => $omSit, 'om_presentes' => $omPresentes, 'ciclo_oc' => $novo ? $cicloOc : null];
 }
 
 // Origem da alocação da liderança no plano e sufixo do código no CSV (página 5C Schedule).
@@ -226,6 +272,17 @@ function escLiderancaCsv(array $e): string {
                         preg_replace('~^([=+\-@])~', "'$1", str_replace(';', ',', $p['nome'])), ESC_LID_SITUACAO[$s]]);
                 }
             }
+        }
+    }
+    // OM (sem turno): no ciclo de 3 semanas, uma linha por dia.
+    foreach ($e['om'] as $i => $p) {
+        foreach ($e['dias'] as $d) {
+            $s = $e['om_sit'][$i][$d] ?? 'SEM';
+            if ($s === 'SEM') {
+                continue;
+            }
+            $linhas[] = implode(';', [date('d/m/Y', strtotime($d)), ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][(int) date('w', strtotime($d))] . ' ' . date('d/m', strtotime($d)), '', '', ESC_LID_CARGO['OM'],
+                'U' . (int) $p['unidade'], '', $p['rep'] ?? 'sem código', preg_replace('~^([=+\-@])~', "'$1", str_replace(';', ',', $p['nome'])), ESC_LID_SITUACAO[$s]]);
         }
     }
     return "\xEF\xBB\xBF" . implode("\r\n", $linhas) . "\r\n";

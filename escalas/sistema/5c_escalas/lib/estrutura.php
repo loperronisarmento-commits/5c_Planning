@@ -552,6 +552,161 @@ function escEstruturaSincronizar(string $dc, string $desde): array {
     return $res;
 }
 
+// Página segue o SR (26/11, pedido do CEO: "OS com o grupo de SR que ele atende, sempre os mesmos; os SRs
+// sobem de página e isso melhora ou piora as páginas dos OS; quem treinar os melhores SRs terá as melhores
+// páginas"). Ao publicar uma versão da escala, cada posto passa para o núcleo do SR que mais faz a página
+// como titular naquela semana (células REGULAR de página, de SRs da mesma unidade e turno do posto); a
+// cobertura vai para o segundo núcleo que mais a faz. Empate com o núcleo de hoje: fica. Vale a partir da
+// segunda da semana (ou de amanhã, se a semana já começou); o posto que já valia fecha na véspera e abre a
+// cópia com o núcleo novo, e a equipe da vaga que deixou de bater com o núcleo sai (o próximo Gerar completa),
+// como na divisão dos OS. $aplicar = false só calcula (prévia). v4_pagina_segue_sr = 0 desliga.
+function escPostoNucleoPeloPlano(int $planoId, bool $aplicar = true): array {
+    $res = ['desde' => null, 'postos' => 0, 'equipe_fora' => 0, 'mudancas' => []];
+    if (escV4Param('v4_pagina_segue_sr', '1') !== '1' || ($aplicar && escModoTreino())) {
+        return $res;
+    }
+    $pl = escQ1('SELECT id, semana_inicio FROM ' . escT('esc_plano') . " WHERE id = ? AND time_nome = ''", [$planoId]);
+    if (!$pl) {
+        return $res;
+    }
+    $seg = substr((string) $pl['semana_inicio'], 0, 10);
+    $desde = max($seg, date('Y-m-d', strtotime('+1 day')));
+    $res['desde'] = $desde;
+    $vig = ' vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)';
+    // Núcleo de cada SR em cada dia da semana (o cadastro pode mudar no meio).
+    $cfg = [];
+    foreach (escQ('SELECT UPPER(rep_code) AS rep, unidade, turno, nucleo_id, vigente_desde, vigente_ate FROM ' . escT('esc_colaborador_config')
+        . " WHERE funcao = 'EQUITE' AND nucleo_id IS NOT NULL AND vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)", [escMaisDias($seg, 6), $seg]) as $c) {
+        $cfg[$c['rep']][] = $c;
+    }
+    $nucleoDe = static function (string $rep, string $dia) use ($cfg): ?array {
+        foreach ($cfg[$rep] ?? [] as $c) {
+            if (substr((string) $c['vigente_desde'], 0, 10) <= $dia && ($c['vigente_ate'] === null || substr((string) $c['vigente_ate'], 0, 10) >= $dia)) {
+                return $c;
+            }
+        }
+        return null;
+    };
+    $postos = [];
+    foreach (escQ('SELECT id, unidade, turno, nucleo_dono_id, nucleo_cobertura_id, vigente_desde FROM ' . escT('esc_posto') . ' WHERE vigente_ate IS NULL OR vigente_ate >= ?', [$desde]) as $p) {
+        $postos[(int) $p['id']] = $p;
+    }
+    $doTurno = [];
+    foreach (escQ('SELECT id, unidade, turno FROM ' . escT('esc_nucleo') . ' WHERE' . $vig . ' ORDER BY numero', [$desde, $desde]) as $n) {
+        $doTurno[$n['unidade'] . '|' . $n['turno']][] = (int) $n['id'];
+    }
+    $conta = [];
+    foreach (escQ("SELECT posto_id, DATE_FORMAT(dia, '%Y-%m-%d') AS dia, bloco, UPPER(rep_code) AS rep FROM " . escT('esc_plano_alocacao')
+        . " WHERE plano_id = ? AND papel = 'REGULAR' AND posto_id IS NOT NULL AND rep_code IS NOT NULL AND origem NOT IN ('OVERLAP', 'TREINO', 'LIDER_OS', 'LIDER_OC', 'LIDER_OA')", [$planoId]) as $a) {
+        $p = $postos[(int) $a['posto_id']] ?? null;
+        if (!$p) {
+            continue;
+        }
+        // Dia do turno: o T1 do D é da noite anterior.
+        $diaT = $a['bloco'] === 'T1' ? escMaisDias($a['dia'], -1) : $a['dia'];
+        $c = $nucleoDe($a['rep'], $diaT);
+        if (!$c || (int) $c['unidade'] !== (int) $p['unidade'] || $c['turno'] !== $p['turno']) {
+            continue;
+        }
+        $conta[(int) $a['posto_id']][(int) $c['nucleo_id']] = ($conta[(int) $a['posto_id']][(int) $c['nucleo_id']] ?? 0) + 1;
+    }
+    $muda = [];
+    foreach ($conta as $pid => $porNuc) {
+        $p = $postos[$pid];
+        $ids = $doTurno[$p['unidade'] . '|' . $p['turno']] ?? [];
+        $porNuc = array_intersect_key($porNuc, array_flip($ids));
+        if (!$porNuc || count($ids) < 2) {
+            continue;
+        }
+        $atualDono = (int) $p['nucleo_dono_id'];
+        $atualCob = $p['nucleo_cobertura_id'] !== null ? (int) $p['nucleo_cobertura_id'] : null;
+        // Mais células primeiro; empate: o núcleo de hoje (dono, depois cobertura), depois a ordem do núcleo.
+        $ordem = $ids;
+        usort($ordem, static fn($a, $b) => [-($porNuc[$a] ?? 0), $a === $atualDono ? 0 : ($a === $atualCob ? 1 : 2), array_search($a, $ids, true)]
+            <=> [-($porNuc[$b] ?? 0), $b === $atualDono ? 0 : ($b === $atualCob ? 1 : 2), array_search($b, $ids, true)]);
+        // O dono só muda com evidência: o núcleo novo faz mais que o de hoje e ao menos v4_pagina_segue_sr_min
+        // (40%) das células do posto. A cobertura só muda junto com o dono (para o dono de antes, se ainda faz a
+        // página; senão o segundo que mais faz; senão a de hoje).
+        $minParte = (float) str_replace(',', '.', escV4Param('v4_pagina_segue_sr_min', '0.4'));
+        $total = array_sum($porNuc);
+        $top = $ordem[0];
+        if ($top === $atualDono || ($porNuc[$top] ?? 0) <= ($porNuc[$atualDono] ?? 0) || ($porNuc[$top] ?? 0) < $minParte * $total) {
+            continue;
+        }
+        $dono = $top;
+        $outros = array_values(array_filter($ordem, static fn($n) => $n !== $dono));
+        if (($porNuc[$atualDono] ?? 0) > 0) {
+            $cob = $atualDono;
+        } elseif (($porNuc[$outros[0]] ?? 0) > 0) {
+            $cob = $outros[0];
+        } else {
+            $cob = $atualCob !== null && $atualCob !== $dono ? $atualCob : $outros[0];
+        }
+        $muda[$pid] = ['dono' => $dono, 'cob' => $cob, 'antes' => [$atualDono, $atualCob], 'celulas' => $porNuc];
+    }
+    $res['mudancas'] = $muda;
+    $res['postos'] = count($muda);
+    if (!$aplicar || !$muda) {
+        return $res;
+    }
+    $ontem = escMaisDias($desde, -1);
+    $neutra = escMaisDias(escV4DiaVirada(), -2);
+    escTx(static function () use ($muda, $postos, $desde, $ontem, $neutra, $cfg, $nucleoDe, &$res) {
+        $versao = 'SR' . date('Ymd_His');
+        $novoId = [];
+        foreach ($muda as $id => $m) {
+            if (substr((string) $postos[$id]['vigente_desde'], 0, 10) >= $desde) {
+                escW('UPDATE ' . escT('esc_posto') . ' SET nucleo_dono_id = ?, nucleo_cobertura_id = ? WHERE id = ?', [$m['dono'], $m['cob'], $id]);
+                $novoId[$id] = $id;
+                continue;
+            }
+            // Cópia a partir da data, com o mesmo número no grupo (ou o próximo livre: uk_posto).
+            $orig = escQW('SELECT carteira, turno, seq FROM ' . escT('esc_posto') . ' WHERE id = ?', [$id])[0];
+            $seq = (int) $orig['seq'];
+            while (escQW('SELECT 1 AS ok FROM ' . escT('esc_posto') . ' WHERE versao = ? AND carteira = ? AND turno = ? AND seq = ?', [$versao, $orig['carteira'], $orig['turno'], $seq])) {
+                $seq++;
+            }
+            escW('INSERT INTO ' . escT('esc_posto') . ' (versao, unidade, carteira, turno, seq, tipo, pagina_principal, n_paginas, assinatura, carga, capacidade, nucleo_dono_id, nucleo_cobertura_id, vigente_desde, vigente_ate)
+                  SELECT ?, unidade, carteira, turno, ?, tipo, pagina_principal, n_paginas, assinatura, carga, capacidade, ?, ?, ?, vigente_ate FROM ' . escT('esc_posto') . ' WHERE id = ?',
+                [$versao, $seq, $m['dono'], $m['cob'], $desde, $id]);
+            $novo = escUltimoId();
+            $novoId[$id] = $novo;
+            escW('INSERT INTO ' . escT('esc_posto_pagina') . ' (posto_id, pagina, page_id, fracao, fans_h, apoio) SELECT ?, pagina, page_id, fracao, fans_h, apoio FROM ' . escT('esc_posto_pagina') . ' WHERE posto_id = ?', [$novo, $id]);
+            escW('INSERT IGNORE INTO ' . escT('esc_vaga_equipe') . ' (posto_id, vaga, rep_code, fatia, ordem, status, motivo, vigente_desde, vigente_ate, origem, criado_por)
+                  SELECT ?, vaga, rep_code, fatia, ordem, status, motivo, ?, vigente_ate, origem, criado_por FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vigente_desde < ? AND (vigente_ate IS NULL OR vigente_ate >= ?)',
+                [$novo, $desde, $id, $desde, $desde]);
+            escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ? WHERE posto_id = ? AND vigente_desde < ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$ontem, $id, $desde, $desde]);
+            foreach (escQW('SELECT id, vaga, rep_code, vigente_desde FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vigente_desde >= ?', [$id, $desde]) as $vg) {
+                if (escQW('SELECT 1 AS ok FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND vaga = ? AND rep_code = ? AND vigente_desde = ?', [$novo, $vg['vaga'], $vg['rep_code'], $vg['vigente_desde']])) {
+                    escW('DELETE FROM ' . escT('esc_vaga_equipe') . ' WHERE id = ?', [(int) $vg['id']]);
+                } else {
+                    escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET posto_id = ? WHERE id = ?', [$novo, (int) $vg['id']]);
+                }
+            }
+            escW('UPDATE ' . escT('esc_posto') . ' SET vigente_ate = ? WHERE id = ?', [$ontem, $id]);
+        }
+        // Equipe da vaga que não bate mais com o núcleo (dono ou cobertura) sai a partir da data.
+        foreach ($muda as $id => $m) {
+            foreach (escQW('SELECT id, vaga, UPPER(rep_code) AS rep, vigente_desde FROM ' . escT('esc_vaga_equipe') . ' WHERE posto_id = ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$novoId[$id], $desde]) as $v) {
+                $c = $nucleoDe((string) $v['rep'], $desde);
+                $nucVaga = $v['vaga'] === 'DONO' ? $m['dono'] : $m['cob'];
+                if ($c && (int) $c['nucleo_id'] === $nucVaga) {
+                    continue;
+                }
+                if (substr((string) $v['vigente_desde'], 0, 10) >= $desde) {
+                    escVagaNeutra((int) $v['id'], $neutra);
+                } else {
+                    escW('UPDATE ' . escT('esc_vaga_equipe') . ' SET vigente_ate = ? WHERE id = ?', [$ontem, (int) $v['id']]);
+                }
+                $res['equipe_fora']++;
+            }
+        }
+    });
+    escLog('posto.nucleo_pelo_sr', 'esc_plano', (string) $planoId, null, ['desde' => $desde, 'postos' => $res['postos'], 'equipe_fora' => $res['equipe_fora'],
+        'mudancas' => array_map(static fn($m) => [$m['antes'], [$m['dono'], $m['cob']]], $muda)]);
+    return $res;
+}
+
 // Núcleo de antes (25/11, decisão do usuário: "as páginas não vão mais trocar de núcleo; se uma página
 // saiu e depois voltou, volta sempre pra onde ela estava"). Para cada posto novo, o núcleo dono é o do
 // último posto da estrutura nova (desde a virada) em que a página principal dele (a de mais volume, fora

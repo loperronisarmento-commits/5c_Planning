@@ -6,6 +6,11 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.42.0' => ['titulo' => 'OC and OM days off every 3 weeks; OS with a fixed group and pages follow the SR', 'itens' => [
+    'OC and OM days off (CEO request), from Dec 7: a 3-week cycle, one week with the whole weekend off, one with Friday + Saturday (works Sunday) and one with Thursday + Sunday (works Saturday). The 3 OCs of each shift (one per unit) and the 3 OMs are in different weeks: every weekend day has 1 OC in each shift and 1 OM, and weekdays have 2 or 3. The OM now shows in the leadership schedule and CSV. Parameters v4_lideranca_oc_ciclo, v4_lideranca_oc_desde and v4_lideranca_oc_desloc.',
+    'OS with a fixed group of SRs: the OS split by revenue (OS1, OS2 and OS3) leaves Generate and Balance (v4_os_equilibrio = 0). An SR only changes core on request.',
+    'Pages follow the SR: when a schedule version is published, each post moves to the core of the SR who works the page most as owner that week (with at least 40% of the cells and more than today\'s core; the cover goes to the previous core). Whoever develops the best SRs gets the best pages. Slot team members who no longer match the core leave and the next Generate fills in. Parameters v4_pagina_segue_sr (1) and v4_pagina_segue_sr_min (0.4).',
+    ]],
     '1.40.1' => ['titulo' => 'Balance: filters and totals in the page list', 'itens' => [
     'Balance › Unit pages: filters at the top (unit, portfolio C1/C2, tier and search by name), without reloading, and a footer with the total of the filtered rows (pages, total and average fans/h, 30-day revenue). Units in order (U1, U2, U3, partners at the end).',
     ]],

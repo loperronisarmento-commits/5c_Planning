@@ -273,4 +273,7 @@ return [
     'Só 5C Schedule (Overlap e buffer de plantão) · {n} mudanças' => '5C Schedule only (Overlap and on-call buffer) · {n} changes',
     'Detalhe por bloco, com o motivo do motor · {n}' => 'Detail by block, with the engine reason · {n}',
     'Mostrando {n} de {total} diferenças.' => 'Showing {n} of {total} differences.',
+    '{n} posto passou para o núcleo do SR que faz a página a partir de {dia}.' => '{n} post moved to the core of the SR who works the page from {dia}.',
+    '{n} postos passaram para o núcleo do SR que faz a página a partir de {dia}.' => '{n} posts moved to the core of the SR who works the page from {dia}.',
+    'Atenção: o núcleo dos postos pelo SR não foi atualizado ({erro}).' => 'Warning: the post cores were not updated by SR ({erro}).',
 ];
