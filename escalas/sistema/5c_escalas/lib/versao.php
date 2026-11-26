@@ -8,6 +8,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.44.1', 'data' => '2026-11-26', 'titulo' => 'Folga de fim de semana dos OC também por turno dentro da unidade', 'sql' => ['ES_262_lideranca_oc_por_turno.sql'], 'itens' => [
+    'Pedido do CEO: no ciclo de 3 semanas dos OC (desde 07/12), além de os 3 OC de cada turno (um por unidade) ficarem em semanas diferentes, os OC dos 3 turnos de uma unidade também ficam. Em cada dia de fim de semana: 1 OC por turno e, em cada unidade, o OC de 1 turno; nos outros 2 turnos, o OC de outra unidade cobre. Parâmetro v4_lideranca_oc_desloc_turno (A: U1 7, U2 0, U3 14; C: U1 0, U2 14, U3 7; D: U1 14, U2 7, U3 0). O OM segue por unidade.',
+    'Na virada de 07/12, 4 OC fazem 7 dias seguidos e 1 faz 6 (nenhum arranjo dá menos com o início em 07/12).',
+    ]],
     ['versao' => '1.44.0', 'data' => '2026-11-26', 'titulo' => 'Equipe fixa vale em qualquer Gerar: ordem, outra unidade e dia de Overlap', 'sql' => ['ES_257_regras_u1_isla_moon_equipe_fixa_2611.sql'], 'itens' => [
     'O que estava só em células travadas da semana de 30/11 virou regra no cadastro (Restrições dos OM › equipe fixa) e vale em qualquer Gerar, até no "Gerar do zero", e nas próximas semanas: as prioridades da OM da U1 (P1 = main, P2 = cover, P3 = equipe, por página), a Isla Moon com 1 pessoa por turno (A: Camila, depois Italo; C: Golfeti, depois Vinicius; D: Luan, depois Donério) e o Guilherme de Lucca na Mikayla Paid no C depois do Paulo Santos até 07/12 (ES_257).',
     'Ordem na equipe fixa: entre dois main (ou dois cover) da página no mesmo turno, fica o que vem antes na lista. O segundo só entra quando o primeiro folga; nos outros dias vai para a página dele (Italo na Nicole, Vinicius na Brandi Love, Donério na Britt).',

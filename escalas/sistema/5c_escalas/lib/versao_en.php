@@ -6,6 +6,10 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.44.1' => ['titulo' => 'OC weekend days off also by shift within the unit', 'itens' => [
+    'CEO request: in the OCs\' 3-week cycle (since Dec 7), besides the 3 OCs of each shift (one per unit) being in different weeks, the OCs of a unit\'s 3 shifts are too. On each weekend day: 1 OC per shift and, in each unit, the OC of 1 shift; the other 2 shifts are covered by the OC of another unit. Parameter v4_lideranca_oc_desloc_turno (A: U1 7, U2 0, U3 14; C: U1 0, U2 14, U3 7; D: U1 14, U2 7, U3 0). The OM stays by unit.',
+    'At the Dec 7 changeover, 4 OCs work 7 days in a row and 1 works 6 (no arrangement does better with the Dec 7 start).',
+    ]],
     '1.44.0' => ['titulo' => 'Fixed team holds in every Generate: order, other unit and Overlap day', 'itens' => [
     'What was only in locked cells of the week of 11/30 is now a rule in the records (OM restrictions › fixed team) and holds in every Generate, even "Generate from scratch", and in the next weeks: the U1 OM priorities (P1 = main, P2 = cover, P3 = team, per page), Isla Moon with 1 person per shift (A: Camila, then Italo; C: Golfeti, then Vinicius; D: Luan, then Donério) and Guilherme de Lucca on Mikayla Paid in C after Paulo Santos until 12/07 (ES_257).',
     'Order in the fixed team: between two mains (or two covers) of the page in the same shift, the one listed first stays. The second only comes in when the first is off; on the other days they go to their own page (Italo on Nicole, Vinicius on Brandi Love, Donério on Britt).',

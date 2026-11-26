@@ -22,7 +22,9 @@
 //   folga, uma com sábado + 1 dia útil e uma com domingo + 1 dia útil. Os 3 de cada grupo
 //   (OC do turno, um por unidade; os 3 OM) ficam em semanas diferentes do ciclo
 //   (v4_lideranca_oc_desloc, por unidade): todo dia de fim de semana tem 1 deles e, nos dias
-//   úteis, 2 ou 3. Sem Overlap.
+//   úteis, 2 ou 3. Sem Overlap. Desde a 1.44.1 (CEO), os OC dos 3 turnos de uma unidade também
+//   ficam em semanas diferentes (v4_lideranca_oc_desloc_turno): em cada dia de fim de semana a
+//   unidade tem o OC de 1 turno; nos outros 2 turnos, o OC de outra unidade cobre.
 // Só lê: nada é gravado.
 // ===============================================
 
@@ -41,15 +43,25 @@ function escLiderancaCicloOc(): ?array {
         return null;
     }
     $desl = array_map('intval', array_map('trim', explode(',', escV4Param('v4_lideranca_oc_desloc', '0,7,14'))));
-    return ['ciclo' => $ciclo, 'desde' => $desde, 'desloc' => $desl];
+    // OC por unidade e turno (1.44.1, CEO): "A:7,0,14;C:0,14,7;D:14,7,0" (U1, U2, U3 em cada turno). Quadrado
+    // latino: em cada turno os 3 OC ficam em semanas diferentes e, em cada unidade, os OC dos 3 turnos também.
+    $porTurno = [];
+    foreach (explode(';', escV4Param('v4_lideranca_oc_desloc_turno', '')) as $parte) {
+        if (preg_match('~^\s*([ACD])\s*:\s*([\d,\s]+)$~', $parte, $m)) {
+            $porTurno[$m[1]] = array_map('intval', array_map('trim', explode(',', $m[2])));
+        }
+    }
+    return ['ciclo' => $ciclo, 'desde' => $desde, 'desloc' => $desl, 'desloc_turno' => $porTurno];
 }
 
 // Situação do OC ou do OM no dia pelo ciclo de 3 semanas (null: antes de v4_lideranca_oc_desde).
-function escLiderancaSitOc(?array $c, int $unidade, string $ancora, string $dia): ?string {
+// Com o turno (OC), usa o deslocamento da unidade naquele turno, se houver; o OM usa o da unidade.
+function escLiderancaSitOc(?array $c, int $unidade, string $ancora, string $dia, ?string $turno = null): ?string {
     if (!$c || $dia < $c['desde']) {
         return null;
     }
-    $desl = $c['desloc'][max(0, $unidade - 1)] ?? 0;
+    $lista = $turno !== null && isset($c['desloc_turno'][$turno]) ? $c['desloc_turno'][$turno] : $c['desloc'];
+    $desl = $lista[max(0, $unidade - 1)] ?? 0;
     return $c['ciclo'][escV4IndiceCiclo(['deslocamento' => $desl], $c['ciclo'], $ancora, $dia)] === '1' ? 'TRABALHO' : 'FOLGA';
 }
 
@@ -166,7 +178,7 @@ function escLiderancaSemana(string $seg): array {
                         $sit[$chave][$d] = 'ANTES';
                         continue;
                     }
-                    $sOc = $p['cargo'] === 'OC' ? escLiderancaSitOc($cicloOc, (int) $p['unidade'], $ancora, $d) : null;
+                    $sOc = $p['cargo'] === 'OC' ? escLiderancaSitOc($cicloOc, (int) $p['unidade'], $ancora, $d, $turno) : null;
                     if ($sOc !== null) {
                         $s = $sOc;
                     } elseif (isset($p['padrao'])) {
