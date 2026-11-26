@@ -238,12 +238,14 @@ function escV4Carregar(string $dia): array {
     // Papel na equipe (ES_114, pedido do OM da U3): MAIN (titular da página no turno) entra antes, COVER
     // (cobre o titular) depois, EQUIPE (os demais) por último.
     $comPapelEq = (bool) escQ1("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'esc_pagina_prioridade' AND COLUMN_NAME = 'papel'", [ESC_SCHEMA]);
+    // Ordem (1.44.0): a posição na lista (linhas pela ordem de cadastro, nomes pela ordem na linha) é a
+    // preferência entre dois MAIN (ou dois COVER) da página disponíveis no mesmo turno: o primeiro fica.
     foreach (escQ('SELECT pagina, rep_codes, vigente_desde, vigente_ate' . ($comPapelEq ? ', papel' : '') . ' FROM ' . escT('esc_pagina_prioridade')
-        . ' WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?)', [$dia, escMaisDias($dia, -6)]) as $l) {
+        . ' WHERE vigente_desde <= ? AND (vigente_ate IS NULL OR vigente_ate >= ?) ORDER BY id', [$dia, escMaisDias($dia, -6)]) as $l) {
         foreach (array_filter(array_map('trim', explode(',', strtoupper((string) $l['rep_codes'])))) as $rep) {
             $prioridade[$l['pagina']][] = ['rep' => $rep, 'de' => substr((string) $l['vigente_desde'], 0, 10),
                 'ate' => $l['vigente_ate'] !== null ? substr((string) $l['vigente_ate'], 0, 10) : null,
-                'papel' => (string) ($l['papel'] ?? 'EQUIPE') ?: 'EQUIPE'];
+                'papel' => (string) ($l['papel'] ?? 'EQUIPE') ?: 'EQUIPE', 'ordem' => count($prioridade[$l['pagina']] ?? [])];
         }
     }
     // Divisão do SR entre páginas (esc_sr_divisao, ES_98): [rep] = [['pagina', 'parte', 'de', 'ate'], ...].

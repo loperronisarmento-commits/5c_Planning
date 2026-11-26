@@ -681,6 +681,24 @@ function escMotorAlocarV4(array $in): array {
             // (COVER) e por último o resto da equipe. Assim quem é titular de uma página e cover de outra fica
             // na dele quando o titular da outra está no turno.
             $ordemPapel = ['MAIN' => 2, 'COVER' => 1, 'EQUIPE' => 0];
+            // MAIN e COVER de outra unidade (1.44.0, v4_equipe_fixa_outra_unidade; Isla Moon com SRs da U2 e da U3):
+            // a equipe fixa escolhida pela gestão vale mesmo fora da unidade do SR. As unidades vão de 1 a 3, então
+            // a página da U1 escolhe antes das páginas de casa dele. EQUIPE continua só na unidade da página.
+            $eqOutraU = escV4Param('v4_equipe_fixa_outra_unidade', '1') === '1';
+            $dispTurno = []; // [rep] = unidade
+            foreach ($estadoUT as $uD => $stD) {
+                foreach ($stD['disp'] as $repD => $_) {
+                    $dispTurno[$repD] = $uD;
+                }
+            }
+            // No dia de Overlap, MAIN e COVER trabalham na página fixa (1.44.0; como na escala dos OM): o dia conta
+            // como treinamento (não entra nos dias seguidos), igual ao Overlap que cobre a página fixa no passo 4a.
+            $overlapTurno = []; // [rep] = unidade
+            foreach ($overlapUT as $uO => $rsO) {
+                foreach ($rsO as $repO => $_) {
+                    $overlapTurno[$repO] = $uO;
+                }
+            }
             foreach (empty($est['prioridade']) ? [] : array_keys($estadoUT) as $u) {
                 $st = &$estadoUT[$u];
                 foreach (['MAIN', 'COVER', 'EQUIPE'] as $rodada)
@@ -691,6 +709,7 @@ function escMotorAlocarV4(array $in): array {
                     $p = $est['postos'][$v['pid']];
                     $equipe = [];
                     $papelEq = [];
+                    $ordemEq = []; // [rep] = posição na lista da página (menor = preferido)
                     foreach ($p['paginas'] as $pg) {
                         foreach ($pg['apoio'] ? [] : ($est['prioridade'][$pg['pagina']] ?? []) as $pr) {
                             if ($pr['de'] <= $dia && ($pr['ate'] === null || $pr['ate'] >= $dia)) {
@@ -698,6 +717,7 @@ function escMotorAlocarV4(array $in): array {
                                 if (!isset($papelEq[$pr['rep']]) || ($ordemPapel[$pp] ?? 0) > ($ordemPapel[$papelEq[$pr['rep']]] ?? 0)) {
                                     $papelEq[$pr['rep']] = $pp;
                                     $equipe[$pr['rep']] = $pg['pagina'];
+                                    $ordemEq[$pr['rep']] = (int) ($pr['ordem'] ?? 0);
                                 }
                             }
                         }
@@ -705,12 +725,17 @@ function escMotorAlocarV4(array $in): array {
                     $melhor = null;
                     $kMelhor = null;
                     foreach ($equipe as $rep => $pag) {
-                        if (($papelEq[$rep] ?? 'EQUIPE') !== $rodada || !isset($st['disp'][$rep]) || isset($usado[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $p)) {
+                        $fixaRodada = $rodada !== 'EQUIPE';
+                        $daqui = isset($st['disp'][$rep]) || ($eqOutraU && $fixaRodada && isset($dispTurno[$rep]))
+                            || ($fixaRodada && !$transicao && isset($overlapTurno[$rep]) && ($eqOutraU || $overlapTurno[$rep] === $u));
+                        if (($papelEq[$rep] ?? 'EQUIPE') !== $rodada || !$daqui || isset($usado[$rep]) || isset($completaOm[(string) $rep]) || !$pode($rep, $p)) {
                             continue;
                         }
                         // No posto de assistente, quem o manager marcou como assistente da página vem antes
-                        // (fica sempre o mesmo nome; pedido de 04/11 para a Mikayla Free).
+                        // (fica sempre o mesmo nome; pedido de 04/11 para a Mikayla Free). Entre MAIN (ou COVER),
+                        // o que vem antes na lista da página (1.44.0).
                         $k = [$p['tipo'] === 'assistente' ? (isset($soAssist[$rep][$pag]) ? 2 : (isset($prefAssist[$rep]) ? 1 : 0)) : 0,
+                            $rodada !== 'EQUIPE' ? -($ordemEq[$rep] ?? 0) : 0,
                             ($ultimo[(int) $p['id']] ?? null) === $rep ? 1 : 0, isset($v['equipe'][$rep]) ? 1 : 0, $historico[$rep][$pag] ?? 0, $rep];
                         if ($kMelhor === null || $k > $kMelhor) {
                             $kMelhor = $k;
@@ -722,6 +747,17 @@ function escMotorAlocarV4(array $in): array {
                         $v['origem'] = $transicao ? 'TRANSICAO' : (isset($v['equipe'][$melhor]) ? ($v['vaga'] === 'DONO' ? 'VAGA_DONO' : 'VAGA_COBERTURA') : 'BUFFER_NUCLEO');
                         $v['motivo'] = ['MAIN' => 'titular (main) da página ', 'COVER' => 'cover da página '][$rodada] ?? 'equipe fixa da página ';
                         $v['motivo'] .= $equipe[$melhor];
+                        $uMelhor = $dispTurno[$melhor] ?? $overlapTurno[$melhor] ?? $u;
+                        if ($uMelhor !== $u) {
+                            $v['motivo'] .= ' (SR da U' . $uMelhor . ')';
+                        }
+                        if (!isset($dispTurno[$melhor]) && isset($overlapTurno[$melhor])) {
+                            $v['motivo'] .= ' · dia de Overlap';
+                            $v['treino'] = true; // não conta nos dias seguidos, como o Overlap
+                            foreach (array_keys($overlapUT) as $uO) {
+                                unset($overlapUT[$uO][$melhor]);
+                            }
+                        }
                         $v['fixa'] = true; // não sai da página para remanejar (A-04)
                         $usado[$melhor] = true;
                     }

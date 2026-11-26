@@ -6,6 +6,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES_EN = [
+    '1.44.0' => ['titulo' => 'Fixed team holds in every Generate: order, other unit and Overlap day', 'itens' => [
+    'What was only in locked cells of the week of 11/30 is now a rule in the records (OM restrictions › fixed team) and holds in every Generate, even "Generate from scratch", and in the next weeks: the U1 OM priorities (P1 = main, P2 = cover, P3 = team, per page), Isla Moon with 1 person per shift (A: Camila, then Italo; C: Golfeti, then Vinicius; D: Luan, then Donério) and Guilherme de Lucca on Mikayla Paid in C after Paulo Santos until 12/07 (ES_257).',
+    'Order in the fixed team: between two mains (or two covers) of the page in the same shift, the one listed first stays. The second only comes in when the first is off; on the other days they go to their own page (Italo on Nicole, Vinicius on Brandi Love, Donério on Britt).',
+    'Mains and covers from another unit go on the page (parameter v4_equipe_fixa_outra_unidade = 1; before, only by hand, locked on the Grid). U1 pages choose before U2 and U3 pages. The rest of the team stays from the page\'s unit only.',
+    'On the Overlap day, mains and covers work on their fixed page, as in the OM schedules. The day counts as training (outside the consecutive days).',
+    'The page where the SR is main or cover is exempt from "these pages only", the tier limit and the revenue range (e.g. Vinicius, Brandi Love only, also on Isla Moon).',
+    'Recalculate with the fewest changes: mains and covers from the new calculation count as locked, and the published version does not undo them.',
+    'Preview of the week of 11/30, without saving: "Recalculate all" and "fewest changes" keep the 1,120 locked cells; "Generate from scratch" repeats 1,034. The rest: Isla Moon by the new order (32), Mikayla Free still without a post until the website shows it active (28), the new hire ramp and the NH48D class nesting on Maya (14), another cover in a tie (8) and Italo on CJ on his Overlap day, a one-off for that week (4).',
+    ]],
     '1.43.1' => ['titulo' => 'Website look: contrast of the Legacy menu and gray tags', 'itens' => [
     'Menu: the active item in the Legacy group (read only) has white text on marsala, like the other active items (it was gray and failed AA contrast).',
     'The gray tag (e.g. "Operating" in Job requisitions and on screens with charts) no longer takes the chart bar color: light gray background and readable text in both themes. The chart grays in the light theme are now neutral.',

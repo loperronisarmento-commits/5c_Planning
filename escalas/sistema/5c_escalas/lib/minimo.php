@@ -80,7 +80,18 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
     $precisa = [];    // [célula] = linhas do cálculo novo (uma por vaga)
     $travCel = [];
     $plantaoNovo = [];
+    // Equipe fixa MAIN/COVER (1.44.0): regra do cadastro, vale como travada (a versão publicada não a desfaz).
+    // A pessoa fica presa àquela célula no bloco: não continua em outra página onde estava na referência.
+    $fixaEq = static fn(array $n): bool => $n['rep_code'] !== null && !empty($n['motivo'])
+        && (strpos((string) $n['motivo'], 'titular (main) da página ') === 0 || strpos((string) $n['motivo'], 'cover da página ') === 0);
+    $fixoBloco = []; // [rep][dia|bloco] = true
     foreach ($novas as $n) {
+        if (!$especial($n) && empty($n['travada']) && $fixaEq($n)) {
+            $out[] = $n;
+            $marcar($n);
+            $fixoBloco[$n['rep_code']][$bloc($n)] = true;
+            continue;
+        }
         if ($especial($n) || !empty($n['travada'])) {
             if (!empty($n['travada']) && !$especial($n)) {
                 $travCel[$cel($n)] = true;
@@ -121,6 +132,9 @@ function escMotorMinimo(array $ref, array $novas, array $pessoas, array $indisp,
         }
         $i = count($preenchida[$c] ?? []);
         $rep = $r['rep_code'];
+        if (isset($fixoBloco[$rep][$bloc($r)])) {
+            continue; // já está pela equipe fixa (nesta célula ou em outra página do bloco)
+        }
         $td = $turnoDia[$rep][$diaTurno($r)] ?? null;
         $pl = $platDe($r);
         if ($i >= count($precisa[$c]) || in_array($rep, $preenchida[$c] ?? [], true) || !$pode($rep, $r) || ($td !== null && $td !== $r['turno'])

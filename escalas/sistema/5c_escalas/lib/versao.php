@@ -8,6 +8,15 @@
 // ===============================================
 
 const ESC_PATCH_NOTES = [
+    ['versao' => '1.44.0', 'data' => '2026-11-26', 'titulo' => 'Equipe fixa vale em qualquer Gerar: ordem, outra unidade e dia de Overlap', 'sql' => ['ES_257_regras_u1_isla_moon_equipe_fixa_2611.sql'], 'itens' => [
+    'O que estava só em células travadas da semana de 30/11 virou regra no cadastro (Restrições dos OM › equipe fixa) e vale em qualquer Gerar, até no "Gerar do zero", e nas próximas semanas: as prioridades da OM da U1 (P1 = main, P2 = cover, P3 = equipe, por página), a Isla Moon com 1 pessoa por turno (A: Camila, depois Italo; C: Golfeti, depois Vinicius; D: Luan, depois Donério) e o Guilherme de Lucca na Mikayla Paid no C depois do Paulo Santos até 07/12 (ES_257).',
+    'Ordem na equipe fixa: entre dois main (ou dois cover) da página no mesmo turno, fica o que vem antes na lista. O segundo só entra quando o primeiro folga; nos outros dias vai para a página dele (Italo na Nicole, Vinicius na Brandi Love, Donério na Britt).',
+    'Main e cover de outra unidade entram na página (parâmetro v4_equipe_fixa_outra_unidade = 1; antes, só à mão, travado na Grade). As páginas da U1 escolhem antes das da U2 e da U3. O resto da equipe continua só da unidade da página.',
+    'No dia de Overlap, main e cover trabalham na página fixa, como nas escalas dos OM. O dia conta como treinamento (fora dos dias seguidos).',
+    'A página em que o SR é main ou cover fica liberada de "só estas páginas", do limite de tier e da faixa de faturamento (ex.: Vinicius, só Brandi Love, também na Isla Moon).',
+    'Recalcular com o mínimo de mudanças: main e cover do cálculo novo valem como travados, e a versão publicada não os desfaz.',
+    'Prévia da semana de 30/11, sem gravar: "Recalcular tudo" e "mínimo de mudanças" mantêm as 1.120 células travadas; o "Gerar do zero" repete 1.034. O resto: Isla Moon pela ordem nova (32), Mikayla Free ainda sem posto até o site a ver ativa (28), rampa do new hire e nesting da turma NH48D na Maya (14), outro cover no empate (8) e o Italo na CJ no dia de Overlap, que era um ajuste só daquela semana (4).',
+    ]],
     ['versao' => '1.43.1', 'data' => '2026-11-26', 'titulo' => 'Visual do site: contraste do menu Legado e das etiquetas cinza', 'itens' => [
     'Menu: o item ativo do grupo Legado (só leitura) fica com o texto branco sobre o marsala, como os outros itens ativos (estava cinza e não passava no contraste AA).',
     'Etiqueta cinza (ex.: "Operando" em Requisição de vagas e nas telas com gráficos) não pega mais a cor das barras dos gráficos: fundo cinza claro e texto legível nos dois temas. Os cinzas dos gráficos no tema claro ficaram neutros.',

@@ -206,12 +206,27 @@ function escOmRestricoes(array $est): array {
             $divPags[$rd][escV4ChavePagina((string) $x['pagina'])] = true;
         }
     }
-    $podePags = static function (string $rep, array $paginas, bool $assist = false) use ($soPags, $tierMedio, $tiersMedio, $tierMedioAlto, $tiersMedioAlto, $faixaRec, $receitaPag, $divPags, $semMasc, $pagsMasc): bool {
+    // Equipe fixa MAIN/COVER (esc_pagina_prioridade; 1.44.0): o posto com página em que o SR é titular ou cover
+    // fica liberado de "só certas páginas", tier e faixa de receita (ex.: Vinicius só na Brandi Love, mas da Isla Moon).
+    $fixoPags = [];
+    foreach ($est['prioridade'] ?? [] as $pgF => $lsF) {
+        foreach ($lsF as $prF) {
+            if (in_array($prF['papel'] ?? 'EQUIPE', ['MAIN', 'COVER'], true)) {
+                $fixoPags[$prF['rep']][escV4ChavePagina((string) $pgF)] = true;
+            }
+        }
+    }
+    $podePags = static function (string $rep, array $paginas, bool $assist = false) use ($soPags, $tierMedio, $tiersMedio, $tierMedioAlto, $tiersMedioAlto, $faixaRec, $receitaPag, $divPags, $semMasc, $pagsMasc, $fixoPags): bool {
         if (isset($semMasc[$rep])) {
             foreach ($paginas as $pg) {
                 if (isset($pagsMasc[escV4ChavePagina((string) $pg['pagina'])])) {
                     return false; // não faz página masculina (24/11), nem de assistente
                 }
+            }
+        }
+        foreach (isset($fixoPags[$rep]) ? $paginas : [] as $pg) {
+            if (empty($pg['apoio']) && isset($fixoPags[$rep][escV4ChavePagina((string) $pg['pagina'])])) {
+                return true; // titular ou cover de uma página do posto (escolha da gestão)
             }
         }
         if (isset($faixaRec[$rep]) && !$assist) {
